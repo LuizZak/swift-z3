@@ -150,6 +150,82 @@ public class Z3Context {
         return Z3Ast(ast: Z3_mk_eq(context, l.ast, r.ast))
     }
 
+    /// Create an AST node representing `distinct(args[0], ..., args[num_args-1])`.
+    ///
+    /// The `distinct` construct is used for declaring the arguments pairwise
+    /// distinct.
+    /// That is, `Forall 0 <= i < j < num_args. not args[i] = args[j]`.
+    ///
+    /// All arguments must have the same sort.
+    ///
+    /// - remark: The number of arguments of a distinct construct must be greater
+    ///  than one.
+    public func makeDistinct(_ args: [Z3Ast]) -> Z3Ast {
+        precondition(args.count > 1)
+        return preparingArgsAst(args) { (count, args) -> Z3Ast in
+            Z3Ast(ast: Z3_mk_distinct(context, count, args))
+        }
+    }
+
+    /// Create an AST node representing `not(a)`.
+    ///
+    /// The node `a` must have Boolean sort.
+    public func makeNot(_ a: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_not(context, a))
+    }
+
+    /// Create an AST node representing an if-then-else: `ite(t1, t2, t3)`.
+    ///
+    /// The node `t1` must have Boolean sort, `t2` and `t3` must have the same
+    /// sort.
+    /// The sort of the new node is equal to the sort of `t2` and `t3`.
+    public func makeIfThenElse(_ t1: Z3Ast, _ t2: Z3Ast, _ t3: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_ite(context, t1, t2, t2))
+    }
+
+    /// Create an AST node representing `t1 iff t2`.
+    ///
+    /// The nodes `t1` and `t2` must have Boolean sort.
+    public func makeIff(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_iff(context, t1, t2))
+    }
+
+    /// Create an AST node representing `t1 implies t2`.
+    ///
+    /// The nodes `t1` and `t2` must have Boolean sort.
+    public func makeImplies(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_implies(context, t1, t2))
+    }
+
+    /// Create an AST node representing `t1 xor t2`.
+    ///
+    /// The nodes `t1` and `t2` must have Boolean sort.
+    public func makeXor(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_xor(context, t1, t2))
+    }
+
+    /// Create an AST node representing `args[0] and ... and args[num_args-1]`.
+    ///
+    /// All arguments must have Boolean sort.
+    ///
+    /// - remark: The number of arguments must be greater than zero.
+    public func makeAnd(_ args: [Z3Ast]) -> Z3Ast {
+        return preparingArgsAst(args) { (count, args) -> Z3Ast in
+            return Z3Ast(ast: Z3_mk_and(context, count, args))
+        }
+    }
+
+    /// Create an AST node representing `args[0] or ... or args[num_args-1]`.
+    ///
+    /// All arguments must have Boolean sort.
+    ///
+    /// - remark: The number of arguments must be greater than zero.
+    public func makeOr(_ args: [Z3Ast]) -> Z3Ast {
+        return preparingArgsAst(args) { (count, args) -> Z3Ast in
+            return Z3Ast(ast: Z3_mk_or(context, count, args))
+        }
+    }
+
     // MARK: - Integers and Reals
 
     /// Create an AST node representing `args[0] + ... + args[num_args-1]`.
@@ -259,6 +335,107 @@ public class Z3Context {
     /// non-zero integer.
     public func makeDivides(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
         return Z3Ast(ast: Z3_mk_divides(context, t1, t2))
+    }
+
+    /// MARK: - Bit-vectors
+
+    /// Bitwise negation.
+    ///
+    /// The node `t1` must have a bit-vector sort.
+    public func makeBvNot(_ t1: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvnot(context, t1))
+    }
+
+    /// Take conjunction of bits in vector, return vector of length 1.
+    ///
+    /// The node `t1` must have a bit-vector sort.
+    public func makeBvRedAnd(_ t1: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvredand(context, t1))
+    }
+
+    /// Take disjunction of bits in vector, return vector of length 1.
+    ///
+    /// The node `t1` must have a bit-vector sort.
+    public func makeBvRedOr(_ t1: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvredor(context, t1))
+    }
+
+    /// Bitwise and.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    public func makeBvAnd(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvand(context, t1, t2))
+    }
+
+    /// Bitwise or.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    public func makeBvOr(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvor(context, t1, t2))
+    }
+
+    /// Bitwise exclusive-or.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    public func makeBvXor(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvxor(context, t1, t2))
+    }
+
+    /// Bitwise nand.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    public func makeBvNand(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvnand(context, t1, t2))
+    }
+
+    /// Bitwise nor.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    public func makeBvNor(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvnor(context, t1, t2))
+    }
+
+    /// Bitwise xnor.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    public func makeBvXnor(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvxnor(context, t1, t2))
+    }
+
+    /// Standard two's complement unary minus.
+    ///
+    /// The node `t1` must have bit-vector sort.
+    public func makeBvNeg(_ t1: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvneg(context, t1))
+    }
+
+    /// Standard two's complement addition.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    public func makeBvAdd(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvadd(context, t1, t2))
+    }
+
+    /// Standard two's complement subtraction.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    public func makeBvSub(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvsub(context, t1, t2))
+    }
+
+    /// Standard two's complement multiplication.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    public func makeBvMul(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvmul(context, t1, t2))
+    }
+
+    /// Unsigned division.
+    ///
+    /// It is defined as the `floor` of `t1/t2` if `t2` is different from zero.
+    /// If `t2` is zero, then the result is undefined.
+    public func makeBvDiv(_ t1: Z3Ast, _ t2: Z3Ast) -> Z3Ast {
+        return Z3Ast(ast: Z3_mk_bvudiv(context, t1, t2))
     }
 
     private func preparingArgsAst<T>(_ arguments: [Z3Ast], _ closure: (UInt32, UnsafePointer<Z3_ast?>) -> T) -> T {
