@@ -134,19 +134,19 @@ public class Z3Context {
     // MARK: - Propositional Logic and Equality
 
     /// Create an AST node representing `true`.
-    public func makeTrue() -> Z3Ast {
+    public func makeTrue() -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_true(context))
     }
 
     /// Create an AST node representing `false`.
-    public func makeFalse() -> Z3Ast {
+    public func makeFalse() -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_false(context))
     }
 
     /// Create an AST node representing `l = r`.
     ///
     /// The nodes `l` and `r` must have the same type.
-    public func makeEqual(_ l: Z3Ast, _ r: Z3Ast) -> Z3Ast {
+    public func makeEqual<T>(_ l: Z3Ast<T>, _ r: Z3Ast<T>) -> Z3Ast<T> {
         return Z3Ast(ast: Z3_mk_eq(context, l.ast, r.ast))
     }
 
@@ -160,9 +160,9 @@ public class Z3Context {
     ///
     /// - remark: The number of arguments of a distinct construct must be greater
     ///  than one.
-    public func makeDistinct(_ args: [Z3Ast]) -> Z3Ast {
+    public func makeDistinct<T>(_ args: [Z3Ast<T>]) -> Z3Ast<T> {
         precondition(args.count > 1)
-        return preparingArgsAst(args) { (count, args) -> Z3Ast in
+        return preparingArgsAst(args) { (count, args) -> Z3Ast<T> in
             Z3Ast(ast: Z3_mk_distinct(context, count, args))
         }
     }
@@ -170,7 +170,7 @@ public class Z3Context {
     /// Create an AST node representing `not(a)`.
     ///
     /// The node `a` must have Boolean sort.
-    public func makeNot(_ a: Z3Ast) -> Z3Ast {
+    public func makeNot(_ a: Z3Ast<BoolSort>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_not(context, a))
     }
 
@@ -438,7 +438,7 @@ public class Z3Context {
         return Z3Ast(ast: Z3_mk_bvudiv(context, t1, t2))
     }
 
-    private func preparingArgsAst<T>(_ arguments: [Z3Ast], _ closure: (UInt32, UnsafePointer<Z3_ast?>) -> T) -> T {
+    private func preparingArgsAst<T, U>(_ arguments: [Z3Ast<U>], _ closure: (UInt32, UnsafePointer<Z3_ast?>) -> T) -> T {
         let arguments: [Z3_ast?] = arguments.map { $0.ast }
         return closure(UInt32(arguments.count), arguments)
     }
