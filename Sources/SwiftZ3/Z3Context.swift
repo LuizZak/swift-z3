@@ -47,7 +47,7 @@ public class Z3Context {
     /// - seealso: `Z3_mk_int`
     /// - seealso: `Z3_mk_unsigned_int`
     /// - precondition: `den != 0`
-    public func makeReal(_ num: Int32, _ den: Int32) -> Z3Ast {
+    public func makeReal(_ num: Int32, _ den: Int32) -> Z3Ast<RealSort> {
         return Z3Ast(ast: Z3_mk_real(context, num, den))
     }
 
@@ -58,7 +58,7 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeInteger(value: Int32) -> Z3Ast {
+    public func makeInteger(value: Int32) -> Z3Ast<IntSort> {
         return Z3Ast(ast: Z3_mk_int(context, value, intSort().sort))
     }
 
@@ -70,7 +70,7 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeUnsignedInteger(value: UInt32) -> Z3Ast {
+    public func makeUnsignedInteger(value: UInt32) -> Z3Ast<RealSort> {
         return Z3Ast(ast: Z3_mk_unsigned_int(context, value, intSort().sort))
     }
 
@@ -82,7 +82,7 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeInteger64(value: Int64) -> Z3Ast {
+    public func makeInteger64(value: Int64) -> Z3Ast<RealSort> {
         return Z3Ast(ast: Z3_mk_int64(context, value, intSort().sort))
     }
 
@@ -94,7 +94,7 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeUnsignedInteger64(value: UInt64) -> Z3Ast {
+    public func makeUnsignedInteger64(value: UInt64) -> Z3Ast<UInt64Sort> {
         return Z3Ast(ast: Z3_mk_unsigned_int64(context, value, intSort().sort))
     }
 
