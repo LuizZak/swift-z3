@@ -15,6 +15,11 @@ public class Z3Optimize {
         Z3_optimize_dec_ref(context.context, optimize)
     }
 
+    /// Assert hard constraint to the optimization context.
+    public func assert(_ a: Z3Bool) {
+        Z3_optimize_assert(context.context, optimize, a.ast)
+    }
+
     /// Assert soft constraint to the optimization context.
     ///
     /// - parameter a: formula
