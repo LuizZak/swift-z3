@@ -4,9 +4,6 @@ import Z3
 
 final class SwiftZ3Tests: XCTestCase {
     func testSimpleSolver() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
         let config = Z3Config()
         config.setParameter(name: "model", value: "true")
 
@@ -29,6 +26,34 @@ final class SwiftZ3Tests: XCTestCase {
         
         if let model = solver.getModel() {
             XCTAssertEqual(model.double(right), 150)
+        } else {
+            XCTFail("Failed to get expected model")
+        }
+    }
+    
+    // TODO: Make this pass
+    func xtestBitwiseExpr() {
+        let config = Z3Config()
+        config.setParameter(name: "model", value: "true")
+        
+        let context = Z3Context(configuration: config)
+        
+        let lhs = context.makeConstant(name: "lhs", sort: BitVectorSort32.self)
+        let rhs = context.makeConstant(name: "rhs", sort: BitVectorSort32.self)
+        let res = context.makeConstant(name: "res", sort: BitVectorSort32.self)
+        
+        let lhsValue = context.makeEqual(lhs, context.makeNumeral(number: "123", sort: BitVectorSort32.self))
+        let rhsValue = context.makeEqual(rhs, context.makeNumeral(number: "3", sort: BitVectorSort32.self))
+        
+        let resValue = context.makeEqual(res, context.makeBvMul(lhs, rhs))
+        
+        let solver = context.makeSolver()
+        
+        solver.assert([lhsValue, rhsValue, resValue])
+        XCTAssertEqual(solver.check(), Z3_L_TRUE)
+        
+        if let model = solver.getModel() {
+            XCTAssertEqual(model.int(resValue), 150)
         } else {
             XCTFail("Failed to get expected model")
         }

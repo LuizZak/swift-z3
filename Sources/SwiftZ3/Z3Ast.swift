@@ -23,8 +23,8 @@ public protocol SortKind {
 }
 public protocol NumericalSort: SortKind { }
 public protocol IntegralSort: NumericalSort { }
-public protocol BitVectorSort: SortKind { }
-public protocol FloatingSort: SortKind { }
+public protocol BitVectorSort: NumericalSort { }
+public protocol FloatingSort: NumericalSort { }
 
 public struct BoolSort: SortKind {
     public static func getSort(_ context: Z3Context) -> Z3Sort {

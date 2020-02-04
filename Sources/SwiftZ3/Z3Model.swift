@@ -18,9 +18,25 @@ public class Z3Model {
     }
     
     /// Evaluates expression to a double, assuming it is a numeral already
+    ///
+    /// Returns 0, in case of failure
     public func double(_ expr: AnyZ3Ast) -> Double {
         if let ast = eval(expr, completion: true) {
             return Z3_get_numeral_double(context.context, ast.ast)
+        }
+        
+        return 0
+    }
+    
+    /// Evaluates expression to an integer, assuming it is a numeral already
+    ///
+    /// Returns 0, in case of failure
+    public func int(_ expr: AnyZ3Ast) -> Int32 {
+        if let ast = eval(expr, completion: true) {
+            var i: Int32 = 0
+            if Z3_get_numeral_int(context.context, ast.ast, &i) {
+                return i
+            }
         }
         
         return 0
