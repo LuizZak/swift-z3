@@ -15,7 +15,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "Z3",
+            name: "CZ3",
             dependencies: [],
             cSettings: [
                 .headerSearchPath("./"),
@@ -27,13 +27,13 @@ let package = Package(
             ]),
         .target(
             name: "SwiftZ3",
-            dependencies: ["Z3"]),
+            dependencies: ["CZ3"]),
         .target(
             name: "SwiftZ3Sample",
-            dependencies: ["SwiftZ3", "Z3"]),
+            dependencies: ["SwiftZ3", "CZ3"]),
         .testTarget(
             name: "SwiftZ3Tests",
-            dependencies: ["SwiftZ3", "Z3"]),
+            dependencies: ["SwiftZ3", "CZ3"]),
     ],
     cxxLanguageStandard: .cxx11
 )
