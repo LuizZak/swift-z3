@@ -131,7 +131,7 @@ public extension Z3Context {
     ///
     /// - seealso: `makeInt2Real`
     /// - seealso: `makeReal2Int`
-    func makeIsInt(_ t1: Z3Ast<RealSort>) -> Z3Ast<Bool> {
+    func makeIsInt(_ t1: Z3Ast<RealSort>) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_is_int(context, t1.ast))
     }
 }

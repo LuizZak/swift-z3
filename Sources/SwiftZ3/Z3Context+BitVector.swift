@@ -359,7 +359,7 @@ public extension Z3Context {
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
     /// The returned node is of sort Bool.
-    func makeBvAddNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>, isSigned: Bool) -> Z3Ast<Bool> {
+    func makeBvAddNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>, isSigned: Bool) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_bvadd_no_overflow(context, t1.ast, t2.ast, isSigned))
     }
     
@@ -368,7 +368,7 @@ public extension Z3Context {
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
     /// The returned node is of sort Bool.
-    func makeBvAddNoUnderflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>, isSigned: Bool) -> Z3Ast<Bool> {
+    func makeBvAddNoUnderflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>, isSigned: Bool) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_bvadd_no_underflow(context, t1.ast, t2.ast))
     }
     
@@ -377,7 +377,7 @@ public extension Z3Context {
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
     /// The returned node is of sort Bool.
-    func makeBvSubNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<Bool> {
+    func makeBvSubNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_bvsub_no_overflow(context, t1.ast, t2.ast))
     }
     
@@ -386,7 +386,7 @@ public extension Z3Context {
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
     /// The returned node is of sort Bool.
-    func makeBvSubNoUnderflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>, isSigned: Bool) -> Z3Ast<Bool> {
+    func makeBvSubNoUnderflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>, isSigned: Bool) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_bvsub_no_underflow(context, t1.ast, t2.ast, isSigned))
     }
     
@@ -395,7 +395,7 @@ public extension Z3Context {
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
     /// The returned node is of sort Bool.
-    func makeBvSDivNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<Bool> {
+    func makeBvSDivNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_bvsdiv_no_overflow(context, t1.ast, t2.ast))
     }
     
@@ -404,7 +404,7 @@ public extension Z3Context {
     ///
     /// The node `t1` must have bit-vector sort.
     /// The returned node is of sort Bool.
-    func makeBvNegNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>) -> Z3Ast<Bool> {
+    func makeBvNegNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_bvneg_no_overflow(context, t1.ast))
     }
     
@@ -413,7 +413,7 @@ public extension Z3Context {
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
     /// The returned node is of sort Bool.
-    func makeBvMulNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>, isSigned: Bool) -> Z3Ast<Bool> {
+    func makeBvMulNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>, isSigned: Bool) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_bvmul_no_overflow(context, t1.ast, t2.ast, isSigned))
     }
     
@@ -422,7 +422,7 @@ public extension Z3Context {
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
     /// The returned node is of sort Bool.
-    func makeBvMulNoUnderflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<Bool> {
+    func makeBvMulNoUnderflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_bvmul_no_underflow(context, t1.ast, t2.ast))
     }
 

@@ -99,26 +99,26 @@ public extension Z3Context {
     }
 
     /// Check for set membership.
-    func makeSetMember<T: SortKind>(element: Z3Ast<T>, set: Z3Set<T>) -> Z3Ast<Bool> {
+    func makeSetMember<T: SortKind>(element: Z3Ast<T>, set: Z3Set<T>) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_set_member(context, element.ast, set.ast))
     }
 
     /// Check for set membership.
     ///
     /// Type-erased version.
-    func makeSetMemberAny(element: AnyZ3Ast, set: AnyZ3Ast) -> Z3Ast<Bool> {
+    func makeSetMemberAny(element: AnyZ3Ast, set: AnyZ3Ast) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_set_member(context, element.ast, set.ast))
     }
 
     /// Check for subsetness of sets
-    func makeSetSubset<T: SortKind>(_ arg1: Z3Set<T>, _ arg2: Z3Set<T>) -> Z3Ast<Bool> {
+    func makeSetSubset<T: SortKind>(_ arg1: Z3Set<T>, _ arg2: Z3Set<T>) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_set_subset(context, arg1.ast, arg2.ast))
     }
 
     /// Check for subsetness of sets
     ///
     /// Type-erased version.
-    func makeSetSubsetAny(_ arg1: AnyZ3Ast, _ arg2: AnyZ3Ast) -> Z3Ast<Bool> {
+    func makeSetSubsetAny(_ arg1: AnyZ3Ast, _ arg2: AnyZ3Ast) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_set_subset(context, arg1.ast, arg2.ast))
     }
 }

@@ -1,9 +1,9 @@
 public extension Z3Ast {
-    static func == (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast<Bool> {
+    static func == (lhs: Z3Ast, rhs: Z3Ast) -> Z3Bool {
         return lhs.context.makeEqual(lhs, rhs)
     }
     
-    static func != (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast<Bool> {
+    static func != (lhs: Z3Ast, rhs: Z3Ast) -> Z3Bool {
         return lhs.context.makeNot(lhs.context.makeEqual(lhs, rhs))
     }
 
@@ -94,25 +94,25 @@ public extension Z3Ast where T: FloatingSort {
     var squareRoot: Z3Ast {
         return context.makeFpaSquareRoot(context.currentFpaRoundingMode, self)
     }
-    var isNormal: Z3Ast<Bool> {
+    var isNormal: Z3Bool {
         return context.makeFpaIsNormal(self)
     }
-    var isSubnormal: Z3Ast<Bool> {
+    var isSubnormal: Z3Bool {
         return context.makeFpaIsSubnormal(self)
     }
-    var isNan: Z3Ast<Bool> {
+    var isNan: Z3Bool {
         return context.makeFpaIsNan(self)
     }
-    var isZero: Z3Ast<Bool> {
+    var isZero: Z3Bool {
         return context.makeFpaIsZero(self)
     }
-    var isInfinite: Z3Ast<Bool> {
+    var isInfinite: Z3Bool {
         return context.makeFpaIsInfinite(self)
     }
-    var isPositive: Z3Ast<Bool> {
+    var isPositive: Z3Bool {
         return context.makeFpaIsPositive(self)
     }
-    var isNegative: Z3Ast<Bool> {
+    var isNegative: Z3Bool {
         return context.makeFpaIsNegative(self)
     }
     
@@ -120,19 +120,19 @@ public extension Z3Ast where T: FloatingSort {
         return rhs.context.makeFpaNeg(rhs)
     }
     
-    static func >= (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast<Bool> {
+    static func >= (lhs: Z3Ast, rhs: Z3Ast) -> Z3Bool {
         return lhs.context.makeFpaGeq(lhs, rhs)
     }
     
-    static func > (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast<Bool> {
+    static func > (lhs: Z3Ast, rhs: Z3Ast) -> Z3Bool {
         return lhs.context.makeFpaGt(lhs, rhs)
     }
     
-    static func <= (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast<Bool> {
+    static func <= (lhs: Z3Ast, rhs: Z3Ast) -> Z3Bool {
         return lhs.context.makeFpaLeq(lhs, rhs)
     }
     
-    static func < (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast<Bool> {
+    static func < (lhs: Z3Ast, rhs: Z3Ast) -> Z3Bool {
         return lhs.context.makeFpaLt(lhs, rhs)
     }
     
