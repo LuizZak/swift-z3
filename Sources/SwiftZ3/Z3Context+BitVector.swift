@@ -13,14 +13,14 @@ public extension Z3Context {
     /// Take conjunction of bits in vector, return vector of length 1.
     ///
     /// The node `t1` must have a bit-vector sort.
-    func makeBvRedAnd<T: BitVectorSort>(_ t1: Z3Ast<T>) -> Z3Ast<T> {
+    func makeBvRedAnd<T: BitVectorSort>(_ t1: Z3Ast<T>) -> Z3Ast<BitVectorSort1> {
         return Z3Ast(context: self, ast: Z3_mk_bvredand(context, t1.ast))
     }
 
     /// Take disjunction of bits in vector, return vector of length 1.
     ///
     /// The node `t1` must have a bit-vector sort.
-    func makeBvRedOr<T: BitVectorSort>(_ t1: Z3Ast<T>) -> Z3Ast<T> {
+    func makeBvRedOr<T: BitVectorSort>(_ t1: Z3Ast<T>) -> Z3Ast<BitVectorSort1> {
         return Z3Ast(context: self, ast: Z3_mk_bvredor(context, t1.ast))
     }
 
@@ -131,8 +131,10 @@ public extension Z3Context {
     
     /// Two's complement signed remainder (sign follows dividend).
     ///
-    /// It is defined as `t1 - (t1 /s t2) * t2`, where `/s` represents signed division.
-    /// The most significant bit (sign) of the result is equal to the most significant bit of `t1`.
+    /// It is defined as `t1 - (t1 /s t2) * t2`, where `/s` represents signed
+    /// division.
+    /// The most significant bit (sign) of the result is equal to the most
+    /// significant bit of `t1`.
     ///
     /// If `t2` is zero, then the result is undefined.
     ///
@@ -145,7 +147,7 @@ public extension Z3Context {
     
     /// Two's complement signed remainder (sign follows divisor).
     ///
-    /// If \ccode{t2} is zero, then the result is undefined.
+    /// If `t2` is zero, then the result is undefined.
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
     /// - seealso: `makeBvSRem`
@@ -233,8 +235,8 @@ public extension Z3Context {
     /// size `m` to yield a new bit-vector of size `n`, where `n = high - low + 1`.
     ///
     /// The node `t1` must have a bit-vector sort.
-    func makeExtract<T: BitVectorSort>(high: UInt32, low: UInt32, _ t1: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast<T>(context: self, ast: Z3_mk_extract(context, high, low, t1.ast))
+    func makeExtract<T: BitVectorSort>(high: UInt32, low: UInt32, _ t1: Z3Ast<T>) -> AnyZ3Ast {
+        return AnyZ3Ast(context: self, ast: Z3_mk_extract(context, high, low, t1.ast))
     }
     
     /// Sign-extend of the given bit-vector to the (signed) equivalent bit-vector

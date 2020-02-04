@@ -22,6 +22,69 @@ public extension Z3Ast where T == Bool {
     }
 }
 
+public extension Z3Ast where T: BitVectorSort {
+    static func & (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeBvAnd(lhs, rhs)
+    }
+    
+    static func | (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeBvOr(lhs, rhs)
+    }
+    
+    static func ^ (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeBvXor(lhs, rhs)
+    }
+    
+    static func + (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeBvAdd(lhs, rhs)
+    }
+    
+    static func - (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeBvSub(lhs, rhs)
+    }
+    
+    static func * (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeBvMul(lhs, rhs)
+    }
+    
+    /// Two's complement signed less than.
+    ///
+    /// It abbreviates:
+    ///
+    /// ```
+    /// (or (and (= (extract[|m-1|:|m-1|] t1) bit1)
+    ///         (= (extract[|m-1|:|m-1|] t2) bit0))
+    ///     (and (= (extract[|m-1|:|m-1|] t1) (extract[|m-1|:|m-1|] t2))
+    ///         (bvult t1 t2)))
+    /// ```
+    static func < (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeBvSlt(lhs, rhs)
+    }
+    
+    /// Two's complement signed less than or equal to.
+    static func <= (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeBvSle(lhs, rhs)
+    }
+    
+    /// Two's complement signed greater than.
+    static func > (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeBvSgt(lhs, rhs)
+    }
+    
+    /// Two's complement signed greater than or equal to.
+    static func >= (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeBvSge(lhs, rhs)
+    }
+    
+    static prefix func - (rhs: Z3Ast) -> Z3Ast {
+        return rhs.context.makeBvNeg(rhs)
+    }
+    
+    static prefix func ! (rhs: Z3Ast) -> Z3Ast {
+        return rhs.context.makeBvNot(rhs)
+    }
+}
+
 public extension Z3Ast where T: FloatingSort {
     var squareRoot: Z3Ast {
         return context.makeFpaSquareRoot(context.currentFpaRoundingMode, self)
@@ -123,82 +186,3 @@ extension Z3Ast where T: FloatingSort, T: BinaryFloatingPoint {
         return lhs.context.makeFpaDivide(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
     }
 }
-
-// MARK: - Constants Casting
-/*
-extension Z3Ast where T == Float {
-    static func + (lhs: Float, rhs: Z3Ast) -> Z3Ast {
-        let lhsFloat = rhs.context.makeFpaNumeralFloat(lhs, sort: T.self)
-        return rhs.context.makeFpaAdd(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
-    }
-    static func + (lhs: Z3Ast, rhs: Float) -> Z3Ast {
-        let rhsFloat = lhs.context.makeFpaNumeralFloat(rhs, sort: T.self)
-        return lhs.context.makeFpaAdd(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
-    }
-    
-    static func - (lhs: Float, rhs: Z3Ast) -> Z3Ast {
-        let lhsFloat = rhs.context.makeFpaNumeralFloat(lhs, sort: T.self)
-        return rhs.context.makeFpaSubtract(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
-    }
-    static func - (lhs: Z3Ast, rhs: Float) -> Z3Ast {
-        let rhsFloat = lhs.context.makeFpaNumeralFloat(rhs, sort: T.self)
-        return lhs.context.makeFpaSubtract(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
-    }
-    
-    static func * (lhs: Float, rhs: Z3Ast) -> Z3Ast {
-        let lhsFloat = rhs.context.makeFpaNumeralFloat(lhs, sort: T.self)
-        return rhs.context.makeFpaMultiply(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
-    }
-    static func * (lhs: Z3Ast, rhs: Float) -> Z3Ast {
-        let rhsFloat = lhs.context.makeFpaNumeralFloat(rhs, sort: T.self)
-        return lhs.context.makeFpaMultiply(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
-    }
-    
-    static func / (lhs: Float, rhs: Z3Ast) -> Z3Ast {
-        let lhsFloat = rhs.context.makeFpaNumeralFloat(lhs, sort: T.self)
-        return rhs.context.makeFpaDivide(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
-    }
-    static func / (lhs: Z3Ast, rhs: Float) -> Z3Ast {
-        let rhsFloat = lhs.context.makeFpaNumeralFloat(rhs, sort: T.self)
-        return lhs.context.makeFpaDivide(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
-    }
-}
-
-extension Z3Ast where T == Double {
-    static func + (lhs: Double, rhs: Z3Ast) -> Z3Ast {
-        let lhsFloat = rhs.context.makeFpaNumeralDouble(lhs, sort: T.self)
-        return rhs.context.makeFpaAdd(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
-    }
-    static func + (lhs: Z3Ast, rhs: Double) -> Z3Ast {
-        let rhsFloat = lhs.context.makeFpaNumeralDouble(rhs, sort: T.self)
-        return lhs.context.makeFpaAdd(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
-    }
-    
-    static func - (lhs: Double, rhs: Z3Ast) -> Z3Ast {
-        let lhsFloat = rhs.context.makeFpaNumeralDouble(lhs, sort: T.self)
-        return rhs.context.makeFpaSubtract(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
-    }
-    static func - (lhs: Z3Ast, rhs: Double) -> Z3Ast {
-        let rhsFloat = lhs.context.makeFpaNumeralDouble(rhs, sort: T.self)
-        return lhs.context.makeFpaSubtract(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
-    }
-    
-    static func * (lhs: Double, rhs: Z3Ast) -> Z3Ast {
-        let lhsFloat = rhs.context.makeFpaNumeralDouble(lhs, sort: T.self)
-        return rhs.context.makeFpaMultiply(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
-    }
-    static func * (lhs: Z3Ast, rhs: Double) -> Z3Ast {
-        let rhsFloat = lhs.context.makeFpaNumeralDouble(rhs, sort: T.self)
-        return lhs.context.makeFpaMultiply(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
-    }
-    
-    static func / (lhs: Double, rhs: Z3Ast) -> Z3Ast {
-        let lhsFloat = rhs.context.makeFpaNumeralDouble(lhs, sort: T.self)
-        return rhs.context.makeFpaDivide(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
-    }
-    static func / (lhs: Z3Ast, rhs: Double) -> Z3Ast {
-        let rhsFloat = lhs.context.makeFpaNumeralDouble(rhs, sort: T.self)
-        return lhs.context.makeFpaDivide(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
-    }
-}
-*/

@@ -75,8 +75,8 @@ public extension Z3Context {
     /// - Parameter sbits: number of significand bits
     ///
     /// - remark: `ebits` must be larger than 1 and `sbits` must be larger than 2.
-    func floatingPointSort(ebits: UInt32, sbits: UInt32) -> AnyZ3Ast {
-        return AnyZ3Ast(context: self, ast: Z3_mk_fpa_sort(context, ebits, sbits))
+    func floatingPointSort(ebits: UInt32, sbits: UInt32) -> Z3Sort {
+        return Z3Sort(sort: Z3_mk_fpa_sort(context, ebits, sbits))
     }
     
     /// Create the half-precision (16-bit) FloatingPoint sort.
