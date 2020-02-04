@@ -1,4 +1,4 @@
-import Z3
+import CZ3
 
 public class AnyZ3Ast {
     internal var context: Z3Context

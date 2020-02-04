@@ -1,4 +1,4 @@
-import Z3
+import CZ3
 
 public class Z3Context {
     private var cachedFpaRoundingMode: Z3Ast<RoundingMode>?

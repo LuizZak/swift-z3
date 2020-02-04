@@ -1,4 +1,4 @@
-import Z3
+import CZ3
 
 public extension Z3Context {
     /// Return `Z3_INT_SYMBOL` if the symbol was constructed using `makeIntSymbol`,

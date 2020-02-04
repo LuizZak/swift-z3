@@ -156,38 +156,38 @@ public extension Z3Ast where T: FloatingSort {
 extension Z3Ast where T: FloatingSort, T: BinaryFloatingPoint {
     // MARK: - Constants Casting
     static func + (lhs: T, rhs: Z3Ast) -> Z3Ast {
-        let lhsFloat = rhs.context.makeFpaNumeralDouble(Double(lhs), sort: T.self)
+        let lhsFloat = rhs.context.makeFpaNumeral(lhs)
         return rhs.context.makeFpaAdd(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
     }
     static func + (lhs: Z3Ast, rhs: T) -> Z3Ast {
-        let rhsFloat = lhs.context.makeFpaNumeralDouble(Double(rhs), sort: T.self)
+        let rhsFloat = lhs.context.makeFpaNumeral(rhs)
         return lhs.context.makeFpaAdd(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
     }
     
     static func - (lhs: T, rhs: Z3Ast) -> Z3Ast {
-        let lhsFloat = rhs.context.makeFpaNumeralDouble(Double(lhs), sort: T.self)
+        let lhsFloat = rhs.context.makeFpaNumeral(lhs)
         return rhs.context.makeFpaSubtract(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
     }
     static func - (lhs: Z3Ast, rhs: T) -> Z3Ast {
-        let rhsFloat = lhs.context.makeFpaNumeralDouble(Double(rhs), sort: T.self)
+        let rhsFloat = lhs.context.makeFpaNumeral(rhs)
         return lhs.context.makeFpaSubtract(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
     }
     
     static func * (lhs: T, rhs: Z3Ast) -> Z3Ast {
-        let lhsFloat = rhs.context.makeFpaNumeralDouble(Double(lhs), sort: T.self)
+        let lhsFloat = rhs.context.makeFpaNumeral(lhs)
         return rhs.context.makeFpaMultiply(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
     }
     static func * (lhs: Z3Ast, rhs: T) -> Z3Ast {
-        let rhsFloat = lhs.context.makeFpaNumeralDouble(Double(rhs), sort: T.self)
+        let rhsFloat = lhs.context.makeFpaNumeral(rhs)
         return lhs.context.makeFpaMultiply(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
     }
     
     static func / (lhs: T, rhs: Z3Ast) -> Z3Ast {
-        let lhsFloat = rhs.context.makeFpaNumeralDouble(Double(lhs), sort: T.self)
+        let lhsFloat = rhs.context.makeFpaNumeral(lhs)
         return rhs.context.makeFpaDivide(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
     }
     static func / (lhs: Z3Ast, rhs: T) -> Z3Ast {
-        let rhsFloat = lhs.context.makeFpaNumeralDouble(Double(rhs), sort: T.self)
+        let rhsFloat = lhs.context.makeFpaNumeral(rhs)
         return lhs.context.makeFpaDivide(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
     }
 }

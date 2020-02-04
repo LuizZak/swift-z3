@@ -1,4 +1,4 @@
-import Z3
+import CZ3
 
 public extension Z3Context {
     // MARK: - Floating-Point Arighmetic
@@ -245,8 +245,8 @@ public extension Z3Context {
     /// - Parameters:
     ///   - rm: term of RoundingMode sort
     func makeFpaSubtract<T: FloatingSort>(_ rm: Z3Ast<RoundingMode>,
-                                     _ t1: Z3Ast<T>,
-                                     _ t2: Z3Ast<T>) -> Z3Ast<T> {
+                                          _ t1: Z3Ast<T>,
+                                          _ t2: Z3Ast<T>) -> Z3Ast<T> {
         
         return Z3Ast(context: self, ast: Z3_mk_fpa_sub(context, rm.ast, t1.ast, t2.ast))
     }
@@ -259,8 +259,8 @@ public extension Z3Context {
     /// - Parameters:
     ///   - rm: term of RoundingMode sort
     func makeFpaMultiply<T: FloatingSort>(_ rm: Z3Ast<RoundingMode>,
-                                     _ t1: Z3Ast<T>,
-                                     _ t2: Z3Ast<T>) -> Z3Ast<T> {
+                                          _ t1: Z3Ast<T>,
+                                          _ t2: Z3Ast<T>) -> Z3Ast<T> {
         
         return Z3Ast(context: self, ast: Z3_mk_fpa_mul(context, rm.ast, t1.ast, t2.ast))
     }
@@ -389,7 +389,8 @@ public extension Z3Context {
         return Z3Ast(context: self, ast: Z3_mk_fpa_is_positive(context, t.ast))
     }
     
-    /// Conversion of a single IEEE 754-2008 bit-vector into a floating-point number.
+    /// Conversion of a single IEEE 754-2008 bit-vector into a floating-point
+    /// number.
     ///
     /// Produces a term that represents the conversion of a bit-vector term `bv`
     /// to a floating-point term of sort `sort`.

@@ -1,5 +1,5 @@
 import XCTest
-import Z3
+import CZ3
 @testable import SwiftZ3
 
 final class SwiftZ3Tests: XCTestCase {

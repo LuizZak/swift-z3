@@ -1,4 +1,4 @@
-import Z3
+import CZ3
 
 public class Z3Optimize {
     var context: Z3Context
