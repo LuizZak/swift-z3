@@ -1,21 +1,98 @@
 import Z3
 
-public class Z3Ast<T: SortKind> {
+public class AnyZ3Ast {
     internal var ast: Z3_ast
 
     init(ast: Z3_ast) {
         self.ast = ast
     }
+    
+    /// An unsafe cast from a generic `AnyZ3Ast` or a specialized `Z3Ast` to
+    /// another specialized `Z3Ast` type
+    public func castTo<T: SortKind>() -> Z3Ast<T> {
+        return Z3Ast<T>(ast: ast)
+    }
 }
 
-public protocol SortKind {
+public class Z3Ast<T: SortKind>: AnyZ3Ast {
     
 }
 
-public struct BoolSort: SortKind { }
-public struct IntSort: SortKind { }
-public struct UIntSort: SortKind { }
-public struct Int64Sort: SortKind { }
-public struct UInt64Sort: SortKind { }
-public struct BitVectorSort: SortKind { }
-public struct RealSort: SortKind { }
+public protocol SortKind {
+    static func getSort(_ context: Z3Context) -> Z3Sort
+}
+public protocol NumericalSort: SortKind { }
+public protocol IntegralSort: NumericalSort { }
+public protocol BitVectorSort: SortKind { }
+public protocol FloatingSort: SortKind { }
+
+public struct BoolSort: SortKind {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.boolSort()
+    }
+}
+public struct IntSort: IntegralSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.intSort()
+    }
+}
+public struct UIntSort: IntegralSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.intSort()
+    }
+}
+public struct Int64Sort: IntegralSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.intSort()
+    }
+}
+public struct UInt64Sort: IntegralSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.intSort()
+    }
+}
+public struct BitVectorSort8: BitVectorSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.bitVectorSort(size: 8)
+    }
+}
+public struct BitVectorSort16: BitVectorSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.bitVectorSort(size: 16)
+    }
+}
+public struct BitVectorSort32: BitVectorSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.bitVectorSort(size: 32)
+    }
+}
+public struct BitVectorSort64: BitVectorSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.bitVectorSort(size: 64)
+    }
+}
+public struct RealSort: NumericalSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.realSort()
+    }
+}
+public struct FP16Sort: NumericalSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.floatingPoint16Sort()
+    }
+}
+public struct FP32Sort: FloatingSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.floatingPoint32Sort()
+    }
+}
+public struct FP64Sort: FloatingSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.floatingPoint64Sort()
+    }
+}
+public struct FP128Sort: FloatingSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.floatingPoint128Sort()
+    }
+}
