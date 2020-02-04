@@ -137,17 +137,49 @@ public class Z3Solver {
     public func fromString(_ s: String) {
         Z3_solver_from_string(context.context, solver, s)
     }
-    
-    /// Asserts a series of constraints into the solver.
-    ///
-    /// The methods `check` and `checkAssumptions` should be used to check whether
-    /// the logical context is consistent or not.
-    public func assert(_ expressions: [Z3Bool]) {
-        for exp in expressions {
-            assert(exp)
-        }
+
+    /// Return the set of asserted formulas on the solver.
+    public func getAssertions() -> Z3AstVector {
+        let astVector = Z3_solver_get_assertions(context.context, solver)
+
+        return Z3AstVector(context: context, astVector: astVector!)
     }
-    
+
+    /// Return the set of units modulo model conversion.
+    public func getUnits() -> Z3AstVector {
+        let astVector = Z3_solver_get_units(context.context, solver)
+
+        return Z3AstVector(context: context, astVector: astVector!)
+    }
+
+    /// Return the trail modulo model conversion, in order of decision level
+    /// The decision level can be retrieved using `getLevel()` based on the trail.
+    public func getTrail() -> Z3AstVector {
+        let astVector = Z3_solver_get_trail(context.context, solver)
+
+        return Z3AstVector(context: context, astVector: astVector!)
+    }
+
+    /// Return the set of non units in the solver state.
+    public func getNonUnits() -> Z3AstVector {
+        let astVector = Z3_solver_get_non_units(context.context, solver)
+
+        return Z3AstVector(context: context, astVector: astVector!)
+    }
+
+    /// retrieve the decision depth of Boolean literals (variables or their
+    /// negations).
+    /// Assumes a check-sat call and no other calls (to extract models) have
+    /// been invoked.
+    public func getLevels(_ literals: Z3AstVector, count: UInt32) -> [UInt32] {
+        var levels: [UInt32] = (0..<count).map { _ in 0 }
+
+        Z3_solver_get_levels(context.context, solver, literals.astVector,
+                             count, &levels)
+
+        return levels
+    }
+
     /// Check whether the assertions in a given solver are consistent or not.
     ///
     /// The method `getModel()` retrieves a model if the assertions is satisfiable
@@ -167,11 +199,40 @@ public class Z3Solver {
     /// Check whether the assertions in the given solver and optional assumptions
     /// are consistent or not.
     ///
-    /// The function #Z3_solver_get_unsat_core retrieves the subset of the
+    /// The function `getUnsatCore()` retrieves the subset of the
     /// assumptions used in the unsatisfiability proof produced by Z3.
     public func checkAssumptions(_ assumptions: [AnyZ3Ast]) -> Z3_lbool {
         return preparingArgsAst(assumptions) { count, assumptions in
             Z3_solver_check_assumptions(context.context, solver, count, assumptions)
+        }
+    }
+
+    /// Retrieve consequences from solver that determine values of the supplied
+    /// function symbols.
+    public func getConsequences(assumptions: [Z3Bool],
+                                variables: [AnyZ3Ast],
+                                consequences: Z3AstVector) -> Z3_lbool {
+
+        let asms = Z3AstVector(context: context)
+        let vars = Z3AstVector(context: context)
+
+        for asm in assumptions {
+            asms.push(asm)
+        }
+        for v in variables {
+            vars.push(v)
+        }
+
+        return Z3_solver_get_consequences(context.context, solver, asms, vars, consequences)
+    }
+
+    /// Asserts a series of constraints into the solver.
+    ///
+    /// The methods `check` and `checkAssumptions` should be used to check whether
+    /// the logical context is consistent or not.
+    public func assert(_ expressions: [Z3Bool]) {
+        for exp in expressions {
+            assert(exp)
         }
     }
 

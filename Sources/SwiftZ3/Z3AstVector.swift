@@ -26,6 +26,13 @@ public class Z3AstVector {
         }
     }
 
+    init(context: Z3Context) {
+        self.context = context
+
+        astVector = Z3_mk_ast_vector(context)
+        Z3_ast_vector_inc_ref(context.context, astVector)
+    }
+
     init(context: Z3Context, astVector: Z3_ast_vector) {
         self.context = context
         self.astVector = astVector
@@ -35,5 +42,9 @@ public class Z3AstVector {
 
     deinit {
         Z3_ast_vector_dec_ref(context.context, astVector)
+    }
+
+    public func push(_ ast: AnyZ3Ast) {
+        Z3_ast_vector_push(context.context, astVector, ast.ast)
     }
 }
