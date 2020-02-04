@@ -6,6 +6,11 @@ public extension Z3Ast {
     static func != (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast<Bool> {
         return lhs.context.makeNot(lhs.context.makeEqual(lhs, rhs))
     }
+
+    /// Array read.
+    subscript<D, R>(index: Z3Ast<D>) -> Z3Ast<R> where T == ArraySort<D, R> {
+        return context.makeSelect(self, index)
+    }
 }
 
 public extension Z3Ast where T == Bool {

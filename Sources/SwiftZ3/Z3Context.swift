@@ -90,6 +90,18 @@ public class Z3Context {
         return Z3Ast(context: self, ast: Z3_mk_int(context, value, intSort().sort))
     }
 
+    /// Create a numeral of a bit-vector.
+    ///
+    /// This method can be used to create numerals that fit in a machine integer.
+    /// It is slightly faster than makeNumeral since it is not necessary to
+    /// parse a string.
+    ///
+    /// - seealso: `Z3_mk_numeral`
+    public func makeIntegerBv(value: Int32) -> Z3Ast<BitVectorOfInt<Int32>> {
+        return Z3Ast(context: self,
+                     ast: Z3_mk_int(context, value, bitVectorSort(size: 32).sort))
+    }
+
     /// Create a numeral of an int, bit-vector, or finite-domain sort.
     ///
     /// This method can be used to create numerals that fit in a machine unsigned
@@ -100,6 +112,18 @@ public class Z3Context {
     /// - seealso: `Z3_mk_numeral`
     public func makeUnsignedInteger(value: UInt32) -> Z3Ast<UInt32> {
         return Z3Ast(context: self, ast: Z3_mk_unsigned_int(context, value, intSort().sort))
+    }
+
+    /// Create a numeral of a bit-vector.
+    ///
+    /// This method can be used to create numerals that fit in a machine integer.
+    /// It is slightly faster than makeNumeral since it is not necessary to
+    /// parse a string.
+    ///
+    /// - seealso: `Z3_mk_numeral`
+    public func makeUnsignedIntegerBv(value: UInt32) -> Z3Ast<BitVectorOfInt<UInt32>> {
+        return Z3Ast(context: self,
+                     ast: Z3_mk_unsigned_int(context, value, bitVectorSort(size: 32).sort))
     }
 
     /// Create a numeral of an int, bit-vector, or finite-domain sort.
@@ -114,6 +138,18 @@ public class Z3Context {
         return Z3Ast(context: self, ast: Z3_mk_int64(context, value, intSort().sort))
     }
 
+    /// Create a numeral of a bit-vector.
+    ///
+    /// This method can be used to create numerals that fit in a machine `Int64`
+    /// integer.
+    /// It is slightly faster than makeNumeral since it is not necessary to
+    /// parse a string.
+    ///
+    /// - seealso: `Z3_mk_numeral`
+    public func makeInteger64Bv(value: Int64) -> Z3Ast<BitVectorOfInt<Int64>> {
+        return Z3Ast(context: self, ast: Z3_mk_int64(context, value, bitVectorSort(size: 64).sort))
+    }
+
     /// Create a numeral of an int, bit-vector, or finite-domain sort.
     ///
     /// This method can be used to create numerals that fit in a machine `UInt64`
@@ -124,5 +160,17 @@ public class Z3Context {
     /// - seealso: `Z3_mk_numeral`
     public func makeUnsignedInteger64(value: UInt64) -> Z3Ast<UInt64> {
         return Z3Ast(context: self, ast: Z3_mk_unsigned_int64(context, value, intSort().sort))
+    }
+
+    /// Create a numeral of a bit-vector.
+    ///
+    /// This method can be used to create numerals that fit in a machine `Int64`
+    /// integer.
+    /// It is slightly faster than makeNumeral since it is not necessary to
+    /// parse a string.
+    ///
+    /// - seealso: `Z3_mk_numeral`
+    public func makeUnsignedInteger64Bv(value: UInt64) -> Z3Ast<BitVectorOfInt<UInt64>> {
+        return Z3Ast(context: self, ast: Z3_mk_unsigned_int64(context, value, bitVectorSort(size: 64).sort))
     }
 }

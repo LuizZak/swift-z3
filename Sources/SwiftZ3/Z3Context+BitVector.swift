@@ -425,4 +425,11 @@ public extension Z3Context {
     func makeBvMulNoUnderflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_bvmul_no_underflow(context, t1.ast, t2.ast))
     }
+
+    /// Create a bit-vector numeral from a vector of Booleans.
+    ///
+    /// - seealso: `makeNumeral`
+    func makeBvNumeral(_ bits: [Bool]) -> AnyZ3Ast {
+        return AnyZ3Ast(context: self, ast: Z3_mk_bv_numeral(context, UInt32(bits.count), bits))
+    }
 }

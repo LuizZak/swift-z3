@@ -59,7 +59,7 @@ final class SwiftZ3Tests: XCTestCase {
     }
     
     // TODO: Make this pass
-    func xtestBitwiseExpr() {
+    func testBitwiseExpr() {
         let config = Z3Config()
         config.setParameter(name: "model", value: "true")
         
@@ -68,11 +68,12 @@ final class SwiftZ3Tests: XCTestCase {
         let lhs = context.makeConstant(name: "lhs", sort: BitVectorSort32.self)
         let rhs = context.makeConstant(name: "rhs", sort: BitVectorSort32.self)
         let res = context.makeConstant(name: "res", sort: BitVectorSort32.self)
-        
-        let lhsValue = context.makeEqual(lhs, context.makeNumeral(number: "123", sort: BitVectorSort32.self))
-        let rhsValue = context.makeEqual(rhs, context.makeNumeral(number: "3", sort: BitVectorSort32.self))
+
+        let lhsValue = context.makeEqual(lhs, context.makeIntegerBv(value: 123))
+        let rhsValue = context.makeEqual(rhs, context.makeIntegerBv(value: 3))
         
         let resValue = context.makeEqual(res, context.makeBvMul(lhs, rhs))
+        let resValueInt = context.makeBv2Int(res, isSigned: true)
         
         let solver = context.makeSolver()
         
@@ -80,7 +81,7 @@ final class SwiftZ3Tests: XCTestCase {
         XCTAssertEqual(solver.check(), Z3_L_TRUE)
         
         if let model = solver.getModel() {
-            XCTAssertEqual(model.int(resValue), 150)
+            XCTAssertEqual(model.int(resValueInt), 369)
         } else {
             XCTFail("Failed to get expected model")
         }
