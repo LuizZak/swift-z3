@@ -7,6 +7,13 @@ public protocol IntegralSort: IntOrRealSort { }
 public protocol BitVectorSort: NumericalSort { }
 public protocol FloatingSort: NumericalSort { }
 
+public struct ArraySort<Domain: SortKind, Range: SortKind>: SortKind {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.makeArraySort(domain: Domain.getSort(context),
+                                     range: Range.getSort(context))
+    }
+}
+
 // MARK: - Bool
 extension Bool: SortKind {
     public static func getSort(_ context: Z3Context) -> Z3Sort {

@@ -73,8 +73,8 @@ public extension Z3Context {
     ///
     /// - seealso: `makeSelect`
     /// - seealso: `makeStore`
-    func makeArraySort(domain: Z3Symbol, range: Z3Symbol) -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_array_sort(context, domain.symbol, range.symbol))
+    func makeArraySort(domain: Z3Sort, range: Z3Sort) -> Z3Sort {
+        return Z3Sort(sort: Z3_mk_array_sort(context, domain.sort, range.sort))
     }
 
     /// Create an array type with N arguments
