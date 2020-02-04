@@ -35,11 +35,18 @@ public class Z3Context {
     
     // MARK: - Sorts
     
+    /// Create a free (uninterpreted) type using the given name (symbol).
+    ///
+    /// Two free types are considered the same iff the have the same name.
+    public func makeUninterpretedSort(_ symbol: Z3Symbol) -> Z3Sort {
+        return Z3Sort(sort: Z3_mk_uninterpreted_sort(context, symbol.symbol))
+    }
+    
     /// Create the integer type.
     ///
     /// This type is not the int type found in programming languages.
     /// A machine integer can be represented using bit-vectors. The function
-    /// `Z3_mk_bv_sort` creates a bit-vector type.
+    /// `bitVectorSort(size:)` creates a bit-vector type.
     ///
     /// - seealso: `Z3_mk_bv_sort`
     public func intSort() -> Z3Sort {
@@ -66,6 +73,72 @@ public class Z3Context {
     public func bitVectorSort(size: UInt32) -> Z3Sort {
         precondition(size > 0)
         return Z3Sort(sort: Z3_mk_bv_sort(context, size))
+    }
+    
+    /// Create a named finite domain sort.
+    ///
+    /// To create constants that belong to the finite domain, use the APIs for
+    /// creating numerals and pass a numeric constant together with the sort
+    /// returned by this call. The numeric constant should be between 0 and
+    /// the less than the size of the domain.
+    ///
+    /// - seealso: `getFiniteDomainSortSize`
+    public func makeFiniteDomainSort(name: Z3Symbol, size: UInt64) -> Z3Sort {
+        return Z3Sort(sort: Z3_mk_finite_domain_sort(context, name.symbol, size))
+    }
+    
+    /// Create an array type.
+    ///
+    /// We usually represent the array type as: `[domain -> range]`.
+    /// Arrays are usually used to model the heap/memory in software verification.
+    ///
+    /// - seealso: `makeSelect`
+    /// - seealso: `makeStore`
+    public func makeArraySort(domain: Z3Symbol, range: Z3Symbol) -> Z3Sort {
+        return Z3Sort(sort: Z3_mk_array_sort(context, domain.symbol, range.symbol))
+    }
+    
+    /// Create an array type with N arguments
+    ///
+    /// - seealso `makeSelectN`
+    /// - seealso `makeStoreN`
+    public func makeArraySortN(domains: [Z3Sort], range: Z3Sort) -> Z3Sort {
+        let domains = domains.map { $0.sort as Z3_sort? }
+        return Z3Sort(sort: Z3_mk_array_sort_n(context, UInt32(domains.count), domains, range.sort))
+    }
+    
+    /// Create a tuple type.
+    ///
+    /// A tuple with `n` fields has a constructor and `n` projections.
+    /// This function will also declare the constructor and projection functions.
+    ///
+    /// - parameter mkTupleName: name of the constructor function associated
+    /// with the tuple type.
+    /// - parameter fieldNames: name of the projection functions.
+    /// - parameter fieldSorts: type of the tuple fields. Must be at least the
+    /// same size as `fieldNames`.
+    /// - returns:
+    /// A tuple containing:
+    ///   - `mkTupleDecl`: output that will contain the constructor declaration.
+    ///   - `projDecl`: output that will contain the projection function declarations.
+    ///   - `tupleSort`: the proper generated tuple sort
+    public func makeTupleSort(mkTupleName: Z3Symbol, fieldNames: [Z3Symbol],
+                              fieldSorts: [Z3Sort]) -> (mkTupleDecl: Z3FuncDecl, projDecl: [Z3FuncDecl], tupleSort: Z3Sort) {
+        
+        let fieldNames: [Z3_symbol?] = fieldNames.map { $0.symbol }
+        let fieldSorts: [Z3_sort?] = fieldSorts.map { $0.sort }
+        
+        var mkTupleDecl: Z3_func_decl?
+        var projDecl: [Z3_func_decl?] = fieldNames.map { _ in nil }
+        
+        let sort = Z3_mk_tuple_sort(context, mkTupleName.symbol, UInt32(fieldNames.count),
+                                    fieldNames, fieldSorts, &mkTupleDecl, &projDecl)
+        
+        return (
+            Z3FuncDecl(funcDecl: mkTupleDecl!),
+            projDecl.map { Z3FuncDecl(funcDecl: $0!) },
+            Z3Sort(sort: sort!)
+        )
     }
 
     // MARK: -
