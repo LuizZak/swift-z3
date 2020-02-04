@@ -17,7 +17,7 @@ public extension Z3Context {
 
     /// Array read.
     ///
-    /// Type-erased overload
+    /// Type-erased overload.
     ///
     /// The argument `a` is the array and `i` is the index of the array that
     /// gets read.
@@ -43,7 +43,7 @@ public extension Z3Context {
 
     /// n-ary Array read.
     ///
-    /// Type-erased overload
+    /// Type-erased overload.
     ///
     /// The argument `a` is the array and `idxs` are the indices of the array
     /// that gets read.
