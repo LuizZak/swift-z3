@@ -30,6 +30,16 @@ public class Z3Solver {
         Z3_solver_assert(context.context, solver, exp.ast)
     }
     
+    /// Asserts a series of constraints into the solver.
+    ///
+    /// The methods `check` and `checkAssumptions` should be used to check whether
+    /// the logical context is consistent or not.
+    public func assert(_ expressions: [Z3Ast<BoolSort>]) {
+        for exp in expressions {
+            assert(exp)
+        }
+    }
+    
     /// Check whether the assertions in a given solver are consistent or not.
     ///
     /// The method `getModel()` retrieves a model if the assertions is satisfiable

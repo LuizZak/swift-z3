@@ -154,7 +154,7 @@ public class Z3Context {
     /// Create an AST node representing `l = r`.
     ///
     /// The nodes `l` and `r` must have the same type.
-    public func makeEqual<T>(_ l: Z3Ast<T>, _ r: Z3Ast<T>) -> Z3Ast<T> {
+    public func makeEqual<T>(_ l: Z3Ast<T>, _ r: Z3Ast<T>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_eq(context, l.ast, r.ast))
     }
 
@@ -168,9 +168,9 @@ public class Z3Context {
     ///
     /// - remark: The number of arguments of a distinct construct must be greater
     ///  than one.
-    public func makeDistinct<T>(_ args: [Z3Ast<T>]) -> Z3Ast<T> {
+    public func makeDistinct<T>(_ args: [Z3Ast<T>]) -> Z3Ast<BoolSort> {
         precondition(args.count > 1)
-        return preparingArgsAst(args) { (count, args) -> Z3Ast<T> in
+        return preparingArgsAst(args) { (count, args) -> Z3Ast<BoolSort> in
             Z3Ast(ast: Z3_mk_distinct(context, count, args))
         }
     }
