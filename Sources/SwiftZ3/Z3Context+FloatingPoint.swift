@@ -299,80 +299,80 @@ public extension Z3Context {
     
     /// Floating-point roundToIntegral. Rounds a floating-point number to
     /// the closest integer, again represented as a floating-point number.
-    func makeFpaRoundToIntegral<T: FloatingPoint>(_ rm: Z3Ast<RoundingMode>,
-                                                  _ t: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_round_to_integral(context, rm, t.ast))
+    func makeFpaRoundToIntegral<T: FloatingSort>(_ rm: Z3Ast<RoundingMode>,
+                                                 _ t: Z3Ast<T>) -> Z3Ast<T> {
+        return Z3Ast(ast: Z3_mk_fpa_round_to_integral(context, rm.ast, t.ast))
     }
     
     /// Minimum of floating-point numbers.
-    func makeFpaMin<T: FloatingPoint>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
+    func makeFpaMin<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
         return Z3Ast(ast: Z3_mk_fpa_min(context, t1.ast, t2.ast))
     }
     
     /// Maximum of floating-point numbers.
-    func makeFpaMax<T: FloatingPoint>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
+    func makeFpaMax<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
         return Z3Ast(ast: Z3_mk_fpa_max(context, t1.ast, t2.ast))
     }
     
     /// Floating-point less than or equal.
-    func makeFpaLeq<T: FloatingPoint>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaLeq<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_fpa_leq(context, t1.ast, t2.ast))
     }
     
     /// Floating-point less than.
-    func makeFpaLt<T: FloatingPoint>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaLt<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_fpa_lt(context, t1.ast, t2.ast))
     }
     
     /// Floating-point greater than or equal.
-    func makeFpaGeq<T: FloatingPoint>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaGeq<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_fpa_geq(context, t1.ast, t2.ast))
     }
     
     /// Floating-point greater than.
-    func makeFpaGt<T: FloatingPoint>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaGt<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_fpa_gt(context, t1.ast, t2.ast))
     }
     
     /// Floating-point equality.
-    func makeFpaEq<T: FloatingPoint>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaEq<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_fpa_eq(context, t1.ast, t2.ast))
     }
     
     /// Predicate indicating whether `t` is a normal floating-point number.
-    func makeFpaIsNormal<T: FloatingPoint>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsNormal<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_fpa_is_normal(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a subnormal floating-point number.
-    func makeFpaIsSubnormal<T: FloatingPoint>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsSubnormal<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_fpa_is_subnormal(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a floating-point number with zero
     /// value, i.e., +zero or -zero.
-    func makeFpaIsZero<T: FloatingPoint>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsZero<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_fpa_is_zero(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a floating-point number representing
     /// +oo or -oo.
-    func makeFpaIsZero<T: FloatingPoint>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_is_zero(context, t.ast))
+    func makeFpaIsInfinite<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+        return Z3Ast(ast: Z3_mk_fpa_is_infinite(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a NaN.
-    func makeFpaIsNan<T: FloatingPoint>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsNan<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_fpa_is_nan(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a negative floating-point number.
-    func makeFpaIsNegative<T: FloatingPoint>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsNegative<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_fpa_is_negative(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a positive floating-point number.
-    func makeFpaIsPositive<T: FloatingPoint>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsPositive<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
         return Z3Ast(ast: Z3_mk_fpa_is_positive(context, t.ast))
     }
     

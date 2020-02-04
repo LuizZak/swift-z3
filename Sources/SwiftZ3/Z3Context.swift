@@ -11,6 +11,10 @@ public class Z3Context {
         Z3_del_context(context)
     }
     
+    public func makeSolver() -> Z3Solver {
+        return Z3Solver(context: self, solver: Z3_mk_solver(context))
+    }
+    
     // MARK: - Sorts
     
     /// Create the integer type.
@@ -677,10 +681,5 @@ public class Z3Context {
     /// The node `t1` must have integer sort.
     public func makeInt2BV<T: IntegralSort>(_ n: UInt32, _ t1: Z3Ast<T>) -> AnyZ3Ast {
         return AnyZ3Ast(ast: Z3_mk_int2bv(context, n, t1.ast))
-    }
-    
-    private func preparingArgsAst<T, U>(_ arguments: [Z3Ast<U>], _ closure: (UInt32, UnsafePointer<Z3_ast?>) -> T) -> T {
-        let arguments: [Z3_ast?] = arguments.map { $0.ast }
-        return closure(UInt32(arguments.count), arguments)
     }
 }
