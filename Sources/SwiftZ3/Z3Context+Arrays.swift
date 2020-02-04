@@ -11,7 +11,7 @@ public extension Z3Context {
     ///
     /// - `makeArraySort`
     /// - `makeStore`
-    func makeSelect<D, R>(_ a: Z3Ast<ArraySort<D, R>>, _ i: Z3Ast<D>) -> Z3Ast<R> {
+    func makeSelect<D, R>(_ a: Z3Array<D, R>, _ i: Z3Ast<D>) -> Z3Ast<R> {
         return Z3Ast(context: self, ast: Z3_mk_select(context, a.ast, i.ast))
     }
 
@@ -35,7 +35,7 @@ public extension Z3Context {
     ///
     /// The argument `a` is the array and `idxs` are the indices of the array
     /// that gets read.
-    func makeSelectN<D, R>(_ a: Z3Ast<ArraySort<D, R>>, _ idxs: [Z3Ast<D>]) -> AnyZ3Ast {
+    func makeSelectN<D, R>(_ a: Z3Array<D, R>, _ idxs: [Z3Ast<D>]) -> AnyZ3Ast {
         let idxs = idxs.toZ3_astPointerArray()
 
         return AnyZ3Ast(context: self, ast: Z3_mk_select_n(context, a.ast, UInt32(idxs.count), idxs))
@@ -63,7 +63,7 @@ public extension Z3Context {
     /// The result of this function is an array that is equal to `a` (with respect
     /// to `select`) on all indices except for `i`, where it maps to `v` (and
     /// the `select` of `a` with respect to `i` may be a different value).
-    func makeStore<D, R>(_ a: Z3Ast<ArraySort<D, R>>, _ i: Z3Ast<D>, _ v: Z3Ast<R>) -> Z3Ast<ArraySort<D, R>> {
+    func makeStore<D, R>(_ a: Z3Array<D, R>, _ i: Z3Ast<D>, _ v: Z3Ast<R>) -> Z3Array<D, R> {
         return Z3Ast(context: self, ast: Z3_mk_store(context, a.ast, i.ast, v.ast))
     }
 
@@ -84,7 +84,7 @@ public extension Z3Context {
     }
 
     /// n-ary Array update.
-    func makeStoreN<D, R>(_ a: Z3Ast<ArraySort<D, R>>, _ idxs: [Z3Ast<D>], _ v: Z3Ast<R>) -> Z3Ast<ArraySort<D, R>> {
+    func makeStoreN<D, R>(_ a: Z3Array<D, R>, _ idxs: [Z3Ast<D>], _ v: Z3Ast<R>) -> Z3Array<D, R> {
         let idxs = idxs.toZ3_astPointerArray()
 
         return Z3Ast(context: self, ast: Z3_mk_store_n(context, a.ast, UInt32(idxs.count), idxs, v.ast))
@@ -103,7 +103,7 @@ public extension Z3Context {
     ///
     /// The resulting term is an array, such that a `select` on an arbitrary
     /// index produces the value `value`.
-    func makeConstArray<D, R>(_ value: Z3Ast<R>) -> Z3Ast<ArraySort<D, R>> {
+    func makeConstArray<D, R>(_ value: Z3Ast<R>) -> Z3Array<D, R> {
         return makeConstArrayAny(D.getSort(self), value).castTo()
     }
 
@@ -140,7 +140,7 @@ public extension Z3Context {
     /// finite maps with a default range value.
     ///
     /// - parameter array: array value whose default range value is accessed.
-    func makeArrayDefault<D, R>(_ array: Z3Ast<ArraySort<D, R>>) -> Z3Ast<R> {
+    func makeArrayDefault<D, R>(_ array: Z3Array<D, R>) -> Z3Ast<R> {
         return Z3Ast(context: self, ast: Z3_mk_array_default(context, array.ast))
     }
 
@@ -162,7 +162,9 @@ public extension Z3Context {
         return AnyZ3Ast(context: self, ast: Z3_mk_as_array(context, f.funcDecl))
     }
 
-    func makeSetHasSize<D, R>(_ set: Z3Ast<ArraySort<D, R>>, _ k: AnyZ3Ast) -> Z3Ast<Bool> {
+    /// Create predicate that holds if Boolean array `set` has `k` elements set
+    /// to true.
+    func makeSetHasSize<T>(_ set: Z3Set<T>, _ k: AnyZ3Ast) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_set_has_size(context, set.ast, k.ast))
     }
 }

@@ -20,7 +20,7 @@ public extension Z3Context {
 
     /// Create the full set.
     func makeFullSet<T: SortKind>(_ domain: T.Type) -> Z3Set<T> {
-        return Z3Ast(context: self, ast: Z3_mk_full_set(context, domain.sort))
+        return Z3Ast(context: self, ast: Z3_mk_full_set(context, domain.getSort(self).sort))
     }
 
     /// Create the full set.
