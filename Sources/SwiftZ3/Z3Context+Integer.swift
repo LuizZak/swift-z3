@@ -110,4 +110,28 @@ public extension Z3Context {
     func makeDivides<T: IntegralSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
         return Z3Ast(context: self, ast: Z3_mk_divides(context, t1.ast, t2.ast))
     }
+
+    /// Coerce an integer to a real.
+    ///
+    /// There is also a converse operation exposed.
+    /// It follows the semantics prescribed by the SMT-LIB standard.
+    ///
+    /// You can take the floor of a real by creating an auxiliary integer constant
+    /// `k` and and asserting `mk_int2real(k) <= t1 < mk_int2real(k)+1`.
+    ///
+    /// The node `t1` must have sort integer.
+    ///
+    /// - seealso: `makeReal2Int`
+    /// - seealso: `makeIsInt`
+    func makeInt2Real<T: IntegralSort>(_ t1: Z3Ast<T>) -> Z3Ast<RealSort> {
+        return Z3Ast(context: self, ast: Z3_mk_int2real(context, t1.ast))
+    }
+
+    /// Check if a real number is an integer.
+    ///
+    /// - seealso: `makeInt2Real`
+    /// - seealso: `makeReal2Int`
+    func makeIsInt(_ t1: Z3Ast<RealSort>) -> Z3Ast<Bool> {
+        return Z3Ast(context: self, ast: Z3_mk_is_int(context, t1.ast))
+    }
 }
