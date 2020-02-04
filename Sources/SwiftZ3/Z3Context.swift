@@ -1,7 +1,26 @@
 import Z3
 
 public class Z3Context {
+    private var cachedFpaRoundingMode: Z3Ast<RoundingMode>?
     internal var context: Z3_context
+    
+    /// Gets or sets a reference to a rounding mode for floating-point operations
+    /// performed on `Z3Ast` instances created by this context.
+    ///
+    /// Defaults to NearestTiesToEven rounding mode, if not configured.
+    public var currentFpaRoundingMode: Z3Ast<RoundingMode> {
+        get {
+            if let cached = cachedFpaRoundingMode {
+                return cached
+            }
+            let new = makeFpaRoundNearestTiesToEven()
+            cachedFpaRoundingMode = new
+            return new
+        }
+        set {
+            cachedFpaRoundingMode = newValue
+        }
+    }
 
     public init(configuration: Z3Config? = nil) {
         context = Z3_mk_context(configuration?.config)
@@ -31,9 +50,15 @@ public class Z3Context {
         return Z3Solver(context: self, solver: Z3_mk_solver(context))
     }
     
-    // MARK: - Symbols
-    
     // MARK: - Sorts
+    
+    /// Return the sort of an AST node.
+    ///
+    /// The AST node must be a constant, application, numeral, bound variable,
+    /// or quantifier.
+    public func getSort(_ ast: AnyZ3Ast) -> Z3Sort {
+        return Z3Sort(sort: Z3_get_sort(context, ast.ast))
+    }
     
     /// Create a free (uninterpreted) type using the given name (symbol).
     ///
