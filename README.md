@@ -2,7 +2,7 @@
 
 A Swift wrapper over Microsoft's [Z3 Theorem Prover](https://github.com/Z3Prover/z3)
 
-The aim is to wrap the entire C API layer into Swift types, with many conveniences and type safety.
+The aim is to wrap the entire C API layer into Swift types, with many conveniences and type safety sprinkled on top.
 
 Example:
 
