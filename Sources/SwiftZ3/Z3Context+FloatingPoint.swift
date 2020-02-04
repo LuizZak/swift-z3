@@ -11,61 +11,61 @@ public extension Z3Context {
     /// Create a numeral of RoundingMode sort which represents the
     /// NearestTiesToEven rounding mode.
     func makeFpaRoundNearestTiesToEven() -> Z3Ast<RoundingMode> {
-        return Z3Ast(ast: Z3_mk_fpa_round_nearest_ties_to_even(context))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_round_nearest_ties_to_even(context))
     }
     
     /// Create a numeral of RoundingMode sort which represents the
     /// NearestTiesToEven rounding mode.
     func makeFpaRNE() -> Z3Ast<RoundingMode> {
-        return Z3Ast(ast: Z3_mk_fpa_rne(context))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_rne(context))
     }
     
     /// Create a numeral of RoundingMode sort which represents the
     /// NearestTiesToAway rounding mode.
     func makeFpaRoundNearestTiesToAway() -> Z3Ast<RoundingMode> {
-        return Z3Ast(ast: Z3_mk_fpa_rne(context))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_rne(context))
     }
     
     /// Create a numeral of RoundingMode sort which represents the
     /// NearestTiesToAway rounding mode.
     func makeFpaRNA() -> Z3Ast<RoundingMode> {
-        return Z3Ast(ast: Z3_mk_fpa_rna(context))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_rna(context))
     }
     
     /// Create a numeral of RoundingMode sort which represents the TowardPositive
     /// rounding mode.
     func makeFpaRoundTowardPositive() -> Z3Ast<RoundingMode> {
-        return Z3Ast(ast: Z3_mk_fpa_round_toward_positive(context))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_round_toward_positive(context))
     }
     
     /// Create a numeral of RoundingMode sort which represents the TowardPositive
     /// rounding mode.
     func makeFpaRTP() -> Z3Ast<RoundingMode> {
-        return Z3Ast(ast: Z3_mk_fpa_rtp(context))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_rtp(context))
     }
     
     /// Create a numeral of RoundingMode sort which represents the TowardNegative
     /// rounding mode.
     func makeFpaRoundTowardNegative() -> Z3Ast<RoundingMode> {
-        return Z3Ast(ast: Z3_mk_fpa_round_toward_negative(context))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_round_toward_negative(context))
     }
     
     /// Create a numeral of RoundingMode sort which represents the TowardNegative
     /// rounding mode.
     func makeFpaRTN() -> AnyZ3Ast {
-        return AnyZ3Ast(ast: Z3_mk_fpa_rtn(context))
+        return AnyZ3Ast(context: self, ast: Z3_mk_fpa_rtn(context))
     }
     
     /// Create a numeral of RoundingMode sort which represents the TowardZero
     /// rounding mode.
     func makeFpaRoundTowardZero() -> Z3Ast<RoundingMode> {
-        return Z3Ast(ast: Z3_mk_fpa_round_toward_zero(context))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_round_toward_zero(context))
     }
     
     /// Create a numeral of RoundingMode sort which represents the TowardZero
     /// rounding mode.
     func makeFpaRTZ() -> Z3Ast<RoundingMode> {
-        return Z3Ast(ast: Z3_mk_fpa_rtz(context))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_rtz(context))
     }
     
     /// Create a FloatingPoint sort.
@@ -76,7 +76,7 @@ public extension Z3Context {
     ///
     /// - remark: `ebits` must be larger than 1 and `sbits` must be larger than 2.
     func floatingPointSort(ebits: UInt32, sbits: UInt32) -> AnyZ3Ast {
-        return AnyZ3Ast(ast: Z3_mk_fpa_sort(context, ebits, sbits))
+        return AnyZ3Ast(context: self, ast: Z3_mk_fpa_sort(context, ebits, sbits))
     }
     
     /// Create the half-precision (16-bit) FloatingPoint sort.
@@ -103,7 +103,7 @@ public extension Z3Context {
     ///
     /// - Parameter sort: target sort
     func makeFpaNan<T: FloatingSort>(sort: T.Type) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_nan(context, T.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_nan(context, T.getSort(self).sort))
     }
     
     /// Create a floating-point infinity of sort `sort`.
@@ -113,7 +113,7 @@ public extension Z3Context {
     /// - Parameter sort: target sort
     /// - Parameter negative: indicates whether the result should be negative
     func makeFpaInfinite<T: FloatingSort>(sort: T.Type, negative: Bool) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_nan(context, T.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_nan(context, T.getSort(self).sort))
     }
     
     /// Create a floating-point zero of sort `sort`.
@@ -123,7 +123,7 @@ public extension Z3Context {
     /// - Parameter sort: target sort
     /// - Parameter negative: indicates whether the result should be negative
     func makeFpaZero<T: FloatingSort>(sort: T.Type, negative: Bool) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_nan(context, T.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_nan(context, T.getSort(self).sort))
     }
     
     /// Create an expression of FloatingPoint sort from three bit-vector expressions.
@@ -139,7 +139,7 @@ public extension Z3Context {
     ///   - exp: exponen
     ///   - sig: significand
     func makeFpaFp<T: BitVectorSort, U: BitVectorSort, V: BitVectorSort>(sgn: Z3Ast<T>, exp: Z3Ast<U>, sig: Z3Ast<V>) -> AnyZ3Ast {
-        return AnyZ3Ast(ast: Z3_mk_fpa_fp(context, sgn.ast, exp.ast, sig.ast))
+        return AnyZ3Ast(context: self, ast: Z3_mk_fpa_fp(context, sgn.ast, exp.ast, sig.ast))
     }
     
     /// Create a numeral of FloatingPoint sort from a float.
@@ -152,7 +152,7 @@ public extension Z3Context {
     ///   - value: value
     ///   - sort: sort
     func makeFpaNumeralFloat<T: FloatingSort>(_ value: Float, sort: T.Type) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_numeral_float(context, value, sort.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_numeral_float(context, value, sort.getSort(self).sort))
     }
     
     /// Create a numeral of FloatingPoint sort from a double.
@@ -165,7 +165,7 @@ public extension Z3Context {
     ///   - value: value
     ///   - sort: sort
     func makeFpaNumeralDouble<T: FloatingSort>(_ value: Double, sort: T.Type) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_numeral_double(context, value, sort.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_numeral_double(context, value, sort.getSort(self).sort))
     }
     
     /// Create a numeral of FloatingPoint sort from a signed integer.
@@ -174,7 +174,7 @@ public extension Z3Context {
     ///   - value: value
     ///   - sort: result sort
     func makeFpaNumeralInt<T: FloatingSort>(_ value: Int32, sort: T.Type) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_numeral_int(context, value, sort.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_numeral_int(context, value, sort.getSort(self).sort))
     }
     
     /// Create a numeral of FloatingPoint sort from a sign bit and two integers.
@@ -185,7 +185,7 @@ public extension Z3Context {
     ///   - sig: significand
     ///   - sort: result sort
     func makeFpaNumeralUInt<T: FloatingSort>(_ sgn: Bool, _ exp: Int32, _ sig: UInt32, sort: T.Type) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_numeral_int_uint(context, sgn, exp, sig, sort.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_numeral_int_uint(context, sgn, exp, sig, sort.getSort(self).sort))
     }
     
     /// Create a numeral of FloatingPoint sort from a sign bit and two 64-bit
@@ -197,17 +197,17 @@ public extension Z3Context {
     ///   - sig: significand
     ///   - sort: result sort
     func makeFpaNumeralUInt<T: FloatingSort>(_ sgn: Bool, _ exp: Int64, _ sig: UInt64, sort: T.Type) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_numeral_int64_uint64(context, sgn, exp, sig, sort.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_numeral_int64_uint64(context, sgn, exp, sig, sort.getSort(self).sort))
     }
     
     /// Floating-point absolute value
     func makeFpaAbs<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_abs(context, t.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_abs(context, t.ast))
     }
     
     /// Floating-point negation
     func makeFpaNeg<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_neg(context, t.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_neg(context, t.ast))
     }
     
     /// Floating-point addition
@@ -221,7 +221,7 @@ public extension Z3Context {
                                      _ t1: Z3Ast<T>,
                                      _ t2: Z3Ast<T>) -> Z3Ast<T> {
         
-        return Z3Ast(ast: Z3_mk_fpa_add(context, rm.ast, t1.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_add(context, rm.ast, t1.ast, t2.ast))
     }
     
     /// Floating-point subtraction
@@ -235,7 +235,7 @@ public extension Z3Context {
                                      _ t1: Z3Ast<T>,
                                      _ t2: Z3Ast<T>) -> Z3Ast<T> {
         
-        return Z3Ast(ast: Z3_mk_fpa_sub(context, rm.ast, t1.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_sub(context, rm.ast, t1.ast, t2.ast))
     }
     
     /// Floating-point multiplication
@@ -249,7 +249,7 @@ public extension Z3Context {
                                      _ t1: Z3Ast<T>,
                                      _ t2: Z3Ast<T>) -> Z3Ast<T> {
         
-        return Z3Ast(ast: Z3_mk_fpa_mul(context, rm.ast, t1.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_mul(context, rm.ast, t1.ast, t2.ast))
     }
     
     /// Floating-point division
@@ -263,7 +263,7 @@ public extension Z3Context {
                                         _ t1: Z3Ast<T>,
                                         _ t2: Z3Ast<T>) -> Z3Ast<T> {
         
-        return Z3Ast(ast: Z3_mk_fpa_div(context, rm.ast, t1.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_div(context, rm.ast, t1.ast, t2.ast))
     }
     
     /// Floating-point fused multiply-add.
@@ -280,100 +280,100 @@ public extension Z3Context {
                                         _ t2: Z3Ast<T>,
                                         _ t3: Z3Ast<T>) -> Z3Ast<T> {
         
-        return Z3Ast(ast: Z3_mk_fpa_fma(context, rm.ast, t1.ast, t2.ast, t3.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_fma(context, rm.ast, t1.ast, t2.ast, t3.ast))
     }
     
     /// Floating-point square root
     func makeFpaSquareRoot<T: FloatingSort>(_ rm: Z3Ast<RoundingMode>,
                                             _ t1: Z3Ast<T>) -> Z3Ast<T> {
         
-        return Z3Ast(ast: Z3_mk_fpa_sqrt(context, rm.ast, t1.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_sqrt(context, rm.ast, t1.ast))
     }
     
     /// Floating-point remainder
     func makeFpaRemainder<T: FloatingSort>(_ t1: Z3Ast<T>,
                                            _ t2: Z3Ast<T>) -> Z3Ast<T> {
         
-        return Z3Ast(ast: Z3_mk_fpa_rem(context, t1.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_rem(context, t1.ast, t2.ast))
     }
     
     /// Floating-point roundToIntegral. Rounds a floating-point number to
     /// the closest integer, again represented as a floating-point number.
     func makeFpaRoundToIntegral<T: FloatingSort>(_ rm: Z3Ast<RoundingMode>,
                                                  _ t: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_round_to_integral(context, rm.ast, t.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_round_to_integral(context, rm.ast, t.ast))
     }
     
     /// Minimum of floating-point numbers.
     func makeFpaMin<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_min(context, t1.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_min(context, t1.ast, t2.ast))
     }
     
     /// Maximum of floating-point numbers.
     func makeFpaMax<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_fpa_max(context, t1.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_max(context, t1.ast, t2.ast))
     }
     
     /// Floating-point less than or equal.
     func makeFpaLeq<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_leq(context, t1.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_leq(context, t1.ast, t2.ast))
     }
     
     /// Floating-point less than.
     func makeFpaLt<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_lt(context, t1.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_lt(context, t1.ast, t2.ast))
     }
     
     /// Floating-point greater than or equal.
     func makeFpaGeq<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_geq(context, t1.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_geq(context, t1.ast, t2.ast))
     }
     
     /// Floating-point greater than.
     func makeFpaGt<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_gt(context, t1.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_gt(context, t1.ast, t2.ast))
     }
     
     /// Floating-point equality.
     func makeFpaEq<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_eq(context, t1.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_eq(context, t1.ast, t2.ast))
     }
     
     /// Predicate indicating whether `t` is a normal floating-point number.
     func makeFpaIsNormal<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_is_normal(context, t.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_is_normal(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a subnormal floating-point number.
     func makeFpaIsSubnormal<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_is_subnormal(context, t.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_is_subnormal(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a floating-point number with zero
     /// value, i.e., +zero or -zero.
     func makeFpaIsZero<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_is_zero(context, t.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_is_zero(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a floating-point number representing
     /// +oo or -oo.
     func makeFpaIsInfinite<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_is_infinite(context, t.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_is_infinite(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a NaN.
     func makeFpaIsNan<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_is_nan(context, t.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_is_nan(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a negative floating-point number.
     func makeFpaIsNegative<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_is_negative(context, t.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_is_negative(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a positive floating-point number.
     func makeFpaIsPositive<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_fpa_is_positive(context, t.ast))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_is_positive(context, t.ast))
     }
     
     /// Conversion of a single IEEE 754-2008 bit-vector into a floating-point number.
@@ -390,7 +390,7 @@ public extension Z3Context {
     ///   - bv: a bit-vector term
     ///   - sort: floating-point sort
     func makeFpaToFPBv<T: BitVectorSort, U: FloatingSort>(_ bv: Z3Ast<T>, sort: U.Type) -> Z3Ast<U> {
-        return Z3Ast(ast: Z3_mk_fpa_to_fp_bv(context, bv.ast, sort.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_to_fp_bv(context, bv.ast, sort.getSort(self).sort))
     }
     
     /// Conversion of a FloatingPoint term into another term of different
@@ -407,7 +407,7 @@ public extension Z3Context {
                                                             _ t: Z3Ast<T>,
                                                             sort: U.Type) -> Z3Ast<U> {
         
-        return Z3Ast(ast: Z3_mk_fpa_to_fp_float(context, rm.ast, t.ast, sort.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_to_fp_float(context, rm.ast, t.ast, sort.getSort(self).sort))
     }
     
     /// Conversion of a term of real sort into a term of FloatingPoint sort.
@@ -419,6 +419,6 @@ public extension Z3Context {
                                           _ t: Z3Ast<RealSort>,
                                           sort: T.Type) -> Z3Ast<T> {
         
-        return Z3Ast(ast: Z3_mk_fpa_to_fp_real(context, rm.ast, t.ast, sort.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_fpa_to_fp_real(context, rm.ast, t.ast, sort.getSort(self).sort))
     }
 }

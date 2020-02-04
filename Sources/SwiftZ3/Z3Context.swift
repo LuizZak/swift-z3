@@ -153,7 +153,7 @@ public class Z3Context {
     public func makeConstant<T: SortKind>(name: String, sort: T.Type) -> Z3Ast<T> {
         let symbol = Z3_mk_string_symbol(context, name)
 
-        return Z3Ast(ast: Z3_mk_const(context, symbol, sort.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_const(context, symbol, sort.getSort(self).sort))
     }
 
     /// \brief Create a numeral of a given sort.
@@ -168,7 +168,7 @@ public class Z3Context {
     /// the given sort can be an int, real, finite-domain, or bit-vectors of
     /// arbitrary size.
     public func makeNumeral<T: NumericalSort>(number: String, sort: T.Type) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_numeral(context, number, sort.getSort(self).sort))
+        return Z3Ast(context: self, ast: Z3_mk_numeral(context, number, sort.getSort(self).sort))
     }
 
     /// Create a real from a fraction.
@@ -180,7 +180,7 @@ public class Z3Context {
     /// - seealso: `Z3_mk_unsigned_int`
     /// - precondition: `den != 0`
     public func makeReal(_ num: Int32, _ den: Int32) -> Z3Ast<RealSort> {
-        return Z3Ast(ast: Z3_mk_real(context, num, den))
+        return Z3Ast(context: self, ast: Z3_mk_real(context, num, den))
     }
 
     /// Create a numeral of an int, bit-vector, or finite-domain sort.
@@ -191,7 +191,7 @@ public class Z3Context {
     ///
     /// - seealso: `Z3_mk_numeral`
     public func makeInteger(value: Int32) -> Z3Ast<IntSort> {
-        return Z3Ast(ast: Z3_mk_int(context, value, intSort().sort))
+        return Z3Ast(context: self, ast: Z3_mk_int(context, value, intSort().sort))
     }
 
     /// Create a numeral of an int, bit-vector, or finite-domain sort.
@@ -203,7 +203,7 @@ public class Z3Context {
     ///
     /// - seealso: `Z3_mk_numeral`
     public func makeUnsignedInteger(value: UInt32) -> Z3Ast<UIntSort> {
-        return Z3Ast(ast: Z3_mk_unsigned_int(context, value, intSort().sort))
+        return Z3Ast(context: self, ast: Z3_mk_unsigned_int(context, value, intSort().sort))
     }
 
     /// Create a numeral of an int, bit-vector, or finite-domain sort.
@@ -215,7 +215,7 @@ public class Z3Context {
     ///
     /// - seealso: `Z3_mk_numeral`
     public func makeInteger64(value: Int64) -> Z3Ast<Int64Sort> {
-        return Z3Ast(ast: Z3_mk_int64(context, value, intSort().sort))
+        return Z3Ast(context: self, ast: Z3_mk_int64(context, value, intSort().sort))
     }
 
     /// Create a numeral of an int, bit-vector, or finite-domain sort.
@@ -227,6 +227,6 @@ public class Z3Context {
     ///
     /// - seealso: `Z3_mk_numeral`
     public func makeUnsignedInteger64(value: UInt64) -> Z3Ast<UInt64Sort> {
-        return Z3Ast(ast: Z3_mk_unsigned_int64(context, value, intSort().sort))
+        return Z3Ast(context: self, ast: Z3_mk_unsigned_int64(context, value, intSort().sort))
     }
 }

@@ -14,7 +14,7 @@ public class Z3Model {
         if !Z3_model_eval(context.context, model, t.ast, completion, &output) {
             return nil
         }
-        return AnyZ3Ast(ast: output!)
+        return AnyZ3Ast(context: context, ast: output!)
     }
     
     /// Evaluates expression to a double, assuming it is a numeral already
