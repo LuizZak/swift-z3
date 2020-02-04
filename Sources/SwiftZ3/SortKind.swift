@@ -7,51 +7,42 @@ public protocol IntegralSort: IntOrRealSort { }
 public protocol BitVectorSort: NumericalSort { }
 public protocol FloatingSort: NumericalSort { }
 
-public struct BoolSort: SortKind {
+extension Bool: SortKind {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.boolSort()
     }
 }
-public struct IntSort: IntegralSort {
+extension Int32: IntegralSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.intSort()
     }
 }
-public struct UIntSort: IntegralSort {
+extension UInt32: IntegralSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.intSort()
     }
 }
-public struct Int64Sort: IntegralSort {
+extension Int64: IntegralSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.intSort()
     }
 }
-public struct UInt64Sort: IntegralSort {
+extension UInt64: IntegralSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.intSort()
     }
 }
-public struct BitVectorSort8: BitVectorSort {
+/// A bitwidth sort which fits as many bits as the bit width of its `T` parameter
+public struct BitVectorOfInt<T: FixedWidthInteger>: BitVectorSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
-        return context.bitVectorSort(size: 8)
+        return context.bitVectorSort(size: UInt32(T.bitWidth))
     }
 }
-public struct BitVectorSort16: BitVectorSort {
-    public static func getSort(_ context: Z3Context) -> Z3Sort {
-        return context.bitVectorSort(size: 16)
-    }
-}
-public struct BitVectorSort32: BitVectorSort {
-    public static func getSort(_ context: Z3Context) -> Z3Sort {
-        return context.bitVectorSort(size: 32)
-    }
-}
-public struct BitVectorSort64: BitVectorSort {
-    public static func getSort(_ context: Z3Context) -> Z3Sort {
-        return context.bitVectorSort(size: 64)
-    }
-}
+public typealias BitVectorSort8 = BitVectorOfInt<Int8>
+public typealias BitVectorSort16 = BitVectorOfInt<Int16>
+public typealias BitVectorSort32 = BitVectorOfInt<Int32>
+public typealias BitVectorSort64 = BitVectorOfInt<Int64>
+
 public struct BitVectorSort128: BitVectorSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.bitVectorSort(size: 128)
@@ -67,12 +58,12 @@ public struct FP16Sort: NumericalSort {
         return context.floatingPoint16Sort()
     }
 }
-public struct FP32Sort: FloatingSort {
+extension Float: FloatingSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.floatingPoint32Sort()
     }
 }
-public struct FP64Sort: FloatingSort {
+extension Double: FloatingSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.floatingPoint64Sort()
     }

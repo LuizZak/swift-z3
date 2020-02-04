@@ -10,12 +10,12 @@ final class SwiftZ3Tests: XCTestCase {
         let context = Z3Context(configuration: config)
         
         let roundMode = context.makeFpaRoundTowardZero()
-        let left = context.makeConstant(name: "left", sort: FP32Sort.self)
-        let width = context.makeConstant(name: "width", sort: FP32Sort.self)
-        let right = context.makeConstant(name: "right", sort: FP32Sort.self)
+        let left = context.makeConstant(name: "left", sort: Float.self)
+        let width = context.makeConstant(name: "width", sort: Float.self)
+        let right = context.makeConstant(name: "right", sort: Float.self)
         
-        let lValue = context.makeEqual(left, context.makeFpaNumeralFloat(50.0, sort: FP32Sort.self))
-        let wValue = context.makeEqual(width, context.makeFpaNumeralFloat(100.0, sort: FP32Sort.self))
+        let lValue = context.makeEqual(left, context.makeFpaNumeralFloat(50.0, sort: Float.self))
+        let wValue = context.makeEqual(width, context.makeFpaNumeralFloat(100.0, sort: Float.self))
         
         let rightEq = context.makeEqual(right, context.makeFpaAdd(roundMode, left, width))
         
@@ -37,12 +37,12 @@ final class SwiftZ3Tests: XCTestCase {
 
         let context = Z3Context(configuration: config)
         
-        let left = context.makeConstant(name: "left", sort: FP32Sort.self)
-        let width = context.makeConstant(name: "width", sort: FP32Sort.self)
-        let right = context.makeConstant(name: "right", sort: FP32Sort.self)
+        let left = context.makeConstant(name: "left", sort: Float.self)
+        let width = context.makeConstant(name: "width", sort: Float.self)
+        let right = context.makeConstant(name: "right", sort: Float.self)
         
-        let lValue = left == context.makeFpaNumeralFloat(50.0, sort: FP32Sort.self)
-        let wValue = width == context.makeFpaNumeralFloat(100.0, sort: FP32Sort.self)
+        let lValue = left == context.makeFpaNumeral(50.0)
+        let wValue = width == context.makeFpaNumeral(100.0)
         
         let rightEq = right == left + width
         

@@ -168,6 +168,19 @@ public extension Z3Context {
         return Z3Ast(context: self, ast: Z3_mk_fpa_numeral_double(context, value, sort.getSort(self).sort))
     }
     
+    /// Create a numeral of FloatingPoint sort from a floating point value.
+    ///
+    /// This function is used to create numerals that fit in a Double value.
+    /// It is slightly faster than `makeNumeral` since it is not necessary to
+    /// parse a string.
+    ///
+    /// - Parameters:
+    ///   - value: value
+    ///   - sort: sort
+    func makeFpaNumeral<T: FloatingSort & BinaryFloatingPoint>(_ value: T) -> Z3Ast<T> {
+        return Z3Ast(context: self, ast: Z3_mk_fpa_numeral_double(context, Double(value), T.getSort(self).sort))
+    }
+    
     /// Create a numeral of FloatingPoint sort from a signed integer.
     ///
     /// - Parameters:
@@ -315,64 +328,64 @@ public extension Z3Context {
     }
     
     /// Floating-point less than or equal.
-    func makeFpaLeq<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaLeq<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_fpa_leq(context, t1.ast, t2.ast))
     }
     
     /// Floating-point less than.
-    func makeFpaLt<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaLt<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_fpa_lt(context, t1.ast, t2.ast))
     }
     
     /// Floating-point greater than or equal.
-    func makeFpaGeq<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaGeq<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_fpa_geq(context, t1.ast, t2.ast))
     }
     
     /// Floating-point greater than.
-    func makeFpaGt<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaGt<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_fpa_gt(context, t1.ast, t2.ast))
     }
     
     /// Floating-point equality.
-    func makeFpaEq<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaEq<T: FloatingSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_fpa_eq(context, t1.ast, t2.ast))
     }
     
     /// Predicate indicating whether `t` is a normal floating-point number.
-    func makeFpaIsNormal<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsNormal<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_fpa_is_normal(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a subnormal floating-point number.
-    func makeFpaIsSubnormal<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsSubnormal<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_fpa_is_subnormal(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a floating-point number with zero
     /// value, i.e., +zero or -zero.
-    func makeFpaIsZero<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsZero<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_fpa_is_zero(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a floating-point number representing
     /// +oo or -oo.
-    func makeFpaIsInfinite<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsInfinite<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_fpa_is_infinite(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a NaN.
-    func makeFpaIsNan<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsNan<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_fpa_is_nan(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a negative floating-point number.
-    func makeFpaIsNegative<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsNegative<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_fpa_is_negative(context, t.ast))
     }
     
     /// Predicate indicating whether `t` is a positive floating-point number.
-    func makeFpaIsPositive<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<BoolSort> {
+    func makeFpaIsPositive<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<Bool> {
         return Z3Ast(context: self, ast: Z3_mk_fpa_is_positive(context, t.ast))
     }
     

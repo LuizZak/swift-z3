@@ -7,9 +7,9 @@ func main() {
     let context = Z3Context(configuration: config)
     
     let roundMode = context.makeFpaRoundTowardZero()
-    let left = context.makeFpaNumeralFloat(50, sort: FP32Sort.self)
-    let width = context.makeFpaNumeralFloat(100, sort: FP32Sort.self)
-    let right = context.makeFpaNumeralFloat(0, sort: FP32Sort.self)
+    let left = context.makeFpaNumeralFloat(50, sort: Float.self)
+    let width = context.makeFpaNumeralFloat(100, sort: Float.self)
+    let right = context.makeFpaNumeralFloat(0, sort: Float.self)
     
     let rightEq = context.makeFpaEq(right, context.makeFpaAdd(roundMode, left, width))
     

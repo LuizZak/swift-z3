@@ -26,7 +26,7 @@ public class Z3Solver {
     ///
     /// The methods `check` and `checkAssumptions` should be used to check whether
     /// the logical context is consistent or not.
-    public func assert(_ exp: Z3Ast<BoolSort>) {
+    public func assert(_ exp: Z3Ast<Bool>) {
         Z3_solver_assert(context.context, solver, exp.ast)
     }
     
@@ -34,7 +34,7 @@ public class Z3Solver {
     ///
     /// The methods `check` and `checkAssumptions` should be used to check whether
     /// the logical context is consistent or not.
-    public func assert(_ expressions: [Z3Ast<BoolSort>]) {
+    public func assert(_ expressions: [Z3Ast<Bool>]) {
         for exp in expressions {
             assert(exp)
         }
