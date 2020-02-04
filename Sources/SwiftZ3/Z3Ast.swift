@@ -96,3 +96,8 @@ public struct FP128Sort: FloatingSort {
         return context.floatingPoint128Sort()
     }
 }
+public struct RoundingMode: SortKind {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.makeFpaRoundingModeSort()
+    }
+}

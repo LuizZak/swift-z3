@@ -45,26 +45,6 @@ public class Z3Context {
         precondition(size > 0)
         return Z3Sort(sort: Z3_mk_bv_sort(context, size))
     }
-    
-    /// Create the half-precision (16-bit) FloatingPoint sort.
-    public func floatingPoint16Sort() -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_fpa_sort_16(context))
-    }
-
-    /// Create the single-precision (32-bit) FloatingPoint sort.
-    public func floatingPoint32Sort() -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_fpa_sort_32(context))
-    }
-    
-    /// Create the double-precision (32-bit) FloatingPoint sort.
-    public func floatingPoint64Sort() -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_fpa_sort_64(context))
-    }
-    
-    /// Create the quadruple-precision (32-bit) FloatingPoint sort.
-    public func floatingPoint128Sort() -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_fpa_sort_128(context))
-    }
 
     // MARK: -
     
@@ -689,10 +669,18 @@ public class Z3Context {
         return Z3Ast<T>(ast: Z3_mk_ext_rotate_right(context, t1.ast, t2.ast))
     }
     
+    /// Create an `n` bit bit-vector from the integer argument `t1`.
+    ///
+    /// The resulting bit-vector has `n` bits, where the i'th bit (counting
+    /// from 0 to `n-1`) is 1 if `(t1 div 2^i)` mod 2 is 1.
+    ///
+    /// The node `t1` must have integer sort.
+    public func makeInt2BV<T: IntegralSort>(_ n: UInt32, _ t1: Z3Ast<T>) -> AnyZ3Ast {
+        return AnyZ3Ast(ast: Z3_mk_int2bv(context, n, t1.ast))
+    }
+    
     private func preparingArgsAst<T, U>(_ arguments: [Z3Ast<U>], _ closure: (UInt32, UnsafePointer<Z3_ast?>) -> T) -> T {
         let arguments: [Z3_ast?] = arguments.map { $0.ast }
         return closure(UInt32(arguments.count), arguments)
     }
-
-    // MARK: -
 }
