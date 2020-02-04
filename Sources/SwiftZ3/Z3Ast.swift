@@ -72,6 +72,11 @@ public struct BitVectorSort64: BitVectorSort {
         return context.bitVectorSort(size: 64)
     }
 }
+public struct BitVectorSort128: BitVectorSort {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.bitVectorSort(size: 128)
+    }
+}
 public struct RealSort: NumericalSort, IntOrRealSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.realSort()
