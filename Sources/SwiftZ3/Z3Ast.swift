@@ -22,7 +22,8 @@ public protocol SortKind {
     static func getSort(_ context: Z3Context) -> Z3Sort
 }
 public protocol NumericalSort: SortKind { }
-public protocol IntegralSort: NumericalSort { }
+public protocol IntOrRealSort: NumericalSort { }
+public protocol IntegralSort: IntOrRealSort { }
 public protocol BitVectorSort: NumericalSort { }
 public protocol FloatingSort: NumericalSort { }
 
@@ -71,7 +72,7 @@ public struct BitVectorSort64: BitVectorSort {
         return context.bitVectorSort(size: 64)
     }
 }
-public struct RealSort: NumericalSort {
+public struct RealSort: NumericalSort, IntOrRealSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.realSort()
     }

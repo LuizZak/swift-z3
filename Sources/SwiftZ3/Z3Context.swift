@@ -139,212 +139,7 @@ public class Z3Context {
         return Z3Ast(ast: Z3_mk_unsigned_int64(context, value, intSort().sort))
     }
 
-    // MARK: - Propositional Logic and Equality
-
-    /// Create an AST node representing `true`.
-    public func makeTrue() -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_true(context))
-    }
-
-    /// Create an AST node representing `false`.
-    public func makeFalse() -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_false(context))
-    }
-
-    /// Create an AST node representing `l = r`.
-    ///
-    /// The nodes `l` and `r` must have the same type.
-    public func makeEqual<T>(_ l: Z3Ast<T>, _ r: Z3Ast<T>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_eq(context, l.ast, r.ast))
-    }
-
-    /// Create an AST node representing `distinct(args[0], ..., args[num_args-1])`.
-    ///
-    /// The `distinct` construct is used for declaring the arguments pairwise
-    /// distinct.
-    /// That is, `Forall 0 <= i < j < num_args. not args[i] = args[j]`.
-    ///
-    /// All arguments must have the same sort.
-    ///
-    /// - remark: The number of arguments of a distinct construct must be greater
-    ///  than one.
-    public func makeDistinct<T>(_ args: [Z3Ast<T>]) -> Z3Ast<BoolSort> {
-        precondition(args.count > 1)
-        return preparingArgsAst(args) { (count, args) -> Z3Ast<BoolSort> in
-            Z3Ast(ast: Z3_mk_distinct(context, count, args))
-        }
-    }
-
-    /// Create an AST node representing `not(a)`.
-    ///
-    /// The node `a` must have Boolean sort.
-    public func makeNot(_ a: Z3Ast<BoolSort>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_not(context, a.ast))
-    }
-
-    /// Create an AST node representing an if-then-else: `ite(t1, t2, t3)`.
-    ///
-    /// The node `t1` must have Boolean sort, `t2` and `t3` must have the same
-    /// sort.
-    /// The sort of the new node is equal to the sort of `t2` and `t3`.
-    public func makeIfThenElse<T>(_ t1: Z3Ast<BoolSort>, _ t2: Z3Ast<T>, _ t3: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_ite(context, t1.ast, t2.ast, t2.ast))
-    }
-
-    /// Create an AST node representing `t1 iff t2`.
-    ///
-    /// The nodes `t1` and `t2` must have Boolean sort.
-    public func makeIff(_ t1: Z3Ast<BoolSort>, _ t2: Z3Ast<BoolSort>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_iff(context, t1.ast, t2.ast))
-    }
-
-    /// Create an AST node representing `t1 implies t2`.
-    ///
-    /// The nodes `t1` and `t2` must have Boolean sort.
-    public func makeImplies(_ t1: Z3Ast<BoolSort>, _ t2: Z3Ast<BoolSort>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_implies(context, t1.ast, t2.ast))
-    }
-
-    /// Create an AST node representing `t1 xor t2`.
-    ///
-    /// The nodes `t1` and `t2` must have Boolean sort.
-    public func makeXor(_ t1: Z3Ast<BoolSort>, _ t2: Z3Ast<BoolSort>) -> Z3Ast<BoolSort> {
-        return Z3Ast(ast: Z3_mk_xor(context, t1.ast, t2.ast))
-    }
-
-    /// Create an AST node representing `args[0] and ... and args[num_args-1]`.
-    ///
-    /// All arguments must have Boolean sort.
-    ///
-    /// - remark: The number of arguments must be greater than zero.
-    public func makeAnd(_ args: [Z3Ast<BoolSort>]) -> Z3Ast<BoolSort> {
-        return preparingArgsAst(args) { (count, args) -> Z3Ast<BoolSort> in
-            return Z3Ast(ast: Z3_mk_and(context, count, args))
-        }
-    }
-
-    /// Create an AST node representing `args[0] or ... or args[num_args-1]`.
-    ///
-    /// All arguments must have Boolean sort.
-    ///
-    /// - remark: The number of arguments must be greater than zero.
-    public func makeOr(_ args: [Z3Ast<BoolSort>]) -> Z3Ast<BoolSort> {
-        return preparingArgsAst(args) { (count, args) -> Z3Ast<BoolSort> in
-            return Z3Ast(ast: Z3_mk_or(context, count, args))
-        }
-    }
-
-    // MARK: - Integers and Reals
-
-    /// Create an AST node representing `args[0] + ... + args[num_args-1]`.
-    ///
-    /// All arguments must have int or real sort.
-    ///
-    /// - remark: The number of arguments must be greater than zero.
-    public func makeAdd<T: NumericalSort>(_ arguments: [Z3Ast<T>]) -> Z3Ast<T> {
-        return preparingArgsAst(arguments) { count, args in
-            Z3Ast(ast: Z3_mk_add(context, count, args))
-        }
-    }
-
-    /// Create an AST node representing `args[0] * ... * args[num_args-1]`.
-    ///
-    /// All arguments must have int or real sort.
-    ///
-    /// - remark: Z3 has limited support for non-linear arithmetic.
-    /// - remark: The number of arguments must be greater than zero.
-    public func makeMul<T: NumericalSort>(_ arguments: [Z3Ast<T>]) -> Z3Ast<T> {
-        precondition(!arguments.isEmpty)
-        
-        return preparingArgsAst(arguments) { count, args in
-            Z3Ast(ast: Z3_mk_mul(context, count, args))
-        }
-    }
-
-    /// Create an AST node representing `args[0] + ... + args[num_args-1]`.
-    ///
-    /// All arguments must have int or real sort.
-    ///
-    /// - remark: The number of arguments must be greater than zero.
-    public func makeSub<T: NumericalSort>(_ arguments: [Z3Ast<T>]) -> Z3Ast<T> {
-        precondition(!arguments.isEmpty)
-
-        return preparingArgsAst(arguments) { count, args in
-            Z3Ast(ast: Z3_mk_sub(context, count, args))
-        }
-    }
-
-    /// Create an AST node representing `- arg`.
-    /// The arguments must have int or real type.
-    public func makeUnaryMinus<T: NumericalSort>(_ ast: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_unary_minus(context, ast.ast))
-    }
-
-    /// Create an AST node representing `arg1 div arg2`.
-    ///
-    /// The arguments must either both have int type or both have real type.
-    /// If the arguments have int type, then the result type is an int type,
-    /// otherwise the the result type is real.
-    public func makeDiv<T: NumericalSort>(_ arg1: Z3Ast<T>, _ arg2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_div(context, arg1.ast, arg2.ast))
-    }
-
-    /// Create an AST node representing `arg1 mod arg2`.
-    ///
-    /// The arguments must have int type.
-    public func makeMod<T: IntegralSort>(_ arg1: Z3Ast<T>, _ arg2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_mod(context, arg1.ast, arg2.ast))
-    }
-
-    /// Create an AST node representing `arg1 rem arg2`.
-    ///
-    /// The arguments must have int type.
-    public func makeRem<T: IntegralSort>(_ arg1: Z3Ast<T>, _ arg2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_rem(context, arg1.ast, arg2.ast))
-    }
-
-    /// Create an AST node representing `arg1 ^ arg2`.
-    ///
-    /// The arguments must have int or real type.
-    public func makePower<T: NumericalSort>(_ arg1: Z3Ast<T>, _ arg2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_power(context, arg1.ast, arg2.ast))
-    }
-
-    /// Create less than.
-    /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
-    public func makeLessThan<T: NumericalSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_lt(context, t1.ast, t2.ast))
-    }
-
-    /// Create less than or equal to.
-    /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
-    public func makeLessThanOrEqualTo<T: NumericalSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_le(context, t1.ast, t2.ast))
-    }
-
-    /// Create greater than.
-    /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
-    public func makeGreaterThan<T: NumericalSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_gt(context, t1.ast, t2.ast))
-    }
-
-    /// Create greater than or equal to.
-    /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
-    public func makeGreaterThanOrEqualTo<T: NumericalSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_ge(context, t1.ast, t2.ast))
-    }
-
-    /// Create division predicate.
-    ///
-    /// The nodes `t1` and `t2` must be of integer sort.
-    /// The predicate is true when `t1` divides `t2`. For the predicate to be
-    /// part of linear integer arithmetic, the first argument `t1` must be a
-    /// non-zero integer.
-    public func makeDivides<T: IntegralSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(ast: Z3_mk_divides(context, t1.ast, t2.ast))
-    }
-
-    /// MARK: - Bit-vectors
+    // MARK: - Bit-vectors
 
     /// Bitwise negation.
     ///
@@ -681,5 +476,77 @@ public class Z3Context {
     /// The node `t1` must have integer sort.
     public func makeInt2BV<T: IntegralSort>(_ n: UInt32, _ t1: Z3Ast<T>) -> AnyZ3Ast {
         return AnyZ3Ast(ast: Z3_mk_int2bv(context, n, t1.ast))
+    }
+    
+    /// Create a predicate that checks that the bit-wise addition of `t1` and
+    /// `t2` does not overflow.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    /// The returned node is of sort Bool.
+    public func makeBvAddNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>, isSigned: Bool) -> Z3Ast<BoolSort> {
+        return Z3Ast(ast: Z3_mk_bvadd_no_overflow(context, t1.ast, t2.ast, isSigned))
+    }
+    
+    /// Create a predicate that checks that the bit-wise addition of `t1` and
+    /// `t2` does not underflow.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    /// The returned node is of sort Bool.
+    public func makeBvAddNoUnderflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>, isSigned: Bool) -> Z3Ast<BoolSort> {
+        return Z3Ast(ast: Z3_mk_bvadd_no_underflow(context, t1.ast, t2.ast))
+    }
+    
+    /// Create a predicate that checks that the bit-wise subtraction of `t1` and
+    /// `t2` does not overflow.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    /// The returned node is of sort Bool.
+    public func makeBvSubNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+        return Z3Ast(ast: Z3_mk_bvsub_no_overflow(context, t1.ast, t2.ast))
+    }
+    
+    /// Create a predicate that checks that the bit-wise subtraction of `t1` and
+    /// `t2` does not underflow.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    /// The returned node is of sort Bool.
+    public func makeBvSubNoUnderflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>, isSigned: Bool) -> Z3Ast<BoolSort> {
+        return Z3Ast(ast: Z3_mk_bvsub_no_underflow(context, t1.ast, t2.ast, isSigned))
+    }
+    
+    /// Create a predicate that checks that the bit-wise signed division of `t1`
+    /// and `t2` does not underflow.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    /// The returned node is of sort Bool.
+    public func makeBvSDivNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+        return Z3Ast(ast: Z3_mk_bvsdiv_no_overflow(context, t1.ast, t2.ast))
+    }
+    
+    /// Check that bit-wise negation does not overflow when `t1` is interpreted
+    /// as a signed bit-vector.
+    ///
+    /// The node `t1` must have bit-vector sort.
+    /// The returned node is of sort Bool.
+    public func makeBvNegNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>) -> Z3Ast<BoolSort> {
+        return Z3Ast(ast: Z3_mk_bvneg_no_overflow(context, t1.ast))
+    }
+    
+    /// Create a predicate that checks that the bit-wise multiplication of `t1`
+    /// and `t2` does not overflow.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    /// The returned node is of sort Bool.
+    public func makeBvMulNoOverflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>, isSigned: Bool) -> Z3Ast<BoolSort> {
+        return Z3Ast(ast: Z3_mk_bvmul_no_overflow(context, t1.ast, t2.ast, isSigned))
+    }
+    
+    /// Create a predicate that checks that the bit-wise multiplication of `t1`
+    /// and `t2` does not underflow.
+    ///
+    /// The nodes `t1` and `t2` must have the same bit-vector sort.
+    /// The returned node is of sort Bool.
+    public func makeBvMulNoUnderflow<T: BitVectorSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<BoolSort> {
+        return Z3Ast(ast: Z3_mk_bvmul_no_underflow(context, t1.ast, t2.ast))
     }
 }
