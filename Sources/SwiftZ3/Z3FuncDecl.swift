@@ -7,3 +7,15 @@ public class Z3FuncDecl {
         self.funcDecl = funcDecl
     }
 }
+
+internal extension Sequence where Element == Z3_func_decl {
+    func toZ3FuncDeclArray() -> [Z3FuncDecl] {
+        return map { Z3FuncDecl(funcDecl: $0) }
+    }
+}
+
+internal extension Sequence where Element == Z3_func_decl? {
+    func toZ3FuncDeclArray() -> [Z3FuncDecl] {
+        return map { Z3FuncDecl(funcDecl: $0!) }
+    }
+}

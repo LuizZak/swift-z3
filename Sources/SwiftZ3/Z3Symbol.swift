@@ -7,3 +7,9 @@ public class Z3Symbol {
         self.symbol = symbol
     }
 }
+
+internal extension Sequence where Element == Z3Symbol {
+    func toZ3_symbolPointerArray() -> [Z3_symbol?] {
+        return map { $0.symbol }
+    }
+}

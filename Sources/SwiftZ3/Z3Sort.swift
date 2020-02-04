@@ -7,3 +7,9 @@ public class Z3Sort {
         self.sort = sort
     }
 }
+
+internal extension Sequence where Element == Z3Sort {
+    func toZ3_sortPointerArray() -> [Z3_sort?] {
+        return map { $0.sort }
+    }
+}

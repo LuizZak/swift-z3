@@ -59,6 +59,9 @@ public class Z3Context {
     public func getSort(_ ast: AnyZ3Ast) -> Z3Sort {
         return Z3Sort(sort: Z3_get_sort(context, ast.ast))
     }
+
+    // TODO: Add error handling to these methods, testing the current error code
+    // before utilizing the returned pointers
     
     /// Create a free (uninterpreted) type using the given name (symbol).
     ///
@@ -128,7 +131,7 @@ public class Z3Context {
     /// - seealso `makeSelectN`
     /// - seealso `makeStoreN`
     public func makeArraySortN(domains: [Z3Sort], range: Z3Sort) -> Z3Sort {
-        let domains = domains.map { $0.sort as Z3_sort? }
+        let domains = domains.toZ3_sortPointerArray()
         return Z3Sort(sort: Z3_mk_array_sort_n(context, UInt32(domains.count), domains, range.sort))
     }
     
@@ -150,8 +153,8 @@ public class Z3Context {
     public func makeTupleSort(mkTupleName: Z3Symbol, fieldNames: [Z3Symbol],
                               fieldSorts: [Z3Sort]) -> (mkTupleDecl: Z3FuncDecl, projDecl: [Z3FuncDecl], tupleSort: Z3Sort) {
         
-        let fieldNames: [Z3_symbol?] = fieldNames.map { $0.symbol }
-        let fieldSorts: [Z3_sort?] = fieldSorts.map { $0.sort }
+        let fieldNames = fieldNames.toZ3_symbolPointerArray()
+        let fieldSorts = fieldSorts.toZ3_sortPointerArray()
         
         var mkTupleDecl: Z3_func_decl?
         var projDecl: [Z3_func_decl?] = fieldNames.map { _ in nil }
@@ -161,8 +164,153 @@ public class Z3Context {
         
         return (
             Z3FuncDecl(funcDecl: mkTupleDecl!),
-            projDecl.map { Z3FuncDecl(funcDecl: $0!) },
+            projDecl.toZ3FuncDeclArray(),
             Z3Sort(sort: sort!)
+        )
+    }
+
+    /// Create a enumeration sort.
+    ///
+    /// An enumeration sort with `n` elements.
+    /// This function will also declare the functions corresponding to the enumerations.
+    ///
+    /// - parameter name: name of the enumeration sort.
+    /// - parameter n: number of elements in enumeration sort.
+    /// - parameter enumNames: names of the enumerated elements.
+    /// - returns:
+    /// A tuple containing:
+    ///     - `enumConsts`: constants corresponding to the enumerated elements.
+    ///     - `parameter`: predicates testing if terms of the enumeration sort
+    ///     correspond to an enumeration.
+    ///     - `sort`: The resulting sort
+    ///
+    /// For example, if this function is called with three symbols A, B, C and
+    /// the name S, then `s` is a sort whose name is S, and the function returns
+    /// three terms corresponding to A, B, C in `enum_consts`. The array
+    /// `enum_testers` has three predicates of type `(s -> Bool)`. The first
+    /// predicate (corresponding to A) is true when applied to A, and false
+    /// otherwise. Similarly for the other predicates.
+    public func makeEnumerationSort(name: Z3Symbol, enumNames: [Z3Symbol]) -> (enumConsts: [Z3FuncDecl], enumTesters: [Z3FuncDecl], sort: Z3Sort) {
+
+        let enumNames = enumNames.toZ3_symbolPointerArray()
+        var enumConsts: [Z3_func_decl?] = enumNames.map { _ in nil }
+        var enumTesters: [Z3_func_decl?] = enumNames.map { _ in nil }
+
+        let sort =
+            Z3_mk_enumeration_sort(context, name.symbol, UInt32(enumNames.count),
+                                   enumNames, &enumConsts, &enumTesters)
+
+        return (enumConsts.toZ3FuncDeclArray(), enumTesters.toZ3FuncDeclArray(), Z3Sort(sort: sort!))
+    }
+
+    /// Create a constructor.
+    ///
+    /// - parameter name: constructor name.
+    /// - parameter recognizer: name of recognizer function.
+    /// - parameter fieldNames: names of the constructor fields.
+    /// - parameter sorts: field sorts, 0 if the field sort refers to a recursive
+    ///  sort.
+    /// - parameter sortRefs: reference to datatype sort that is an argument to
+    /// the constructor; if the corresponding
+    /// sort reference is 0, then the value in sort_refs should be an index
+    /// referring to one of the recursive datatypes that is declared.
+    /// - seealso: `makeConstructorList`
+    /// - seealso: `queryConstructor`
+    public func makeConstructor(name: Z3Symbol, recognizer: Z3Symbol,
+                                fieldNames: [Z3Symbol], sorts: [Z3Sort],
+                                sortRefs: [UInt32]) -> Z3Constructor {
+
+        let fieldNames = fieldNames.toZ3_symbolPointerArray()
+        let sorts = sorts.toZ3_sortPointerArray()
+        var sortRefs = sortRefs
+
+        let ctor =
+            Z3_mk_constructor(context, name.symbol, recognizer.symbol,
+                              UInt32(fieldNames.count), fieldNames, sorts,
+                              &sortRefs)
+
+        return Z3Constructor(context: self, constructor: ctor!)
+    }
+
+    // TODO: Test the validity of this method. It seems like the underlying
+    // implementation alters pointer values from within each Z3_constructor pointer
+
+    /// Create datatype, such as lists, trees, records, enumerations or unions
+    /// of records.
+    /// The datatype may be recursive. Return the datatype sort.
+    ///
+    /// - parameter name: name of datatype.
+    /// - parameter constructors: array of constructor containers.
+    /// - seealso: `makeConstructor`
+    /// - seealso: `makeConstructorList`
+    /// - seealso: `makeDatatypes`
+    func makeDatatype(name: Z3Symbol, constructors: inout [Z3Constructor]) -> Z3Sort {
+
+        var constructors = constructors.toZ3_constructorPointerArray()
+
+        let sort =
+            Z3_mk_datatype(context, name.symbol, UInt32(constructors.count),
+                           &constructors)
+
+        return Z3Sort(sort: sort!)
+    }
+
+    /// Create list of constructors.
+    ///
+    /// - seealso: `makeConstructor`
+    public func makeConstructorList(_ constructors: [Z3Constructor]) -> Z3ConstructorList {
+        let constructors = constructors.toZ3_constructorPointerArray()
+
+        let ctorList =
+            Z3_mk_constructor_list(context, UInt32(constructors.count),
+                                   constructors)
+
+        return Z3ConstructorList(context: self, constructorList: ctorList!)
+    }
+
+    /// Create mutually recursive datatypes
+    ///
+    /// - parameter sortNames: names of datatype sorts.
+    /// - parameter constructorLists: list of constructors, one list per sort.
+    /// - returns: array of datatype sorts
+    /// - seealso: `makeConstructor`
+    /// - seealso: `makeConstructorList`
+    /// - seealso: `makeDatatype`
+    public func makeDatatypes(sortNames: [Z3Symbol], constructorLists: [Z3ConstructorList]) -> [Z3Sort] {
+
+        let sortNames = sortNames.toZ3_symbolPointerArray()
+        var sorts: [Z3_sort?] = sortNames.map { _ in nil }
+        var constructorLists = constructorLists.toZ3_constructor_listPointerArray()
+
+        Z3_mk_datatypes(context, UInt32(sortNames.count), sortNames,
+                        &sorts, &constructorLists)
+
+        return sorts.map { Z3Sort(sort: $0!) }
+    }
+
+    /// Query constructor for declared functions.
+    ///
+    /// - parameter constr: constructor container. The container must have been passed in to a `makeDatatype` call.
+    /// - parameter numFields: number of accessor fields in the constructor.
+    /// - returns:
+    /// A tuple containing:
+    ///     - `constructor`: constructor function declaration, allocated by user.
+    ///     - `tester`: constructor test function declaration, allocated by user.
+    ///     - `accessors`: array of accessor function declarations allocated by user. The array must contain num_fields elements.
+    /// - seealso: `makeConstructor`
+    public func queryConstructor(constructor: Z3Constructor, numFields: UInt32) -> (constructor: Z3FuncDecl, tester: Z3FuncDecl, accessors: [Z3FuncDecl]) {
+
+        var constr: Z3_func_decl?
+        var tester: Z3_func_decl?
+        var accessors: [Z3_func_decl?] = (0..<numFields).map { _ in nil }
+
+        Z3_query_constructor(context, constructor.constructor, numFields, &constr,
+                             &tester, &accessors)
+
+        return (
+            Z3FuncDecl(funcDecl: constr!),
+            Z3FuncDecl(funcDecl: tester!),
+            accessors.map { Z3FuncDecl(funcDecl: $0!) }
         )
     }
 
