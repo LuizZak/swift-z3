@@ -25,3 +25,6 @@ internal extension Sequence where Element: AnyZ3Ast {
         return map { $0.ast }
     }
 }
+
+public typealias Z3Array<D: SortKind, R: SortKind> = Z3Ast<ArraySort<D, R>>
+public typealias Z3Set<T: SortKind> = Z3Ast<SetSort<T>>

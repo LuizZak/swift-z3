@@ -8,12 +8,12 @@ final class SwiftZ3Tests: XCTestCase {
         config.setParameter(name: "model", value: "true")
 
         let context = Z3Context(configuration: config)
-        
+
         let roundMode = context.makeFpaRoundTowardZero()
         let left = context.makeConstant(name: "left", sort: Float.self)
         let width = context.makeConstant(name: "width", sort: Float.self)
         let right = context.makeConstant(name: "right", sort: Float.self)
-        
+
         let lValue = context.makeEqual(left, context.makeFpaNumeralFloat(50.0, sort: Float.self))
         let wValue = context.makeEqual(width, context.makeFpaNumeralFloat(100.0, sort: Float.self))
         

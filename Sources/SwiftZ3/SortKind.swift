@@ -14,6 +14,12 @@ public struct ArraySort<Domain: SortKind, Range: SortKind>: SortKind {
     }
 }
 
+public struct SetSort<T: SortKind>: SortKind {
+    public static func getSort(_ context: Z3Context) -> Z3Sort {
+        return context.makeSetSort(T.getSort(context))
+    }
+}
+
 // MARK: - Bool
 extension Bool: SortKind {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
