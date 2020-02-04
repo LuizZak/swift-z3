@@ -52,7 +52,7 @@ public class Z3Context {
 
     // MARK: -
     
-    /// \brief Create a numeral of a given sort.
+    /// Create a numeral of a given sort.
     ///
     /// - seealso: `makeInteger()`
     /// - seealso: `makeUnsignedInteger()`

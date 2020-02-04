@@ -120,7 +120,7 @@ public extension Z3Context {
     /// Map f on the argument arrays.
     ///
     /// The `n` nodes `args` must be of array sorts `[domain_i -> range_i]`.
-    /// The function declaration \c f must have type `range_1 .. range_n -> range`.
+    /// The function declaration `f` must have type `range_1 .. range_n -> range`.
     /// `v` must have sort range. The sort of the result is `[domain_i -> range]`.
     ///
     /// - seealso: `makeArraySort`
