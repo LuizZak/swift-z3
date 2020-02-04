@@ -114,7 +114,7 @@ public class Z3Optimize {
         Z3_optimize_set_params(context.context, optimize, params.params)
     }
 
-    /// Return the parameter description set for the given optimize object.
+    /// Return the parameter description set for this optimize object.
     public func getParamDescrs() -> Z3ParamDescrs {
         let descrs = Z3_optimize_get_param_descrs(context.context, optimize)
 
@@ -245,14 +245,14 @@ public class Z3Optimize {
     ///
     /// - seealso: `pop()`
     public func push() {
-
+        Z3_optimize_push(context.context, optimize)
     }
 
     /// Backtrack one level.
     ///
     /// - precondition: The number of calls to pop cannot exceed calls to push.
-    /// - seealso: `push`
+    /// - seealso: `push()`
     public func pop() {
-
+        Z3_optimize_pop(context.context, optimize)
     }
 }
