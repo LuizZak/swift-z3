@@ -41,35 +41,6 @@ internal extension Z3ErrorCode {
     }
 
     static func fromZ3_error_code(_ errorCode: Z3_error_code) -> Z3ErrorCode {
-        switch errorCode {
-        case Z3_OK:
-            return .ok
-        case Z3_SORT_ERROR:
-            return .sortError
-        case Z3_IOB:
-            return .iob
-        case Z3_INVALID_ARG:
-            return .invalidArg
-        case Z3_PARSER_ERROR:
-            return .parserError
-        case Z3_NO_PARSER:
-            return .noParser
-        case Z3_INVALID_PATTERN:
-            return .invalidPattern
-        case Z3_MEMOUT_FAIL:
-            return .memoutFail
-        case Z3_FILE_ACCESS_ERROR:
-            return .fileAccessError
-        case Z3_INTERNAL_FATAL:
-            return .internalFatal
-        case Z3_INVALID_USAGE:
-            return .invalidUsage
-        case Z3_DEC_REF_ERROR:
-            return .decRefError
-        case Z3_EXCEPTION:
-            return .exception
-        default:
-            return .unknown
-        }
+        return Z3ErrorCode(rawValue: errorCode.rawValue) ?? .unknown
     }
 }
