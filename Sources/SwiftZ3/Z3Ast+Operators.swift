@@ -27,6 +27,24 @@ public extension Z3Ast where T == Bool {
     }
 }
 
+public extension Z3Ast where T: IntOrRealSort {
+    static func < (lhs: Z3Ast, rhs: Z3Ast) -> Z3Bool {
+        return lhs.context.makeLessThan(lhs, rhs)
+    }
+
+    static func <= (lhs: Z3Ast, rhs: Z3Ast) -> Z3Bool {
+        return lhs.context.makeLessThanOrEqualTo(lhs, rhs)
+    }
+
+    static func > (lhs: Z3Ast, rhs: Z3Ast) -> Z3Bool {
+        return lhs.context.makeGreaterThan(lhs, rhs)
+    }
+
+    static func >= (lhs: Z3Ast, rhs: Z3Ast) -> Z3Bool {
+        return lhs.context.makeGreaterThanOrEqualTo(lhs, rhs)
+    }
+}
+
 public extension Z3Ast where T: BitVectorSort {
     static func & (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
         return lhs.context.makeBvAnd(lhs, rhs)

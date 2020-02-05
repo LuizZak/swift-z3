@@ -79,25 +79,25 @@ public extension Z3Context {
 
     /// Create less than.
     /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
-    func makeLessThan<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
+    func makeLessThan<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_lt(context, t1.ast, t2.ast))
     }
 
     /// Create less than or equal to.
     /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
-    func makeLessThanOrEqualTo<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
+    func makeLessThanOrEqualTo<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_le(context, t1.ast, t2.ast))
     }
 
     /// Create greater than.
     /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
-    func makeGreaterThan<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
+    func makeGreaterThan<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_gt(context, t1.ast, t2.ast))
     }
 
     /// Create greater than or equal to.
     /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
-    func makeGreaterThanOrEqualTo<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
+    func makeGreaterThanOrEqualTo<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_ge(context, t1.ast, t2.ast))
     }
 
