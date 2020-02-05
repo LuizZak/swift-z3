@@ -181,47 +181,47 @@ final class SwiftZ3Tests: XCTestCase {
 
     // Derived from Z3's .NET sample code
     func testSudokuExample() {
-        let ctx = Z3Context()
+        let context = Z3Context()
 
         // 9x9 matrix of integer variables
         var x: [[Z3Int]] = []
         for i in 0..<9 {
             x.append([])
             for j in 0..<9 {
-                x[i].append(ctx.makeConstant(name: "x_\(i + 1)_\(j + 1)", sort: IntSort.self))
+                x[i].append(context.makeConstant(name: "x_\(i + 1)_\(j + 1)", sort: IntSort.self))
             }
         }
 
         // each cell contains a value in {1, ..., 9}
-        var cells_c: [[Z3Bool]] = []
+        var cellsC: [[Z3Bool]] = []
         for i in 0..<9 {
-            cells_c.append([])
+            cellsC.append([])
             for j in 0..<9 {
-                cells_c[i].append(1 <= x[i][j] && x[i][j] <= 9)
+                cellsC[i].append(1 <= x[i][j] && x[i][j] <= 9)
             }
         }
 
         // each row contains a digit at most once
-        var rows_c: [Z3Bool] = []
+        var rowsC: [Z3Bool] = []
         for i in 0..<9 {
-            rows_c.append(ctx.makeDistinct(x[i]))
+            rowsC.append(context.makeDistinct(x[i]))
         }
 
         // each column contains a digit at most once
-        var cols_c: [Z3Bool] = []
+        var colsC: [Z3Bool] = []
         for j in 0..<9 {
             var column: [Z3Int] = []
             for i in 0..<9 {
                 column.append(x[i][j])
             }
 
-            cols_c.append(ctx.makeDistinct(column))
+            colsC.append(context.makeDistinct(column))
         }
 
         // each 3x3 square contains a digit at most once
-        var sq_c: [[Z3Bool]] = []
+        var sqC: [[Z3Bool]] = []
         for i0 in 0..<3 {
-            sq_c.append([])
+            sqC.append([])
             for j0 in 0..<3 {
                 var square: [Z3Int] = []
                 for i in 0..<3 {
@@ -230,18 +230,18 @@ final class SwiftZ3Tests: XCTestCase {
                     }
                 }
 
-                sq_c[i0].append(ctx.makeDistinct(square))
+                sqC[i0].append(context.makeDistinct(square))
             }
         }
 
-        var sudoku_c = ctx.makeTrue()
-        for t in cells_c {
-            sudoku_c = sudoku_c && ctx.makeAnd(t)
+        var sudokuC = context.makeTrue()
+        for t in cellsC {
+            sudokuC = sudokuC && context.makeAnd(t)
         }
-        sudoku_c = sudoku_c && ctx.makeAnd(rows_c)
-        sudoku_c = sudoku_c && ctx.makeAnd(cols_c)
-        for t in sq_c {
-            sudoku_c = sudoku_c && ctx.makeAnd(t)
+        sudokuC = sudokuC && context.makeAnd(rowsC)
+        sudokuC = sudokuC && context.makeAnd(colsC)
+        for t in sqC {
+            sudokuC = sudokuC && context.makeAnd(t)
         }
 
         // sudoku instance, we use '0' for empty cells
@@ -268,22 +268,22 @@ final class SwiftZ3Tests: XCTestCase {
             [5, 4, 1, 9, 7, 2, 3, 8, 6]
         ]
 
-        var instance_c = ctx.makeTrue()
+        var instanceC = context.makeTrue()
         for i in 0..<9 {
             for j in 0..<9 {
-                instance_c =
-                    instance_c &&
-                    ctx.makeIfThenElse(
-                        instance[i][j] == ctx.makeInteger(value: 0),
-                        ctx.makeTrue(),
+                instanceC =
+                    instanceC &&
+                    context.makeIfThenElse(
+                        instance[i][j] == context.makeInteger(value: 0),
+                        context.makeTrue(),
                         x[i][j] == instance[i][j]
                     )
             }
         }
 
-        let s = ctx.makeSolver()
-        s.assert(sudoku_c)
-        s.assert(instance_c)
+        let s = context.makeSolver()
+        s.assert(sudokuC)
+        s.assert(instanceC)
 
         if s.check() == .satisfiable {
             let m = s.getModel()!
