@@ -25,7 +25,7 @@ public extension Z3Context {
             Z3_mk_func_decl(context, name.symbol, UInt32(domain.count),
                             domain, range.sort)
 
-        return Z3FuncDecl(funcDecl: decl!)
+        return Z3FuncDecl(context: self, funcDecl: decl!)
     }
 
     // TODO: Add error handling to this method
@@ -84,7 +84,7 @@ public extension Z3Context {
         let decl =
             Z3_mk_fresh_func_decl(context, prefix, UInt32(domain.count), domain, range.sort)
 
-        return Z3FuncDecl(funcDecl: decl!)
+        return Z3FuncDecl(context: self, funcDecl: decl!)
     }
 
 
@@ -131,7 +131,7 @@ public extension Z3Context {
             Z3_mk_rec_func_decl(context, name.symbol, UInt32(domain.count),
                                 domain, range.sort)
 
-        return Z3FuncDecl(funcDecl: decl!)
+        return Z3FuncDecl(context: self, funcDecl: decl!)
     }
 
     // TODO: Add error handling to the function bellow

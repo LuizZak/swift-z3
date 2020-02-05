@@ -115,8 +115,8 @@ public extension Z3Context {
                                     fieldNames, fieldSorts, &mkTupleDecl, &projDecl)
 
         return (
-            Z3FuncDecl(funcDecl: mkTupleDecl!),
-            projDecl.toZ3FuncDeclArray(),
+            Z3FuncDecl(context: self, funcDecl: mkTupleDecl!),
+            projDecl.toZ3FuncDeclArray(context: self),
             Z3Sort(sort: sort!)
         )
     }
@@ -152,7 +152,7 @@ public extension Z3Context {
             Z3_mk_enumeration_sort(context, name.symbol, UInt32(enumNames.count),
                                    enumNames, &enumConsts, &enumTesters)
 
-        return (enumConsts.toZ3FuncDeclArray(), enumTesters.toZ3FuncDeclArray(), Z3Sort(sort: sort!))
+        return (enumConsts.toZ3FuncDeclArray(context: self), enumTesters.toZ3FuncDeclArray(context: self), Z3Sort(sort: sort!))
     }
 
     /// Create a constructor.
@@ -261,9 +261,9 @@ public extension Z3Context {
                              &tester, &accessors)
 
         return (
-            Z3FuncDecl(funcDecl: constr!),
-            Z3FuncDecl(funcDecl: tester!),
-            accessors.map { Z3FuncDecl(funcDecl: $0!) }
+            Z3FuncDecl(context: self, funcDecl: constr!),
+            Z3FuncDecl(context: self, funcDecl: tester!),
+            accessors.toZ3FuncDeclArray(context: self)
         )
     }
 }
