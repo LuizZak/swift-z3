@@ -102,6 +102,11 @@ public class Z3Context {
         return Z3Solver(context: self, solver: Z3_mk_simple_solver(context))
     }
 
+    /// Create a new optimize context.
+    public func makeOptimize() -> Z3Optimize {
+        return Z3Optimize(context: self, optimize: Z3_mk_optimize(context))
+    }
+
     // MARK: -
     
     /// Create a numeral of a given sort.

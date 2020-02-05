@@ -153,8 +153,62 @@ public extension Z3Ast where T: FloatingSort {
     }
 }
 
-extension Z3Ast where T: FloatingSort, T: BinaryFloatingPoint, T: LosslessStringConvertible {
+public extension Z3Ast where T: FloatingSort, T: BinaryFloatingPoint, T: LosslessStringConvertible {
     // MARK: - Constants Casting
+    static func == (lhs: T, rhs: Z3Ast) -> Z3Bool {
+        let lhsFloat = rhs.context.makeFpaNumeral(lhs)
+        return lhsFloat == rhs
+    }
+    static func == (lhs: Z3Ast, rhs: T) -> Z3Bool {
+        let rhsFloat = lhs.context.makeFpaNumeral(rhs)
+        return lhs == rhsFloat
+    }
+
+    static func != (lhs: T, rhs: Z3Ast) -> Z3Bool {
+        let lhsFloat = rhs.context.makeFpaNumeral(lhs)
+        return lhsFloat != rhs
+    }
+    static func != (lhs: Z3Ast, rhs: T) -> Z3Bool {
+        let rhsFloat = lhs.context.makeFpaNumeral(rhs)
+        return lhs != rhsFloat
+    }
+
+    static func >= (lhs: T, rhs: Z3Ast) -> Z3Bool {
+        let lhsFloat = rhs.context.makeFpaNumeral(lhs)
+        return lhsFloat >= rhs
+    }
+    static func >= (lhs: Z3Ast, rhs: T) -> Z3Bool {
+        let rhsFloat = lhs.context.makeFpaNumeral(rhs)
+        return lhs >= rhsFloat
+    }
+
+    static func > (lhs: T, rhs: Z3Ast) -> Z3Bool {
+        let lhsFloat = rhs.context.makeFpaNumeral(lhs)
+        return lhsFloat > rhs
+    }
+    static func > (lhs: Z3Ast, rhs: T) -> Z3Bool {
+        let rhsFloat = lhs.context.makeFpaNumeral(rhs)
+        return lhs > rhsFloat
+    }
+
+    static func <= (lhs: T, rhs: Z3Ast) -> Z3Bool {
+        let lhsFloat = rhs.context.makeFpaNumeral(lhs)
+        return lhsFloat <= rhs
+    }
+    static func <= (lhs: Z3Ast, rhs: T) -> Z3Bool {
+        let rhsFloat = lhs.context.makeFpaNumeral(rhs)
+        return lhs <= rhsFloat
+    }
+
+    static func < (lhs: T, rhs: Z3Ast) -> Z3Bool {
+        let lhsFloat = rhs.context.makeFpaNumeral(lhs)
+        return lhsFloat < rhs
+    }
+    static func < (lhs: Z3Ast, rhs: T) -> Z3Bool {
+        let rhsFloat = lhs.context.makeFpaNumeral(rhs)
+        return lhs < rhsFloat
+    }
+
     static func + (lhs: T, rhs: Z3Ast) -> Z3Ast {
         let lhsFloat = rhs.context.makeFpaNumeral(lhs)
         return rhs.context.makeFpaAdd(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
