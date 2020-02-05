@@ -30,7 +30,7 @@ public class AnyZ3Ast {
     /// The AST node must be a constant, application, numeral, bound variable,
     /// or quantifier.
     public var sort: Z3Sort? {
-        return Z3_get_sort(context.context, ast).map(Z3Sort.init(sort:))
+        return Z3_get_sort(context.context, ast).map { Z3Sort(context: context, sort: $0) }
     }
 
     /// Return `true` if this expression is well sorted.

@@ -1,9 +1,11 @@
 import CZ3
 
 public class Z3Sort {
+    var context: Z3Context
     var sort: Z3_sort
 
-    init(sort: Z3_sort) {
+    init(context: Z3Context, sort: Z3_sort) {
+        self.context = context
         self.sort = sort
     }
 }
@@ -15,13 +17,13 @@ internal extension Sequence where Element == Z3Sort {
 }
 
 internal extension Sequence where Element == Z3_sort {
-    func toZ3SortArray() -> [Z3Sort] {
-        return map { Z3Sort(sort: $0) }
+    func toZ3SortArray(context: Z3Context) -> [Z3Sort] {
+        return map { Z3Sort(context: context, sort: $0) }
     }
 }
 
 internal extension Sequence where Element == Z3_func_decl? {
-    func toZ3SortArray() -> [Z3Sort] {
-        return map { Z3Sort(sort: $0!) }
+    func toZ3SortArray(context: Z3Context) -> [Z3Sort] {
+        return map { Z3Sort(context: context, sort: $0!) }
     }
 }

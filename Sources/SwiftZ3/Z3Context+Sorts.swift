@@ -8,7 +8,7 @@ public extension Z3Context {
     /// The AST node must be a constant, application, numeral, bound variable,
     /// or quantifier.
     func getSort(_ ast: AnyZ3Ast) -> Z3Sort {
-        return Z3Sort(sort: Z3_get_sort(context, ast.ast))
+        return Z3Sort(context: self, sort: Z3_get_sort(context, ast.ast))
     }
 
     // TODO: Add error handling to these methods, testing the current error code
@@ -18,7 +18,7 @@ public extension Z3Context {
     ///
     /// Two free types are considered the same iff the have the same name.
     func makeUninterpretedSort(_ symbol: Z3Symbol) -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_uninterpreted_sort(context, symbol.symbol))
+        return Z3Sort(context: self, sort: Z3_mk_uninterpreted_sort(context, symbol.symbol))
     }
 
     /// Create the integer type.
@@ -29,20 +29,20 @@ public extension Z3Context {
     ///
     /// - seealso: `Z3_mk_bv_sort`
     func intSort() -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_int_sort(context))
+        return Z3Sort(context: self, sort: Z3_mk_int_sort(context))
     }
 
     /// Create the Boolean type.
     /// This type is used to create propositional variables and predicates.
     func boolSort() -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_bool_sort(context))
+        return Z3Sort(context: self, sort: Z3_mk_bool_sort(context))
     }
 
     /// Create the real type.
     ///
     /// Note that this type is not a floating point number.
     func realSort() -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_real_sort(context))
+        return Z3Sort(context: self, sort: Z3_mk_real_sort(context))
     }
 
     /// Create a bit-vector type of the given size.
@@ -51,7 +51,7 @@ public extension Z3Context {
     /// - remark: The size of the bit-vector type must be greater than zero.
     func bitVectorSort(size: UInt32) -> Z3Sort {
         precondition(size > 0)
-        return Z3Sort(sort: Z3_mk_bv_sort(context, size))
+        return Z3Sort(context: self, sort: Z3_mk_bv_sort(context, size))
     }
 
     /// Create a named finite domain sort.
@@ -63,7 +63,7 @@ public extension Z3Context {
     ///
     /// - seealso: `getFiniteDomainSortSize`
     func makeFiniteDomainSort(name: Z3Symbol, size: UInt64) -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_finite_domain_sort(context, name.symbol, size))
+        return Z3Sort(context: self, sort: Z3_mk_finite_domain_sort(context, name.symbol, size))
     }
 
     /// Create an array type.
@@ -74,7 +74,7 @@ public extension Z3Context {
     /// - seealso: `makeSelect`
     /// - seealso: `makeStore`
     func makeArraySort(domain: Z3Sort, range: Z3Sort) -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_array_sort(context, domain.sort, range.sort))
+        return Z3Sort(context: self, sort: Z3_mk_array_sort(context, domain.sort, range.sort))
     }
 
     /// Create an array type with N arguments
@@ -83,7 +83,7 @@ public extension Z3Context {
     /// - seealso `makeStoreN`
     func makeArraySortN(domains: [Z3Sort], range: Z3Sort) -> Z3Sort {
         let domains = domains.toZ3_sortPointerArray()
-        return Z3Sort(sort: Z3_mk_array_sort_n(context, UInt32(domains.count), domains, range.sort))
+        return Z3Sort(context: self, sort: Z3_mk_array_sort_n(context, UInt32(domains.count), domains, range.sort))
     }
 
     /// Create a tuple type.
@@ -117,7 +117,7 @@ public extension Z3Context {
         return (
             Z3FuncDecl(context: self, funcDecl: mkTupleDecl!),
             projDecl.toZ3FuncDeclArray(context: self),
-            Z3Sort(sort: sort!)
+            Z3Sort(context: self, sort: sort!)
         )
     }
 
@@ -152,7 +152,7 @@ public extension Z3Context {
             Z3_mk_enumeration_sort(context, name.symbol, UInt32(enumNames.count),
                                    enumNames, &enumConsts, &enumTesters)
 
-        return (enumConsts.toZ3FuncDeclArray(context: self), enumTesters.toZ3FuncDeclArray(context: self), Z3Sort(sort: sort!))
+        return (enumConsts.toZ3FuncDeclArray(context: self), enumTesters.toZ3FuncDeclArray(context: self), Z3Sort(context: self, sort: sort!))
     }
 
     /// Create a constructor.
@@ -204,7 +204,7 @@ public extension Z3Context {
             Z3_mk_datatype(context, name.symbol, UInt32(constructors.count),
                            &constructors)
 
-        return Z3Sort(sort: sort!)
+        return Z3Sort(context: self, sort: sort!)
     }
 
     /// Create list of constructors.
@@ -237,7 +237,7 @@ public extension Z3Context {
         Z3_mk_datatypes(context, UInt32(sortNames.count), sortNames,
                         &sorts, &constructorLists)
 
-        return sorts.map { Z3Sort(sort: $0!) }
+        return sorts.map { Z3Sort(context: self, sort: $0!) }
     }
 
     /// Query constructor for declared functions.

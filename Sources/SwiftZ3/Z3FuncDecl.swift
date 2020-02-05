@@ -30,12 +30,12 @@ public class Z3FuncDecl {
             sort[Int(i)] = Z3_get_domain(context.context, funcDecl, i)
         }
         
-        return sort.toZ3SortArray()
+        return sort.toZ3SortArray(context: context)
     }
     
     /// Return the range of the function declaration.
     public var range: Z3Sort {
-        return Z3Sort(sort: Z3_get_range(context.context, funcDecl))
+        return Z3Sort(context: context, sort: Z3_get_range(context.context, funcDecl))
     }
     
     /// Return the name of the function declaration.

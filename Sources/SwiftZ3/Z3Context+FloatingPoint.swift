@@ -5,7 +5,7 @@ public extension Z3Context {
     
     /// Create the RoundingMode sort.
     func makeFpaRoundingModeSort() -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_fpa_rounding_mode_sort(context))
+        return Z3Sort(context: self, sort: Z3_mk_fpa_rounding_mode_sort(context))
     }
     
     /// Create a numeral of RoundingMode sort which represents the
@@ -76,27 +76,27 @@ public extension Z3Context {
     ///
     /// - remark: `ebits` must be larger than 1 and `sbits` must be larger than 2.
     func floatingPointSort(ebits: UInt32, sbits: UInt32) -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_fpa_sort(context, ebits, sbits))
+        return Z3Sort(context: self, sort: Z3_mk_fpa_sort(context, ebits, sbits))
     }
     
     /// Create the half-precision (16-bit) FloatingPoint sort.
     func floatingPoint16Sort() -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_fpa_sort_16(context))
+        return Z3Sort(context: self, sort: Z3_mk_fpa_sort_16(context))
     }
 
     /// Create the single-precision (32-bit) FloatingPoint sort.
     func floatingPoint32Sort() -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_fpa_sort_32(context))
+        return Z3Sort(context: self, sort: Z3_mk_fpa_sort_32(context))
     }
     
     /// Create the double-precision (64-bit) FloatingPoint sort.
     func floatingPoint64Sort() -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_fpa_sort_64(context))
+        return Z3Sort(context: self, sort: Z3_mk_fpa_sort_64(context))
     }
     
     /// Create the quadruple-precision (128-bit) FloatingPoint sort.
     func floatingPoint128Sort() -> Z3Sort {
-        return Z3Sort(sort: Z3_mk_fpa_sort_128(context))
+        return Z3Sort(context: self, sort: Z3_mk_fpa_sort_128(context))
     }
     
     /// Create a floating-point NaN of sort `sort`.

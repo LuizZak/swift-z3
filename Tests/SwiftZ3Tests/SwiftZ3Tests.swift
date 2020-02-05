@@ -284,7 +284,7 @@ final class SwiftZ3Tests: XCTestCase {
                 }
             }
 
-            var rInt = r.map { $0.map { $0.numeralInt } }
+            let rInt = r.map { $0.map { $0.numeralInt } }
 
             let expected: [[Int32]] = [
                 [7, 1, 5, 8, 9, 4, 6, 3, 2],
