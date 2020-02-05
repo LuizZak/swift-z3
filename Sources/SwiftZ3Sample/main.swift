@@ -17,8 +17,8 @@ func main() {
     solver.assert(rightEq)
     print(solver.check())
     
-    if let model = solver.getModel() {
-        print(model.double(right))
+    if solver.getModel() != nil {
+        print(right.numeralDouble)
     }
 }
 
