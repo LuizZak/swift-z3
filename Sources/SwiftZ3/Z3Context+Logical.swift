@@ -59,7 +59,7 @@ public extension Z3Context {
     /// sort.
     /// The sort of the new node is equal to the sort of `t2` and `t3`.
     func makeIfThenElse<T>(_ t1: Z3Bool, _ t2: Z3Ast<T>, _ t3: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(context: self, ast: Z3_mk_ite(context, t1.ast, t2.ast, t2.ast))
+        return Z3Ast(context: self, ast: Z3_mk_ite(context, t1.ast, t2.ast, t3.ast))
     }
 
     /// Create an AST node representing `t1 iff t2`.

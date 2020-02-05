@@ -14,7 +14,7 @@ public class Z3Model {
         Z3_model_dec_ref(context.context, model)
     }
     
-    public func eval(_ t: AnyZ3Ast, completion: Bool) -> AnyZ3Ast? {
+    public func eval(_ t: AnyZ3Ast, completion: Bool = false) -> AnyZ3Ast? {
         var output: Z3_ast?
         if !Z3_model_eval(context.context, model, t.ast, completion, &output) {
             return nil

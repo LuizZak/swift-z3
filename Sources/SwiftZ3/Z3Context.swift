@@ -153,9 +153,9 @@ public class Z3Context {
     ///
     /// - Parameter num: numerator of rational.
     /// - Parameter den: denominator of rational.
-    /// - seealso: `Z3_mk_numeral`
-    /// - seealso: `Z3_mk_int`
-    /// - seealso: `Z3_mk_unsigned_int`
+    /// - seealso: `makeNumeral`
+    /// - seealso: `makeInteger`
+    /// - seealso: `makeUnsignedInteger`
     /// - precondition: `den != 0`
     public func makeReal(_ num: Int32, _ den: Int32) -> Z3Ast<RealSort> {
         return Z3Ast(context: self, ast: Z3_mk_real(context, num, den))

@@ -45,6 +45,62 @@ public extension Z3Ast where T: IntOrRealSort {
     }
 }
 
+public extension Z3Ast where T == IntSort {
+    static func == (lhs: Int32, rhs: Z3Ast) -> Z3Bool {
+        let lhsInt = rhs.context.makeInteger(value: lhs)
+        return lhsInt == rhs
+    }
+    static func == (lhs: Z3Ast, rhs: Int32) -> Z3Bool {
+        let rhsInt = lhs.context.makeInteger(value: rhs)
+        return lhs == rhsInt
+    }
+
+    static func != (lhs: Int32, rhs: Z3Ast) -> Z3Bool {
+        let lhsInt = rhs.context.makeInteger(value: lhs)
+        return lhsInt != rhs
+    }
+    static func != (lhs: Z3Ast, rhs: Int32) -> Z3Bool {
+        let rhsInt = lhs.context.makeInteger(value: rhs)
+        return lhs != rhsInt
+    }
+
+    static func < (lhs: Int32, rhs: Z3Ast) -> Z3Bool {
+        let lhsInt = rhs.context.makeInteger(value: lhs)
+        return lhsInt < rhs
+    }
+    static func < (lhs: Z3Ast, rhs: Int32) -> Z3Bool {
+        let rhsInt = lhs.context.makeInteger(value: rhs)
+        return lhs < rhsInt
+    }
+
+    static func <= (lhs: Int32, rhs: Z3Ast) -> Z3Bool {
+        let lhsInt = rhs.context.makeInteger(value: lhs)
+        return lhsInt <= rhs
+    }
+    static func <= (lhs: Z3Ast, rhs: Int32) -> Z3Bool {
+        let rhsInt = lhs.context.makeInteger(value: rhs)
+        return lhs <= rhsInt
+    }
+
+    static func > (lhs: Int32, rhs: Z3Ast) -> Z3Bool {
+        let lhsInt = rhs.context.makeInteger(value: lhs)
+        return lhsInt > rhs
+    }
+    static func > (lhs: Z3Ast, rhs: Int32) -> Z3Bool {
+        let rhsInt = lhs.context.makeInteger(value: rhs)
+        return lhs > rhsInt
+    }
+
+    static func >= (lhs: Int32, rhs: Z3Ast) -> Z3Bool {
+        let lhsInt = rhs.context.makeInteger(value: lhs)
+        return lhsInt >= rhs
+    }
+    static func >= (lhs: Z3Ast, rhs: Int32) -> Z3Bool {
+        let rhsInt = lhs.context.makeInteger(value: rhs)
+        return lhs >= rhsInt
+    }
+}
+
 public extension Z3Ast where T: BitVectorSort {
     static func & (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
         return lhs.context.makeBvAnd(lhs, rhs)
@@ -229,37 +285,37 @@ public extension Z3Ast where T: FloatingSort, T: BinaryFloatingPoint, T: Lossles
 
     static func + (lhs: T, rhs: Z3Ast) -> Z3Ast {
         let lhsFloat = rhs.context.makeFpaNumeral(lhs)
-        return rhs.context.makeFpaAdd(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
+        return lhsFloat + rhs
     }
     static func + (lhs: Z3Ast, rhs: T) -> Z3Ast {
         let rhsFloat = lhs.context.makeFpaNumeral(rhs)
-        return lhs.context.makeFpaAdd(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
+        return lhs + rhsFloat
     }
     
     static func - (lhs: T, rhs: Z3Ast) -> Z3Ast {
         let lhsFloat = rhs.context.makeFpaNumeral(lhs)
-        return rhs.context.makeFpaSubtract(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
+        return lhsFloat - rhs
     }
     static func - (lhs: Z3Ast, rhs: T) -> Z3Ast {
         let rhsFloat = lhs.context.makeFpaNumeral(rhs)
-        return lhs.context.makeFpaSubtract(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
+        return lhs - rhsFloat
     }
     
     static func * (lhs: T, rhs: Z3Ast) -> Z3Ast {
         let lhsFloat = rhs.context.makeFpaNumeral(lhs)
-        return rhs.context.makeFpaMultiply(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
+        return lhsFloat * rhs
     }
     static func * (lhs: Z3Ast, rhs: T) -> Z3Ast {
         let rhsFloat = lhs.context.makeFpaNumeral(rhs)
-        return lhs.context.makeFpaMultiply(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
+        return lhs * rhsFloat
     }
     
     static func / (lhs: T, rhs: Z3Ast) -> Z3Ast {
         let lhsFloat = rhs.context.makeFpaNumeral(lhs)
-        return rhs.context.makeFpaDivide(rhs.context.currentFpaRoundingMode, lhsFloat, rhs)
+        return lhsFloat / rhs
     }
     static func / (lhs: Z3Ast, rhs: T) -> Z3Ast {
         let rhsFloat = lhs.context.makeFpaNumeral(rhs)
-        return lhs.context.makeFpaDivide(lhs.context.currentFpaRoundingMode, lhs, rhsFloat)
+        return lhs / rhsFloat
     }
 }

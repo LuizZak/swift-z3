@@ -83,6 +83,15 @@ public class AnyZ3Ast {
         return Z3_get_numeral_double(context.context, ast)
     }
 
+    /// Return numeral as an integer.
+    ///
+    /// - precondition: `astKind == Z3AstKind.numeralAst`
+    public var numeralInt: Int32 {
+        var i: Int32 = 0
+        Z3_get_numeral_int(context.context, ast, &i)
+        return i
+    }
+
     /// Return the numerator (as a numeral AST) of a numeral AST of sort Real.
     ///
     /// - precondition: `astKind == Z3AstKind.numeralAst`
@@ -136,9 +145,16 @@ internal extension Sequence where Element: AnyZ3Ast {
     }
 }
 
+/// An Array AST type
 public typealias Z3Array<D: SortKind, R: SortKind> = Z3Ast<ArraySort<D, R>>
+/// A Set AST type. Equivalent to an array of domain T and range Bool
 public typealias Z3Set<T: SortKind> = Z3Ast<SetSort<T>>
+/// A Boolean AST type.
 public typealias Z3Bool = Z3Ast<Bool>
+/// An integer AST type.
+/// Notice that this is not the same as a machine integer.
 public typealias Z3Int = Z3Ast<IntSort>
+/// A 32-bit precision floating-point AST type.
 public typealias Z3Float = Z3Ast<Float>
+/// A 64-bit precision floating-point AST type.
 public typealias Z3Double = Z3Ast<Double>
