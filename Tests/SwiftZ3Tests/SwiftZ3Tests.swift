@@ -304,6 +304,27 @@ final class SwiftZ3Tests: XCTestCase {
         }
     }
 
+    func testTranslation() {
+        let ctx1 = Z3Context()
+        let ctx2 = Z3Context()
+
+        let s1 = ctx1.intSort()
+        let s2 = ctx1.intSort()
+        let s3 = s1.translate(to: ctx2)
+
+        XCTAssertEqual(s1, s2)
+        XCTAssertNotEqual(s1, s3)
+        XCTAssertNotEqual(s2, s3)
+
+        let e1 = ctx1.makeConstant(name: "e1", sort: IntSort.self)
+        let e2 = ctx1.makeConstant(name: "e1", sort: IntSort.self)
+        let e3 = e1.translate(to: ctx2)
+
+        XCTAssert(e1.isEqual(to: e2))
+        XCTAssertFalse(e1.isEqual(to: e3))
+        XCTAssertFalse(e2.isEqual(to: e3))
+    }
+
     static var allTests = [
         ("testFpaSolver", testFpaSolver),
         ("testFpaSolverWithOperators", testFpaSolverWithOperators)

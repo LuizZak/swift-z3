@@ -1,17 +1,14 @@
 import CZ3
 
-public class Z3Sort {
-    var context: Z3Context
-    var sort: Z3_sort
+public class Z3Sort: Z3AstBase {
+    /// Convenience getter for `ast`
+    public var sort: Z3_sort {
+        return ast
+    }
 
     /// Return the sort name as a symbol.
     public var sortName: Z3Symbol {
         return Z3Symbol(context: context, symbol: Z3_get_sort_name(context.context, sort))
-    }
-
-    /// Return a unique identifier for this sort
-    public var id: UInt32 {
-        return Z3_get_sort_id(context.context, sort)
     }
 
     /// Return the sort kind (e.g., array, tuple, int, bool, etc).
@@ -22,8 +19,18 @@ public class Z3Sort {
     }
 
     init(context: Z3Context, sort: Z3_sort) {
-        self.context = context
-        self.sort = sort
+        super.init(context: context, ast: sort)
+    }
+
+    /// Translate/Copy the AST `self` from its current context to context `target`
+    public override func translate(to context: Z3Context) -> Z3Sort {
+        if self.context === context {
+            return self
+        }
+
+        let newAst = Z3_translate(self.context.context, ast, context.context)
+
+        return Z3Sort(context: context, sort: newAst!)
     }
 }
 
