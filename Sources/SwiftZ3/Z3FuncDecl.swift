@@ -3,10 +3,58 @@ import CZ3
 public class Z3FuncDecl {
     var context: Z3Context
     var funcDecl: Z3_func_decl
+    
+    /// Returns a unique identifier for the function declaration.
+    public var id: UInt32 {
+        return Z3_get_func_decl_id(context.context, funcDecl)
+    }
+    
+    /// Return the number of parameters of the function declaration.
+    ///
+    /// - seealso: `domainSize`
+    public var arity: UInt32 {
+        return Z3_get_arity(context.context, funcDecl)
+    }
+    
+    /// Return the number of parameters of the function declaration.
+    ///
+    /// - seealso: `domainSize`
+    public var domainSize: UInt32 {
+        return Z3_get_domain_size(context.context, funcDecl)
+    }
+    
+    /// Return the domain of the function declaration
+    public var domain: [Z3Sort] {
+        var sort: [Z3_sort?] = Array(repeating: nil, count: Int(domainSize))
+        for i in 0..<domainSize {
+            sort[Int(i)] = Z3_get_domain(context.context, funcDecl, i)
+        }
+        
+        return sort.toZ3SortArray()
+    }
+    
+    /// Return the range of the function declaration.
+    public var range: Z3Sort {
+        return Z3Sort(sort: Z3_get_range(context.context, funcDecl))
+    }
+    
+    /// Return the name of the function declaration.
+    public var name: Z3Symbol {
+        return Z3Symbol(symbol: Z3_get_decl_name(context.context, funcDecl))
+    }
+    
+    /// Return the number of parameters associated with the function declaration
+    public var parametersCount: UInt32 {
+        return Z3_get_decl_num_parameters(context.context, funcDecl)
+    }
 
     init(context: Z3Context, funcDecl: Z3_func_decl) {
         self.context = context
         self.funcDecl = funcDecl
+    }
+    
+    public func toString() -> String {
+        return String(cString: Z3_func_decl_to_string(context.context, funcDecl))
     }
 }
 
