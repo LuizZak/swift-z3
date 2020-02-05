@@ -88,31 +88,94 @@ final class SwiftZ3Tests: XCTestCase {
     
     // Derived from Z3's .NET sample code
     func testFloatingPointExample2() {
-        var ctx = Z3Context()
+        let ctx = Z3Context()
         
-        let double_sort = ctx.floatingPoint64Sort()
-        let rm_sort = ctx.makeFpaRoundingModeSort()
+        let doubleSort = ctx.floatingPoint64Sort()
+        let rmSort = ctx.makeFpaRoundingModeSort()
 
-        let rm = ctx.makeConstant(name: "rm", sort: rm_sort)
+        let rm = ctx.makeConstant(name: "rm", sort: rmSort)
         let x = ctx.makeConstant(name: "x", sort: ctx.bitVectorSort(size: 64))
         
-        let y = ctx.makeConstant(name: "y", sort: double_sort)
-        let fp_val = ctx.makeFpaNumeralInt(42, sort: double_sort)
+        let y = ctx.makeConstant(name: "y", sort: doubleSort)
+        let fpVal = ctx.makeFpaNumeralInt(42, sort: doubleSort)
 
-        let c1 = ctx.makeEqualAny(y, fp_val)
+        let c1 = ctx.makeEqualAny(y, fpVal)
         let c2 = ctx.makeEqualAny(x, ctx.makeFpaToBvAny(rm, y, 64, signed: false))
         let c3 = ctx.makeEqualAny(x, ctx.makeBitVectorAny(42, bitWidth: 64))
-        let c4 = ctx.makeEqualAny(ctx.makeNumeral(number: "42", sort: ctx.realSort()), ctx.makeFpaToReal(fp_val.castTo(type: AnyFPSort.self)))
-        let c5 = ctx.makeAnd([c1, c2, c3, c4]);
+        let c4 = ctx.makeEqualAny(ctx.makeNumeral(number: "42", sort: ctx.realSort()), ctx.makeFpaToReal(fpVal.castTo(type: AnyFPSort.self)))
+        let c5 = ctx.makeAnd([c1, c2, c3, c4])
 
         /* Generic solver */
         let s = ctx.makeSolver()
-        s.assert(c5);
+        s.assert(c5)
 
-        print(s.toString())
+        XCTAssertEqual(
+            s.toString(), """
+            (declare-fun x () (_ BitVec 64))
+            (declare-fun y () (_ FloatingPoint 11 53))
+            (declare-fun rm () RoundingMode)
+            (assert (and (= y (fp #b0 #b10000000100 #x5000000000000))
+                 (= x ((_ fp.to_ubv 64) rm y))
+                 (= x #x000000000000002a)
+                 (= 42.0 (fp.to_real (fp #b0 #b10000000100 #x5000000000000)))))
+
+            """)
 
         if s.check() == Z3_L_TRUE {
-            print(s.getModel()!.toString())
+            XCTAssertEqual(
+                s.getModel()?.toString(), """
+                y -> (fp #b0 #b10000000100 #x5000000000000)
+                rm -> roundNearestTiesToEven
+                x -> #x000000000000002a
+
+                """)
+        } else {
+            XCTFail("Failed to get expected model")
+        }
+    }
+    
+    // Derived from Z3's .NET sample code
+    func testFloatingPointExample2_withTypeSystem() {
+        let ctx = Z3Context()
+        
+        let rm = ctx.makeConstant(name: "rm", sort: RoundingMode.self)
+        let x = ctx.makeConstant(name: "x", sort: BitVectorSort64.self)
+        
+        let y = ctx.makeConstant(name: "y", sort: Double.self)
+        let fpVal = ctx.makeFpaNumeralInt(42, sort: Double.self)
+
+        let c1 = ctx.makeEqual(y, fpVal)
+        let c2 = ctx.makeEqual(x, ctx.makeFpaToBv(rm, y, BitVectorSort64.self, signed: false))
+        let c3 = ctx.makeEqual(x, ctx.makeBitVector(42))
+        let c4 = ctx.makeEqual(ctx.makeNumeral(number: "42", sort: RealSort.self), ctx.makeFpaToReal(fpVal))
+        let c5 = ctx.makeAnd([c1, c2, c3, c4])
+
+        /* Generic solver */
+        let s = ctx.makeSolver()
+        s.assert(c5)
+
+        XCTAssertEqual(
+            s.toString(), """
+            (declare-fun x () (_ BitVec 64))
+            (declare-fun y () (_ FloatingPoint 11 53))
+            (declare-fun rm () RoundingMode)
+            (assert (and (= y (fp #b0 #b10000000100 #x5000000000000))
+                 (= x ((_ fp.to_ubv 64) rm y))
+                 (= x #x000000000000002a)
+                 (= 42.0 (fp.to_real (fp #b0 #b10000000100 #x5000000000000)))))
+
+            """)
+
+        if s.check() == Z3_L_TRUE {
+            XCTAssertEqual(
+                s.getModel()?.toString(), """
+                y -> (fp #b0 #b10000000100 #x5000000000000)
+                rm -> roundNearestTiesToEven
+                x -> #x000000000000002a
+
+                """)
+        } else {
+            XCTFail("Failed to get expected model")
         }
     }
 
