@@ -2,6 +2,24 @@ import CZ3
 
 public extension Z3Context {
     // MARK: - Bit-vectors
+    
+    /// Creates a bit vector out of a given integer value.
+    func makeBitVector<T: BitVectorSort>(_ value: Int32) -> Z3Ast<T> {
+        return Z3Ast(context: self,
+                     ast: Z3_mk_int(context, value, T.getSort(self).sort))
+    }
+    
+    /// Creates a bit vector out of a given integer value.
+    func makeBitVector<T: BitVectorSort>(_ value: Int64) -> Z3Ast<T> {
+        return Z3Ast(context: self,
+                     ast: Z3_mk_int64(context, value, T.getSort(self).sort))
+    }
+    
+    /// Creates a bit vector out of a given integer value.
+    func makeBitVectorAny(_ value: Int32, bitWidth: UInt32) -> AnyZ3Ast {
+        return AnyZ3Ast(context: self,
+                        ast: Z3_mk_int(context, value, bitVectorSort(size: bitWidth).sort))
+    }
 
     /// Bitwise negation.
     ///

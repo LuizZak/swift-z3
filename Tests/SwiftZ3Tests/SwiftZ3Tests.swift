@@ -58,7 +58,6 @@ final class SwiftZ3Tests: XCTestCase {
         }
     }
     
-    // TODO: Make this pass
     func testBitwiseExpr() {
         let config = Z3Config()
         config.setParameter(name: "model", value: "true")
@@ -84,6 +83,36 @@ final class SwiftZ3Tests: XCTestCase {
             XCTAssertEqual(model.int(resValueInt), 369)
         } else {
             XCTFail("Failed to get expected model")
+        }
+    }
+    
+    // Derived from Z3's .NET sample code
+    func testFloatingPointExample2() {
+        var ctx = Z3Context()
+        
+        let double_sort = ctx.floatingPoint64Sort()
+        let rm_sort = ctx.makeFpaRoundingModeSort()
+
+        let rm = ctx.makeConstant(name: "rm", sort: rm_sort)
+        let x = ctx.makeConstant(name: "x", sort: ctx.bitVectorSort(size: 64))
+        
+        let y = ctx.makeConstant(name: "y", sort: double_sort)
+        let fp_val = ctx.makeFpaNumeralInt(42, sort: double_sort)
+
+        let c1 = ctx.makeEqualAny(y, fp_val)
+        let c2 = ctx.makeEqualAny(x, ctx.makeFpaToBvAny(rm, y, 64, signed: false))
+        let c3 = ctx.makeEqualAny(x, ctx.makeBitVectorAny(42, bitWidth: 64))
+        let c4 = ctx.makeEqualAny(ctx.makeNumeral(number: "42", sort: ctx.realSort()), ctx.makeFpaToReal(fp_val.castTo(type: AnyFPSort.self)))
+        let c5 = ctx.makeAnd([c1, c2, c3, c4]);
+
+        /* Generic solver */
+        let s = ctx.makeSolver()
+        s.assert(c5);
+
+        print(s.toString())
+
+        if s.check() == Z3_L_TRUE {
+            print(s.getModel()!.toString())
         }
     }
 

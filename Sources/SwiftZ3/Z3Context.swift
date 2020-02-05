@@ -116,7 +116,22 @@ public class Z3Context {
     /// the given sort can be an int, real, finite-domain, or bit-vectors of
     /// arbitrary size.
     public func makeNumeral<T: NumericalSort>(number: String, sort: T.Type) -> Z3Ast<T> {
-        return Z3Ast(context: self, ast: Z3_mk_numeral(context, number, sort.getSort(self).sort))
+        return makeNumeral(number: number, sort: sort.getSort(self)).castTo()
+    }
+    
+    /// Create a numeral of a given sort.
+    ///
+    /// - seealso: `makeInteger()`
+    /// - seealso: `makeUnsignedInteger()`
+    /// - Parameter number: A string representing the numeral value in decimal
+    /// notation. The string may be of the form `[num]*[.[num]*][E[+|-][num]+]`.
+    /// If the given sort is a real, then the numeral can be a rational, that is,
+    /// a string of the form `[num]* / [num]*` .
+    /// - Parameter sort: The sort of the numeral. In the current implementation,
+    /// the given sort can be an int, real, finite-domain, or bit-vectors of
+    /// arbitrary size.
+    public func makeNumeral(number: String, sort: Z3Sort) -> AnyZ3Ast {
+        return AnyZ3Ast(context: self, ast: Z3_mk_numeral(context, number, sort.sort))
     }
 
     /// Create a real from a fraction.

@@ -50,6 +50,18 @@ public extension Z3Context {
     /// Z3_func_decl d = Z3_mk_func_decl(c, s, 0, 0, ty);
     /// Z3_ast n       = Z3_mk_app(c, d, 0, 0);
     /// ```
+    func makeConstant(name: String, sort: Z3Sort) -> AnyZ3Ast {
+        let symbol = makeStringSymbol(name)
+        return AnyZ3Ast(context: self, ast: Z3_mk_const(context, symbol.symbol, sort.sort))
+    }
+    
+    /// Declare and create a constant.
+    ///
+    /// This function is a shorthand for:
+    /// ```
+    /// Z3_func_decl d = Z3_mk_func_decl(c, s, 0, 0, ty);
+    /// Z3_ast n       = Z3_mk_app(c, d, 0, 0);
+    /// ```
     func makeConstant(name: Z3Symbol, sort: Z3Sort) -> AnyZ3Ast {
         return AnyZ3Ast(context: self, ast: Z3_mk_const(context, name.symbol, sort.sort))
     }
@@ -68,6 +80,20 @@ public extension Z3Context {
         let symbol = makeStringSymbol(name)
 
         return makeConstant(name: symbol, sort: sort.getSort(self)).castTo()
+    }
+    
+    /// Declare and create a constant.
+    ///
+    /// This function is a shorthand for:
+    /// ```
+    /// let symbol = makeStringSymbol(name)
+    /// let n = makeConstant(name: symbol, sort: sort.getSort(self)).castTo<T>()
+    /// ```
+    /// - seealso: `makeApply`
+    /// - seealso: `makeFreshConst`
+    /// - seealso: `makeFuncDecl`
+    func makeConstant<T: SortKind>(name: Z3Symbol, sort: T.Type) -> Z3Ast<T> {
+        return makeConstant(name: name, sort: sort.getSort(self)).castTo()
     }
 
     /// Declare a fresh constant or function.

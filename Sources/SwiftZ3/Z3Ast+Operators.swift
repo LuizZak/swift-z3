@@ -153,7 +153,7 @@ public extension Z3Ast where T: FloatingSort {
     }
 }
 
-extension Z3Ast where T: FloatingSort, T: BinaryFloatingPoint {
+extension Z3Ast where T: FloatingSort, T: BinaryFloatingPoint, T: LosslessStringConvertible {
     // MARK: - Constants Casting
     static func + (lhs: T, rhs: Z3Ast) -> Z3Ast {
         let lhsFloat = rhs.context.makeFpaNumeral(lhs)

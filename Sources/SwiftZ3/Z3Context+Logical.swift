@@ -12,14 +12,23 @@ public extension Z3Context {
     func makeFalse() -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_false(context))
     }
-
+    
     /// Create an AST node representing `l = r`.
     ///
     /// The nodes `l` and `r` must have the same type.
     func makeEqual<T>(_ l: Z3Ast<T>, _ r: Z3Ast<T>) -> Z3Bool {
+        return makeEqualAny(l, r)
+    }
+    
+    /// Create an AST node representing `l = r`.
+    /// 
+    /// Type-erased version.
+    ///
+    /// The nodes `l` and `r` must have the same type.
+    func makeEqualAny(_ l: AnyZ3Ast, _ r: AnyZ3Ast) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_eq(context, l.ast, r.ast))
     }
-
+    
     /// Create an AST node representing `distinct(args[0], ..., args[num_args-1])`.
     ///
     /// The `distinct` construct is used for declaring the arguments pairwise
@@ -84,6 +93,19 @@ public extension Z3Context {
             return Z3Ast(context: self, ast: Z3_mk_and(context, count, args))
         }
     }
+    
+    /// Create an AST node representing `args[0] and ... and args[num_args-1]`.
+    ///
+    /// All arguments must have Boolean sort.
+    ///
+    /// Type-erased version of `makeAny`.
+    ///
+    /// - remark: The number of arguments must be greater than zero.
+    func makeAndAny(_ args: [AnyZ3Ast]) -> Z3Bool {
+        return preparingArgsAst(args) { (count, args) -> Z3Bool in
+            return Z3Ast(context: self, ast: Z3_mk_and(context, count, args))
+        }
+    }
 
     /// Create an AST node representing `args[0] or ... or args[num_args-1]`.
     ///
@@ -91,6 +113,19 @@ public extension Z3Context {
     ///
     /// - remark: The number of arguments must be greater than zero.
     func makeOr(_ args: [Z3Bool]) -> Z3Bool {
+        return preparingArgsAst(args) { (count, args) -> Z3Bool in
+            return Z3Ast(context: self, ast: Z3_mk_or(context, count, args))
+        }
+    }
+    
+    /// Create an AST node representing `args[0] or ... or args[num_args-1]`.
+    ///
+    /// All arguments must have Boolean sort.
+    ///
+    /// Type-erased version of `makeOr`.
+    ///
+    /// - remark: The number of arguments must be greater than zero.
+    func makeOrAny(_ args: [AnyZ3Ast]) -> Z3Bool {
         return preparingArgsAst(args) { (count, args) -> Z3Bool in
             return Z3Ast(context: self, ast: Z3_mk_or(context, count, args))
         }
