@@ -38,8 +38,8 @@ public class Z3Optimize {
     /// - parameter id: optional identifier to group soft constraints
     /// - seealso: `assert`
     /// - seealso: `assertAndTrack`
-    public func assertSoft(_ a: Z3Bool, weight: String, id: Z3Symbol) -> UInt32 {
-        return Z3_optimize_assert_soft(context.context, optimize, a.ast, weight, id.symbol)
+    public func assertSoft(_ a: Z3Bool, weight: String, id: Z3Symbol? = nil) -> UInt32 {
+        return Z3_optimize_assert_soft(context.context, optimize, a.ast, weight, id?.symbol)
     }
 
     /// Add a maximization constraint.
@@ -77,7 +77,7 @@ public class Z3Optimize {
     /// - seealso: `getModel`
     /// - seealso: `getStatistics`
     /// - seealso: `getUnsatCore`
-    public func check(_ assumptions: [AnyZ3Ast]) -> Z3_lbool {
+    public func check(_ assumptions: [AnyZ3Ast] = []) -> Z3_lbool {
         let assumptions = assumptions.toZ3_astPointerArray()
 
         return Z3_optimize_check(context.context, optimize, UInt32(assumptions.count),
