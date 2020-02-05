@@ -5,13 +5,12 @@ func main() {
     config.setParameter(name: "model", value: "true")
 
     let context = Z3Context(configuration: config)
-    
-    let roundMode = context.makeFpaRoundTowardZero()
-    let left = context.makeFpaNumeralFloat(50, sort: Float.self)
-    let width = context.makeFpaNumeralFloat(100, sort: Float.self)
-    let right = context.makeFpaNumeralFloat(0, sort: Float.self)
-    
-    let rightEq = context.makeFpaEq(right, context.makeFpaAdd(roundMode, left, width))
+
+    let left = context.makeFloat(50)
+    let width = context.makeFloat(100)
+    let right = context.makeFloat(0)
+
+    let rightEq = right == (left + width)
     
     let solver = context.makeSolver()
     
