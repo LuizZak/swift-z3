@@ -22,12 +22,22 @@ public class Z3Context {
         }
     }
 
+    /// Return the error code for the last API call.
+    public var errorCode: Z3ErrorCode {
+        return .fromZ3_error_code(Z3_get_error_code(context))
+    }
+
     public init(configuration: Z3Config? = nil) {
         context = Z3_mk_context(configuration?.config)
     }
 
     deinit {
         Z3_del_context(context)
+    }
+
+    /// Return a string describing the given error code.
+    public func errorMessage(_ code: Z3ErrorCode) -> String {
+        return String(cString: Z3_get_error_msg(context, code.toZ3_error_code))
     }
     
     /// Interrupt the execution of a Z3 procedure.
