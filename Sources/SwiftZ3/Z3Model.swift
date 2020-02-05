@@ -7,6 +7,11 @@ public class Z3Model {
     init(context: Z3Context, model: Z3_model) {
         self.context = context
         self.model = model
+        Z3_model_inc_ref(context.context, model)
+    }
+    
+    deinit {
+        Z3_model_dec_ref(context.context, model)
     }
     
     public func eval(_ t: AnyZ3Ast, completion: Bool) -> AnyZ3Ast? {
@@ -15,6 +20,11 @@ public class Z3Model {
             return nil
         }
         return AnyZ3Ast(context: context, ast: output!)
+    }
+    
+    /// Convert the given model into a string.
+    public func toString() -> String {
+        return String(cString: Z3_model_to_string(context.context, model))
     }
     
     /// Evaluates expression to a double, assuming it is a numeral already
