@@ -27,22 +27,7 @@ extension Bool: SortKind {
 }
 
 // MARK: - Integers
-extension Int32: IntegralSort {
-    public static func getSort(_ context: Z3Context) -> Z3Sort {
-        return context.intSort()
-    }
-}
-extension UInt32: IntegralSort {
-    public static func getSort(_ context: Z3Context) -> Z3Sort {
-        return context.intSort()
-    }
-}
-extension Int64: IntegralSort {
-    public static func getSort(_ context: Z3Context) -> Z3Sort {
-        return context.intSort()
-    }
-}
-extension UInt64: IntegralSort {
+public struct IntSort: IntegralSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.intSort()
     }

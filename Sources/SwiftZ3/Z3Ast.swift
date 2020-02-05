@@ -139,5 +139,6 @@ internal extension Sequence where Element: AnyZ3Ast {
 public typealias Z3Array<D: SortKind, R: SortKind> = Z3Ast<ArraySort<D, R>>
 public typealias Z3Set<T: SortKind> = Z3Ast<SetSort<T>>
 public typealias Z3Bool = Z3Ast<Bool>
+public typealias Z3Int = Z3Ast<IntSort>
 public typealias Z3Float = Z3Ast<Float>
 public typealias Z3Double = Z3Ast<Double>
