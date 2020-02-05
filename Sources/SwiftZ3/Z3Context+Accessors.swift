@@ -17,10 +17,6 @@ public extension Z3Context {
     /// Return the symbol name.
     ///
     /// - precondition: `getSymbolKind(s) == Z3_STRING_SYMBOL`
-    /// - warning: The returned buffer is statically allocated by Z3. It will
-    /// be automatically deallocated when `Z3Context.deinit` is invoked.
-    /// So, the buffer is invalidated in the next call to `getSymbolString`.
-    ///
     /// - seealso: `makeStringSymbol`
     func getSymbolString(_ symbol: Z3Symbol) -> String {
         return String(cString: Z3_get_symbol_string(context, symbol.symbol))
@@ -28,7 +24,7 @@ public extension Z3Context {
 
     /// Return the sort name as a symbol.
     func getSortName(_ sort: Z3Sort) -> Z3Symbol {
-        return Z3Symbol(symbol: Z3_get_sort_name(context, sort.sort))
+        return Z3Symbol(context: self, symbol: Z3_get_sort_name(context, sort.sort))
     }
 
     /// Return the sort kind (e.g., array, tuple, int, bool, etc).

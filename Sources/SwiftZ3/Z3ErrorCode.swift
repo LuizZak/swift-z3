@@ -35,7 +35,7 @@ public enum Z3ErrorCode: UInt32, Error {
     case unknown
 }
 
-internal extension Z3ErrorCode {
+public extension Z3ErrorCode {
     var toZ3_error_code: Z3_error_code {
         return Z3_error_code(rawValue)
     }

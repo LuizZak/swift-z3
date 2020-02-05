@@ -40,7 +40,7 @@ public class Z3FuncDecl {
     
     /// Return the name of the function declaration.
     public var name: Z3Symbol {
-        return Z3Symbol(symbol: Z3_get_decl_name(context.context, funcDecl))
+        return Z3Symbol(context: context, symbol: Z3_get_decl_name(context.context, funcDecl))
     }
     
     /// Return the number of parameters associated with the function declaration

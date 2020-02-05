@@ -24,7 +24,7 @@ public class Z3ParamDescrs {
     /// - precondition: `i < getSize()`
     public func getName(_ i: UInt32) -> Z3Symbol {
         let symbol = Z3_param_descrs_get_name(context.context, descrs, i)
-        return Z3Symbol(symbol: symbol!)
+        return Z3Symbol(context: context, symbol: symbol!)
     }
     
     /// Retrieve documentation string corresponding to parameter name `s`.

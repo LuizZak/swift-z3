@@ -133,6 +133,11 @@ public class AnyZ3Ast {
     public func castTo<T: SortKind>(type: T.Type = T.self) -> Z3Ast<T> {
         return Z3Ast<T>(context: context, ast: ast)
     }
+
+    /// Compares this term to another term.
+    public func isEqual(to other: AnyZ3Ast) -> Bool {
+        return Z3_is_eq_ast(context.context, ast, other.ast)
+    }
 }
 
 public class Z3Ast<T: SortKind>: AnyZ3Ast {

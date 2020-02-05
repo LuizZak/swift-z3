@@ -11,7 +11,7 @@ public extension Z3Context {
     /// - seealso: `getSymbolInt`
     /// - seealso: `makeStringSymbol`
     func makeIntSymbol(_ i: Int32) -> Z3Symbol {
-        return Z3Symbol(symbol: Z3_mk_int_symbol(context, i))
+        return Z3Symbol(context: self, symbol: Z3_mk_int_symbol(context, i))
     }
     
     /// Create a Z3 symbol using a C string.
@@ -22,7 +22,7 @@ public extension Z3Context {
     /// - seealso: `makeIntSymbol`
     func makeStringSymbol(_ s: String) -> Z3Symbol {
         return s.withCString { cString -> Z3Symbol in
-            return Z3Symbol(symbol: Z3_mk_string_symbol(context, cString))
+            return Z3Symbol(context: self, symbol: Z3_mk_string_symbol(context, cString))
         }
     }
 }

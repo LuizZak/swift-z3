@@ -10,7 +10,7 @@ public enum Z3AstKind: UInt32 {
     case unknownAst = 1000
 }
 
-internal extension Z3AstKind {
+public extension Z3AstKind {
     var toZ3_ast_kind: Z3_ast_kind {
         return Z3_ast_kind(rawValue)
     }
