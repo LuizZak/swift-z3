@@ -241,6 +241,44 @@ public class Z3Solver {
         }
     }
 
+    /// Retrieve the proof for the last `check()` or `checkAssumptions()`
+    ///
+    /// The error handler is invoked if proof generation is not enabled,
+    /// or if the commands above were not invoked for the given solver,
+    /// or if the result was different from `Status.unsatisfiable`.
+    public func getProof() -> AnyZ3Ast? {
+        if let ast = Z3_solver_get_proof(context.context, solver) {
+            return AnyZ3Ast(context: context, ast: ast)
+        }
+
+        return nil
+    }
+
+    /// Retrieve the unsat core for the last `checkAssumptions()`
+    ///
+    /// The unsat core is a subset of the assumptions `a`.
+    ///
+    /// By default, the unsat core will not be minimized. Generation of a minimized
+    /// unsat core can be enabled via the `"sat.core.minimize"` and `"smt.core.minimize"`
+    /// settings for SAT and SMT cores respectively. Generation of minimized
+    /// unsat cores will be more expensive.
+    public func getUnsatCore() -> Z3AstVector {
+        let astVector = Z3_solver_get_unsat_core(context.context, solver)
+
+        return Z3AstVector(context: context, astVector: astVector!)
+    }
+
+    /// Return a brief justification for an "unknown" result (i.e., `Status.unknown`)
+    /// for the commands `check` and `checkAssumptions`
+    public func getReasonUnknown() -> String {
+        return String(cString: Z3_solver_get_reason_unknown(context.context, solver))
+    }
+
+    /// Return statistics for the given solver.
+    public func getStatistics() -> Z3Stats {
+        return Z3Stats(context: context, stats: Z3_solver_get_statistics(context.context, solver))
+    }
+
     /// Convert a solver into a string.
     ///
     /// - seealso: `fromFile()`
