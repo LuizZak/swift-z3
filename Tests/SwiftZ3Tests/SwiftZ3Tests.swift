@@ -22,7 +22,7 @@ final class SwiftZ3Tests: XCTestCase {
         let solver = context.makeSolver()
         
         solver.assert([lValue, wValue, rightEq])
-        XCTAssertEqual(solver.check(), Z3_L_TRUE)
+        XCTAssertEqual(solver.check(), .satisfiable)
         
         if let model = solver.getModel() {
             XCTAssertEqual(model.double(right), 150)
@@ -49,7 +49,7 @@ final class SwiftZ3Tests: XCTestCase {
         let solver = context.makeSolver()
         
         solver.assert([lValue, wValue, rightEq])
-        XCTAssertEqual(solver.check(), Z3_L_TRUE)
+        XCTAssertEqual(solver.check(), .satisfiable)
         
         if let model = solver.getModel() {
             XCTAssertEqual(model.double(right), 150)
@@ -77,7 +77,7 @@ final class SwiftZ3Tests: XCTestCase {
         let solver = context.makeSolver()
         
         solver.assert([lhsValue, rhsValue, resValue])
-        XCTAssertEqual(solver.check(), Z3_L_TRUE)
+        XCTAssertEqual(solver.check(), .satisfiable)
         
         if let model = solver.getModel() {
             XCTAssertEqual(model.int(resValueInt), 369)
@@ -121,7 +121,7 @@ final class SwiftZ3Tests: XCTestCase {
 
             """)
 
-        if s.check() == Z3_L_TRUE {
+        if s.check() == .satisfiable {
             XCTAssertEqual(
                 s.getModel()?.toString(), """
                 y -> (fp #b0 #b10000000100 #x5000000000000)
@@ -166,7 +166,7 @@ final class SwiftZ3Tests: XCTestCase {
 
             """)
 
-        if s.check() == Z3_L_TRUE {
+        if s.check() == .satisfiable {
             XCTAssertEqual(
                 s.getModel()?.toString(), """
                 y -> (fp #b0 #b10000000100 #x5000000000000)

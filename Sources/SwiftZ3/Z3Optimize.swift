@@ -77,16 +77,18 @@ public class Z3Optimize {
     /// - seealso: `getModel`
     /// - seealso: `getStatistics`
     /// - seealso: `getUnsatCore`
-    public func check(_ assumptions: [AnyZ3Ast] = []) -> Z3_lbool {
+    public func check(_ assumptions: [AnyZ3Ast] = []) -> Status {
         let assumptions = assumptions.toZ3_astPointerArray()
 
-        return Z3_optimize_check(context.context, optimize, UInt32(assumptions.count),
-                                 assumptions)
+        let result = Z3_optimize_check(context.context, optimize,
+                                       UInt32(assumptions.count), assumptions)
+
+        return Status.fromZ3_lbool(result)
     }
 
     /// Retrieve a string that describes the last status returned by `check(_:)`.
     ///
-    /// Use this method when `check(_:)` returns `Z3_L_UNDEF`.
+    /// Use this method when `check(_:)` returns `Status.unknown`.
     public func getReasonUnkown() -> String {
         return String(cString: Z3_optimize_get_reason_unknown(context.context, optimize))
     }
@@ -95,7 +97,7 @@ public class Z3Optimize {
     ///
     /// The error handler is invoked if a model is not available because the
     /// commands above were not invoked for the given optimization solver, or if
-    /// the result was `Z3_L_FALSE`.
+    /// the result was `Status.unsatisfiable`.
     public func getModel() -> Z3Model {
         return Z3Model(context: context, model: Z3_optimize_get_model(context.context, optimize))
     }

@@ -183,17 +183,17 @@ public class Z3Solver {
     /// Check whether the assertions in a given solver are consistent or not.
     ///
     /// The method `getModel()` retrieves a model if the assertions is satisfiable
-    /// (i.e., the result is `Z3_L_TRUE`) and model construction is enabled.
+    /// (i.e., the result is `Status.satisfiable`) and model construction is enabled.
     ///
-    /// Note that if the call returns `Z3_L_UNDEF`, Z3 does not ensure that calls
-    /// to `getModel()` succeed and any models produced in this case are not
-    /// guaranteed to satisfy the assertions.
+    /// Note that if the call returns `Status.unknown`, Z3 does not ensure that
+    /// calls to `getModel()` succeed and any models produced in this case are
+    /// not guaranteed to satisfy the assertions.
     ///
     /// The function `getProof()` retrieves a proof if proof generation was enabled
     /// when the context was created, and the assertions are unsatisfiable
-    /// (i.e., the result is `Z3_L_FALSE`).
-    public func check() -> Z3_lbool {
-        return Z3_solver_check(context.context, solver)
+    /// (i.e., the result is `Status.unsatisfiable`).
+    public func check() -> Status {
+        return Status.fromZ3_lbool(Z3_solver_check(context.context, solver))
     }
     
     /// Check whether the assertions in the given solver and optional assumptions
@@ -201,9 +201,10 @@ public class Z3Solver {
     ///
     /// The function `getUnsatCore()` retrieves the subset of the
     /// assumptions used in the unsatisfiability proof produced by Z3.
-    public func checkAssumptions(_ assumptions: [AnyZ3Ast]) -> Z3_lbool {
+    public func checkAssumptions(_ assumptions: [AnyZ3Ast]) -> Status {
         return preparingArgsAst(assumptions) { count, assumptions in
-            Z3_solver_check_assumptions(context.context, solver, count, assumptions)
+            let result = Z3_solver_check_assumptions(context.context, solver, count, assumptions)
+            return Status.fromZ3_lbool(result)
         }
     }
 
@@ -211,7 +212,7 @@ public class Z3Solver {
     /// function symbols.
     public func getConsequences(assumptions: [Z3Bool],
                                 variables: [AnyZ3Ast],
-                                consequences: Z3AstVector) -> Z3_lbool {
+                                consequences: Z3AstVector) -> Status {
 
         let asms = Z3AstVector(context: context)
         let vars = Z3AstVector(context: context)
@@ -223,9 +224,11 @@ public class Z3Solver {
             vars.push(v)
         }
 
-        return Z3_solver_get_consequences(context.context, solver,
-                                          asms.astVector, vars.astVector,
-                                          consequences.astVector)
+        let result = Z3_solver_get_consequences(context.context, solver,
+                                                asms.astVector, vars.astVector,
+                                                consequences.astVector)
+
+        return Status.fromZ3_lbool(result)
     }
 
     /// Asserts a series of constraints into the solver.
