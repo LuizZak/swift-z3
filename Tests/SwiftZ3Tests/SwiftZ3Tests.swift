@@ -24,8 +24,8 @@ final class SwiftZ3Tests: XCTestCase {
         solver.assert([lValue, wValue, rightEq])
         XCTAssertEqual(solver.check(), .satisfiable)
         
-        if solver.getModel() != nil {
-            XCTAssertEqual(right.numeralDouble, 150)
+        if let model = solver.getModel() {
+            XCTAssertEqual(model.double(right), 150)
         } else {
             XCTFail("Failed to get expected model")
         }
@@ -51,8 +51,8 @@ final class SwiftZ3Tests: XCTestCase {
         solver.assert([lValue, wValue, rightEq])
         XCTAssertEqual(solver.check(), .satisfiable)
         
-        if solver.getModel() != nil {
-            XCTAssertEqual(right.numeralDouble, 150)
+        if let model = solver.getModel() {
+            XCTAssertEqual(model.double(right), 150)
         } else {
             XCTFail("Failed to get expected model")
         }
