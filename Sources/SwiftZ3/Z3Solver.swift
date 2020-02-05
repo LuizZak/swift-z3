@@ -223,7 +223,9 @@ public class Z3Solver {
             vars.push(v)
         }
 
-        return Z3_solver_get_consequences(context.context, solver, asms, vars, consequences)
+        return Z3_solver_get_consequences(context.context, solver,
+                                          asms.astVector, vars.astVector,
+                                          consequences.astVector)
     }
 
     /// Asserts a series of constraints into the solver.

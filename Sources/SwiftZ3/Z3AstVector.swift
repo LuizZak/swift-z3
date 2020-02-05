@@ -29,7 +29,7 @@ public class Z3AstVector {
     init(context: Z3Context) {
         self.context = context
 
-        astVector = Z3_mk_ast_vector(context)
+        astVector = Z3_mk_ast_vector(context.context)
         Z3_ast_vector_inc_ref(context.context, astVector)
     }
 
