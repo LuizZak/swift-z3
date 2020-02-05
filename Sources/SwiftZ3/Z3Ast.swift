@@ -73,7 +73,7 @@ public class AnyZ3Ast {
     ///
     /// - precondition: `astKind == Z3AstKind.numeralAst`
     public var numeralString: String {
-        return String(cString: Z3_get_numeral_string(context.contet, ast))
+        return String(cString: Z3_get_numeral_string(context.context, ast))
     }
 
     /// Return numeral as a double.
