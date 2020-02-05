@@ -21,3 +21,5 @@ func main() {
         print(model.double(right))
     }
 }
+
+main()
