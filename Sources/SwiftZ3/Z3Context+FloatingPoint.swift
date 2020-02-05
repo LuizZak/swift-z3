@@ -89,12 +89,12 @@ public extension Z3Context {
         return Z3Sort(sort: Z3_mk_fpa_sort_32(context))
     }
     
-    /// Create the double-precision (32-bit) FloatingPoint sort.
+    /// Create the double-precision (64-bit) FloatingPoint sort.
     func floatingPoint64Sort() -> Z3Sort {
         return Z3Sort(sort: Z3_mk_fpa_sort_64(context))
     }
     
-    /// Create the quadruple-precision (32-bit) FloatingPoint sort.
+    /// Create the quadruple-precision (128-bit) FloatingPoint sort.
     func floatingPoint128Sort() -> Z3Sort {
         return Z3Sort(sort: Z3_mk_fpa_sort_128(context))
     }
