@@ -26,6 +26,7 @@ struct nla_params {
   }
   /*
      REG_MODULE_PARAMS('nla', 'nla_params::collect_param_descrs')
+     REG_MODULE_DESCRIPTION('nla', 'Parameters for non-linear arithmetic solving')
   */
   bool order() const { return p.get_bool("order", g, true); }
   bool tangents() const { return p.get_bool("tangents", g, true); }

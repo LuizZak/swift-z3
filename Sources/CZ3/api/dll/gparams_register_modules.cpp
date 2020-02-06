@@ -80,6 +80,8 @@ gparams::register_module_descr("nnf", "negation normal form");
 gparams::register_module_descr("pi", "pattern inference (heuristics) for universal formulas (without annotation)");
 gparams::register_module_descr("pp", "pretty printer");
 gparams::register_module_descr("rewriter", "new formula simplification module used in the tactic framework, and new solvers");
+gparams::register_module_descr("lp", "Parameters for the LP arithmetic solver core");
+gparams::register_module_descr("nla", "Parameters for non-linear arithmetic solving");
 gparams::register_module_descr("algebraic", "real algebraic number package");
 gparams::register_module_descr("rcf", "real closed fields");
 gparams::register_module_descr("fp", "fixedpoint parameters");

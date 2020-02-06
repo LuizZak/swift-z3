@@ -1,7 +1,7 @@
 import CZ3
 
 public class Z3Sort: Z3AstBase {
-    /// Convenience getter for `ast`
+    /// Alias for `ast`
     public var sort: Z3_sort {
         return ast
     }

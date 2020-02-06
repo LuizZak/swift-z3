@@ -41,4 +41,9 @@ public class Z3AstBase {
 
         return Z3AstBase(context: context, ast: newAst!)
     }
+    
+    /// Convert the current AST node into a string.
+    public func toString() -> String {
+        return String(cString: Z3_ast_to_string(context, self))
+    }
 }

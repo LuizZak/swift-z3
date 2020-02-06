@@ -13,13 +13,14 @@ struct lp_params {
     d.insert("min", CPK_BOOL, "minimize cost", "false","lp");
     d.insert("print_stats", CPK_BOOL, "print statistic", "false","lp");
     d.insert("simplex_strategy", CPK_UINT, "simplex strategy for the solver", "0","lp");
-    d.insert("enable_hnf", CPK_BOOL, "enable hnf cuts", "true","lp");
+    d.insert("enable_hnf", CPK_BOOL, "enable hnf (Hermite Normal Form) cuts", "true","lp");
     d.insert("bprop_on_pivoted_rows", CPK_BOOL, "propagate bounds on rows changed by the pivot operation", "true","lp");
     d.insert("nla", CPK_BOOL, "call nonlinear integer solver with incremental linearization", "false","lp");
     d.insert("print_ext_var_names", CPK_BOOL, "print external variable names", "false","lp");
   }
   /*
      REG_MODULE_PARAMS('lp', 'lp_params::collect_param_descrs')
+     REG_MODULE_DESCRIPTION('lp', 'Parameters for the LP arithmetic solver core')
   */
   unsigned rep_freq() const { return p.get_uint("rep_freq", g, 0u); }
   bool min() const { return p.get_bool("min", g, false); }

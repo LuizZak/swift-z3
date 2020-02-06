@@ -1,11 +1,12 @@
 import CZ3
 
-public class Z3Pattern {
-    var context: Z3Context
-    var pattern: Z3_pattern
+public class Z3Pattern: Z3AstBase {
+    /// Alias for `ast`
+    var pattern: Z3_pattern {
+        return ast
+    }
     
     init(context: Z3Context, pattern: Z3_pattern) {
-        self.context = context
-        self.pattern = pattern
+        super.init(context: context, ast: pattern)
     }
 }
