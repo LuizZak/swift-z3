@@ -35,7 +35,7 @@ else
     exit 1
 fi
 
-# Remove extra API and other files
+# Remove language APIs and other extra files
 echo "Removing extra files..."
 rm -r ../Sources/CZ3/api/c++
 rm -r ../Sources/CZ3/api/dotnet
