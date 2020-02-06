@@ -514,6 +514,34 @@ public extension Z3Context {
         return Z3Ast(context: self, ast: Z3_mk_fpa_to_fp_bv(context, bv.ast, sort.getSort(self).sort))
     }
     
+    /// Conversion of a floating-point term into a bit-vector term in IEEE
+    /// 754-2008 format.
+    ///
+    /// `t` must have FloatingPoint sort. The size of the resulting bit-vector
+    /// is automatically determined.
+    ///
+    /// Note that IEEE 754-2008 allows multiple different representations of NaN.
+    /// This conversion knows only one NaN and it will always produce the same
+    /// bit-vector representation of that NaN.
+    func makeFpaToIEEEBv<T: FloatingSort>(_ t: Z3Ast<T>) -> AnyZ3Ast {
+        return AnyZ3Ast(context: self, ast: Z3_mk_fpa_to_ieee_bv(context, t.ast))
+    }
+    
+    /// Conversion of a floating-point term into a bit-vector term in IEEE
+    /// 754-2008 format.
+    ///
+    /// Type-erased version.
+    ///
+    /// `t` must have FloatingPoint sort. The size of the resulting bit-vector
+    /// is automatically determined.
+    ///
+    /// Note that IEEE 754-2008 allows multiple different representations of NaN.
+    /// This conversion knows only one NaN and it will always produce the same
+    /// bit-vector representation of that NaN.
+    func makeFpaToIEEEBvAny(_ t: AnyZ3Ast) -> AnyZ3Ast {
+        return AnyZ3Ast(context: self, ast: Z3_mk_fpa_to_ieee_bv(context, t.ast))
+    }
+    
     /// Alias for `makeFpaToFPBv`
     func makeBitVectorToFloat<T: BitVectorSort, U: FloatingSort>(_ bv: Z3Ast<T>, sort: U.Type) -> Z3Ast<U> {
         return makeFpaToFPBv(bv, sort: sort)
