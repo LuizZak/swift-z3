@@ -27,24 +27,6 @@ public class AnyZ3Ast: Z3AstBase {
         }
     }
 
-    /// Return the kind of the given AST.
-    public var astKind: Z3AstKind {
-        return Z3AstKind.fromZ3_ast_kind(Z3_get_ast_kind(context.context, ast))
-    }
-
-    public var isApp: Bool {
-        return Z3_is_app(context.context, ast)
-    }
-
-    public var isNumeralAst: Bool {
-        return Z3_is_numeral_ast(context.context, ast)
-    }
-
-    /// Return `true` if this AST is a real algebraic number.
-    public var isAlgebraicNumber: Bool {
-        return Z3_is_algebraic_number(context.context, ast)
-    }
-
     /// Return numeral value, as a string of a numeric constant term
     ///
     /// - precondition: `astKind == Z3AstKind.numeralAst`

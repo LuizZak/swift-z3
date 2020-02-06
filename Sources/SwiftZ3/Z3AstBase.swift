@@ -26,6 +26,45 @@ public class Z3AstBase {
         return Z3_get_ast_hash(context.context, ast)
     }
 
+    /// Return `true` if this AST is an application
+    public var isApp: Bool {
+        return Z3_is_app(context.context, ast)
+    }
+
+    public var isNumeralAst: Bool {
+        return Z3_is_numeral_ast(context.context, ast)
+    }
+
+    /// Return `true` if this AST is a real algebraic number.
+    public var isAlgebraicNumber: Bool {
+        return Z3_is_algebraic_number(context.context, ast)
+    }
+
+    /// Return `true` if this AST is a BoundVariable
+    public var isVar: Bool {
+        return astKind == .varAst
+    }
+
+    /// Return `true` if this AST is a Quantifier
+    public var isQuantifier: Bool {
+        return astKind == .quantifierAst
+    }
+
+    /// Return `true` if this AST is a Sort
+    public var isSort: Bool {
+        return astKind == .sortAst
+    }
+
+    /// Return `true` if this AST is a FunctionDeclaration
+    public var isFuncDecl: Bool {
+        return astKind == .funcDeclAst
+    }
+
+    /// Return the kind of the given AST.
+    public var astKind: Z3AstKind {
+        return Z3AstKind.fromZ3_ast_kind(Z3_get_ast_kind(context.context, ast))
+    }
+
     init(context: Z3Context, ast: Z3_ast) {
         self.context = context
         self.ast = ast
