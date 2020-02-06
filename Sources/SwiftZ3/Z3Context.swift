@@ -116,6 +116,53 @@ public class Z3Context {
     public func makeOptimize() -> Z3Optimize {
         return Z3Optimize(context: self, optimize: Z3_mk_optimize(context))
     }
+    
+    /// Return a string describing all available parameters.
+    ///
+    /// - seealso: `simplifyEx`
+    /// - seealso: `getSimplifyParamDescrs`
+    public func getSimplifyHelp() -> String {
+        return String(cString: Z3_simplify_get_help(context))
+    }
+    
+    /// Return the parameter description set for the simplify procedure.
+    ///
+    /// - seealso: `simplifyEx`
+    /// - seealso: `getSimplifyHelp`
+    public func getSimplifyParamDescrs() -> Z3ParamDescrs {
+        let paramDescrs = Z3_simplify_get_param_descrs(context)
+        
+        return Z3ParamDescrs(context: self, descr: paramDescrs!)
+    }
+    
+    /// Interface to simplifier.
+    ///
+    /// Provides an interface to the AST simplifier used by Z3.
+    /// It returns an AST object which is equal to the argument.
+    /// The returned AST is simplified using algebraic simplification rules,
+    /// such as constant propagation (propagating true/false over logical connectives).
+    ///
+    /// - seealso: `simplifyEx`
+    public func simplify(_ a: AnyZ3Ast) -> AnyZ3Ast {
+        let ast = Z3_simplify(context, a.ast)
+        
+        return AnyZ3Ast(context: self, ast: ast!)
+    }
+    
+    /// Interface to simplifier.
+    ///
+    /// Provides an interface to the AST simplifier used by Z3.
+    /// This procedure is similar to #Z3_simplify, but the behavior of the
+    /// simplifier can be configured using the given parameter set.
+    ///
+    /// - seealso: `simplify`
+    /// - seealso: `getSimplifyHelp`
+    /// - seealso: `getSimplifyParamDescrs`
+    public func simplifyEx(_ a: AnyZ3Ast, _ p: Z3Params) -> AnyZ3Ast {
+        let ast = Z3_simplify_ex(context, a.ast, p.params)
+        
+        return AnyZ3Ast(context: self, ast: ast!)
+    }
 
     // MARK: -
     
