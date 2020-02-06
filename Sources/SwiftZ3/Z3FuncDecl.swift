@@ -1,12 +1,9 @@
 import CZ3
 
-public class Z3FuncDecl {
-    var context: Z3Context
-    var funcDecl: Z3_func_decl
-    
-    /// Returns a unique identifier for the function declaration.
-    public var id: UInt32 {
-        return Z3_get_func_decl_id(context.context, funcDecl)
+public class Z3FuncDecl: Z3AstBase {
+    /// Alias for `ast`
+    var funcDecl: Z3_func_decl {
+        ast
     }
     
     /// Return the number of parameters of the function declaration.
@@ -49,8 +46,7 @@ public class Z3FuncDecl {
     }
 
     init(context: Z3Context, funcDecl: Z3_func_decl) {
-        self.context = context
-        self.funcDecl = funcDecl
+        super.init(context: context, ast: funcDecl)
     }
     
     public func toString() -> String {

@@ -14,6 +14,28 @@ public class Z3Model {
         Z3_model_dec_ref(context.context, model)
     }
     
+    /// \brief Evaluate the AST node `t` in the given model.
+    /// Returns the result in case of success, or `nil` in case of failure.
+    ///
+    /// If `completion` is `true`, then Z3 will assign an interpretation for any
+    /// constant or function that does not have an interpretation in this model.
+    /// These constants and functions were essentially don't cares.
+    ///
+    /// If `completion` is `false`, then Z3 will not assign interpretations to
+    /// constants for functions that do not have interpretations in this model.
+    /// Evaluation behaves as the identify function in this case.
+    ///
+    /// The evaluation may fail for the following reasons:
+    ///
+    /// - `t` contains a quantifier.
+    ///
+    /// - the current model is partial, that is, it doesn't have a complete
+    /// interpretation for uninterpreted functions.
+    /// That is, the option `MODEL_PARTIAL=true` was used.
+    ///
+    /// - `t` is type incorrect.
+    ///
+    /// - `Z3Context.interrupt()` was invoked during evaluation.
     public func eval(_ t: AnyZ3Ast, completion: Bool = false) -> AnyZ3Ast? {
         var output: Z3_ast?
         if !Z3_model_eval(context.context, model, t.ast, completion, &output) {
