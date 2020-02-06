@@ -1,5 +1,10 @@
 # SwiftZ3
 
+| Platform | Build Status |
+|----------|--------|
+| macOS    | [![Build Status](https://dev.azure.com/luiz-fs/swift-z3/_apis/build/status/LuizZak.swift-z3?branchName=master&jobName=macOS)](https://dev.azure.com/luiz-fs/swift-z3/_build/latest?definitionId=5&branchName=master) |
+| Linux    | [![Build Status](https://dev.azure.com/luiz-fs/swift-z3/_apis/build/status/LuizZak.swift-z3?branchName=master&jobName=Linux)](https://dev.azure.com/luiz-fs/swift-z3/_build/latest?definitionId=5&branchName=master) |
+
 A Swift wrapper over Microsoft's [Z3 Theorem Prover](https://github.com/Z3Prover/z3)
 
 The aim is to wrap the entire C API layer into Swift types, with many conveniences and type safety sprinkled on top.
