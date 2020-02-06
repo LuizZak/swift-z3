@@ -324,9 +324,4 @@ final class SwiftZ3Tests: XCTestCase {
         XCTAssertFalse(e1.isEqual(to: e3))
         XCTAssertFalse(e2.isEqual(to: e3))
     }
-
-    static var allTests = [
-        ("testFpaSolver", testFpaSolver),
-        ("testFpaSolverWithOperators", testFpaSolverWithOperators)
-    ]
 }
