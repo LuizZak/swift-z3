@@ -14,11 +14,11 @@ Author:
 Revision History:
 --*/
 
-#include "../ast/ast_smt2_pp.h"
-#include "../ast/array_decl_plugin.h"
-#include "../model/model_evaluator.h"
-#include "ackr_model_converter.h"
-#include "ackr_info.h"
+#include "ast/ast_smt2_pp.h"
+#include "ast/array_decl_plugin.h"
+#include "model/model_evaluator.h"
+#include "ackermannization/ackr_model_converter.h"
+#include "ackermannization/ackr_info.h"
 
 
 class ackr_model_converter : public model_converter {

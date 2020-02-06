@@ -17,8 +17,8 @@ Revision History:
 
 --*/
 
-#include "scoped_timer.h"
-#include "util.h"
+#include "util/scoped_timer.h"
+#include "util/util.h"
 #include <chrono>
 #include <climits>
 #include <mutex>

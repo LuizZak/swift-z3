@@ -19,12 +19,12 @@ Revision History:
 #ifndef TOP_SORT_H_
 #define TOP_SORT_H_
 
-#include "obj_hashtable.h"
-#include "vector.h"
-#include <algorithm>
-#include <type_traits>
-#include <memory.h>
-#include "memory_manager.h"
+#include "util/obj_hashtable.h"
+#include "util/vector.h"
+#include<algorithm>
+#include<type_traits>
+#include<memory.h>
+#include "util/memory_manager.h"
 
 
 template<typename T>

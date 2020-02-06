@@ -17,7 +17,7 @@ Revision History:
 
 --*/
 
-#include "util.h"
+#include "util/util.h"
 
 #ifndef SINGLE_THREAD
 #include <mutex>

@@ -18,13 +18,13 @@ Revision History:
 --*/
 #ifndef HASHTABLE_H_
 #define HASHTABLE_H_
-#include "debug.h"
+#include "util/debug.h"
 #include <ostream>
-#include "util.h"
+#include "util/util.h"
 #include <climits>
-#include "memory_manager.h"
-#include "hash.h"
-#include "vector.h"
+#include "util/memory_manager.h"
+#include "util/hash.h"
+#include "util/vector.h"
 
 #define DEFAULT_HASHTABLE_INITIAL_CAPACITY 8
 #define SMALL_TABLE_CAPACITY               64

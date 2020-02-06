@@ -21,12 +21,12 @@ Revision History:
 
 #include<string>
 #include<mutex>
-#include "util.h"
-#include "small_object_allocator.h"
-#include "trace.h"
-#include "scoped_numeral.h"
-#include "scoped_numeral_vector.h"
-#include "mpn.h"
+#include "util/util.h"
+#include "util/small_object_allocator.h"
+#include "util/trace.h"
+#include "util/scoped_numeral.h"
+#include "util/scoped_numeral_vector.h"
+#include "util/mpn.h"
 
 unsigned u_gcd(unsigned u, unsigned v);
 uint64_t u64_gcd(uint64_t u, uint64_t v);

@@ -16,9 +16,9 @@ Author:
 Revision History:
 
 --*/
-#include "rlimit.h"
-#include "common_msgs.h"
-#include "mutex.h"
+#include "util/rlimit.h"
+#include "util/common_msgs.h"
+#include "util/mutex.h"
 
 
 static DECLARE_MUTEX(g_rlimit_mux);

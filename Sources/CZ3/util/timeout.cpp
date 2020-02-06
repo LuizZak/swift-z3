@@ -19,12 +19,12 @@ Revision History:
 
 --*/
 #include<iostream>
-#include "util.h"
-#include "timeout.h"
-#include "error_codes.h"
+#include "util/util.h"
+#include "util/timeout.h"
+#include "util/error_codes.h"
 
-#include "event_handler.h"
-#include "scoped_timer.h"
+#include "util/event_handler.h"
+#include "util/scoped_timer.h"
 
 static scoped_timer * g_timeout = nullptr;
 static void (* g_on_timeout)() = nullptr;

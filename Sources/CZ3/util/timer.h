@@ -19,7 +19,7 @@ Revision History:
 #ifndef TIMER_H_
 #define TIMER_H_
 
-#include "stopwatch.h"
+#include "util/stopwatch.h"
 
 /**
    \brief Wrapper for the stopwatch class.

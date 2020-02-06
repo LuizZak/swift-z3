@@ -18,7 +18,7 @@ Revision History:
 --*/
 #pragma once
 
-#include "vector.h"
+#include "util/vector.h"
 
 void initialize_rlimit();
 void finalize_rlimit();

@@ -20,7 +20,7 @@ Revision History:
 #ifndef STOPWATCH_H_
 #define STOPWATCH_H_
 
-#include "debug.h"
+#include "util/debug.h"
 #include <chrono>
 #include <iostream>
 #include<iomanip>

@@ -16,12 +16,12 @@ Author:
 Notes:
 
 --*/
-#include "gparams.h"
-#include "str_hashtable.h"
-#include "trace.h"
-#include "mutex.h"
-#include "region.h"
-#include "map.h"
+#include "util/gparams.h"
+#include "util/str_hashtable.h"
+#include "util/trace.h"
+#include "util/mutex.h"
+#include "util/region.h"
+#include "util/map.h"
 
 static DECLARE_MUTEX(gparams_mux);
 

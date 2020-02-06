@@ -21,8 +21,8 @@ Revision History:
 
 #include<ostream>
 #include<mutex>
-#include "util.h"
-#include "buffer.h"
+#include "util/util.h"
+#include "util/buffer.h"
 
 typedef unsigned int mpn_digit;
 

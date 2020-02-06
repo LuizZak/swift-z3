@@ -24,9 +24,9 @@ Revision History:
 #include<ostream>
 #include<climits>
 
-#include "util.h"
-#include "tptr.h"
-#include "string_buffer.h"
+#include "util/util.h"
+#include "util/tptr.h"
+#include "util/string_buffer.h"
 
 template<typename T>
 class symbol_table;

@@ -469,7 +469,6 @@ class theory_lra::imp {
     }
 
     void found_unsupported(expr* n) {
-        std::cout << "unsupported: " <<  mk_pp(n, m) << "\n";
         ctx().push_trail(value_trail<context, expr*>(m_not_handled));
         m_not_handled = n;    
     }
@@ -1598,13 +1597,34 @@ public:
         m_variable_values.clear();
     }
 
+    bool influences_nl_var(theory_var v) const {
+        if (!m_use_nla)            
+            return false; // that is the legacy solver behavior
+        if (!m_nla)
+            return false;
+            
+        return m_nla->influences_nl_var(get_lpvar(v));
+    }
+    
+    bool can_be_used_in_random_update(theory_var v) const {
+        if (!th.is_relevant_and_shared(get_enode(v)))
+            return false;
+
+        if (is_int(v))
+            return false;
+
+        if (influences_nl_var(v))
+            return false;
+        
+        return true;
+    }
+    
     bool assume_eqs() {        
         svector<lpvar> vars;
         theory_var sz = static_cast<theory_var>(th.get_num_vars());
         for (theory_var v = 0; v < sz; ++v) {
-            if (th.is_relevant_and_shared(get_enode(v))) { 
+            if (can_be_used_in_random_update(v))
                 vars.push_back(get_lpvar(v));
-            }
         }
         if (vars.empty()) {
             return false;
@@ -3462,6 +3482,15 @@ public:
         }
     }    
 
+    bool include_func_interp(func_decl* f) {
+        return 
+            a.is_div0(f) ||
+            a.is_idiv0(f) ||
+            a.is_power0(f) ||
+            a.is_rem0(f) ||
+            a.is_mod0(f);        
+    }
+
     bool get_lower(enode* n, rational& val, bool& is_strict) {
         theory_var v = n->get_th_var(get_id());
         if (!can_get_bound(v)) {
@@ -3957,6 +3986,9 @@ bool theory_lra::get_value(enode* n, rational& r) {
 }
 bool theory_lra::get_value(enode* n, expr_ref& r) {
     return m_imp->get_value(n, r);
+}
+bool theory_lra::include_func_interp(func_decl* f) {
+    return m_imp->include_func_interp(f);
 }
 bool theory_lra::get_lower(enode* n, expr_ref& r) {
     return m_imp->get_lower(n, r);

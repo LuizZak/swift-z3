@@ -18,8 +18,8 @@ Revision History:
 --*/
 #pragma once
 
-#include "debug.h"
-#include "memory_manager.h"
+#include "util/debug.h"
+#include "util/memory_manager.h"
 #include<iostream>
 #include<climits>
 #include<limits>

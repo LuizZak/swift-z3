@@ -15,8 +15,8 @@ Revision History:
 
 
 --*/
-#include "min_cut.h"
-#include "trace.h"
+#include "util/min_cut.h"
+#include "util/trace.h"
 
 min_cut::min_cut() {    
     // push back two empty vectors for source and sink

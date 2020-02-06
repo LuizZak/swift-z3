@@ -17,9 +17,9 @@ Revision History:
 
 --*/
 #include<sstream>
-#include "mutex.h"
-#include "util.h"
-#include "rational.h"
+#include "util/mutex.h"
+#include "util/util.h"
+#include "util/rational.h"
 
 synch_mpq_manager *  rational::g_mpq_manager = nullptr;
 rational             rational::m_zero;

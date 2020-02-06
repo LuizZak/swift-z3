@@ -16,8 +16,8 @@ Author:
 Revision History:
 
 --*/
-#include "trace.h"
-#include "str_hashtable.h"
+#include "util/trace.h"
+#include "util/str_hashtable.h"
 
 #ifdef _TRACE
 

@@ -16,14 +16,14 @@ Author:
 Notes:
 
 --*/
-#include "../util/vector.h"
-#include "../util/map.h"
-#include "z3_replayer.h"
-#include "../util/stream_buffer.h"
-#include "../util/symbol.h"
-#include "../util/trace.h"
-#include <sstream>
-#include <vector>
+#include "util/vector.h"
+#include "util/map.h"
+#include "api/z3_replayer.h"
+#include "util/stream_buffer.h"
+#include "util/symbol.h"
+#include "util/trace.h"
+#include<sstream>
+#include<vector>
 
 void register_z3_replayer_cmds(z3_replayer & in);
 

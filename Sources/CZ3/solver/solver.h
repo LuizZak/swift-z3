@@ -19,9 +19,9 @@ Notes:
 #ifndef SOLVER_H_
 #define SOLVER_H_
 
-#include "../solver/check_sat_result.h"
-#include "../solver/progress_callback.h"
-#include "../util/params.h"
+#include "solver/check_sat_result.h"
+#include "solver/progress_callback.h"
+#include "util/params.h"
 
 class solver;
 class model_converter;

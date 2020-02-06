@@ -19,7 +19,7 @@ Revision History:
 #ifndef OBJ_REF_HASHTABLE_H_
 #define OBJ_REF_HASHTABLE_H_
 
-#include "obj_hashtable.h"
+#include "util/obj_hashtable.h"
 
 template<typename M, typename Key, typename Value>
 class obj_ref_map {

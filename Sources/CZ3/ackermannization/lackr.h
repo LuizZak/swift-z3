@@ -17,16 +17,16 @@
 #ifndef LACKR_H_
 #define LACKR_H_
 
-#include "../util/lbool.h"
-#include "../util/util.h"
-#include "../ast/rewriter/th_rewriter.h"
-#include "../ast/bv_decl_plugin.h"
-#include "../model/model.h"
-#include "../solver/solver.h"
-#include "../tactic/tactic_exception.h"
-#include "../tactic/goal.h"
-#include "ackr_info.h"
-#include "ackr_helper.h"
+#include "util/lbool.h"
+#include "util/util.h"
+#include "ast/rewriter/th_rewriter.h"
+#include "ast/bv_decl_plugin.h"
+#include "model/model.h"
+#include "solver/solver.h"
+#include "tactic/tactic_exception.h"
+#include "tactic/goal.h"
+#include "ackermannization/ackr_info.h"
+#include "ackermannization/ackr_helper.h"
 
 struct lackr_stats {
     lackr_stats() : m_it(0), m_ackrs_sz(0) {}

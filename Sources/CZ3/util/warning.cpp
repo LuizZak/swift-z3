@@ -19,10 +19,10 @@ Revision History:
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "error_codes.h"
-#include "util.h"
-#include "buffer.h"
-#include "vector.h"
+#include "util/error_codes.h"
+#include "util/util.h"
+#include "util/buffer.h"
+#include "util/vector.h"
 
 #ifdef _WINDOWS
 #if defined( __MINGW32__ ) && ( defined( __GNUG__ ) || defined( __clang__ ) )

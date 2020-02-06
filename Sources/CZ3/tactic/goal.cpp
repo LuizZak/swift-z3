@@ -16,12 +16,12 @@ Author:
 Revision History:
 
 --*/
-#include <ast/ast_ll_pp.h>
-#include <ast/ast_smt2_pp.h>
-#include <ast/for_each_expr.h>
-#include <ast/well_sorted.h>
-#include <ast/display_dimacs.h>
-#include <tactic/goal.h>
+#include "ast/ast_ll_pp.h"
+#include "ast/ast_smt2_pp.h"
+#include "ast/for_each_expr.h"
+#include "ast/well_sorted.h"
+#include "ast/display_dimacs.h"
+#include "tactic/goal.h"
 
 goal::precision goal::mk_union(precision p1, precision p2) {
     if (p1 == PRECISE) return p2;

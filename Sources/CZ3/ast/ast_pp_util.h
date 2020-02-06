@@ -19,9 +19,9 @@ Revision History:
 #ifndef AST_PP_UTIL_H_
 #define AST_PP_UTIL_H_
 
-#include "decl_collector.h"
-#include "ast_smt2_pp.h"
-#include "../util/obj_hashtable.h"
+#include "ast/decl_collector.h"
+#include "ast/ast_smt2_pp.h"
+#include "util/obj_hashtable.h"
 
 class ast_pp_util {
     ast_manager&        m;

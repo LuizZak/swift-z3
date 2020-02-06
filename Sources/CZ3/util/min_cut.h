@@ -19,7 +19,7 @@ Revision History:
 #ifndef MIN_CUT_H_
 #define MIN_CUT_H_
 
-#include "vector.h"
+#include "util/vector.h"
 
 
 class min_cut {

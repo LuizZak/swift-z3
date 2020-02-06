@@ -16,19 +16,19 @@ Author:
 Notes:
 
 --*/
-#include "../../tactic/tactical.h"
-#include "../../tactic/core/simplify_tactic.h"
-#include "../../tactic/core/propagate_values_tactic.h"
-#include "../../tactic/core/solve_eqs_tactic.h"
-#include "../../tactic/core/distribute_forall_tactic.h"
-#include "../../tactic/core/der_tactic.h"
-#include "../../tactic/core/reduce_args_tactic.h"
-#include "../../smt/tactic/smt_tactic.h"
-#include "../../tactic/core/nnf_tactic.h"
-#include "../../tactic/ufbv/macro_finder_tactic.h"
-#include "../../tactic/ufbv/ufbv_rewriter_tactic.h"
-#include "../../tactic/ufbv/quasi_macros_tactic.h"
-#include "../../tactic/ufbv/ufbv_tactic.h"
+#include "tactic/tactical.h"
+#include "tactic/core/simplify_tactic.h"
+#include "tactic/core/propagate_values_tactic.h"
+#include "tactic/core/solve_eqs_tactic.h"
+#include "tactic/core/distribute_forall_tactic.h"
+#include "tactic/core/der_tactic.h"
+#include "tactic/core/reduce_args_tactic.h"
+#include "smt/tactic/smt_tactic.h"
+#include "tactic/core/nnf_tactic.h"
+#include "tactic/ufbv/macro_finder_tactic.h"
+#include "tactic/ufbv/ufbv_rewriter_tactic.h"
+#include "tactic/ufbv/quasi_macros_tactic.h"
+#include "tactic/ufbv/ufbv_tactic.h"
 
 
 static tactic * mk_der_fp_tactic(ast_manager & m, params_ref const & p) {

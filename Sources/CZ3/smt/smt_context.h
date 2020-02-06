@@ -19,37 +19,37 @@ Revision History:
 #ifndef SMT_CONTEXT_H_
 #define SMT_CONTEXT_H_
 
-#include <smt/smt_clause.h>
-#include <smt/smt_setup.h>
-#include <smt/smt_enode.h>
-#include <smt/smt_cg_table.h>
-#include <smt/smt_b_justification.h>
-#include <smt/smt_eq_justification.h>
-#include <smt/smt_justification.h>
-#include <smt/smt_bool_var_data.h>
-#include <smt/smt_clause_proof.h>
-#include <smt/smt_theory.h>
-#include <smt/smt_quantifier.h>
-#include <smt/smt_quantifier_stat.h>
-#include <smt/smt_statistics.h>
-#include <smt/smt_conflict_resolution.h>
-#include <smt/smt_relevancy.h>
-#include <smt/smt_case_split_queue.h>
-#include <smt/smt_almost_cg_table.h>
-#include <smt/smt_failure.h>
-#include <smt/asserted_formulas.h>
-#include <smt/smt_types.h>
-#include <smt/dyn_ack.h>
-#include <ast/ast_smt_pp.h>
-#include <smt/watch_list.h>
-#include <util/trail.h>
-#include <smt/fingerprints.h>
-#include <util/ref.h>
-#include <smt/proto_model/proto_model.h>
-#include <model/model.h>
-#include <util/timer.h>
-#include <util/statistics.h>
-#include <solver/progress_callback.h>
+#include "smt/smt_clause.h"
+#include "smt/smt_setup.h"
+#include "smt/smt_enode.h"
+#include "smt/smt_cg_table.h"
+#include "smt/smt_b_justification.h"
+#include "smt/smt_eq_justification.h"
+#include "smt/smt_justification.h"
+#include "smt/smt_bool_var_data.h"
+#include "smt/smt_clause_proof.h"
+#include "smt/smt_theory.h"
+#include "smt/smt_quantifier.h"
+#include "smt/smt_quantifier_stat.h"
+#include "smt/smt_statistics.h"
+#include "smt/smt_conflict_resolution.h"
+#include "smt/smt_relevancy.h"
+#include "smt/smt_case_split_queue.h"
+#include "smt/smt_almost_cg_table.h"
+#include "smt/smt_failure.h"
+#include "smt/asserted_formulas.h"
+#include "smt/smt_types.h"
+#include "smt/dyn_ack.h"
+#include "ast/ast_smt_pp.h"
+#include "smt/watch_list.h"
+#include "util/trail.h"
+#include "smt/fingerprints.h"
+#include "util/ref.h"
+#include "smt/proto_model/proto_model.h"
+#include "model/model.h"
+#include "util/timer.h"
+#include "util/statistics.h"
+#include "solver/progress_callback.h"
 #include <tuple>
 
 // there is a significant space overhead with allocating 1000+ contexts in
@@ -1539,7 +1539,7 @@ namespace smt {
         */
         context * mk_fresh(symbol const * l = nullptr,  smt_params * smtp = nullptr, params_ref const & p = params_ref());
 
-        static void copy(context& src, context& dst);
+        static void copy(context& src, context& dst, bool override_base = false);
 
         /**
            \brief Translate context to use new manager m.

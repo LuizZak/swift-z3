@@ -21,11 +21,11 @@ Revision History:
  // include "util/new_symbol.cpp"
 #else
 
-#include "symbol.h"
-#include "mutex.h"
-#include "str_hashtable.h"
-#include "region.h"
-#include "string_buffer.h"
+#include "util/symbol.h"
+#include "util/mutex.h"
+#include "util/str_hashtable.h"
+#include "util/region.h"
+#include "util/string_buffer.h"
 #include <cstring>
 #include <thread>
 

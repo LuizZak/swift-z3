@@ -28,16 +28,16 @@ Revision History:
 #ifndef GOAL_H_
 #define GOAL_H_
 
-#include "../ast/ast.h"
-#include "../ast/ast_translation.h"
-#include "../ast/ast_printer.h"
-#include "../ast/for_each_expr.h"
-#include "../util/ref.h"
-#include "../util/ref_vector.h"
-#include "../util/ref_buffer.h"
-#include "model_converter.h"
-#include "proof_converter.h"
-#include "dependency_converter.h"
+#include "ast/ast.h"
+#include "ast/ast_translation.h"
+#include "ast/ast_printer.h"
+#include "ast/for_each_expr.h"
+#include "util/ref.h"
+#include "util/ref_vector.h"
+#include "util/ref_buffer.h"
+#include "tactic/model_converter.h"
+#include "tactic/proof_converter.h"
+#include "tactic/dependency_converter.h"
 
 class goal {
 public:

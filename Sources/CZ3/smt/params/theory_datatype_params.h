@@ -19,7 +19,7 @@ Revision History:
 #ifndef THEORY_DATATYPE_PARAMS_H_
 #define THEORY_DATATYPE_PARAMS_H_
 
-#include <smt/params/smt_params_helper.hpp>
+#include "smt/params/smt_params_helper.hpp"
 
 struct theory_datatype_params {
     unsigned   m_dt_lazy_splits;

@@ -1,5 +1,5 @@
 // Automatically generated file
-#include"z3.h"
+#include"api/z3.h"
 #ifdef __GNUC__
 #define _Z3_UNUSED __attribute__((unused))
 #else

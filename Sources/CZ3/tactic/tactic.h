@@ -21,11 +21,11 @@ Notes:
 #ifndef TACTIC_H_
 #define TACTIC_H_
 
-#include "goal.h"
-#include "../util/params.h"
-#include "../util/statistics.h"
-#include "tactic_exception.h"
-#include "../util/lbool.h"
+#include "tactic/goal.h"
+#include "util/params.h"
+#include "util/statistics.h"
+#include "tactic/tactic_exception.h"
+#include "util/lbool.h"
 
 class progress_callback;
 

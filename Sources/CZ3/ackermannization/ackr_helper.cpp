@@ -14,7 +14,7 @@
 
  Revision History:
 --*/
-#include "ackr_helper.h"
+#include "ackermannization/ackr_helper.h"
 
 double ackr_helper::calculate_lemma_bound(fun2terms_map const& occs1, sel2terms_map const& occs2) {
     double total = 0;

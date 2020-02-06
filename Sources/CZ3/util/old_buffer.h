@@ -22,7 +22,7 @@ Revision History:
 #define OLD_BUFFER_H_
 
 #include<string.h>
-#include "memory_manager.h"
+#include "util/memory_manager.h"
 
 template<typename T, bool CallDestructors=true, unsigned INITIAL_SIZE=16>
 class old_buffer {

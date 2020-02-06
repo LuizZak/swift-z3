@@ -18,12 +18,12 @@ Revision History:
 --*/
 
 #include<sstream>
-#include "../ast/for_each_expr.h"
-#include "../ast/well_sorted.h"
-#include "../ast/ast_ll_pp.h"
-#include "../ast/ast_pp.h"
-#include "../util/warning.h"
-#include "../ast/ast_smt2_pp.h"
+#include "ast/for_each_expr.h"
+#include "ast/well_sorted.h"
+#include "ast/ast_ll_pp.h"
+#include "ast/ast_pp.h"
+#include "util/warning.h"
+#include "ast/ast_smt2_pp.h"
 
 namespace {
 

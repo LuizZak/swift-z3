@@ -16,12 +16,12 @@ Author:
 Notes:
 
 --*/
-#include <ast/rewriter/var_subst.h>
-#include <ast/ast_ll_pp.h>
-#include <ast/ast_pp.h>
-#include <ast/ast_smt2_pp.h>
-#include <ast/well_sorted.h>
-#include <ast/for_each_expr.h>
+#include "ast/rewriter/var_subst.h"
+#include "ast/ast_ll_pp.h"
+#include "ast/ast_pp.h"
+#include "ast/ast_smt2_pp.h"
+#include "ast/well_sorted.h"
+#include "ast/for_each_expr.h"
 
 expr_ref var_subst::operator()(expr * n, unsigned num_args, expr * const * args) {
     expr_ref result(m_reducer.m());

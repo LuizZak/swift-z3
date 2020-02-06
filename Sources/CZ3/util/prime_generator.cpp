@@ -16,8 +16,8 @@ Author:
 Notes:
 
 --*/
-#include "prime_generator.h"
-#include "mutex.h"
+#include "util/prime_generator.h"
+#include "util/mutex.h"
 
 #define PRIME_LIST_MAX_SIZE 1<<20
 
