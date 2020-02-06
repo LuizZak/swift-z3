@@ -48,10 +48,6 @@ public class Z3FuncDecl: Z3AstBase {
     init(context: Z3Context, funcDecl: Z3_func_decl) {
         super.init(context: context, ast: funcDecl)
     }
-    
-    public func toString() -> String {
-        return String(cString: Z3_func_decl_to_string(context.context, funcDecl))
-    }
 }
 
 internal extension Sequence where Element == Z3_func_decl {
