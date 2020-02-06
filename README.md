@@ -29,7 +29,7 @@ let rightEq = right == left + width
 let solver = context.makeSolver()
 
 solver.assert([lValue, wValue, rightEq])
-XCTAssertEqual(solver.check(), Z3_L_TRUE)
+XCTAssertEqual(solver.check(), .satisfiable)
 
 if let model = solver.getModel() {
     XCTAssertEqual(model.double(right), 150)
