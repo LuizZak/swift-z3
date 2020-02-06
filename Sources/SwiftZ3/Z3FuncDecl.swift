@@ -48,6 +48,17 @@ public class Z3FuncDecl: Z3AstBase {
     init(context: Z3Context, funcDecl: Z3_func_decl) {
         super.init(context: context, ast: funcDecl)
     }
+    
+    /// Translate/Copy the AST `self` from its current context to context `target`
+    public override func translate(to context: Z3Context) -> Z3FuncDecl {
+        if self.context === context {
+            return self
+        }
+
+        let newAst = Z3_translate(self.context.context, ast, context.context)
+
+        return Z3FuncDecl(context: context, funcDecl: newAst!)
+    }
 }
 
 internal extension Sequence where Element == Z3_func_decl {
