@@ -44,6 +44,26 @@ public class Z3Model {
         return AnyZ3Ast(context: context, ast: output!)
     }
     
+    /// Return the interpretation (i.e., assignment) of constant `a` in the
+    /// current model.
+    /// Return `nil`, if the model does not assign an interpretation for `a`.
+    /// That should be interpreted as: the value of `a` does not matter.
+    ///
+    /// - precondition: `a.arity == 0`
+    public func getConstInterp(_ a: Z3FuncDecl) -> AnyZ3Ast? {
+        if let ast = Z3_model_get_const_interp(context.context, model, a.funcDecl) {
+            return AnyZ3Ast(context: context, ast: ast)
+        }
+        
+        return nil
+    }
+    
+    /// Test if there exists an interpretation (i.e., assignment) for `a` in the
+    /// current model.
+    public func hasInterp(_ a: Z3FuncDecl) -> Bool {
+        return Z3_model_has_interp(context.context, model, a.funcDecl)
+    }
+    
     /// Convert the given model into a string.
     public func toString() -> String {
         return String(cString: Z3_model_to_string(context.context, model))
