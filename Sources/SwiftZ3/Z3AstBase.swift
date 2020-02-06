@@ -60,6 +60,23 @@ public class Z3AstBase {
         return astKind == .funcDeclAst
     }
 
+    /// Determine if an ast is a universal quantifier.
+    public var isQuantifierForAll: Bool {
+        return Z3_is_quantifier_forall(context.context, ast)
+    }
+
+    /// Determine if ast is an existential quantifier.
+    public var isQuantifierExists: Bool {
+        return Z3_is_quantifier_exists(context.context, ast)
+    }
+
+    /// Determine if ast is a lambda expression.
+    ///
+    /// - precondition: `astKind == Z3AstKind.quantifierAst`
+    public var isLambda: Bool {
+        return Z3_is_lambda(context.context, ast)
+    }
+
     /// Return the kind of the given AST.
     public var astKind: Z3AstKind {
         return Z3AstKind.fromZ3_ast_kind(Z3_get_ast_kind(context.context, ast))

@@ -43,6 +43,8 @@ public class AnyZ3Ast: Z3AstBase {
 
     /// Return numeral as an integer.
     ///
+    /// Return 0 if numeral does not fit in an `Int32`.
+    ///
     /// - precondition: `astKind == Z3AstKind.numeralAst`
     public var numeralInt: Int32 {
         var i: Int32 = 0
@@ -64,26 +66,35 @@ public class AnyZ3Ast: Z3AstBase {
         return Z3_get_denominator(context.context, ast).map { AnyZ3Ast(context: context, ast: $0) }
     }
 
-    /// Determine if an ast is a universal quantifier.
-    public var quantifierForAll: Bool {
-        return Z3_is_quantifier_forall(context.context, ast)
-    }
-
-    /// Determine if ast is an existential quantifier.
-    public var quantifierExists: Bool {
-        return Z3_is_quantifier_exists(context.context, ast)
-    }
-
-    /// Determine if ast is a lambda expression.
-    ///
-    /// - precondition: `astKind == Z3AstKind.quantifierAst`
-    public var isLambda: Bool {
-        return Z3_is_lambda(context.context, ast)
-    }
-
     /// Compares this term to another term.
     public func isEqual(to other: AnyZ3Ast) -> Bool {
         return Z3_is_eq_ast(context.context, ast, other.ast)
+    }
+
+    /// Return numeral as a string in decimal notation.
+    ///
+    /// The result has at most `precision` decimal places.
+    ///
+    /// - precondition: `self.astKind == numeralAst || self.isAlgebraicNumber`
+    public func getNumeralDecimalString(precision: UInt32) -> String {
+        return String(cString: Z3_get_numeral_decimal_string(context.context, ast, precision))
+    }
+
+    /// Return numeral value, as a pair of 64 bit numbers if the representation
+    /// fits.
+    ///
+    /// Return `nil` if the numeral value does not fit in 64-bit numerals.
+    ///
+    /// - precondition: `self.astKind == numeralAst`
+    public func getNumeralSmall() -> (num: Int64, den: Int64)? {
+        var num: Int64 = 0
+        var den: Int64 = 0
+
+        if Z3_get_numeral_small(context.context, ast, &num, &den) {
+            return (num, den)
+        }
+
+        return nil
     }
 
     /// Translate/Copy the AST `self` from its current context to context `target`
