@@ -306,7 +306,7 @@ final class SwiftZ3Tests: XCTestCase {
     
     func testTowersSample() {
         // Load and solve a Towers game:
-        // https://www.chiark.greenend.org.uk/~sgtatham/puzzles/js/towers.html#6:/1/3//2/////4//3///3/3/2//////3/,o1g3l
+        // https://www.chiark.greenend.org.uk/~sgtatham/puzzles/js/towers.html#6:4//2//2///3//4//3//2/////2//2///4,n1g1m
         
         enum Coordinate {
             case left(row: Int)
@@ -336,12 +336,12 @@ final class SwiftZ3Tests: XCTestCase {
                 
             case .top(let column):
                 for y in 0..<gridSize {
-                    gridSubset.append(grid[column][y])
+                    gridSubset.append(grid[y][column])
                 }
                 
             case .bottom(let column):
                 for y in (0..<gridSize).reversed() {
-                    gridSubset.append(grid[column][y])
+                    gridSubset.append(grid[y][column])
                 }
             }
             
