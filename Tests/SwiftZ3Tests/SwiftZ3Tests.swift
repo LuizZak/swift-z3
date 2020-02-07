@@ -348,10 +348,12 @@ final class SwiftZ3Tests: XCTestCase {
             // Make a sequence that compares, one step at a time, the subset of
             // the input array with the next element, like so:
             //
-            // [0] 1 2 3 4
-            // [0 1] 2 3 4
-            // [0 1 2] 3 4
-            // [0 1 2 3] 4
+            // [1] 5 3 4 2 -> max([1])             > 5
+            // [1 5] 3 4 2 -> max([1, 5])          > 3
+            // [1 5 3] 4 2 -> max([1, 5, 3])       > 4
+            // [1 5 3 4] 2 -> max([1, 5, 3, 4])    > 2
+            //
+            // Sum one to the result for every comparison above that is true.
             for i in 0..<(gridSubset.count - 1) {
                 let subset = gridSubset[0...i]
                 
@@ -456,13 +458,8 @@ final class SwiftZ3Tests: XCTestCase {
         
         var initialGridC = context.makeTrue()
         for i in 0..<gridSize {
-            for j in 0..<gridSize {
-                initialGridC = initialGridC &&
-                    context.makeIfThenElse(
-                        initialGrid[i][j] == context.makeInteger(0),
-                        context.makeTrue(),
-                        grid[i][j] == initialGrid[i][j]
-                    )
+            for j in 0..<gridSize where initialGrid[i][j] != 0 {
+                initialGridC = initialGridC && grid[i][j] == initialGrid[i][j]
             }
         }
 
@@ -473,7 +470,7 @@ final class SwiftZ3Tests: XCTestCase {
         
         if s.check() == .satisfiable {
             let m = s.getModel()!
-            var r: [[AnyZ3Ast]] = []
+            var r: [[Z3Int]] = []
             for i in 0..<gridSize {
                 r.append([])
                 for j in 0..<gridSize {
