@@ -204,8 +204,8 @@ public class Z3Context {
     /// - seealso: `makeInteger`
     /// - seealso: `makeUnsignedInteger`
     /// - precondition: `den != 0`
-    public func makeReal(_ num: Int32, _ den: Int32) -> Z3Ast<RealSort> {
-        return Z3Ast(context: self, ast: Z3_mk_real(context, num, den))
+    public func makeReal(_ num: Int32, _ den: Int32) -> Z3Real {
+        return Z3Real(context: self, ast: Z3_mk_real(context, num, den))
     }
 
     /// Create a numeral of an int, bit-vector, or finite-domain sort.
@@ -215,8 +215,8 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeInteger(value: Int32) -> Z3Ast<IntSort> {
-        return Z3Ast(context: self, ast: Z3_mk_int(context, value, intSort().sort))
+    public func makeInteger(_ value: Int32) -> Z3Int {
+        return Z3Int(context: self, ast: Z3_mk_int(context, value, intSort().sort))
     }
 
     /// Create a numeral of a bit-vector.
@@ -226,7 +226,7 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeIntegerBv(value: Int32) -> Z3Ast<BitVectorOfInt<Int32>> {
+    public func makeIntegerBv(_ value: Int32) -> Z3Ast<BitVectorOfInt<Int32>> {
         return Z3Ast(context: self,
                      ast: Z3_mk_int(context, value, bitVectorSort(size: 32).sort))
     }
@@ -239,8 +239,8 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeUnsignedInteger(value: UInt32) -> Z3Ast<IntSort> {
-        return Z3Ast(context: self, ast: Z3_mk_unsigned_int(context, value, intSort().sort))
+    public func makeUnsignedInteger(_ value: UInt32) -> Z3Int {
+        return Z3Int(context: self, ast: Z3_mk_unsigned_int(context, value, intSort().sort))
     }
 
     /// Create a numeral of a bit-vector.
@@ -250,7 +250,7 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeUnsignedIntegerBv(value: UInt32) -> Z3Ast<BitVectorOfInt<UInt32>> {
+    public func makeUnsignedIntegerBv(_ value: UInt32) -> Z3Ast<BitVectorOfInt<UInt32>> {
         return Z3Ast(context: self,
                      ast: Z3_mk_unsigned_int(context, value, bitVectorSort(size: 32).sort))
     }
@@ -263,8 +263,8 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeInteger64(value: Int64) -> Z3Ast<IntSort> {
-        return Z3Ast(context: self, ast: Z3_mk_int64(context, value, intSort().sort))
+    public func makeInteger64(_ value: Int64) -> Z3Int {
+        return Z3Int(context: self, ast: Z3_mk_int64(context, value, intSort().sort))
     }
 
     /// Create a numeral of a bit-vector.
@@ -275,7 +275,7 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeInteger64Bv(value: Int64) -> Z3Ast<BitVectorOfInt<Int64>> {
+    public func makeInteger64Bv(_ value: Int64) -> Z3Ast<BitVectorOfInt<Int64>> {
         return Z3Ast(context: self, ast: Z3_mk_int64(context, value, bitVectorSort(size: 64).sort))
     }
 
@@ -287,8 +287,8 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeUnsignedInteger64(value: UInt64) -> Z3Ast<IntSort> {
-        return Z3Ast(context: self, ast: Z3_mk_unsigned_int64(context, value, intSort().sort))
+    public func makeUnsignedInteger64(_ value: UInt64) -> Z3Int {
+        return Z3Int(context: self, ast: Z3_mk_unsigned_int64(context, value, intSort().sort))
     }
 
     /// Create a numeral of a bit-vector.
@@ -299,7 +299,7 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeUnsignedInteger64Bv(value: UInt64) -> Z3Ast<BitVectorOfInt<UInt64>> {
+    public func makeUnsignedInteger64Bv(_ value: UInt64) -> Z3Ast<BitVectorOfInt<UInt64>> {
         return Z3Ast(context: self, ast: Z3_mk_unsigned_int64(context, value, bitVectorSort(size: 64).sort))
     }
 }

@@ -594,10 +594,24 @@ public extension Z3Context {
     /// into a floating-point term of sort `sort`. If necessary, the result will
     /// be rounded according to rounding mode `rm`.
     func makeFpaToFPReal<T: FloatingSort>(_ rm: Z3Ast<RoundingMode>,
-                                          _ t: Z3Ast<RealSort>,
+                                          _ t: Z3Real,
                                           sort: T.Type) -> Z3Ast<T> {
         
         return Z3Ast(context: self, ast: Z3_mk_fpa_to_fp_real(context, rm.ast, t.ast, sort.getSort(self).sort))
+    }
+    
+    /// Conversion of a term of real sort into a term of FloatingPoint sort.
+    ///
+    /// Type-erased version.
+    ///
+    /// Produces a term that represents the conversion of term `t` of real sort
+    /// into a floating-point term of sort `sort`. If necessary, the result will
+    /// be rounded according to rounding mode `rm`.
+    func makeFpaToFPReal(_ rm: Z3Ast<RoundingMode>,
+                         _ t: Z3Real,
+                         sort: Z3Sort) -> AnyZ3Ast {
+        
+        return AnyZ3Ast(context: self, ast: Z3_mk_fpa_to_fp_real(context, rm.ast, t.ast, sort.sort))
     }
     
     /// Conversion of a floating-point term into a real-numbered term.
@@ -605,7 +619,22 @@ public extension Z3Context {
     /// Produces a term that represents the conversion of the floating-point term
     /// t into a real number. Note that this type of conversion will often result
     /// in non-linear constraints over real terms.
-    func makeFpaToReal<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Ast<RealSort> {
-        return Z3Ast(context: self, ast: Z3_mk_fpa_to_real(context, t.ast))
+    func makeFpaToReal<T: FloatingSort>(_ t: Z3Ast<T>) -> Z3Real {
+        return Z3Real(context: self, ast: Z3_mk_fpa_to_real(context, t.ast))
+    }
+    
+    /// Coerce a floating-point number to an integer, rounding with a
+    /// given rounding mode.
+    ///
+    /// Equivalent to:
+    /// ```
+    /// let rounded = makeFpaRoundToIntegral(roundingMode, t1)
+    /// let real = makeFpaToReal(rounded)
+    /// return makeReal2Int(real)
+    /// ```
+    func makeFpaToInt<T: FloatingSort>(roundingMode: Z3Ast<RoundingMode>, _ t1: Z3Ast<T>) -> Z3Int {
+        let rounded = makeFpaRoundToIntegral(roundingMode, t1)
+        let real = makeFpaToReal(rounded)
+        return makeRealToInt(real)
     }
 }

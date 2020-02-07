@@ -350,7 +350,7 @@ public extension Z3Context {
     /// from 0 to `n-1`) is 1 if `(t1 div 2^i)` mod 2 is 1.
     ///
     /// The node `t1` must have integer sort.
-    func makeInt2Bv<T: IntegralSort>(_ n: UInt32, _ t1: Z3Ast<T>) -> AnyZ3Ast {
+    func makeIntToBv(_ n: UInt32, _ t1: Z3Int) -> AnyZ3Ast {
         return AnyZ3Ast(context: self, ast: Z3_mk_int2bv(context, n, t1.ast))
     }
 
@@ -362,7 +362,7 @@ public extension Z3Context {
     /// If `isSigned` is true, `t1` is treated as a signed bit-vector.
     ///
     /// The node `t1` must have a bit-vector sort.
-    func makeBv2Int<T: BitVectorSort>(_ t1: Z3Ast<T>, isSigned: Bool) -> AnyZ3Ast {
+    func makeBvToInt<T: BitVectorSort>(_ t1: Z3Ast<T>, isSigned: Bool) -> AnyZ3Ast {
         return AnyZ3Ast(context: self, ast: Z3_mk_bv2int(context, t1.ast, isSigned))
     }
     

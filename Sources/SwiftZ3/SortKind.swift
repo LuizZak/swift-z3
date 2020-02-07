@@ -3,7 +3,6 @@ public protocol SortKind {
 }
 public protocol NumericalSort: SortKind { }
 public protocol IntOrRealSort: NumericalSort { }
-public protocol IntegralSort: IntOrRealSort { }
 public protocol BitVectorSort: NumericalSort {
     /// Bit-width of vector sort
     static var bitWidth: UInt32 { get }
@@ -27,7 +26,10 @@ extension Bool: SortKind {
 }
 
 // MARK: - Integers
-public struct IntSort: IntegralSort {
+
+/// An integer sort.
+/// Note that this is not the same as a machine integer.
+public struct IntSort: IntOrRealSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.intSort()
     }
@@ -64,6 +66,9 @@ public struct BitVectorSort128: BitVectorSort {
 }
 
 // MARK: - Real
+
+/// A real number sort.
+/// Note that this type is not a floating point number.
 public struct RealSort: NumericalSort, IntOrRealSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.realSort()

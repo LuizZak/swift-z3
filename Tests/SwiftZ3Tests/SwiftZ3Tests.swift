@@ -68,11 +68,11 @@ final class SwiftZ3Tests: XCTestCase {
         let rhs = context.makeConstant(name: "rhs", sort: BitVectorSort32.self)
         let res = context.makeConstant(name: "res", sort: BitVectorSort32.self)
 
-        let lhsValue = context.makeEqual(lhs, context.makeIntegerBv(value: 123))
-        let rhsValue = context.makeEqual(rhs, context.makeIntegerBv(value: 3))
+        let lhsValue = context.makeEqual(lhs, context.makeIntegerBv(123))
+        let rhsValue = context.makeEqual(rhs, context.makeIntegerBv(3))
         
         let resValue = context.makeEqual(res, context.makeBvMul(lhs, rhs))
-        let resValueInt = context.makeBv2Int(res, isSigned: true)
+        let resValueInt = context.makeBvToInt(res, isSigned: true)
         
         let solver = context.makeSolver()
         
@@ -263,7 +263,7 @@ final class SwiftZ3Tests: XCTestCase {
                 instanceC =
                     instanceC &&
                     context.makeIfThenElse(
-                        instance[i][j] == context.makeInteger(value: 0),
+                        instance[i][j] == context.makeInteger(0),
                         context.makeTrue(),
                         x[i][j] == instance[i][j]
                     )
@@ -301,6 +301,170 @@ final class SwiftZ3Tests: XCTestCase {
             XCTAssertEqual(rInt, expected)
         } else {
             XCTFail("Failed to solve sudoku")
+        }
+    }
+    
+    func testTowersSample() {
+        // Load and solve a Towers game:
+        // https://www.chiark.greenend.org.uk/~sgtatham/puzzles/js/towers.html#4:3/1/4/2/2/2/1/2/2/2/1/3/2/1/3/2
+        
+        enum Coordinate {
+            case left(row: Int)
+            case right(row: Int)
+            case top(column: Int)
+            case bottom(column: Int)
+        }
+        
+        struct Hint {
+            var coordinate: Coordinate
+            var hint: Int32
+        }
+        
+        func makeTargetArray(coordinate: Coordinate, grid: [[Z3Int]], context: Z3Context) -> Z3Int {
+            let gridSize = grid.count
+            
+            var sum = context.makeFloat(1.0)
+            
+            var gridSubset: [Z3Float] = []
+            let toFloat: (Z3Int) -> Z3Float = { context.makeIntToFloat($0, sort: Float.self) }
+            
+            switch coordinate {
+            case .left(let row):
+                gridSubset = grid[row].map(toFloat)
+                
+            case .right(let row):
+                gridSubset = grid[row].reversed().map(toFloat)
+                
+            case .top(let column):
+                for y in 0..<gridSize {
+                    gridSubset.append(toFloat(grid[column][y]))
+                }
+                
+            case .bottom(let column):
+                for y in (0..<gridSize).reversed() {
+                    gridSubset.append(toFloat(grid[column][y]))
+                }
+            }
+            
+            gridSubset = Array(gridSubset[0...1])
+            
+            // Make a sequence that compares, one step at a time, the subset of
+            // the input array with the next element, like so:
+            //
+            // [0] 1 2 3 4
+            // [0 1] 2 3 4
+            // [0 1 2] 3 4
+            // [0 1 2 3] 4
+            for i in 0..<(gridSubset.count - 1) {
+                let subset = gridSubset[0...i]
+                if subset.isEmpty {
+                    continue
+                }
+                let subsetMax: Z3Float
+                if subset.count == 1 {
+                    subsetMax = subset[0]
+                } else {
+                    subsetMax = subset.reduce(subset[0]) {
+                        context.makeFpaMax($0, $1)
+                    }
+                }
+                
+                let subsetNext = gridSubset[i + 1]
+                
+                sum = sum + context.makeIfThenElse(
+                    subsetMax < subsetNext,
+                    context.makeFloat(1),
+                    context.makeFloat(0)
+                )
+            }
+            
+            return context.makeFpaToInt(roundingMode: context.makeFpaRoundNearestTiesToEven(), sum)
+        }
+        
+        func makeTarget(hint: Hint, grid: [[Z3Int]], context: Z3Context) -> Z3Bool {
+            let targetArray = makeTargetArray(coordinate: hint.coordinate, grid: grid, context: context)
+            
+            return targetArray == context.makeInteger(hint.hint)
+        }
+        
+        let context = Z3Context()
+        
+        var grid: [[Z3Int]] = []
+        for x in 0..<4 {
+            grid.append([])
+            for y in 0..<4 {
+                grid[x].append(
+                    context.makeConstant(name: "x_\(x + 1)_\(y + 1)",
+                                         sort: IntSort.self)
+                )
+            }
+        }
+        
+        // each cell contains a value in {1, ..., 4}
+        var cellsC: [[Z3Bool]] = []
+        for i in 0..<4 {
+            cellsC.append([])
+            for j in 0..<4 {
+                cellsC[i].append(1 <= grid[i][j] && grid[i][j] <= 4)
+            }
+        }
+        
+        // each row contains a digit at most once
+        var rowsC: [Z3Bool] = []
+        for i in 0..<4 {
+            rowsC.append(context.makeDistinct(grid[i]))
+        }
+
+        // each column contains a digit at most once
+        var colsC: [Z3Bool] = []
+        for j in 0..<4 {
+            var column: [Z3Int] = []
+            for i in 0..<4 {
+                column.append(grid[i][j])
+            }
+
+            colsC.append(context.makeDistinct(column))
+        }
+        
+        var towersC = context.makeTrue()
+        for t in cellsC {
+            towersC = towersC && context.makeAnd(t)
+        }
+        towersC = towersC && context.makeAnd(rowsC)
+        towersC = towersC && context.makeAnd(colsC)
+        
+        let hints: [Hint] = [
+            //Hint(coordinate: .top(column: 0), hint: 0),
+//            Hint(coordinate: .top(column: 1), hint: 1),
+//            Hint(coordinate: .top(column: 2), hint: 4),
+//            Hint(coordinate: .top(column: 3), hint: 2)
+            Hint(coordinate: .left(row: 0), hint: 0)
+        ]
+        
+        var hintsC = context.makeTrue()
+        for hint in hints {
+            hintsC = hintsC && makeTarget(hint: hint, grid: grid, context: context)
+        }
+        
+        let s = context.makeSolver()
+        s.assert(towersC)
+        s.assert(hintsC)
+        
+        if s.check() == .satisfiable {
+            let m = s.getModel()!
+            var r: [[AnyZ3Ast]] = []
+            for i in 0..<4 {
+                r.append([])
+                for j in 0..<4 {
+                    r[i].append(m.eval(grid[i][j], completion: false)!)
+                }
+            }
+
+            let rInt = r.map { $0.map { $0.numeralInt } }
+
+            print(rInt)
+        } else {
+            XCTFail("Failed to solve Towers game")
         }
     }
 

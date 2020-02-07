@@ -59,15 +59,15 @@ public extension Z3Context {
     /// Create an AST node representing `arg1 mod arg2`.
     ///
     /// The arguments must have int type.
-    func makeMod<T: IntegralSort>(_ arg1: Z3Ast<T>, _ arg2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(context: self, ast: Z3_mk_mod(context, arg1.ast, arg2.ast))
+    func makeMod(_ arg1: Z3Int, _ arg2: Z3Int) -> Z3Int {
+        return Z3Int(context: self, ast: Z3_mk_mod(context, arg1.ast, arg2.ast))
     }
 
     /// Create an AST node representing `arg1 rem arg2`.
     ///
     /// The arguments must have int type.
-    func makeRem<T: IntegralSort>(_ arg1: Z3Ast<T>, _ arg2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(context: self, ast: Z3_mk_rem(context, arg1.ast, arg2.ast))
+    func makeRem(_ arg1: Z3Int, _ arg2: Z3Int) -> Z3Int {
+        return Z3Int(context: self, ast: Z3_mk_rem(context, arg1.ast, arg2.ast))
     }
 
     /// Create an AST node representing `arg1 ^ arg2`.
@@ -107,8 +107,8 @@ public extension Z3Context {
     /// The predicate is true when `t1` divides `t2`. For the predicate to be
     /// part of linear integer arithmetic, the first argument `t1` must be a
     /// non-zero integer.
-    func makeDivides<T: IntegralSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Ast<T> {
-        return Z3Ast(context: self, ast: Z3_mk_divides(context, t1.ast, t2.ast))
+    func makeDivides(_ t1: Z3Int, _ t2: Z3Int) -> Z3Int {
+        return Z3Int(context: self, ast: Z3_mk_divides(context, t1.ast, t2.ast))
     }
 
     /// Coerce an integer to a real.
@@ -123,15 +123,42 @@ public extension Z3Context {
     ///
     /// - seealso: `makeReal2Int`
     /// - seealso: `makeIsInt`
-    func makeInt2Real<T: IntegralSort>(_ t1: Z3Ast<T>) -> Z3Ast<RealSort> {
-        return Z3Ast(context: self, ast: Z3_mk_int2real(context, t1.ast))
+    func makeIntToReal(_ t1: Z3Int) -> Z3Real {
+        return Z3Real(context: self, ast: Z3_mk_int2real(context, t1.ast))
+    }
+    
+    /// Coerce a real to an integer.
+    ///
+    /// The semantics of this function follows the SMT-LIB standard
+    /// for the function to_int
+    ///
+    /// - seealso: `makeInt2Real`
+    /// - seealso: `makeIsInt`
+    func makeRealToInt(_ t1: Z3Real) -> Z3Int {
+        return Z3Int(context: self, ast: Z3_mk_real2int(context, t1.ast))
+    }
+    
+    /// Coerce an integer to a float.
+    func makeIntToFloat<T: FloatingSort>(_ t1: Z3Int, sort: T.Type) -> Z3Ast<T> {
+        let real = makeIntToReal(t1)
+        let float = makeFpaToFPReal(currentFpaRoundingMode, real, sort: sort)
+        return float
+    }
+    
+    /// Coerce an integer to a float.
+    ///
+    /// `sort` must be a float sort
+    func makeIntToFloat(_ t1: Z3Int, sort: Z3Sort) -> AnyZ3Ast {
+        let real = makeIntToReal(t1)
+        let float = makeFpaToFPReal(currentFpaRoundingMode, real, sort: sort)
+        return float
     }
 
     /// Check if a real number is an integer.
     ///
     /// - seealso: `makeInt2Real`
     /// - seealso: `makeReal2Int`
-    func makeIsInt(_ t1: Z3Ast<RealSort>) -> Z3Bool {
+    func makeIsInt(_ t1: Z3Real) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_is_int(context, t1.ast))
     }
 }
