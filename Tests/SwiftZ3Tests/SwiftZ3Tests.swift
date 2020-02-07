@@ -354,15 +354,13 @@ final class SwiftZ3Tests: XCTestCase {
             // [0 1 2 3] 4
             for i in 0..<(gridSubset.count - 1) {
                 let subset = gridSubset[0...i]
-                if subset.isEmpty {
-                    continue
-                }
+                
                 let subsetMax: Z3Int
                 if subset.count == 1 {
                     subsetMax = subset[0]
                 } else {
                     subsetMax = subset.dropFirst().reduce(subset[0]) {
-                        context.makeIfThenElse($0 < $1, $1, $0)
+                        context.makeIfThenElse($0 > $1, $0, $1)
                     }
                 }
                 
