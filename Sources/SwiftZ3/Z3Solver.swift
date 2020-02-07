@@ -88,7 +88,7 @@ public class Z3Solver {
     ///
     /// The error handler is invoked if a model is not available because the
     /// commands above were not invoked for the given solver, or if the result
-    /// was `Z3_L_FALSE`.
+    /// was `.unsatisfiable`.
     public func getModel() -> Z3Model? {
         if let ptr = Z3_solver_get_model(context.context, solver) {
             return Z3Model(context: context, model: ptr)
