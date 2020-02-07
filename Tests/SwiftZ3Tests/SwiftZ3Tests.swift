@@ -80,7 +80,7 @@ final class SwiftZ3Tests: XCTestCase {
         XCTAssertEqual(solver.check(), .satisfiable)
         
         if let model = solver.getModel() {
-            XCTAssertEqual(model.int(resValueInt), 369)
+            XCTAssertEqual(model.intAny(resValueInt), 369)
         } else {
             XCTFail("Failed to get expected model")
         }
