@@ -61,6 +61,9 @@ namespace sat {
         else if (n.is_var()) {
             SASSERT(!n.sign());
         }
+        else if (n.is_lut()) {
+            augment_lut(id, n, cs);
+        }
         else if (n.is_ite()) {
             augment_ite(id, n, cs);
         }
@@ -95,6 +98,47 @@ namespace sat {
             evict(cs, idx);
         }
         return true;
+    }
+
+    void aig_cuts::augment_lut(unsigned v, node const& n, cut_set& cs) {
+        IF_VERBOSE(4, display(verbose_stream() << "augment_lut " << v << " ", n) << "\n");
+        literal l1 = child(n, 0);
+        for (auto const& a : m_cuts[l1.var()]) {
+            m_tables[0] = &a;
+            cut b(a);
+            augment_lut_rec(v, n, b, 1, cs);            
+        }
+    }
+
+    void aig_cuts::augment_lut_rec(unsigned v, node const& n, cut& a, unsigned idx, cut_set& cs) {
+        if (idx < n.size()) {
+            for (auto const& b : m_cuts[child(n, idx).var()]) {
+                cut ab;
+                if (ab.merge(a, b)) {
+                    m_tables[idx] = &b;
+                    augment_lut_rec(v, n, ab, idx + 1, cs);
+                }
+            }
+            return;
+        }
+        for (unsigned i = 0; i < n.size(); ++i) {
+            m_luts[i] = m_tables[i]->shift_table(a);            
+        }
+        uint64_t r = 0;
+        SASSERT(a.size() <= 6);
+        SASSERT(n.size() <= 6);
+        for (unsigned j = (1u << a.size()); j-- > 0; ) {
+            unsigned w = 0;
+            // when computing the output at position j, 
+            // the i'th bit to index into n.lut() is 
+            // based on the j'th output bit in lut[i]
+            for (unsigned i = n.size(); i-- > 0; ) {
+                w |= ((m_luts[i] >> j) & 0x1) << i;
+            }
+            r |= ((n.lut() >> w) & 0x1) << j;
+        } 
+        a.set_table(r);
+        insert_cut(v, a, cs);
     }
 
     void aig_cuts::augment_ite(unsigned v, node const& n, cut_set& cs) {
@@ -276,13 +320,13 @@ namespace sat {
     }
 
     void aig_cuts::add_cut(bool_var v, uint64_t lut, bool_var_vector const& args) {
+        // args can be assumed to be sorted
+        DEBUG_CODE(for (unsigned i = 0; i + 1 < args.size(); ++i) VERIFY(args[i] < args[i+1]););
         reserve(v);
         for (bool_var w : args) reserve(w); 
-        // optional: reshuffle lut and sort variables.
         cut c;
         for (bool_var w : args) VERIFY(c.add(w));
         c.set_table(lut);
-        // add-don't care?
         insert_cut(v, c, m_cuts[v]);
     }
 

@@ -357,7 +357,8 @@ class theory_lra::imp {
     scoped_ptr<lp::lar_solver> m_solver;
     resource_limit         m_resource_limit;
     lp_bounds              m_new_bounds;
-    switcher m_switcher;
+    switcher               m_switcher;
+    symbol                 m_farkas;
 
     context& ctx() const { return th.get_context(); }
     theory_id get_id() const { return th.get_id(); }
@@ -840,7 +841,7 @@ class theory_lra::imp {
         m_constraint_sources.setx(index, inequality_source, null_source);
         m_inequalities.setx(index, lit, null_literal);
         ++m_stats.m_add_rows;
-        TRACE("arith", lp().print_constraint(index, tout) << " m_stats.m_add_rows = " << m_stats.m_add_rows << "\n";);
+        TRACE("arith", lp().constraints().display(tout, index) << " m_stats.m_add_rows = " << m_stats.m_add_rows << "\n";);
     }
 
     void add_def_constraint(lp::constraint_index index) {
@@ -1001,7 +1002,8 @@ public:
         m_model_eqs(DEFAULT_HASHTABLE_INITIAL_CAPACITY, var_value_hash(*this), var_value_eq(*this)),
         m_solver(nullptr),
         m_resource_limit(*this),
-        m_switcher(*this) {
+        m_switcher(*this),
+        m_farkas("farkas") {
     }
         
     ~imp() {
@@ -1286,7 +1288,7 @@ public:
         add_def_constraint(lp().add_var_bound(register_theory_var_in_lar_solver(v), lp::GE, rational::zero()));
         add_def_constraint(lp().add_var_bound(register_theory_var_in_lar_solver(v), lp::LT, abs(r)));
         SASSERT(!is_infeasible());
-        TRACE("arith", lp().print_constraints(tout << term << "\n"););
+        TRACE("arith", tout << term << "\n" << lp().constraints(););
     }
 
     void mk_idiv_mod_axioms(expr * p, expr * q) {
@@ -1911,17 +1913,18 @@ public:
         if (m_idiv_terms.empty()) {
             return true;
         }
-        init_variable_values();
+        // init_variable_values();
         bool all_divs_valid = true;        
         for (expr* n : m_idiv_terms) {
             expr* p = nullptr, *q = nullptr;
             VERIFY(a.is_idiv(n, p, q));
             theory_var v  = mk_var(n);
             theory_var v1 = mk_var(p);
-            rational r1 = get_value(v1);
+            lp::impq r1 = get_ivalue(v1);
+            SASSERT(r1.y.is_zero());
             rational r2;
 
-            if (!r1.is_int() || r1.is_neg()) {
+            if (!r1.x.is_int() || r1.x.is_neg()) {
                 // TBD
                 // r1 = 223/4, r2 = 2, r = 219/8 
                 // take ceil(r1), floor(r1), ceil(r2), floor(r2), for floor(r2) > 0
@@ -1932,15 +1935,16 @@ public:
             }
 
             if (a.is_numeral(q, r2) && r2.is_pos()) {
-                rational val_v = get_value(v);
-                if (val_v == div(r1, r2)) continue;
                 if (!is_bounded(n)) {
                     TRACE("arith", tout << "unbounded " << expr_ref(n, m) << "\n";);
                     continue;
                 }
+                lp::impq val_v = get_ivalue(v);
+                SASSERT(val_v.y.is_zero());
+                if (val_v.x == div(r1.x, r2)) continue;
             
                 TRACE("arith", tout << get_value(v) << " != " << r1 << " div " << r2 << "\n";);
-                rational div_r = div(r1, r2);
+                rational div_r = div(r1.x, r2);
                 // p <= q * div(r1, q) + q - 1 => div(p, q) <= div(r1, r2)
                 // p >= q * div(r1, q) => div(r1, q) <= div(p, q)
                 rational mul(1);
@@ -2025,14 +2029,14 @@ public:
     }
 
     expr_ref constraint2fml(lp::constraint_index ci) {
-        lp::lar_base_constraint const& c = *lp().constraints()[ci];
+        lp::lar_base_constraint const& c = lp().constraints()[ci];
         expr_ref fml(m);
         expr_ref_vector ts(m);
-        rational rhs = c.m_right_side;
+        rational rhs = c.rhs();
         for (auto cv : c.coeffs()) {
             ts.push_back(multerm(cv.first, var2expr(cv.second)));
         }
-        switch (c.m_kind) {
+        switch (c.kind()) {
         case lp::LE: fml = a.mk_le(a.mk_add(ts.size(), ts.c_ptr()), a.mk_numeral(rhs, true)); break;
         case lp::LT: fml = a.mk_lt(a.mk_add(ts.size(), ts.c_ptr()), a.mk_numeral(rhs, true)); break;
         case lp::GE: fml = a.mk_ge(a.mk_add(ts.size(), ts.c_ptr()), a.mk_numeral(rhs, true)); break;
@@ -2059,7 +2063,7 @@ public:
             }
         }
         for (auto const& ev : ex) {
-            lp().print_constraint(ev.second, out << ev.first << ": ");
+            lp().constraints().display(out << ev.first << ": ", ev.second);
         }
         expr_ref_vector fmls(m);
         for (auto const& ev : ex) {
@@ -2842,7 +2846,7 @@ public:
         m_core.reset();
         m_eqs.reset();
         m_core.push_back(lit1);
-        m_params.push_back(parameter(symbol("farkas")));
+        m_params.push_back(parameter(m_farkas));
         m_params.push_back(parameter(rational(1)));
         m_params.push_back(parameter(rational(1)));
         assign(lit2);
@@ -3238,7 +3242,7 @@ public:
     }
 
     lbool make_feasible() {
-        TRACE("pcs",  lp().print_constraints(tout););
+        TRACE("pcs",  tout << lp().constraints(););
         auto status = lp().find_feasible_solution();
         TRACE("arith_verbose", display(tout););
         switch (status) {
@@ -3783,7 +3787,7 @@ public:
 
     void display(std::ostream & out) {
         if (m_solver) {
-            lp().print_constraints(out);
+            out << lp().constraints();
             lp().print_terms(out);
             // the tableau
             auto pp = lp ::core_solver_pretty_printer<lp::mpq, lp::impq>(
@@ -3838,7 +3842,7 @@ public:
             }
         }
         for (auto const& ev : evidence) {
-            lp().print_constraint(ev.second, out << ev.first << ": "); 
+            lp().constraints().display(out << ev.first << ": ", ev.second); 
         }
     }
 

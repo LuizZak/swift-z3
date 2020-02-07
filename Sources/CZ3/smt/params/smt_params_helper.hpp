@@ -97,6 +97,9 @@ struct smt_params_helper {
     d.insert("str.regex_automata_failed_automaton_threshold", CPK_UINT, "number of failed automaton construction attempts after which a full automaton is automatically built", "10","smt");
     d.insert("str.regex_automata_failed_intersection_threshold", CPK_UINT, "number of failed automaton intersection attempts after which intersection is always computed", "10","smt");
     d.insert("str.regex_automata_length_attempt_threshold", CPK_UINT, "number of length/path constraint attempts before checking unsatisfiability of regex terms", "10","smt");
+    d.insert("str.fixed_length_models", CPK_BOOL, "use fixed-length equation solver to construct models (Z3str3 only)", "true","smt");
+    d.insert("str.fixed_length_refinement", CPK_BOOL, "use abstraction refinement in fixed-length equation solver (Z3str3 only)", "false","smt");
+    d.insert("str.fixed_length_naive_cex", CPK_BOOL, "construct naive counterexamples when fixed-length model construction fails for a given length assignment (Z3str3 only)", "true","smt");
     d.insert("core.minimize", CPK_BOOL, "minimize unsat core produced by SMT context", "false","smt");
     d.insert("core.extend_patterns", CPK_BOOL, "extend unsat core with literals that trigger (potential) quantifier instances", "false","smt");
     d.insert("core.extend_patterns.max_distance", CPK_UINT, "limits the distance of a pattern-extended unsat core", "4294967295","smt");
@@ -198,6 +201,9 @@ struct smt_params_helper {
   unsigned str_regex_automata_failed_automaton_threshold() const { return p.get_uint("str.regex_automata_failed_automaton_threshold", g, 10u); }
   unsigned str_regex_automata_failed_intersection_threshold() const { return p.get_uint("str.regex_automata_failed_intersection_threshold", g, 10u); }
   unsigned str_regex_automata_length_attempt_threshold() const { return p.get_uint("str.regex_automata_length_attempt_threshold", g, 10u); }
+  bool str_fixed_length_models() const { return p.get_bool("str.fixed_length_models", g, true); }
+  bool str_fixed_length_refinement() const { return p.get_bool("str.fixed_length_refinement", g, false); }
+  bool str_fixed_length_naive_cex() const { return p.get_bool("str.fixed_length_naive_cex", g, true); }
   bool core_minimize() const { return p.get_bool("core.minimize", g, false); }
   bool core_extend_patterns() const { return p.get_bool("core.extend_patterns", g, false); }
   unsigned core_extend_patterns_max_distance() const { return p.get_uint("core.extend_patterns.max_distance", g, 4294967295u); }

@@ -286,9 +286,7 @@ std::ostream& core::print_explanation(const lp::explanation& exp, std::ostream& 
     unsigned i = 0;
     for (auto &p : exp) {
         out << "(" << p.second << ")";
-        m_lar_solver.print_constraint_indices_only_customized(p.second,
-                                                              [this](lpvar j) { return var_str(j);},
-                                                              out);
+        m_lar_solver.constraints().display(out, [this](lpvar j) { return var_str(j);}, p.second);
         if (++i < exp.size())
             out << "      ";
     }
@@ -520,8 +518,8 @@ void core:: fill_explanation_and_lemma_sign(const monic& a, const monic & b, rat
     TRACE("nla_solver",
           tout << "used constraints: ";
           for (auto &p :  current_expl())
-              m_lar_solver.print_constraint(p.second, tout); tout << "\n";
-          );
+              m_lar_solver.constraints().display(tout, p.second); tout << "\n";
+                                                 );
     SASSERT(current_ineqs().size() == 0);
     mk_ineq(rational(1), a.var(), -sign, b.var(), llc::EQ, rational::zero());
     TRACE("nla_solver", print_lemma(tout););
@@ -997,7 +995,7 @@ std::unordered_set<lpvar> core::collect_vars(const lemma& l) const {
         }
     }
     for (const auto& p : current_expl()) {
-        const auto& c = m_lar_solver.get_constraint(p.second);
+        const auto& c = m_lar_solver.constraints()[p.second];
         for (const auto& r : c.coeffs()) {
             insert_j(r.second);
         }
@@ -1258,7 +1256,7 @@ bool core::done() const {
 }
 
 lbool core::incremental_linearization(bool constraint_derived) {
-    TRACE("nla_solver_details", print_terms(tout); m_lar_solver.print_constraints(tout););
+    TRACE("nla_solver_details", print_terms(tout); tout << m_lar_solver.constraints(););
     for (int search_level = 0; search_level < 3 && !done(); search_level++) {
         TRACE("nla_solver", tout << "constraint_derived = " << constraint_derived << ", search_level = " << search_level << "\n";);
         if (search_level == 0) {
@@ -1465,7 +1463,7 @@ std::ostream& core::diagnose_pdd_miss(std::ostream& out) {
 
     // m_pdd_grobner.display(out);
 
-    dd::pdd_eval eval(m_pdd_manager);
+    dd::pdd_eval eval;
     eval.var2val() = [&](unsigned j){ return val(j); };
     for (auto* e : m_pdd_grobner.equations()) {
         dd::pdd p = e->poly();
@@ -1488,7 +1486,7 @@ std::ostream& core::diagnose_pdd_miss(std::ostream& out) {
 }
 
 bool core::check_pdd_eq(const dd::solver::equation* e) {
-    dd::pdd_interval eval(m_pdd_manager, m_reslim);
+    dd::pdd_interval eval(m_reslim);
     eval.var2interval() =
         [this](lpvar j, bool deps) {
             intervals::interval a;
