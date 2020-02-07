@@ -320,7 +320,7 @@ final class SwiftZ3Tests: XCTestCase {
             var hint: Int32
         }
         
-        func makeTargetArray(coordinate: Coordinate, grid: [[Z3Int]], context: Z3Context) -> Z3Int {
+        func calculateTargetSum(coordinate: Coordinate, grid: [[Z3Int]], context: Z3Context) -> Z3Int {
             let gridSize = grid.count
             
             var sum = context.makeInteger(1)
@@ -377,7 +377,7 @@ final class SwiftZ3Tests: XCTestCase {
         }
         
         func makeTarget(hint: Hint, grid: [[Z3Int]], context: Z3Context) -> Z3Bool {
-            let targetArray = makeTargetArray(coordinate: hint.coordinate, grid: grid, context: context)
+            let targetArray = calculateTargetSum(coordinate: hint.coordinate, grid: grid, context: context)
             
             return targetArray == context.makeInteger(hint.hint)
         }
