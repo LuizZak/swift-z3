@@ -1,3 +1,7 @@
+if [[ -z $Z3_VERSION_TAG ]]; then
+    Z3_VERSION_TAG=master
+fi
+
 # Check git satus and make sure we don't modify the working tree with update changes by mistake
 if [[ "${@#-force}" = "$@" && -n $(git status --porcelain) ]]; then
     echo "Current git repo's state is not committed! Please commit and try again."
@@ -13,10 +17,18 @@ fi
 mkdir temp
 
 cd temp
-git clone https://github.com/Z3Prover/z3.git --depth=1
+
+if [[ $Z3_VERSION_TAG = "master" ]]; then
+    git clone https://github.com/Z3Prover/z3.git --depth=1
+else
+    git clone https://github.com/Z3Prover/z3.git
+fi
+
+# Checkout proper Z3 version
+cd z3
+git checkout $Z3_VERSION_TAG
 
 # Run some pre-build configurations first
-cd z3
 python scripts/mk_make.py
 cd ..
 
