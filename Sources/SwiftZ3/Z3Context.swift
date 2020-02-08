@@ -1,6 +1,10 @@
 import CZ3
 
 public class Z3Context {
+    /// Indicates whether the current Z3_context associated with this Z3Context
+    /// was borrowed from another live Z3Context instance. Used to avoid calling
+    /// deinitializers on the borrowed pointer.
+    private var isBorrowed: Bool = false
     private var cachedFpaRoundingMode: Z3Ast<RoundingMode>?
     internal var context: Z3_context
     
@@ -26,13 +30,29 @@ public class Z3Context {
     public var errorCode: Z3ErrorCode {
         return .fromZ3_error_code(Z3_get_error_code(context))
     }
+    
+    /// Return `true` if the last API call resulted in an error.
+    public var hasError: Bool {
+        return errorCode != .ok
+    }
 
     public init(configuration: Z3Config? = nil) {
         context = Z3_mk_context(configuration?.config)
+        Z3_set_error_handler(context) { (context, code) in
+            let tempContext = Z3Context(borrowing: context!)
+            print("Z3 Error: \(tempContext.errorMessage(Z3ErrorCode.fromZ3_error_code(code)))")
+        }
+    }
+    
+    init(borrowing context: Z3_context) {
+        self.context = context
+        isBorrowed = true
     }
 
     deinit {
-        Z3_del_context(context)
+        if !isBorrowed {
+            Z3_del_context(context)
+        }
     }
 
     /// Return a string describing the given error code.
@@ -301,5 +321,14 @@ public class Z3Context {
     /// - seealso: `Z3_mk_numeral`
     public func makeUnsignedInteger64Bv(_ value: UInt64) -> Z3Ast<BitVectorOfInt<UInt64>> {
         return Z3Ast(context: self, ast: Z3_mk_unsigned_int64(context, value, bitVectorSort(size: 64).sort))
+    }
+}
+
+internal extension Z3Context {
+    /// Rethrows any current `errorCode` different from `Z3ErrorCode.ok`
+    func rethrowCurrentErrorCodeIfAvailable() throws {
+        if hasError {
+            throw errorCode
+        }
     }
 }

@@ -191,8 +191,9 @@ public class Z3Optimize {
     ///
     /// - seealso: `fromFile`
     /// - seealso: `toString`
-    public func fromString(_ str: String) {
+    public func fromString(_ str: String) throws {
         Z3_optimize_from_string(context.context, optimize, str)
+        try context.rethrowCurrentErrorCodeIfAvailable()
     }
 
     /// Parse an SMT-LIB2 file with assertions, soft constraints and optimization
@@ -201,8 +202,9 @@ public class Z3Optimize {
     ///
     /// - seealso: `fromString`
     /// - seealso: `toString`
-    public func fromFile(_ str: String) {
+    public func fromFile(_ str: String) throws {
         Z3_optimize_from_file(context.context, optimize, str)
+        try context.rethrowCurrentErrorCodeIfAvailable()
     }
 
     /// Return a string containing a description of parameters accepted by optimize.

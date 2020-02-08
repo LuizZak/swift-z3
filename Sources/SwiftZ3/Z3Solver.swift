@@ -65,6 +65,7 @@ public class Z3Solver {
     /// - seealso: `getNumScopes()`
     /// - seealso: `push()`
     public func pop(_ n: UInt32) {
+        precondition(n <= getNumScopes(), "n <= getNumScopes()")
         Z3_solver_pop(context.context, solver, n)
     }
 
@@ -126,16 +127,18 @@ public class Z3Solver {
     ///
     /// - seealso: `fromString()`
     /// - seealso: `toString()`
-    public func fromFile(_ fileName: String) {
+    public func fromFile(_ fileName: String) throws {
         Z3_solver_from_file(context.context, solver, fileName)
+        try context.rethrowCurrentErrorCodeIfAvailable()
     }
 
     /// Load solver assertions from a string.
     ///
     /// - seealso: `fromFile()`
     /// - seealso: `toString()`
-    public func fromString(_ s: String) {
+    public func fromString(_ s: String) throws {
         Z3_solver_from_string(context.context, solver, s)
+        try context.rethrowCurrentErrorCodeIfAvailable()
     }
 
     /// Return the set of asserted formulas on the solver.

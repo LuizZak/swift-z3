@@ -494,6 +494,16 @@ final class SwiftZ3Tests: XCTestCase {
             XCTFail("Failed to solve Towers game")
         }
     }
+    
+    // Test that we override the default Z3_context error handler with a version
+    // that does not exit() the application
+    func testErrorHandler() {
+        let context = Z3Context()
+        let solver = context.makeSolver()
+        
+        XCTAssertThrowsError(try solver.fromString("an invalid SMT-LIB string"))
+        XCTAssertNotEqual(context.errorCode, .ok)
+    }
 
     func testTranslation() {
         let ctx1 = Z3Context()
