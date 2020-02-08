@@ -40,8 +40,9 @@ bool int_solver::has_inf_int() const {
 int int_solver::find_inf_int_base_column() {
     unsigned inf_int_count = 0;
     int j = find_inf_int_boxed_base_column_with_smallest_range(inf_int_count);
-    if (j != -1) 
+    if (j != -1) {
         return j;
+    }
     if (inf_int_count == 0)
         return -1;
     unsigned k = random() % inf_int_count;
@@ -58,8 +59,9 @@ int int_solver::get_kth_inf_int(unsigned k) const {
 
 int int_solver::find_inf_int_nbasis_column() const {
     for (unsigned j : m_lar_solver->r_nbasis())
-        if (!column_is_int_inf(j)) 
+        if (!column_is_int_inf(j)) {
             return j;    
+        }
     return -1; 
 }
 
@@ -450,28 +452,24 @@ void int_solver::set_value_for_nbasic_column_ignore_old_values(unsigned j, const
     auto & x = m_lar_solver->m_mpq_lar_core_solver.m_r_x[j];
     auto delta = new_val - x;
     x = new_val;
+    TRACE("int_solver", tout << "x[" << j << "] = " << x << "\n";);
     m_lar_solver->change_basic_columns_dependend_on_a_given_nb_column(j, delta);
 }
 
-void int_solver::patch_nbasic_column(unsigned j, bool patch_only_int_vals) {
+void int_solver::patch_nbasic_column(unsigned j) {
     auto & lcs = m_lar_solver->m_mpq_lar_core_solver; 
     impq & val = lcs.m_r_x[j];
-    bool val_is_int = val.is_int();
-    if (patch_only_int_vals && !val_is_int)
-        return;
-        
     bool inf_l, inf_u;
     impq l, u;
     mpq m;
-    if (!get_freedom_interval_for_column(j, val_is_int, inf_l, l, inf_u, u, m)) {
+    if (!get_freedom_interval_for_column(j, inf_l, l, inf_u, u, m)) {
         return;
     }
     bool m_is_one = m.is_one();
-    if (m.is_one() && val_is_int) {
-        return;
-    }
+    bool val_is_int = value_is_int(j);
+
     // check whether value of j is already a multiple of m.
-    if (val_is_int && (val.x / m).is_int()) {
+    if (val_is_int && (m_is_one || (val.x / m).is_int())) {
         return;
     }
     TRACE("patch_int",
@@ -506,7 +504,7 @@ lia_move int_solver::patch_nbasic_columns() {
     settings().stats().m_patches++;
     lp_assert(is_feasible());
     for (unsigned j : m_lar_solver->m_mpq_lar_core_solver.m_r_nbasis) {
-        patch_nbasic_column(j, settings().m_int_patch_only_integer_values);
+        patch_nbasic_column(j);
     }
     lp_assert(is_feasible());
     if (!has_inf_int()) {
@@ -734,11 +732,12 @@ static void set_upper(impq & u, bool & inf_u, impq const & v) {
     }
 }
 
-bool int_solver::get_freedom_interval_for_column(unsigned j, bool val_is_int, bool & inf_l, impq & l, bool & inf_u, impq & u, mpq & m) {
+bool int_solver::get_freedom_interval_for_column(unsigned j, bool & inf_l, impq & l, bool & inf_u, impq & u, mpq & m) {
     auto & lcs = m_lar_solver->m_mpq_lar_core_solver;
     if (lcs.m_r_heading[j] >= 0) // the basic var 
         return false;
 
+    TRACE("random_update", display_column(tout, j) << ", is_int = " << column_is_int(j) << "\n";);
     impq const & xj = get_value(j);
     
     inf_l = true;
@@ -753,7 +752,6 @@ bool int_solver::get_freedom_interval_for_column(unsigned j, bool val_is_int, bo
         set_upper(u, inf_u, upper_bound(j) - xj);
     }
 
-    mpq a; // the coefficient in the column
     unsigned row_index;
     lp_assert(settings().use_tableau());
     const auto & A = m_lar_solver->A_r();
@@ -762,11 +760,11 @@ bool int_solver::get_freedom_interval_for_column(unsigned j, bool val_is_int, bo
         row_index = c.var();
         const mpq & a = c.coeff();        
         unsigned i = lcs.m_r_basis[row_index];
-        if (column_is_int(i) && column_is_int(j) && !a.is_int())
+        TRACE("random_update", tout << "i = " << i << ", a = " << a << "\n";); 
+        if (column_is_int(i) && !a.is_int())
             m = lcm(m, denominator(a));
     }
-    if (val_is_int && m.is_one())
-        return false;
+    TRACE("random_update", tout <<  "m = " << m << "\n";);
     
     for (const auto &c : A.column(j)) {
         if (!inf_l && !inf_u && l >= u) break;                
@@ -845,8 +843,9 @@ const impq & int_solver::get_value(unsigned j) const {
     return m_lar_solver->m_mpq_lar_core_solver.m_r_x[j];
 }
 
-void int_solver::display_column(std::ostream & out, unsigned j) const {
+std::ostream& int_solver::display_column(std::ostream & out, unsigned j) const {
     m_lar_solver->m_mpq_lar_core_solver.m_r_solver.print_column_info(j, out);
+    return out;
 }
 
 bool int_solver::column_is_int_inf(unsigned j) const {
@@ -928,6 +927,8 @@ unsigned int_solver::random() {
     return m_lar_solver->get_core_solver().settings().random_next();
 }
 
+
+// at this point the 
 bool int_solver::shift_var(unsigned j, unsigned range) {
     if (is_fixed(j) || is_base(j))
         return false;
@@ -935,55 +936,49 @@ bool int_solver::shift_var(unsigned j, unsigned range) {
     bool inf_l, inf_u;
     impq l, u;
     mpq m;
-    get_freedom_interval_for_column(j, false, inf_l, l, inf_u, u, m);
+    get_freedom_interval_for_column(j, inf_l, l, inf_u, u, m);
+    const impq & x = get_value(j);
+    // x, the value of j column, might be shifted on a multiple of m
     if (inf_l && inf_u) {
-        impq new_val = impq(random() % (range + 1));
+        impq new_val = m * impq(random() % (range + 1)) + x;
         set_value_for_nbasic_column_ignore_old_values(j, new_val);
         return true;
     }
     if (column_is_int(j)) {
         if (!inf_l) {
             l = impq(ceil(l));
-            if (!m.is_one())
-                l = impq(m*ceil(l/m));
         }
         if (!inf_u) {
             u = impq(floor(u));
-            if (!m.is_one())
-                u = impq(m*floor(u/m));
         }
     }
     if (!inf_l && !inf_u && l >= u)
         return false;
+
     if (inf_u) {
         SASSERT(!inf_l);
-        impq delta   = impq(random() % (range + 1));
-        impq new_val = l + m*delta;
+        impq new_val = x + m * impq(random() % (range + 1));
         set_value_for_nbasic_column_ignore_old_values(j, new_val);
         return true;
     }
+
     if (inf_l) {
         SASSERT(!inf_u);
-        impq delta   = impq(random() % (range + 1));
-        impq new_val = u - m*delta;
+        impq new_val = x - m * impq(random() % (range + 1));
         set_value_for_nbasic_column_ignore_old_values(j, new_val);
         return true;
     }
-    if (!column_is_int(j)) {
-        SASSERT(!inf_l && !inf_u);
-        mpq delta       = mpq(random() % (range + 1));
-        impq new_val = l + ((delta * (u - l)) / mpq(range)); 
-        set_value_for_nbasic_column_ignore_old_values(j, new_val);
-        return true;
-    }
-    else {
-        mpq r = (u.x - l.x) / m;
-        if (r < mpq(range))
-            range = static_cast<unsigned>(r.get_uint64());
-        impq new_val = l + m * (impq(random() % (range + 1)));
-        set_value_for_nbasic_column_ignore_old_values(j, new_val);
-        return true;
-    }
+
+    SASSERT(!inf_l && !inf_u);
+    mpq r = floor((u.x - l.x) / m);
+    if (r < mpq(range)) range = static_cast<unsigned>(r.get_uint64());
+    // the interval contains at least range multiples of m.
+    // the number of multiples to the left of the value of j is floor((get_value(j) - l.x)/m)
+    // shift either left or right of the current value by available multiples.
+    impq shift = impq(random() % (range + 1)) - impq(floor(x.x - l.x) / m);
+    impq new_val = x + m * shift;
+    SASSERT(l <= new_val && new_val <= u);
+    set_value_for_nbasic_column_ignore_old_values(j, new_val);    return true;
 }
 
 bool int_solver::non_basic_columns_are_at_bounds() const {

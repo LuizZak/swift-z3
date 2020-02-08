@@ -65,24 +65,31 @@ std::ostream& operator<<(std::ostream& out, bound_kind const& k) {
 class bound { 
     smt::bool_var    m_bv;
     smt::theory_var  m_var;
+    lpvar            m_vi;
     bool             m_is_int;
     rational         m_value;
     bound_kind       m_bound_kind;
+    lp::constraint_index m_constraints[2];
 
 public:
-    bound(smt::bool_var bv, smt::theory_var v, bool is_int, rational const & val, bound_kind k):
+    bound(smt::bool_var bv, smt::theory_var v, lpvar vi, bool is_int, rational const & val, bound_kind k, lp::constraint_index ct, lp::constraint_index cf):
         m_bv(bv),
         m_var(v),
+        m_vi(vi),
         m_is_int(is_int),
         m_value(val),
         m_bound_kind(k) {
+        m_constraints[0] = cf;
+        m_constraints[1] = ct;
     }
     virtual ~bound() {}
     smt::theory_var get_var() const { return m_var; }
+    lpvar lp_solver_var() const { return m_vi; }
     smt::bool_var get_bv() const { return m_bv; }
     bound_kind get_bound_kind() const { return m_bound_kind; }
     bool is_int() const { return m_is_int; }
     rational const& get_value() const { return m_value; }
+    lp::constraint_index get_constraint(bool b) const { return m_constraints[b]; }
     inf_rational get_value(bool is_true) const { 
         if (is_true) return inf_rational(m_value);                         // v >= value or v <= value
         if (m_is_int) {
@@ -1050,7 +1057,7 @@ public:
         if (is_int(v) && !r.is_int()) {
             r = (k == lp_api::upper_t) ? floor(r) : ceil(r);
         }
-        lp_api::bound* b = alloc(lp_api::bound, bv, v, is_int(v), r, k);
+        lp_api::bound* b = mk_var_bound(bv, v, k, r);
         m_bounds[v].push_back(b);
         updt_unassigned_bounds(v, +1);
         m_bounds_trail.push_back(v);
@@ -1685,7 +1692,6 @@ public:
             
         ctx().push_trail(value_trail<context, unsigned>(m_assume_eq_head));
         while (m_assume_eq_head < m_assume_eq_candidates.size()) {
-            ++m_stats.m_assume_eqs;
             std::pair<theory_var, theory_var> const & p = m_assume_eq_candidates[m_assume_eq_head];
             theory_var v1 = p.first;
             theory_var v2 = p.second;
@@ -1728,10 +1734,6 @@ public:
         switch (is_sat) {
         case l_true:
                 
-            if (delayed_assume_eqs()) {
-                return FC_CONTINUE;
-            }
-
             TRACE("arith", display(tout););
             switch (check_lia()) {
             case l_true:
@@ -1755,13 +1757,17 @@ public:
                 break;
             }
             if (assume_eqs()) {
+                ++m_stats.m_assume_eqs;
                 return FC_CONTINUE;
             }    
+            if (delayed_assume_eqs()) {
+                ++m_stats.m_assume_eqs;
+                return FC_CONTINUE;
+            }
             if (m_not_handled != nullptr) {
                 TRACE("arith", tout << "unhandled operator " << mk_pp(m_not_handled, m) << "\n";);        
                 st = FC_GIVEUP;
-            }
-                
+            }                
             return st;
         case l_false:
             get_infeasibility_explanation_and_set_conflict();
@@ -2346,29 +2352,23 @@ public:
             
     }
 
-    unsigned m_propagation_delay{1};
-    unsigned m_propagation_count{0};
-    
     bool should_propagate() {
-        ++m_propagation_count;
-        return BP_NONE != propagation_mode() && (m_propagation_count >= m_propagation_delay);
+        return BP_NONE != propagation_mode();
     }
 
-    void update_propagation_threshold(bool made_progress) {
-        m_propagation_count = 0;
-        if (made_progress) {
-            m_propagation_delay = std::max(1u, m_propagation_delay-1u);
-        }
-        else {
-            m_propagation_delay += 2;
-        }
-    }
+    // void update_propagation_threshold(bool  made_progress) {
+    //      if (made_progress) {
+    //         m_propagation_delay = std::max(1u, m_propagation_delay-1u);
+    //     }
+    //     else {
+    //         m_propagation_delay += 2;
+    //     }
+    // }
 
     void propagate_bounds_with_lp_solver() {
         if (!should_propagate()) 
             return;
         local_bound_propagator bp(*this);
-        unsigned props = m_stats.m_bound_propagations1;
 
         lp().propagate_bounds_for_touched_rows(bp);
         if (m.canceled()) {
@@ -2383,7 +2383,6 @@ public:
                 propagate_lp_solver_bound(bp.m_ibounds[i]);
             }
         }
-        update_propagation_threshold(props < m_stats.m_bound_propagations1);
     }
 
     bool bound_is_interesting(unsigned vi, lp::lconstraint_kind kind, const rational & bval) const {
@@ -2594,7 +2593,7 @@ public:
         rational const& k2 = b2.get_value();
         lp_api::bound_kind kind1 = b1.get_bound_kind();
         lp_api::bound_kind kind2 = b2.get_bound_kind();
-        bool v_is_int = is_int(v);
+        bool v_is_int = b1.is_int();
         SASSERT(v == b2.get_var());
         if (k1 == k2 && kind1 == kind2) return;
         SASSERT(k1 != k2 || kind1 != kind2);
@@ -2801,7 +2800,7 @@ public:
         SASSERT(!bounds.empty());
         if (bounds.size() == 1) return;
         if (m_unassigned_bounds[v] == 0) return;
-        bool v_is_int = is_int(v);
+        bool v_is_int = b.is_int();
         literal lit1(bv, !is_true);
         literal lit2 = null_literal;
         bool find_glb = (is_true == (k == lp_api::lower_t));
@@ -3014,47 +3013,59 @@ public:
         return true;
     }
 
-    void assert_bound(bool_var bv, bool is_true, lp_api::bound& b) {
-        if (is_infeasible()) return;
-        scoped_internalize_state st(*this);
-        st.vars().push_back(b.get_var());
-        st.coeffs().push_back(rational::one());
-        init_left_side(st);
-        lp::lconstraint_kind k = lp::EQ;
-        bool is_int = b.is_int();
-        switch (b.get_bound_kind()) {
+    lp::lconstraint_kind bound2constraint_kind(bool is_int, lp_api::bound_kind bk, bool is_true) {
+        switch (bk) {
         case lp_api::lower_t:
-            k = is_true ? lp::GE : (is_int ? lp::LE : lp::LT);
-            break;
+            return is_true ? lp::GE : (is_int ? lp::LE : lp::LT);
         case lp_api::upper_t:
-            k = is_true ? lp::LE : (is_int ? lp::GE : lp::GT);
-            break;
-        }         
+            return is_true ? lp::LE : (is_int ? lp::GE : lp::GT);
+        }
+        UNREACHABLE();
+        return lp::EQ;
+    }
+
+    void assert_bound(bool_var bv, bool is_true, lp_api::bound& b) {
+        lp::constraint_index ci = b.get_constraint(is_true);
+        m_solver->activate(ci);
+        if (is_infeasible()) {
+            return;
+        }
+        lp::lconstraint_kind k = bound2constraint_kind(b.is_int(), b.get_bound_kind(), is_true);
         if (k == lp::LT || k == lp::LE) {
             ++m_stats.m_assert_lower;
         }
         else {
             ++m_stats.m_assert_upper;
         }
-        auto vi = register_theory_var_in_lar_solver(b.get_var());
-        rational bound = b.get_value();
-        lp::constraint_index ci;
-        TRACE("arith", tout << "v" << b.get_var() << ", vi =  " << vi;);
-        if (is_int && !is_true) {
-            rational bound = b.get_value(false).get_rational();
-            ci = m_solver->add_var_bound(vi, k, bound);
-            TRACE("arith", tout << "\bbound = " << bound << ", ci = " << ci << "\n";);
+        propagate_eqs(b.lp_solver_var(), ci, k, b);
+    }
+
+    lp_api::bound* mk_var_bound(bool_var bv, theory_var v, lp_api::bound_kind bk, rational const& bound) {
+        scoped_internalize_state st(*this);
+        st.vars().push_back(v);
+        st.coeffs().push_back(rational::one());
+        init_left_side(st);
+        lp::constraint_index cT, cF;
+        bool v_is_int = is_int(v);
+        auto vi = register_theory_var_in_lar_solver(v);
+
+        lp::lconstraint_kind kT = bound2constraint_kind(v_is_int, bk, true);
+        lp::lconstraint_kind kF = bound2constraint_kind(v_is_int, bk, false);
+        
+        cT = m_solver->mk_var_bound(vi, kT, bound);
+        if (v_is_int) {
+            rational boundF = (bk == lp_api::lower_t) ? bound - 1 : bound + 1;
+            cF = m_solver->mk_var_bound(vi, kF, boundF);
         }
         else {
-            ci = m_solver->add_var_bound(vi, k, b.get_value());
-            TRACE("arith", tout << "\nbound = " << bound << ", ci = " << ci << "\n";);
+            cF = m_solver->mk_var_bound(vi, kF, bound);
         }
-        add_ineq_constraint(ci, literal(bv, !is_true));
-        if (is_infeasible()) {
-            return;
-        }
-        propagate_eqs(vi, ci, k, b);
+        add_ineq_constraint(cT, literal(bv, false));
+        add_ineq_constraint(cF, literal(bv, true));
+
+        return alloc(lp_api::bound, bv, v, vi, v_is_int, bound, bk, cT, cF);
     }
+
     //
     // fixed equalities.
     // A fixed equality is inferred if there are two variables v1, v2 whose
@@ -3768,7 +3779,7 @@ public:
             // ctx().set_enode_flag(bv, true);
             lp_api::bound_kind bkind = lp_api::bound_kind::lower_t;
             if (is_strict) bkind = lp_api::bound_kind::upper_t;
-            lp_api::bound* a = alloc(lp_api::bound, bv, v, is_int, r, bkind);
+            lp_api::bound* a = mk_var_bound(bv, v, bkind, r);
             mk_bound_axioms(*a);
             updt_unassigned_bounds(v, +1);
             m_bounds[v].push_back(a);
