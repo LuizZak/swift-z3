@@ -2,7 +2,7 @@ if [[ -z $Z3_VERSION_TAG ]]; then
     Z3_VERSION_TAG=master
 fi
 
-# Check git satus and make sure we don't modify the working tree with update changes by mistake
+# Check git status and make sure we don't modify the working tree with update changes by mistake
 if [[ "${@#-force}" = "$@" && -n $(git status --porcelain) ]]; then
     echo "Current git repo's state is not committed! Please commit and try again."
     exit 1
