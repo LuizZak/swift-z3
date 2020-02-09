@@ -88,14 +88,14 @@ public class Z3AstBase {
     }
 
     /// Translate/Copy the AST `self` from its current context to context `target`
-    public func translate(to context: Z3Context) -> Z3AstBase {
-        if self.context === context {
+    public func translate(to newContext: Z3Context) -> Z3AstBase {
+        if context === newContext {
             return self
         }
 
-        let newAst = Z3_translate(self.context.context, ast, context.context)
+        let newAst = Z3_translate(context.context, ast, newContext.context)
 
-        return Z3AstBase(context: context, ast: newAst!)
+        return Z3AstBase(context: newContext, ast: newAst!)
     }
     
     /// Convert the current AST node into a string.

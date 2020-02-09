@@ -98,14 +98,14 @@ public class AnyZ3Ast: Z3AstBase {
     }
 
     /// Translate/Copy the AST `self` from its current context to context `target`
-    public override func translate(to target: Z3Context) -> AnyZ3Ast {
-        if context === target {
+    public override func translate(to newContext: Z3Context) -> AnyZ3Ast {
+        if context === newContext {
             return self
         }
 
-        let newAst = Z3_translate(context.context, ast, target.context)
+        let newAst = Z3_translate(context.context, ast, newContext.context)
 
-        return AnyZ3Ast(context: target, ast: newAst!)
+        return AnyZ3Ast(context: newContext, ast: newAst!)
     }
 }
 
