@@ -22,6 +22,16 @@ public class Z3Optimize {
     public func assert(_ a: Z3Bool) {
         Z3_optimize_assert(context.context, optimize, a.ast)
     }
+    
+    /// Assert hard constraints to the optimization context.
+    ///
+    /// - seealso: `assertSoft`
+    /// - seealso: `assertAndTrack`
+    public func assert(_ constraints: [Z3Bool]) {
+        for a in constraints {
+            assert(a)
+        }
+    }
 
     /// Assert tracked hard constraint to the optimization context.
     ///

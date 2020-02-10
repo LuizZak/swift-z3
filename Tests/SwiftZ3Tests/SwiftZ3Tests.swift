@@ -495,6 +495,78 @@ final class SwiftZ3Tests: XCTestCase {
         }
     }
     
+    func testLayoutSystemSample() {
+        let context = Z3Context()
+        
+        //                  v--- y: 0
+        //           ^  ---------------      v--- y: label1_top + 20
+        //  h: 70.0  |  |   label 1   | ---------------
+        //           v  --------------- |   label 2   | <- x: 300.0
+        //                w == 120.0    ---------------
+        //                x sep: 15 ---^    w >= 50.0
+        
+        // Setup
+        let label1Left = context.makeConstant(name: "label1_left", sort: RealSort.self)
+        let label1Right = context.makeConstant(name: "label1_right", sort: RealSort.self)
+        let label1Width = context.makeConstant(name: "label1_width", sort: RealSort.self)
+        let label1Top = context.makeConstant(name: "label1_top", sort: RealSort.self)
+        let label1Bottom = context.makeConstant(name: "label1_bottom", sort: RealSort.self)
+        let label1Height = context.makeConstant(name: "label1_height", sort: RealSort.self)
+        
+        let label2Left = context.makeConstant(name: "label2_left", sort: RealSort.self)
+        let label2Right = context.makeConstant(name: "label2_right", sort: RealSort.self)
+        let label2Width = context.makeConstant(name: "label2_width", sort: RealSort.self)
+        let label2Top = context.makeConstant(name: "label2_top", sort: RealSort.self)
+        let label2Bottom = context.makeConstant(name: "label2_bottom", sort: RealSort.self)
+        let label2Height = context.makeConstant(name: "label2_height", sort: RealSort.self)
+        
+        var constraints: [Z3Bool] = []
+        
+        // Invariants
+        constraints.append(label1Right == label1Left + label1Width)
+        constraints.append(label1Bottom == label1Top + label1Height)
+        constraints.append(label1Width >= context.makeReal(0, 1))
+        constraints.append(label1Height >= context.makeReal(0, 1))
+        
+        constraints.append(label2Right == label2Left + label2Width)
+        constraints.append(label2Bottom == label2Top + label2Height)
+        constraints.append(label2Width >= context.makeReal(0, 1))
+        constraints.append(label2Height >= context.makeReal(0, 1))
+        
+        // Constraints
+        constraints.append(label1Left == context.makeReal(0, 1))
+        constraints.append(label1Top == context.makeReal(0, 1))
+        constraints.append(label1Height == context.makeReal(70, 1))
+        constraints.append(label1Width == context.makeReal(120, 1))
+        constraints.append(label2Left == label1Right + context.makeReal(15, 1))
+        constraints.append(label2Top == label1Top + context.makeReal(20, 1))
+        constraints.append(label2Height == context.makeReal(70, 1))
+        constraints.append(label2Width >= context.makeReal(50, 1))
+        constraints.append(label2Right == context.makeReal(300, 1))
+        
+        // Solve
+        let optimize = context.makeOptimize()
+        optimize.assert(constraints)
+        
+        XCTAssertEqual(optimize.check(), .satisfiable)
+        
+        let model = optimize.getModel()
+        
+        XCTAssertEqual(model.doubleAny(label1Left), 0)
+        XCTAssertEqual(model.doubleAny(label1Right), 120)
+        XCTAssertEqual(model.doubleAny(label1Width), 120)
+        XCTAssertEqual(model.doubleAny(label1Top), 0)
+        XCTAssertEqual(model.doubleAny(label1Bottom), 70)
+        XCTAssertEqual(model.doubleAny(label1Height), 70)
+        
+        XCTAssertEqual(model.doubleAny(label2Left), 135)
+        XCTAssertEqual(model.doubleAny(label2Right), 300)
+        XCTAssertEqual(model.doubleAny(label2Width), 165, accuracy: 0.1)
+        XCTAssertEqual(model.doubleAny(label2Top), 20)
+        XCTAssertEqual(model.doubleAny(label2Bottom), 90)
+        XCTAssertEqual(model.doubleAny(label2Height), 70)
+    }
+    
     // Test that we override the default Z3_context error handler with a version
     // that does not exit() the application
     func testErrorHandler() {

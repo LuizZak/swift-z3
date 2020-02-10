@@ -6,8 +6,8 @@ public extension Z3Context {
     ///
     /// The complete list of tactics may be obtained using the procedures
     /// `getNumTactics` and `getTacticName`.
-    /// It may also be obtained using the command `(help-tactic)` in the
-    /// SMT 2.0 front-end.
+    /// It may also be obtained using the command `(help-tactic)` in the SMT 2.0
+    /// front-end.
     ///
     /// Tactics are the basic building block for creating custom solvers for
     /// specific problem domains.
