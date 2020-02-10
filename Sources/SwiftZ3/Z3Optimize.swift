@@ -1,7 +1,8 @@
 import CZ3
 
 public class Z3Optimize {
-    var context: Z3Context
+    /// The context this `Z3Optimize` belongs
+    public let context: Z3Context
     var optimize: Z3_optimize
 
     init(context: Z3Context, optimize: Z3_optimize) {

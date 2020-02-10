@@ -1,7 +1,8 @@
 import CZ3
 
 public class Z3Tactic {
-    var context: Z3Context
+    /// The context this `Z3Tactic` belongs
+    public let context: Z3Context
     var tactic: Z3_tactic
     
     /// Return a string containing a description of parameters accepted by this

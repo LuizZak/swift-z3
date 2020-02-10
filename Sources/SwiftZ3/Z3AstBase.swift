@@ -2,7 +2,8 @@ import CZ3
 
 /// Base class for `Z3Sort` and `AnyZ3Ast`
 public class Z3AstBase {
-    internal var context: Z3Context
+    /// The context this `Z3AstBase` belongs
+    public let context: Z3Context
     internal var ast: Z3_ast
 
     /// Return a unique identifier for this AST.

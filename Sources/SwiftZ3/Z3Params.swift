@@ -1,7 +1,8 @@
 import CZ3
 
 public class Z3Params {
-    var context: Z3Context
+    /// The context this `Z3Params` belongs
+    public let context: Z3Context
     var params: Z3_params
     
     init(context: Z3Context, params: Z3_params) {

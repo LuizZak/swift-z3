@@ -1,7 +1,8 @@
 import CZ3
 
 public class Z3Model {
-    var context: Z3Context
+    /// The context this `Z3Model` belongs
+    public let context: Z3Context
     var model: Z3_model
     
     init(context: Z3Context, model: Z3_model) {

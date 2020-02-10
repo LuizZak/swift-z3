@@ -1,7 +1,8 @@
 import CZ3
 
 public class Z3Stats {
-    var context: Z3Context
+    /// The context this `Z3Stats` belongs
+    public let context: Z3Context
     var stats: Z3_stats
 
     /// Return the number of statistical data in this stats instance.

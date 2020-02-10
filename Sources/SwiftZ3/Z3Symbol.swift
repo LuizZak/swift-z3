@@ -1,7 +1,8 @@
 import CZ3
 
 public class Z3Symbol {
-    var context: Z3Context
+    /// The context this `Z3Symbol` belongs
+    public let context: Z3Context
     var symbol: Z3_symbol
 
     /// Return `Z3_INT_SYMBOL` if the symbol was constructed using `makeIntSymbol`,

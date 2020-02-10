@@ -1,7 +1,8 @@
 import CZ3
 
 public class Z3ConstructorList {
-    var context: Z3Context
+    /// The context this `Z3ConstructorList` belongs
+    public let context: Z3Context
     var constructorList: Z3_constructor_list
 
     init(context: Z3Context, constructorList: Z3_constructor_list) {

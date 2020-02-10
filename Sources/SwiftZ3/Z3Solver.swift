@@ -1,7 +1,8 @@
 import CZ3
 
 public class Z3Solver {
-    var context: Z3Context
+    /// The context this `Z3Solver` belongs
+    public let context: Z3Context
     var solver: Z3_solver
     
     init(context: Z3Context, solver: Z3_solver) {

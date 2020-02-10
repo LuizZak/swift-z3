@@ -1,7 +1,8 @@
 import CZ3
 
 public class Z3AstVector {
-    var context: Z3Context
+    /// The context this `Z3AstVector` belongs
+    public let context: Z3Context
     var astVector: Z3_ast_vector
 
     /// Return the size of this AST vector.
