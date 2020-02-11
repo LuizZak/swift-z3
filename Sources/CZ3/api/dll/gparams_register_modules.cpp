@@ -15,8 +15,6 @@
 #include "ast/rewriter/poly_rewriter_params.hpp"
 #include "ast/rewriter/rewriter_params.hpp"
 #include "cmd_context/context_params.h"
-#include "math/lp/lp_params.hpp"
-#include "math/lp/nla_params.hpp"
 #include "math/polynomial/algebraic_params.hpp"
 #include "math/realclosure/rcf_params.hpp"
 #include "model/model_evaluator_params.hpp"
@@ -54,8 +52,6 @@ void gparams_register_modules() {
 { std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); fpa_rewriter_params::collect_param_descrs(*d); return d; }; gparams::register_module("rewriter", f); }
 { std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); poly_rewriter_params::collect_param_descrs(*d); return d; }; gparams::register_module("rewriter", f); }
 { std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); rewriter_params::collect_param_descrs(*d); return d; }; gparams::register_module("rewriter", f); }
-{ std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); lp_params::collect_param_descrs(*d); return d; }; gparams::register_module("lp", f); }
-{ std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); nla_params::collect_param_descrs(*d); return d; }; gparams::register_module("nla", f); }
 { std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); algebraic_params::collect_param_descrs(*d); return d; }; gparams::register_module("algebraic", f); }
 { std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); rcf_params::collect_param_descrs(*d); return d; }; gparams::register_module("rcf", f); }
 { std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); model_evaluator_params::collect_param_descrs(*d); return d; }; gparams::register_module("model_evaluator", f); }
@@ -80,8 +76,6 @@ gparams::register_module_descr("nnf", "negation normal form");
 gparams::register_module_descr("pi", "pattern inference (heuristics) for universal formulas (without annotation)");
 gparams::register_module_descr("pp", "pretty printer");
 gparams::register_module_descr("rewriter", "new formula simplification module used in the tactic framework, and new solvers");
-gparams::register_module_descr("lp", "Parameters for the LP arithmetic solver core");
-gparams::register_module_descr("nla", "Parameters for non-linear arithmetic solving");
 gparams::register_module_descr("algebraic", "real algebraic number package");
 gparams::register_module_descr("rcf", "real closed fields");
 gparams::register_module_descr("fp", "fixedpoint parameters");
