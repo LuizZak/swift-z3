@@ -547,24 +547,24 @@ final class SwiftZ3Tests: XCTestCase {
         // Solve
         let optimize = context.makeOptimize()
         optimize.assert(constraints)
-        
+
         XCTAssertEqual(optimize.check(), .satisfiable)
         
         let model = optimize.getModel()
         
-        XCTAssertEqual(model.doubleAny(label1Left), 0)
-        XCTAssertEqual(model.doubleAny(label1Right), 120)
-        XCTAssertEqual(model.doubleAny(label1Width), 120)
-        XCTAssertEqual(model.doubleAny(label1Top), 0)
-        XCTAssertEqual(model.doubleAny(label1Bottom), 70)
-        XCTAssertEqual(model.doubleAny(label1Height), 70)
-        
-        XCTAssertEqual(model.doubleAny(label2Left), 135)
-        XCTAssertEqual(model.doubleAny(label2Right), 300)
-        XCTAssertEqual(model.doubleAny(label2Width), 165, accuracy: 0.1)
-        XCTAssertEqual(model.doubleAny(label2Top), 20)
-        XCTAssertEqual(model.doubleAny(label2Bottom), 90)
-        XCTAssertEqual(model.doubleAny(label2Height), 70)
+        XCTAssertEqual(model.double(label1Left), 0)
+        XCTAssertEqual(model.double(label1Right), 120)
+        XCTAssertEqual(model.double(label1Width), 120)
+        XCTAssertEqual(model.double(label1Top), 0)
+        XCTAssertEqual(model.double(label1Bottom), 70)
+        XCTAssertEqual(model.double(label1Height), 70)
+
+        XCTAssertEqual(model.double(label2Left), 135)
+        XCTAssertEqual(model.double(label2Right), 300)
+        XCTAssertEqual(model.double(label2Width), 165, accuracy: 0.1)
+        XCTAssertEqual(model.double(label2Top), 20)
+        XCTAssertEqual(model.double(label2Bottom), 90)
+        XCTAssertEqual(model.double(label2Height), 70)
     }
     
     // Test that we override the default Z3_context error handler with a version

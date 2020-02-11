@@ -110,6 +110,13 @@ public class Z3Context {
         return Z3Solver(context: self, solver: Z3_mk_solver(context))
     }
 
+    /// \brief Create a new solver that is implemented using the given tactic.
+    /// The solver supports the commands `Z3Solver.push()` and `Z3Solver.pop()`,
+    /// but it will always solve each `Z3Solver.check()` from scratch.
+    public func makeSolver(forTactic tactic: Z3Tactic) -> Z3Solver {
+        return Z3Solver(context: self, solver: Z3_mk_solver_from_tactic(context, tactic.tactic))
+    }
+
     /// Create a new incremental solver.
     ///
     /// This is equivalent to applying the "smt" tactic.

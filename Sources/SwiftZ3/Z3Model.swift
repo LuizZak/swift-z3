@@ -121,7 +121,14 @@ public class Z3Model {
     public func double<T: FloatingSort>(_ expr: Z3Ast<T>) -> Double {
         return doubleAny(expr)
     }
-    
+
+    /// Evaluates expression to a double, assuming it is a numeral already
+    ///
+    /// Returns 0, in case of failure
+    public func double<T: IntOrRealSort>(_ expr: Z3Ast<T>) -> Double {
+        return doubleAny(expr)
+    }
+
     /// Evaluates expression to an integer, assuming it is a numeral already
     ///
     /// Type-erased version.
