@@ -83,6 +83,7 @@ struct sat_params {
     d.insert("anf.exlin", CPK_BOOL, "enable extended linear simplification", "false","sat");
     d.insert("aig", CPK_BOOL, "enable AIG based simplification in-processing", "false","sat");
     d.insert("aig.delay", CPK_UINT, "delay AIG simplification by in-processing round", "2","sat");
+    d.insert("aig.lut", CPK_BOOL, "extract luts from clauses", "false","sat");
     d.insert("lookahead.cube.cutoff", CPK_SYMBOL, "cutoff type used to create lookahead cubes: depth, freevars, psat, adaptive_freevars, adaptive_psat", "depth","sat");
     d.insert("lookahead.cube.fraction", CPK_DOUBLE, "adaptive fraction to create lookahead cubes. Used when lookahead.cube.cutoff is adaptive_freevars or adaptive_psat", "0.4","sat");
     d.insert("lookahead.cube.depth", CPK_UINT, "cut-off depth to create cubes. Used when lookahead.cube.cutoff is depth.", "1","sat");
@@ -178,6 +179,7 @@ struct sat_params {
   bool anf_exlin() const { return p.get_bool("anf.exlin", g, false); }
   bool aig() const { return p.get_bool("aig", g, false); }
   unsigned aig_delay() const { return p.get_uint("aig.delay", g, 2u); }
+  bool aig_lut() const { return p.get_bool("aig.lut", g, false); }
   symbol lookahead_cube_cutoff() const { return p.get_sym("lookahead.cube.cutoff", g, symbol("depth")); }
   double lookahead_cube_fraction() const { return p.get_double("lookahead.cube.fraction", g, 0.4); }
   unsigned lookahead_cube_depth() const { return p.get_uint("lookahead.cube.depth", g, 1u); }

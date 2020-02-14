@@ -83,7 +83,7 @@ struct smt_params_helper {
     d.insert("arith.simplex_strategy", CPK_UINT, "simplex strategy for the solver", "0","smt");
     d.insert("arith.enable_hnf", CPK_BOOL, "enable hnf (Hermite Normal Form) cuts", "true","smt");
     d.insert("arith.bprop_on_pivoted_rows", CPK_BOOL, "propagate bounds on rows changed by the pivot operation", "true","smt");
-    d.insert("arith.nla", CPK_BOOL, "call nonlinear integer solver with incremental linearization", "false","smt");
+    d.insert("arith.nla", CPK_BOOL, "call nonlinear solver", "true","smt");
     d.insert("arith.print_ext_var_names", CPK_BOOL, "print external variable names", "false","smt");
     d.insert("pb.conflict_frequency", CPK_UINT, "conflict frequency for Pseudo-Boolean theory", "1000","smt");
     d.insert("pb.learn_complements", CPK_BOOL, "learn complement literals for Pseudo-Boolean theory", "true","smt");
@@ -209,7 +209,7 @@ struct smt_params_helper {
   unsigned arith_simplex_strategy() const { return p.get_uint("arith.simplex_strategy", g, 0u); }
   bool arith_enable_hnf() const { return p.get_bool("arith.enable_hnf", g, true); }
   bool arith_bprop_on_pivoted_rows() const { return p.get_bool("arith.bprop_on_pivoted_rows", g, true); }
-  bool arith_nla() const { return p.get_bool("arith.nla", g, false); }
+  bool arith_nla() const { return p.get_bool("arith.nla", g, true); }
   bool arith_print_ext_var_names() const { return p.get_bool("arith.print_ext_var_names", g, false); }
   unsigned pb_conflict_frequency() const { return p.get_uint("pb.conflict_frequency", g, 1000u); }
   bool pb_learn_complements() const { return p.get_bool("pb.learn_complements", g, true); }
