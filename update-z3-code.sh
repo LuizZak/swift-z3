@@ -37,10 +37,8 @@ echo "Copying over Z3 files..."
 
 mkdir z3/src/include
 cp -R ../Sources/CZ3/include/* z3/src/include/
-rm -R ../Sources/CZ3
-mkdir ../Sources/CZ3
 
-if [[ -d z3/src ]] && rsync -rtc z3/src/* ../Sources/CZ3; then
+if [[ -d z3/src ]] && rsync -rtc --delete z3/src/* ../Sources/CZ3; then
     true
 else
     echo "Error while copying over Z3 files: Could not locate source files path."
