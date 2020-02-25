@@ -294,7 +294,7 @@ public class Z3Solver {
     /// Convert a solver into a DIMACS formatted string.
     ///
     /// - seealso: `Z3_goal_to_diamcs_string` for requirements.
-    public func toDimacsString() -> String {
-        return String(cString: Z3_solver_to_dimacs_string(context.context, solver))
+    public func toDimacsString(includeNames: Bool) -> String {
+        return String(cString: Z3_solver_to_dimacs_string(context.context, solver, includeNames))
     }
 }

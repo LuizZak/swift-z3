@@ -3253,10 +3253,11 @@ void log_Z3_solver_to_string(Z3_context a0, Z3_solver a1) {
   P(a1);
   C(465);
 }
-void log_Z3_solver_to_dimacs_string(Z3_context a0, Z3_solver a1) {
+void log_Z3_solver_to_dimacs_string(Z3_context a0, Z3_solver a1, bool a2) {
   R();
   P(a0);
   P(a1);
+  I(a2);
   C(466);
 }
 void log_Z3_stats_to_string(Z3_context a0, Z3_stats a1) {

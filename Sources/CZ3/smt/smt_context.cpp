@@ -130,7 +130,7 @@ namespace smt {
                 v = dst_ctx.mk_bool_var(dst_f);
             }
             else {
-                dst_ctx.internalize_formula(dst_f, false);
+                dst_ctx.internalize_formula(dst_f, true);
                 v = dst_ctx.get_bool_var(dst_f);
             }
             b2v.setx(lit.var(), v, null_bool_var);
@@ -308,7 +308,7 @@ namespace smt {
     }
 
     void context::assign_core(literal l, b_justification j, bool decision) {
-        TRACE("assign_core", tout << (decision?"decision: ":"propagating: ") << l << " ";
+        CTRACE("assign_core", l.var() == 1573 || l.var() == 1253, tout << (decision?"decision: ":"propagating: ") << l << " ";
               display_literal_smt2(tout, l); tout << " level: " << m_scope_lvl << "\n";
               display(tout, j););
         m_assigned_literals.push_back(l);
@@ -2066,6 +2066,7 @@ namespace smt {
         while (i != old_lim) {
             --i;
             literal l                  = m_assigned_literals[i];
+            CTRACE("assign_core", l.var() == 1573 || l.var() == 1253, tout << "unassign " << l << "\n";);
             m_assignment[l.index()]    = l_undef;
             m_assignment[(~l).index()] = l_undef;
             bool_var v                 = l.var();

@@ -110,7 +110,7 @@ namespace sat {
         struct binary {
             literal x, y;
             use_list_t* use_list;
-            binary(literal x, literal y, use_list_t* u): x(x), y(y), use_list(u) {
+            binary(literal _x, literal _y, use_list_t* u): x(_x), y(_y), use_list(u) {
                 if (x.index() > y.index()) std::swap(x, y);
             }
             binary():x(null_literal), y(null_literal), use_list(nullptr) {}
@@ -140,8 +140,8 @@ namespace sat {
         struct ternary {
             literal x, y, z;
             clause* orig;
-            ternary(literal x, literal y, literal z, clause* c):
-                x(x), y(y), z(z), orig(c) {
+            ternary(literal _x, literal _y, literal _z, clause* c):
+                x(_x), y(_y), z(_z), orig(c) {
                 if (x.index() > y.index()) std::swap(x, y);
                 if (y.index() > z.index()) std::swap(y, z);
                 if (x.index() > y.index()) std::swap(x, y);
@@ -217,8 +217,11 @@ namespace sat {
             if (c.size() != 3 || c.was_used()) continue;
             literal x = c[0], y = c[1], z = c[2];
             if (try_ite(x, z, y, c)) continue;
+            if (try_ite(x, y, z, c)) continue;
             if (try_ite(y, x, z, c)) continue;
-            if (try_ite(z, y, x, c)) continue;            
+            if (try_ite(z, x, y, c)) continue;
+            if (try_ite(z, y, x, c)) continue;
+            if (try_ite(y, z, x, c)) continue;
         }
         
         std::function<bool(clause*)> not_used = [](clause* cp) { return !cp->was_used(); };

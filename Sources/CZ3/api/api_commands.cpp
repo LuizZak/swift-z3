@@ -2993,7 +2993,8 @@ void exec_Z3_solver_to_string(z3_replayer & in) {
 void exec_Z3_solver_to_dimacs_string(z3_replayer & in) {
   Z3_solver_to_dimacs_string(
     reinterpret_cast<Z3_context>(in.get_obj(0)),
-    reinterpret_cast<Z3_solver>(in.get_obj(1)));
+    reinterpret_cast<Z3_solver>(in.get_obj(1)),
+    in.get_bool(2));
 }
 void exec_Z3_stats_to_string(z3_replayer & in) {
   Z3_stats_to_string(

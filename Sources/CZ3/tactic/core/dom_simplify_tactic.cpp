@@ -22,7 +22,6 @@ Notes:
 #include "ast/ast_pp.h"
 #include "tactic/core/dom_simplify_tactic.h"
 
-
 /**
    \brief compute a post-order traversal for e.
    Also populate the set of parents
@@ -160,14 +159,13 @@ std::ostream& expr_dominators::display(std::ostream& out) {
 
 std::ostream& expr_dominators::display(std::ostream& out, unsigned indent, expr* r) {
     for (unsigned i = 0; i < indent; ++i) out << " ";
-    out << expr_ref(r, m);
+    out << expr_ref(r, m) << "\n";
     if (m_tree.contains(r)) {
         for (expr* child : m_tree[r]) {
             if (child != r) 
                 display(out, indent + 1, child);
         }
     }
-    out << "\n";
     return out;
 }
 
@@ -246,7 +244,7 @@ expr_ref dom_simplify_tactic::simplify_arg(expr * e) {
     expr_ref r(m);    
     r = get_cached(e);
     (*m_simplifier)(r);
-    TRACE("simplify", tout << "depth: " << m_depth << " " << mk_pp(e, m) << " -> " << r << "\n";);
+    CTRACE("simplify", e != r, tout << "depth: " << m_depth << " " << mk_pp(e, m) << " -> " << r << "\n";);
     return r;
 }
 
@@ -257,7 +255,6 @@ expr_ref dom_simplify_tactic::simplify_rec(expr * e0) {
     expr_ref r(m);
     expr* e = nullptr;
 
-    TRACE("simplify", tout << "depth: " << m_depth << " " << mk_pp(e0, m) << "\n";);
     if (!m_result.find(e0, e)) {
         e = e0;
     }
@@ -274,6 +271,9 @@ expr_ref dom_simplify_tactic::simplify_rec(expr * e0) {
     }
     else if (m.is_or(e)) {
         r = simplify_or(to_app(e));
+    }
+    else if (m.is_not(e)) {
+        r = simplify_not(to_app(e));
     }
     else {
         for (expr * child : tree(e)) {
@@ -297,7 +297,7 @@ expr_ref dom_simplify_tactic::simplify_rec(expr * e0) {
     }
     (*m_simplifier)(r);
     cache(e0, r);
-    TRACE("simplify", tout << "depth: " << m_depth << " " << mk_pp(e0, m) << " -> " << r << "\n";);
+    CTRACE("simplify", e0 != r, tout << "depth: " << m_depth << " " << mk_pp(e0, m) << " -> " << r << "\n";);
     --m_depth;
     m_subexpr_cache.reset();
     return r;
@@ -329,6 +329,7 @@ expr_ref dom_simplify_tactic::simplify_and_or(bool is_and, app * e) {
             r = simplify_arg(arg);                              \
             args.push_back(r);                                  \
             if (!assert_expr(r, !is_and)) {                     \
+                pop(scope_level() - old_lvl);                   \
                 r = is_and ? m.mk_false() : m.mk_true();        \
                 return r;                                       \
             }                                                   
@@ -345,10 +346,21 @@ expr_ref dom_simplify_tactic::simplify_and_or(bool is_and, app * e) {
     }
     
     pop(scope_level() - old_lvl);
-    r = is_and ? mk_and(args) : mk_or(args);
-    return r;
+    // TODO: add stack for cache rather than destroy it completely everywhere
+    if (!is_and)
+        reset_cache();
+    return { is_and ? mk_and(args) : mk_or(args), m };
 }
 
+expr_ref dom_simplify_tactic::simplify_not(app * e) {
+    expr *ee;
+    ENSURE(m.is_not(e, ee));
+    unsigned old_lvl = scope_level();
+    expr_ref t = simplify_rec(ee);
+    pop(scope_level() - old_lvl);
+    reset_cache();
+    return mk_not(t);
+}
 
 
 bool dom_simplify_tactic::init(goal& g) {
@@ -524,18 +536,16 @@ public:
 
     bool assert_expr(expr * t, bool sign) override {
         expr* tt;
-        if (m.is_false(t) || (m.is_not(t, tt) && m.is_true(tt)))
+        if (m.is_not(t, tt))
+            return assert_expr(tt, !sign);
+        if (m.is_false(t))
             return sign;
-
-        if (m.is_true(t) || (m.is_not(t, tt) && m.is_false(tt)))
+        if (m.is_true(t))
             return !sign;
 
         m_scoped_substitution.push();
         if (!sign) {
             update_substitution(t, nullptr);
-        }
-        else if (m.is_not(t, tt)) {
-            update_substitution(tt, nullptr);
         }
         else {
             expr_ref nt(m.mk_not(t), m);

@@ -29,6 +29,7 @@ struct sat_params {
     d.insert("restart.emaslowglue", CPK_DOUBLE, "ema alpha factor for slow moving average", "1e-05","sat");
     d.insert("variable_decay", CPK_UINT, "multiplier (divided by 100) for the VSIDS activity increment", "110","sat");
     d.insert("inprocess.max", CPK_UINT, "maximal number of inprocessing passes", "4294967295","sat");
+    d.insert("inprocess.out", CPK_SYMBOL, "file to dump result of the first inprocessing step and exit", "","sat");
     d.insert("branching.heuristic", CPK_SYMBOL, "branching heuristic vsids, lrb or chb", "vsids","sat");
     d.insert("branching.anti_exploration", CPK_BOOL, "apply anti-exploration heuristic for branch selection", "false","sat");
     d.insert("random_freq", CPK_DOUBLE, "frequency of random case splits", "0.01","sat");
@@ -81,9 +82,12 @@ struct sat_params {
     d.insert("anf", CPK_BOOL, "enable ANF based simplification in-processing", "false","sat");
     d.insert("anf.delay", CPK_UINT, "delay ANF simplification by in-processing round", "2","sat");
     d.insert("anf.exlin", CPK_BOOL, "enable extended linear simplification", "false","sat");
-    d.insert("aig", CPK_BOOL, "enable AIG based simplification in-processing", "false","sat");
-    d.insert("aig.delay", CPK_UINT, "delay AIG simplification by in-processing round", "2","sat");
-    d.insert("aig.lut", CPK_BOOL, "extract luts from clauses", "false","sat");
+    d.insert("cut", CPK_BOOL, "enable AIG based simplification in-processing", "false","sat");
+    d.insert("cut.delay", CPK_UINT, "delay cut simplification by in-processing round", "2","sat");
+    d.insert("cut.lut", CPK_BOOL, "extract luts from clauses for cut simplification", "false","sat");
+    d.insert("cut.xor", CPK_BOOL, "extract xors from clauses for cut simplification", "false","sat");
+    d.insert("cut.dont_cares", CPK_BOOL, "integrate dont cares with cuts", "true","sat");
+    d.insert("cut.force", CPK_BOOL, "force redoing cut-enumeration until a fixed-point", "false","sat");
     d.insert("lookahead.cube.cutoff", CPK_SYMBOL, "cutoff type used to create lookahead cubes: depth, freevars, psat, adaptive_freevars, adaptive_psat", "depth","sat");
     d.insert("lookahead.cube.fraction", CPK_DOUBLE, "adaptive fraction to create lookahead cubes. Used when lookahead.cube.cutoff is adaptive_freevars or adaptive_psat", "0.4","sat");
     d.insert("lookahead.cube.depth", CPK_UINT, "cut-off depth to create cubes. Used when lookahead.cube.cutoff is depth.", "1","sat");
@@ -125,6 +129,7 @@ struct sat_params {
   double restart_emaslowglue() const { return p.get_double("restart.emaslowglue", g, 1e-05); }
   unsigned variable_decay() const { return p.get_uint("variable_decay", g, 110u); }
   unsigned inprocess_max() const { return p.get_uint("inprocess.max", g, 4294967295u); }
+  symbol inprocess_out() const { return p.get_sym("inprocess.out", g, symbol("")); }
   symbol branching_heuristic() const { return p.get_sym("branching.heuristic", g, symbol("vsids")); }
   bool branching_anti_exploration() const { return p.get_bool("branching.anti_exploration", g, false); }
   double random_freq() const { return p.get_double("random_freq", g, 0.01); }
@@ -177,9 +182,12 @@ struct sat_params {
   bool anf() const { return p.get_bool("anf", g, false); }
   unsigned anf_delay() const { return p.get_uint("anf.delay", g, 2u); }
   bool anf_exlin() const { return p.get_bool("anf.exlin", g, false); }
-  bool aig() const { return p.get_bool("aig", g, false); }
-  unsigned aig_delay() const { return p.get_uint("aig.delay", g, 2u); }
-  bool aig_lut() const { return p.get_bool("aig.lut", g, false); }
+  bool cut() const { return p.get_bool("cut", g, false); }
+  unsigned cut_delay() const { return p.get_uint("cut.delay", g, 2u); }
+  bool cut_lut() const { return p.get_bool("cut.lut", g, false); }
+  bool cut_xor() const { return p.get_bool("cut.xor", g, false); }
+  bool cut_dont_cares() const { return p.get_bool("cut.dont_cares", g, true); }
+  bool cut_force() const { return p.get_bool("cut.force", g, false); }
   symbol lookahead_cube_cutoff() const { return p.get_sym("lookahead.cube.cutoff", g, symbol("depth")); }
   double lookahead_cube_fraction() const { return p.get_double("lookahead.cube.fraction", g, 0.4); }
   unsigned lookahead_cube_depth() const { return p.get_uint("lookahead.cube.depth", g, 1u); }

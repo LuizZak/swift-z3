@@ -74,7 +74,7 @@ namespace datalog {
         }
 
         ~scoped_query() {
-            m_ctx.reopen();                                
+            m_ctx.ensure_opened();                                
             m_ctx.restrict_predicates(m_preds);
             m_ctx.replace_rules(m_rules);
             if (m_was_closed) {
@@ -156,7 +156,7 @@ namespace datalog {
             TRACE("dl", m_context.display(tout););
             //IF_VERBOSE(3, m_context.display_smt2(0,0,verbose_stream()););
 
-            if (!m_context.print_aig().is_null()) {
+            if (m_context.print_aig().is_non_empty_string()) {
                 const char *filename = m_context.print_aig().bare_str();
                 aig_exporter aig(m_context.get_rules(), get_context(), &m_table_facts);
                 std::ofstream strm(filename, std::ios_base::binary);

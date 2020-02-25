@@ -954,8 +954,8 @@ void log_Z3_solver_get_statistics(Z3_context a0, Z3_solver a1);
 #define LOG_Z3_solver_get_statistics(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_statistics(_ARG0, _ARG1); }
 void log_Z3_solver_to_string(Z3_context a0, Z3_solver a1);
 #define LOG_Z3_solver_to_string(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_to_string(_ARG0, _ARG1); }
-void log_Z3_solver_to_dimacs_string(Z3_context a0, Z3_solver a1);
-#define LOG_Z3_solver_to_dimacs_string(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_to_dimacs_string(_ARG0, _ARG1); }
+void log_Z3_solver_to_dimacs_string(Z3_context a0, Z3_solver a1, bool a2);
+#define LOG_Z3_solver_to_dimacs_string(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_to_dimacs_string(_ARG0, _ARG1, _ARG2); }
 void log_Z3_stats_to_string(Z3_context a0, Z3_stats a1);
 #define LOG_Z3_stats_to_string(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_stats_to_string(_ARG0, _ARG1); }
 void log_Z3_stats_inc_ref(Z3_context a0, Z3_stats a1);
