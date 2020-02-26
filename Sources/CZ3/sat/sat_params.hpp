@@ -84,6 +84,7 @@ struct sat_params {
     d.insert("anf.exlin", CPK_BOOL, "enable extended linear simplification", "false","sat");
     d.insert("cut", CPK_BOOL, "enable AIG based simplification in-processing", "false","sat");
     d.insert("cut.delay", CPK_UINT, "delay cut simplification by in-processing round", "2","sat");
+    d.insert("cut.aig", CPK_BOOL, "extract aigs (and ites) from cluases for cut simplification", "false","sat");
     d.insert("cut.lut", CPK_BOOL, "extract luts from clauses for cut simplification", "false","sat");
     d.insert("cut.xor", CPK_BOOL, "extract xors from clauses for cut simplification", "false","sat");
     d.insert("cut.dont_cares", CPK_BOOL, "integrate dont cares with cuts", "true","sat");
@@ -184,6 +185,7 @@ struct sat_params {
   bool anf_exlin() const { return p.get_bool("anf.exlin", g, false); }
   bool cut() const { return p.get_bool("cut", g, false); }
   unsigned cut_delay() const { return p.get_uint("cut.delay", g, 2u); }
+  bool cut_aig() const { return p.get_bool("cut.aig", g, false); }
   bool cut_lut() const { return p.get_bool("cut.lut", g, false); }
   bool cut_xor() const { return p.get_bool("cut.xor", g, false); }
   bool cut_dont_cares() const { return p.get_bool("cut.dont_cares", g, true); }
