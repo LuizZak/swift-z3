@@ -21,8 +21,8 @@ let left = context.makeConstant(name: "left", sort: Float.self)
 let width = context.makeConstant(name: "width", sort: Float.self)
 let right = context.makeConstant(name: "right", sort: Float.self)
 
-let lValue = left == context.makeFloat(50.0)
-let wValue = width == context.makeFloat(100.0)
+let lValue = left == 50.0
+let wValue = width == 100.0
 
 let rightEq = right == left + width
 
