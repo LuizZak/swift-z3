@@ -516,6 +516,9 @@ class solve_eqs_tactic : public tactic {
                         occ.mark(e, occ.is_marked(body));
                         m_todo.pop_back();
                     }
+                    else {
+                        m_todo.push_back(body);
+                    }
                 }
                 else {
                     visited.mark(e, true);
@@ -625,10 +628,12 @@ class solve_eqs_tactic : public tactic {
             return true;
         }
 
-        void hoist_nnf(goal const& g, expr* f, vector<nnf_context> & path, unsigned idx, unsigned depth) {
-            if (depth > 4) {
+        void hoist_nnf(goal const& g, expr* f, vector<nnf_context> & path, unsigned idx, unsigned depth, ast_mark& mark) {
+            if (depth > 3 || mark.is_marked(f)) {
                 return;
             }
+            mark.mark(f, true);
+            checkpoint();
             app_ref var(m());
             expr_ref def(m());
             proof_ref pr(m());
@@ -655,7 +660,7 @@ class solve_eqs_tactic : public tactic {
                     }
                     else {
                         path.push_back(nnf_context(true, args, i));
-                        hoist_nnf(g, arg, path, idx, depth + 1);
+                        hoist_nnf(g, arg, path, idx, depth + 1, mark);
                         path.pop_back();
                     }                             
                 }
@@ -664,7 +669,7 @@ class solve_eqs_tactic : public tactic {
                 flatten_or(f, args);
                 for (unsigned i = 0; i < args.size(); ++i) {
                     path.push_back(nnf_context(false, args, i));
-                    hoist_nnf(g, args.get(i), path, idx, depth + 1);
+                    hoist_nnf(g, args.get(i), path, idx, depth + 1, mark);
                     path.pop_back();
                 }
             }
@@ -672,27 +677,34 @@ class solve_eqs_tactic : public tactic {
 
         void collect_hoist(goal const& g) {
             unsigned size = g.size();
+            ast_mark mark;
             vector<nnf_context> path;
             for (unsigned idx = 0; idx < size; idx++) {
                 checkpoint();
-                hoist_nnf(g, g.form(idx), path, idx, 0);
+                hoist_nnf(g, g.form(idx), path, idx, 0, mark);
             }
         }
 
         void distribute_and_or(goal & g) {
+            if (m_produce_proofs) 
+                return;
             unsigned size = g.size();
             hoist_rewriter_star rw(m());
             th_rewriter thrw(m());
             expr_ref tmp(m()), tmp2(m());
+            
             // TRACE("solve_eqs", g.display(tout););
             for (unsigned idx = 0; idx < size; idx++) {
                 checkpoint();
                 if (g.is_decided_unsat()) break;
                 expr* f = g.form(idx);
-                thrw(f, tmp);
-                rw(tmp, tmp2);
-                TRACE("solve_eqs", tout << mk_pp(f, m()) << " " << tmp2 << "\n";);
-                g.update(idx, tmp2, g.pr(idx), g.dep(idx));
+                proof_ref pr1(m()), pr2(m());
+                thrw(f, tmp, pr1);
+                rw(tmp, tmp2, pr2);
+                pr1 = m().mk_transitivity(pr1, pr2);
+                TRACE("solve_eqs", tout << mk_pp(f, m()) << " " << tmp2 << "\n" << pr1 << "\n" << mk_pp(g.pr(idx), m()) << "\n";);
+                if (!pr1) pr1 = g.pr(idx); else pr1 = m().mk_modus_ponens(g.pr(idx), pr1);
+                g.update(idx, tmp2, pr1, g.dep(idx));
             }
             
         }
@@ -1007,6 +1019,7 @@ class solve_eqs_tactic : public tactic {
             SASSERT(g->is_well_sorted());
             model_converter_ref mc;
             tactic_report report("solve_eqs", *g);
+            TRACE("goal", g->display(tout););
             m_produce_models = g->models_enabled();
             m_produce_proofs = g->proofs_enabled();
             m_produce_unsat_cores = g->unsat_core_enabled();
@@ -1042,7 +1055,7 @@ class solve_eqs_tactic : public tactic {
             g->inc_depth();
             g->add(mc.get());
             result.push_back(g.get());
-            TRACE("solve_eqs", g->display(tout););
+            TRACE("goal", g->display(tout););
             SASSERT(g->is_well_sorted());
         }
     };

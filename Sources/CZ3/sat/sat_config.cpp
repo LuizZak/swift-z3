@@ -101,6 +101,7 @@ namespace sat {
         m_unit_walk       = p.unit_walk();
         m_unit_walk_threads = p.unit_walk_threads();
         m_binspr            = p.binspr();
+        m_binspr            = false;     // prevent adventurous users from trying feature that isn't ready
         m_anf_simplify      = p.anf();
         m_anf_delay         = p.anf_delay();
         m_anf_exlin         = p.anf_exlin();
@@ -111,6 +112,7 @@ namespace sat {
         m_cut_xor           = p.cut_xor();
         m_cut_npn3          = p.cut_npn3();
         m_cut_dont_cares    = p.cut_dont_cares();
+        m_cut_redundancies  = p.cut_redundancies();
         m_cut_force         = p.cut_force();
         m_lookahead_simplify = p.lookahead_simplify();
         m_lookahead_double = p.lookahead_double();

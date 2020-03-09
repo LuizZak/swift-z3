@@ -66,7 +66,6 @@ struct smt_params_helper {
     d.insert("arith.nl.grobner_cnfl_to_report", CPK_UINT, "grobner's maximum number of conflicts to report", "1","smt");
     d.insert("arith.nl.gr_q", CPK_UINT, "grobner's quota", "10","smt");
     d.insert("arith.nl.grobner_subs_fixed", CPK_UINT, "0 - no subs, 1 - substitute, 2 - substitute fixed zeros only", "2","smt");
-    d.insert("arith.euclidean_solver", CPK_BOOL, "eucliean solver for linear integer arithmetic", "false","smt");
     d.insert("arith.propagate_eqs", CPK_BOOL, "propagate (cheap) equalities", "true","smt");
     d.insert("arith.propagation_mode", CPK_UINT, "0 - no propagation, 1 - propagate existing literals, 2 - refine bounds", "2","smt");
     d.insert("arith.reflect", CPK_BOOL, "reflect arithmetical operators to the congruence closure", "true","smt");
@@ -192,7 +191,6 @@ struct smt_params_helper {
   unsigned arith_nl_grobner_cnfl_to_report() const { return p.get_uint("arith.nl.grobner_cnfl_to_report", g, 1u); }
   unsigned arith_nl_gr_q() const { return p.get_uint("arith.nl.gr_q", g, 10u); }
   unsigned arith_nl_grobner_subs_fixed() const { return p.get_uint("arith.nl.grobner_subs_fixed", g, 2u); }
-  bool arith_euclidean_solver() const { return p.get_bool("arith.euclidean_solver", g, false); }
   bool arith_propagate_eqs() const { return p.get_bool("arith.propagate_eqs", g, true); }
   unsigned arith_propagation_mode() const { return p.get_uint("arith.propagation_mode", g, 2u); }
   bool arith_reflect() const { return p.get_bool("arith.reflect", g, true); }

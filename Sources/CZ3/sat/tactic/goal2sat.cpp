@@ -237,6 +237,8 @@ struct goal2sat::imp {
         }
     }
 
+    sat::literal_vector aig_lits;
+
     void convert_or(app * t, bool root, bool sign) {
         TRACE("goal2sat", tout << "convert_or:\n" << mk_bounded_pp(t, m, 2) << "\n";);
         unsigned num = t->get_num_args();
@@ -260,17 +262,23 @@ struct goal2sat::imp {
             sat::bool_var k = m_solver.add_var(false);
             sat::literal  l(k, false);
             m_cache.insert(t, l);
-            sat::literal * lits = m_result_stack.end() - num;
+            sat::literal * lits = m_result_stack.end() - num;           
 
             for (unsigned i = 0; i < num; i++) {
                 mk_clause(~lits[i], l);
             }
             m_result_stack.push_back(~l);
             lits = m_result_stack.end() - num - 1;
+            if (m_aig) {
+                aig_lits.reset();
+                aig_lits.append(num, lits);
+            }
             // remark: mk_clause may perform destructive updated to lits.
             // I have to execute it after the binary mk_clause above.
             mk_clause(num+1, lits);
-            if (m_aig) m_aig->add_or(l, num, lits);
+            if (m_aig) {
+                m_aig->add_or(l, num, aig_lits.c_ptr());
+            }
             unsigned old_sz = m_result_stack.size() - num - 1;
             m_result_stack.shrink(old_sz);
             if (sign)
@@ -314,8 +322,14 @@ struct goal2sat::imp {
             }
             m_result_stack.push_back(l);
             lits = m_result_stack.end() - num - 1;
+            if (m_aig) {
+                aig_lits.reset();
+                aig_lits.append(num, lits);
+            }
             mk_clause(num+1, lits);
-            if (m_aig) m_aig->add_and(l, num, lits);
+            if (m_aig) {
+                m_aig->add_and(l, num, aig_lits.c_ptr());
+            }
             unsigned old_sz = m_result_stack.size() - num - 1;
             m_result_stack.shrink(old_sz);
             if (sign)
@@ -1025,8 +1039,9 @@ void sat2goal::mc::operator()(sat::model& md) {
 
 void sat2goal::mc::operator()(model_ref & md) {
     // apply externalized model converter
+    CTRACE("sat_mc", m_gmc, m_gmc->display(tout << "before sat_mc\n"); model_v2_pp(tout, *md););
     if (m_gmc) (*m_gmc)(md);
-    TRACE("sat_mc", tout << "after sat_mc\n"; model_v2_pp(tout, *md););
+    CTRACE("sat_mc", m_gmc, m_gmc->display(tout << "after sat_mc\n"); model_v2_pp(tout, *md););
 }
 
 
@@ -1045,6 +1060,7 @@ void sat2goal::mc::insert(sat::bool_var v, app * atom, bool aux) {
         if (!m_gmc) m_gmc = alloc(generic_model_converter, m, "sat2goal");
         m_gmc->hide(atom->get_decl());
     }
+    TRACE("sat_mc", tout << "insert " << v << "\n";);
 }
 
 expr_ref sat2goal::mc::lit2expr(sat::literal l) {

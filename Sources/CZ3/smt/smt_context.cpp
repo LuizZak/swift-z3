@@ -2886,14 +2886,14 @@ namespace smt {
     }
 
     void context::push() {
-        TRACE("unit_subsumption_bug", display(tout << "context::push()\n"););
-        scoped_suspend_rlimit _suspend_cancel(m.limit());
+        TRACE("unit_subsumption_bug", display(tout << "context::push()\n"););        
         pop_to_base_lvl();
         setup_context(false);
         bool was_consistent = !inconsistent();
         internalize_assertions(); // internalize assertions before invoking m_asserted_formulas.push_scope
+        scoped_suspend_rlimit _suspend_cancel(m.limit());
         propagate();
-        if (was_consistent && inconsistent()) {
+        if (was_consistent && inconsistent() && !m_asserted_formulas.inconsistent()) {
             // logical context became inconsistent during user PUSH
             VERIFY(!resolve_conflict()); // build the proof
         }

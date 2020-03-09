@@ -273,13 +273,13 @@ bool bv_rewriter::are_eq_upto_num(expr * _a, expr * _b,
         }
     }
     if (!aadd && badd) {
-        if (to_app(_a)->get_num_args() != 2 || !has_num_a || to_app(_a)->get_arg(0) != _b)
+        if (!is_app(_a) || to_app(_a)->get_num_args() != 2 || !has_num_a || to_app(_a)->get_arg(0) != _b)
             return false;
         common = _b;
         return true;
     }
     if (aadd && !badd) {
-        if (to_app(_b)->get_num_args() != 2 || !has_num_b || to_app(_b)->get_arg(0) != _a)
+        if (!is_app(_b) || to_app(_b)->get_num_args() != 2 || !has_num_b || to_app(_b)->get_arg(0) != _a)
             return false;
         common = _a;
         return true;
@@ -2608,7 +2608,7 @@ br_status bv_rewriter::mk_eq_core(expr * lhs, expr * rhs, expr_ref & result) {
             return st;
     }
 
-    if (m_trailing) {
+    if (m_trailing) {        
         st = m_rm_trailing.eq_remove_trailing(lhs, rhs, result);
         m_rm_trailing.reset_cache(1 << 12);
         if (st != BR_FAILED) {

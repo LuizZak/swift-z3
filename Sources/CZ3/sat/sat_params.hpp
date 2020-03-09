@@ -89,6 +89,7 @@ struct sat_params {
     d.insert("cut.xor", CPK_BOOL, "extract xors from clauses for cut simplification", "false","sat");
     d.insert("cut.npn3", CPK_BOOL, "extract 3 input functions from clauses for cut simplification", "false","sat");
     d.insert("cut.dont_cares", CPK_BOOL, "integrate dont cares with cuts", "true","sat");
+    d.insert("cut.redundancies", CPK_BOOL, "integrate redundancy checking of cuts", "true","sat");
     d.insert("cut.force", CPK_BOOL, "force redoing cut-enumeration until a fixed-point", "false","sat");
     d.insert("lookahead.cube.cutoff", CPK_SYMBOL, "cutoff type used to create lookahead cubes: depth, freevars, psat, adaptive_freevars, adaptive_psat", "depth","sat");
     d.insert("lookahead.cube.fraction", CPK_DOUBLE, "adaptive fraction to create lookahead cubes. Used when lookahead.cube.cutoff is adaptive_freevars or adaptive_psat", "0.4","sat");
@@ -191,6 +192,7 @@ struct sat_params {
   bool cut_xor() const { return p.get_bool("cut.xor", g, false); }
   bool cut_npn3() const { return p.get_bool("cut.npn3", g, false); }
   bool cut_dont_cares() const { return p.get_bool("cut.dont_cares", g, true); }
+  bool cut_redundancies() const { return p.get_bool("cut.redundancies", g, true); }
   bool cut_force() const { return p.get_bool("cut.force", g, false); }
   symbol lookahead_cube_cutoff() const { return p.get_sym("lookahead.cube.cutoff", g, symbol("depth")); }
   double lookahead_cube_fraction() const { return p.get_double("lookahead.cube.fraction", g, 0.4); }

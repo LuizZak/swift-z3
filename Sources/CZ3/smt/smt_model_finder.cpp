@@ -3178,8 +3178,13 @@ namespace smt {
             throw tactic_exception(m_context->get_manager().limit().get_cancel_msg());
     }
 
-    mf::quantifier_info * model_finder::get_quantifier_info(quantifier * q) const {
-        return m_q2info[q];
+    mf::quantifier_info * model_finder::get_quantifier_info(quantifier * q) {
+        mf::quantifier_info* qi = nullptr;
+        if (!m_q2info.find(q, qi)) {
+            register_quantifier(q);
+            qi = m_q2info[q];
+        }
+        return qi;
     }
 
     void model_finder::set_context(context * ctx) {
@@ -3190,7 +3195,7 @@ namespace smt {
     }
 
     void model_finder::register_quantifier(quantifier * q) {
-        TRACE("model_finder", tout << "registering:\n" << mk_pp(q, m) << "\n";);
+        TRACE("model_finder", tout << "registering:\n" << q->get_id() << ": " << q << " " << &m_q2info << " " << mk_pp(q, m) << "\n";);
         quantifier_info * new_info = alloc(quantifier_info, *this, m, q);
         m_q2info.insert(q, new_info);
         m_quantifiers.push_back(q);
@@ -3264,7 +3269,7 @@ namespace smt {
               for (quantifier * q : qs) {
                   quantifier_info * qi = get_quantifier_info(q);
                   quantifier * fq = qi->get_flat_q();
-                  tout << "#" << fq->get_id() << " ->\n" << mk_pp(fq, m) << "\n";
+                  tout << "#" << fq->get_id() << " ->\n" << mk_pp(fq, m) << "\n";                  
               }
               m_auf_solver->display_nodes(tout););
     }
@@ -3322,9 +3327,8 @@ namespace smt {
         process_auf(qs, m);
     }
 
-    quantifier * model_finder::get_flat_quantifier(quantifier * q) const {
+    quantifier * model_finder::get_flat_quantifier(quantifier * q) {
         quantifier_info * qinfo = get_quantifier_info(q);
-        SASSERT(qinfo);
         return qinfo->get_flat_q();
     }
 
@@ -3333,7 +3337,7 @@ namespace smt {
 
        \remark q is the quantifier before flattening.
     */
-    mf::instantiation_set const * model_finder::get_uvar_inst_set(quantifier * q, unsigned i) const {
+    mf::instantiation_set const * model_finder::get_uvar_inst_set(quantifier * q, unsigned i) {
         quantifier * flat_q = get_flat_quantifier(q);
         SASSERT(flat_q->get_num_decls() >= q->get_num_decls());
         instantiation_set const * r = m_auf_solver->get_uvar_inst_set(flat_q, flat_q->get_num_decls() - q->get_num_decls() + i);
@@ -3345,8 +3349,7 @@ namespace smt {
         // it must have been satisfied by "macro"/"hint".
         quantifier_info * qinfo = get_quantifier_info(q);
         SASSERT(qinfo);
-        SASSERT(qinfo->get_the_one() != nullptr);
-        return qinfo->get_macro_based_inst_set(i, m_context, *(m_auf_solver.get()));
+        return qinfo->get_macro_based_inst_set(i, m_context, *(m_auf_solver.get()));        
     }
 
     /**
@@ -3356,7 +3359,7 @@ namespace smt {
 
        Store in generation the generation of the result
     */
-    expr * model_finder::get_inv(quantifier * q, unsigned i, expr * val, unsigned & generation) const {
+    expr * model_finder::get_inv(quantifier * q, unsigned i, expr * val, unsigned & generation) {
         instantiation_set const * s = get_uvar_inst_set(q, i);
         if (s == nullptr)
             return nullptr;

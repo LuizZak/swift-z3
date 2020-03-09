@@ -1288,6 +1288,7 @@ namespace sat {
         lbool r = srch.check(num_lits, lits, nullptr);
         if (r == l_true) {
             m_model = srch.get_model();
+            m_model_is_current = true;
         }
         m_local_search = nullptr;
         dealloc(&srch);
@@ -1317,6 +1318,13 @@ namespace sat {
     lbool solver::do_unit_walk() {
         unit_walk srch(*this);
         lbool r = srch();
+        if (r == l_true) {
+            m_model.reset();
+            for (bool_var v = 0; v < num_vars(); ++v) {
+                m_model.push_back(m_assignment[literal(v,false).index()]);
+            }
+            m_model_is_current = true;
+        }
         return r;
     }
 
@@ -3681,7 +3689,7 @@ namespace sat {
         SASSERT(num_scopes <= scope_lvl());
         unsigned new_lvl = scope_lvl() - num_scopes;
         scope & s        = m_scopes[new_lvl];
-        m_inconsistent   = false;
+        m_inconsistent   = false; // TBD: use model seems to make this redundant: s.m_inconsistent;
         unassign_vars(s.m_trail_lim, new_lvl);
         m_scope_lvl -= num_scopes;
         m_scopes.shrink(new_lvl);
@@ -3766,6 +3774,7 @@ namespace sat {
     //
 
     void solver::user_push() {
+        pop_to_base_level();
         literal lit;
         bool_var new_v = mk_var(true, false);
         lit = literal(new_v, false);

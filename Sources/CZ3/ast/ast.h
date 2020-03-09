@@ -1679,7 +1679,7 @@ public:
 
     void debug_ref_count() { m_debug_ref_count = true; }
 
-    void inc_ref(ast * n) {
+    void inc_ref(ast* n) {
         if (n) {
             n->inc_ref();
         }
@@ -1712,6 +1712,8 @@ public:
     size_t get_allocation_size() const {
         return m_alloc.get_allocation_size();
     }
+
+    std::ostream& display(std::ostream& out) const;
 
 protected:
     ast * register_node_core(ast * n);

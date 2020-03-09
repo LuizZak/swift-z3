@@ -1676,6 +1676,16 @@ void ast_manager::set_next_expr_id(unsigned id) {
 
 unsigned ast_manager::get_node_size(ast const * n) { return ::get_node_size(n); }
 
+std::ostream& ast_manager::display(std::ostream& out) const {
+    for (ast * a : m_ast_table) {
+        if (is_func_decl(a)) {
+            out << to_func_decl(a)->get_name() << " " << a->get_id() << "\n";
+        }
+    }
+    return out;
+}
+
+
 void ast_manager::register_plugin(symbol const & s, decl_plugin * plugin) {
     family_id id = m_family_manager.mk_family_id(s);
     SASSERT(is_format_manager() || s != symbol("format"));
@@ -1784,6 +1794,7 @@ bool ast_manager::slow_not_contains(ast const * n) {
 }
 #endif
 
+
 ast * ast_manager::register_node_core(ast * n) {
     unsigned h = get_node_hash(n);
     n->m_hash = h;
@@ -1813,7 +1824,6 @@ ast * ast_manager::register_node_core(ast * n) {
     }
 
     n->m_id   = is_decl(n) ? m_decl_id_gen.mk() : m_expr_id_gen.mk();
-
 
     TRACE("ast", tout << "Object " << n->m_id << " was created.\n";);
     TRACE("mk_var_bug", tout << "mk_ast: " << n->m_id << "\n";);
@@ -1911,8 +1921,6 @@ ast * ast_manager::register_node_core(ast * n) {
     if (n->m_id == 1525) {
         std::cout << n->m_id << ": " << mk_ll_pp(n, *this) << "\n";
     }
-    //VERIFY(n->m_id != 1549);
-    //VERIFY(s_count != 2);
 #endif
     return n;
 }
