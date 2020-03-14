@@ -49,6 +49,7 @@ fi
 echo "Removing extra files..."
 rm -r ../Sources/CZ3/api/c++
 rm -r ../Sources/CZ3/api/dotnet
+rm -r ../Sources/CZ3/api/julia
 rm -r ../Sources/CZ3/api/java
 rm -r ../Sources/CZ3/api/ml
 rm -r ../Sources/CZ3/api/python
