@@ -349,15 +349,21 @@ namespace smt {
         rational w;
         coeffs coeffs;
         mk_coeffs(m_test.get_linearization(), coeffs, w);
+
+        if (coeffs.empty()) {
+            throw default_exception("utvi formulas require pre-processing and dont work with quantifiers");
+        }
+
         bool_var bv = ctx.mk_bool_var(n);
         ctx.set_var_theory(bv, get_id());
         literal l(bv);
+        m_bool_var2atom.insert(bv, m_atoms.size());
+
         numeral w1 = mk_weight(a.is_real(e1), is_strict, w);
         edge_id pos = add_ineq(coeffs, w1, l);        
         negate(coeffs, w);
         numeral w2 = mk_weight(a.is_real(e1), !is_strict, w);
         edge_id neg = add_ineq(coeffs, w2, ~l);
-        m_bool_var2atom.insert(bv, m_atoms.size());
         m_atoms.push_back(atom(bv, pos, neg));
         
         TRACE("utvpi", 
@@ -627,6 +633,7 @@ namespace smt {
     template<typename Ext>
     edge_id theory_utvpi<Ext>::add_ineq(vector<std::pair<th_var, rational> > const& terms, numeral const& weight, literal l) {
 
+        SASSERT(!terms.empty());
         SASSERT(terms.size() <= 2);
         SASSERT(terms.size() < 1 || terms[0].second.is_one() || terms[0].second.is_minus_one());
         SASSERT(terms.size() < 2 || terms[1].second.is_one() || terms[1].second.is_minus_one());
@@ -648,6 +655,7 @@ namespace smt {
 //        TRACE("utvpi", tout << (pos1?"$":"-$") << v1 << (pos2?" + $":" - $") << v2 << " + " << weight << " <= 0\n";);
         edge_id id = m_graph.get_num_edges();
         th_var w1 = to_var(v1), w2 = to_var(v2);
+
         if (terms.size() == 1 && pos1) {
             m_graph.add_edge(neg(w1), pos(w1), -weight-weight, std::make_pair(l,2));
             m_graph.add_edge(neg(w1), pos(w1), -weight-weight, std::make_pair(l,2));

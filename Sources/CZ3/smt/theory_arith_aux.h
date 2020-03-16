@@ -1201,7 +1201,7 @@ namespace smt {
                 break;
             }
         }
-        if (idx == num_lits) {
+        if (idx == num_lits || num_params == 0) {
             return;
         }
         for (unsigned i = 0; i < num_lits; ++i) {
@@ -1274,8 +1274,7 @@ namespace smt {
         }
         th_rewriter rw(m);
         rw(vq, tmp);
-        VERIFY(m_util.is_numeral(tmp, q));
-        if (m_upper_bound < q) {
+        if (m_util.is_numeral(tmp, q) && m_upper_bound < q) {
             m_upper_bound = q;
             if (strict) {
                 m_upper_bound -= get_epsilon(a->get_var());
