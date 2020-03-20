@@ -1056,6 +1056,10 @@ void log_Z3_algebraic_roots(Z3_context a0, Z3_ast a1, unsigned a2, Z3_ast const 
 #define LOG_Z3_algebraic_roots(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_algebraic_roots(_ARG0, _ARG1, _ARG2, _ARG3); }
 void log_Z3_algebraic_eval(Z3_context a0, Z3_ast a1, unsigned a2, Z3_ast const * a3);
 #define LOG_Z3_algebraic_eval(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_algebraic_eval(_ARG0, _ARG1, _ARG2, _ARG3); }
+void log_Z3_algebraic_get_poly(Z3_context a0, Z3_ast a1);
+#define LOG_Z3_algebraic_get_poly(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_algebraic_get_poly(_ARG0, _ARG1); }
+void log_Z3_algebraic_get_i(Z3_context a0, Z3_ast a1);
+#define LOG_Z3_algebraic_get_i(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_algebraic_get_i(_ARG0, _ARG1); }
 void log_Z3_polynomial_subresultants(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3);
 #define LOG_Z3_polynomial_subresultants(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_polynomial_subresultants(_ARG0, _ARG1, _ARG2, _ARG3); }
 void log_Z3_rcf_del(Z3_context a0, Z3_rcf_num a1);

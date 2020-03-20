@@ -30,7 +30,7 @@ struct sat_params {
     d.insert("variable_decay", CPK_UINT, "multiplier (divided by 100) for the VSIDS activity increment", "110","sat");
     d.insert("inprocess.max", CPK_UINT, "maximal number of inprocessing passes", "4294967295","sat");
     d.insert("inprocess.out", CPK_SYMBOL, "file to dump result of the first inprocessing step and exit", "","sat");
-    d.insert("branching.heuristic", CPK_SYMBOL, "branching heuristic vsids, lrb or chb", "vsids","sat");
+    d.insert("branching.heuristic", CPK_SYMBOL, "branching heuristic vsids, chb", "vsids","sat");
     d.insert("branching.anti_exploration", CPK_BOOL, "apply anti-exploration heuristic for branch selection", "false","sat");
     d.insert("random_freq", CPK_DOUBLE, "frequency of random case splits", "0.01","sat");
     d.insert("random_seed", CPK_UINT, "random seed", "0","sat");
