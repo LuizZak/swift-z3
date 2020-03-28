@@ -57,8 +57,7 @@ namespace lp {
     }
 
     bool int_cube::tighten_term_for_cube(unsigned i) {
-        unsigned ti = i + lra.terms_start_index();
-        if (!lra.term_is_used_as_row(ti))
+        if (!lra.term_is_used_as_row(i))
             return true;
         const lar_term* t = lra.terms()[i];
         impq delta = get_cube_delta_for_term(*t);
@@ -87,7 +86,7 @@ namespace lp {
             bool seen_minus = false;
             bool seen_plus = false;
             for(const auto & p : t) {
-                if (!lia.column_is_int(p.var()))
+                if (!lia.column_is_int(p.var().index()))
                     goto usual_delta;
                 const mpq & c = p.coeff();
                 if (c == one_of_type<mpq>()) {
@@ -105,7 +104,7 @@ namespace lp {
     usual_delta:
         mpq delta = zero_of_type<mpq>();
         for (const auto & p : t)
-            if (lia.column_is_int(p.var()))
+            if (lia.column_is_int(p.var().index()))
                 delta += abs(p.coeff());
         
         delta *= mpq(1, 2);

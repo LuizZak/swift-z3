@@ -47,6 +47,7 @@ namespace lp {
 
 typedef unsigned lpvar;
 const lpvar null_lpvar = UINT_MAX;
+const constraint_index null_ci = UINT_MAX;
 
 class lar_solver : public column_namer {
     struct term_hasher {
@@ -58,7 +59,7 @@ class lar_solver : public column_namer {
             size_t seed = 0;
             int i = 0;
             for (const auto p : t) {
-                hash_combine(seed, p.var());
+                hash_combine(seed, p.var().index());
                 hash_combine(seed, p.coeff());
                 if (i++ > 10)
                     break;
@@ -81,34 +82,33 @@ class lar_solver : public column_namer {
     lp_settings                                         m_settings;
     lp_status                                           m_status;
     stacked_value<simplex_strategy_enum>                m_simplex_strategy;
-    stacked_value<int>                                  m_infeasible_column; // such can be found at the initialization step
+    // such can be found at the initialization step: u < l
+    stacked_value<int>                                  m_crossed_bounds_column; 
 public:
     lar_core_solver                                     m_mpq_lar_core_solver;
 private:
     int_solver *                                        m_int_solver;
+    bool                                                m_need_register_terms;
 public:
-    const var_index                                     m_terms_start_index;
     var_register                                        m_var_register;
     var_register                                        m_term_register;
     stacked_vector<ul_pair>                             m_columns_to_ul_pairs;
     constraint_set                                      m_constraints;
     // the set of column indices j such that bounds have changed for j
-    int_set                                             m_columns_with_changed_bound;
-    int_set                                             m_rows_with_changed_bounds;
-    int_set                                             m_basic_columns_with_changed_cost;
+    u_set                                             m_columns_with_changed_bound;
+    u_set                                             m_rows_with_changed_bounds;
+    u_set                                             m_basic_columns_with_changed_cost;
     // these are basic columns with the value changed, so the the corresponding row in the tableau
     // does not sum to zero anymore
-    int_set                                             m_incorrect_columns;
-    stacked_value<int>                                  m_infeasible_column_index; // such can be found at the initialization step
+    u_set                                             m_incorrect_columns;
+    stacked_value<int>                                  m_crossed_bounds_column_index; // such can be found at the initialization step
     stacked_value<unsigned>                             m_term_count;
     vector<lar_term*>                                   m_terms;
     indexed_vector<mpq>                                 m_column_buffer;
-    bool                                                m_need_register_terms;
     std::unordered_map<lar_term, std::pair<mpq, unsigned>, term_hasher, term_comparer>
                                                         m_normalized_terms_to_columns;
     // end of fields
 
-    unsigned terms_start_index() const { return m_terms_start_index; }
     const vector<lar_term*> & terms() const { return m_terms; }
     lar_term const& term(unsigned i) const { return *m_terms[i]; }
     constraint_set const& constraints() const { return m_constraints; }
@@ -137,10 +137,12 @@ public:
     }
     
     const mpq& get_column_value_rational(unsigned j) const {
+        if (tv::is_term(j)) {
+            j = m_var_register.external_to_local(j);
+        }
         return m_mpq_lar_core_solver.m_r_x[j].x;
     }
 
-    bool is_term(var_index j) const;
     bool column_is_fixed(unsigned j) const;
     bool column_is_free(unsigned j) const;
 public:
@@ -158,6 +160,8 @@ public:
     
     bool term_is_int(const lar_term * t) const;
 
+    bool term_is_int(const vector<std::pair<mpq, unsigned int>> & coeffs) const;
+
     bool var_is_int(var_index v) const;
 
     void add_non_basic_var_to_core_fields(unsigned ext_j, bool is_int);
@@ -166,7 +170,7 @@ public:
 
     void add_new_var_to_core_fields_for_mpq(bool register_in_basis);
 
-
+    mpq adjust_bound_for_int(lpvar j, lconstraint_kind&, const mpq&);
 
     // terms
     bool all_vars_are_registered(const vector<std::pair<mpq, var_index>> & coeffs);
@@ -205,7 +209,7 @@ public:
 
     void set_infeasible_column(unsigned j) {
         set_status(lp_status::INFEASIBLE);
-        m_infeasible_column = j;
+        m_crossed_bounds_column = j;
     }
 
     constraint_index add_constraint_from_term_and_create_new_column_row(unsigned term_j, const lar_term* term,
@@ -240,9 +244,6 @@ public:
     
     virtual ~lar_solver();
 
-    unsigned adjust_term_index(unsigned j) const;
-
-
     bool use_lu() const;
     
     bool sizes_are_correct() const;
@@ -266,7 +267,7 @@ public:
 
     unsigned map_term_index_to_column_index(unsigned j) const;
     
-    var_index local_to_external(var_index idx) const { return is_term(idx)?
+    var_index local_to_external(var_index idx) const { return tv::is_term(idx)?
             m_term_register.local_to_external(idx) : m_var_register.local_to_external(idx); }
 
     unsigned number_of_vars() const { return m_var_register.size(); }
@@ -322,7 +323,7 @@ public:
     
     lp_status solve();
 
-    void fill_explanation_from_infeasible_column(explanation & evidence) const;
+    void fill_explanation_from_crossed_bounds_column(explanation & evidence) const;
 
     
     unsigned get_total_iterations() const;
@@ -332,9 +333,9 @@ public:
     vector<unsigned> get_list_of_all_var_indices() const;
     void push();
 
-    static void clean_popped_elements(unsigned n, int_set& set);
+    static void clean_popped_elements(unsigned n, u_set& set);
 
-    static void shrink_inf_set_after_pop(unsigned n, int_set & set);
+    static void shrink_inf_set_after_pop(unsigned n, u_set & set);
     
     void pop(unsigned k);
 
@@ -536,6 +537,8 @@ public:
         return m_mpq_lar_core_solver.column_is_bounded(j);
     }
 
+    std::pair<constraint_index, constraint_index> add_equality(lpvar j, lpvar k);
+    
     void get_bound_constraint_witnesses_for_column(unsigned j, constraint_index & lc, constraint_index & uc) const {
         const ul_pair & ul = m_columns_to_ul_pairs[j];
         lc = ul.lower_bound_witness();
@@ -559,31 +562,41 @@ public:
     }
 
     constraint_index get_column_upper_bound_witness(unsigned j) const {
+        if (tv::is_term(j)) {
+            j = m_var_register.external_to_local(j);
+        }
         return m_columns_to_ul_pairs()[j].upper_bound_witness();
     }
 
     constraint_index get_column_lower_bound_witness(unsigned j) const {
+        if (tv::is_term(j)) {
+            j = m_var_register.external_to_local(j);
+        }
         return m_columns_to_ul_pairs()[j].lower_bound_witness();
     }
 
     void subs_term_columns(lar_term& t) {
         vector<std::pair<unsigned,unsigned>> columns_to_subs;
         for (const auto & m : t) {
-            unsigned tj = adjust_column_index_to_term_index(m.var());
-            if (tj == m.var()) continue;
-            columns_to_subs.push_back(std::make_pair(m.var(), tj));
+            unsigned tj = adjust_column_index_to_term_index(m.var().index());
+            if (tj == m.var().index()) continue;
+            columns_to_subs.push_back(std::make_pair(m.var().index(), tj));
         }
         for (const auto & p : columns_to_subs) {
             t.subst_index(p.first, p.second);            
         }
     }
-
+    
     std::ostream& print_column_info(unsigned j, std::ostream& out) const {
         m_mpq_lar_core_solver.m_r_solver.print_column_info(j, out);
-        if( !column_corresponds_to_term(j))
-            return out;
-        const lar_term& t = * m_terms[m_var_register.local_to_external(j) - m_terms_start_index];
-        print_term_as_indices(t, out) << "\n";
+        if (tv::is_term(j)) {
+            const lar_term& t = * m_terms[tv::unmask_term(j)];
+            print_term_as_indices(t, out) << "\n";
+            
+        } else if(column_corresponds_to_term(j)) { 
+            const lar_term& t = * m_terms[tv::unmask_term(m_var_register.local_to_external(j))];
+            print_term_as_indices(t, out) << "\n";
+        }
         return out;
     }
     

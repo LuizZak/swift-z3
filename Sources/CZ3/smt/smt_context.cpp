@@ -515,6 +515,7 @@ namespace smt {
             TRACE("add_eq", tout << "assigning: #" << n1->get_owner_id() << " = #" << n2->get_owner_id() << "\n";);
             TRACE("add_eq_detail", tout << "assigning\n" << enode_pp(n1, *this) << "\n" << enode_pp(n2, *this) << "\n";
                   tout << "kind: " << js.get_kind() << "\n";);
+            SASSERT(m.get_sort(n1->get_owner()) == m.get_sort(n2->get_owner()));
 
             m_stats.m_num_add_eq++;
             enode * r1 = n1->get_root();
@@ -2928,12 +2929,12 @@ namespace smt {
         m_model_generator->reset();
         for (theory* t : m_theory_set) 
             t->flush_eh();
-        undo_trail_stack(0);
-        m_qmanager = nullptr;
         del_clauses(m_aux_clauses, 0);
         del_clauses(m_lemmas, 0);
         del_justifications(m_justifications, 0);
         reset_tmp_clauses();
+        undo_trail_stack(0);
+        m_qmanager = nullptr;
         if (m_is_diseq_tmp) {
             m_is_diseq_tmp->del_eh(m, false);
             m.dec_ref(m_is_diseq_tmp->get_owner());
@@ -3370,8 +3371,10 @@ namespace smt {
             if (u.get_rec_funs().empty()) {
                 model_ref mdl;
                 get_model(mdl);
-                for (theory* t : m_theory_set) {
-                    t->validate_model(*mdl);
+                if (mdl.get()) {
+                    for (theory* t : m_theory_set) {
+                        t->validate_model(*mdl);
+                    }
                 }
             }
 #if 0
@@ -4467,8 +4470,7 @@ namespace smt {
         if (fcs == FC_DONE) {
             reset_model();
         }
-
-        return fcs == FC_DONE;
+        return false;
     }
 
     void context::mk_proto_model() {

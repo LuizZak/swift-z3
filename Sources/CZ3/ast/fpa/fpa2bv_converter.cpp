@@ -461,6 +461,9 @@ void fpa2bv_converter::add_core(unsigned sbits, unsigned ebits,
     big_d_sig = m_bv_util.mk_concat(d_sig, m_bv_util.mk_numeral(0, sbits+3));
 
     SASSERT(is_well_sorted(m, big_d_sig));
+    if (ebits > sbits)
+        throw default_exception("there is no floating point support for division for representations with non-standard bit representations");
+
 
     expr_ref shifted_big(m), shifted_d_sig(m), sticky_raw(m), sticky(m);
     shifted_big = m_bv_util.mk_bv_lshr(big_d_sig, m_bv_util.mk_concat(m_bv_util.mk_numeral(0, (2*(sbits+3))-ebits), exp_delta));
@@ -937,6 +940,8 @@ void fpa2bv_converter::mk_div(sort * s, expr_ref & rm, expr_ref & x, expr_ref & 
     // else comes the actual division.
     unsigned ebits = m_util.get_ebits(s);
     unsigned sbits = m_util.get_sbits(s);
+    if (ebits > sbits)
+        throw default_exception("there is no floating point support for division for representations with non-standard bit representations");
     SASSERT(ebits <= sbits);
 
     expr_ref a_sgn(m), a_sig(m), a_exp(m), a_lz(m), b_sgn(m), b_sig(m), b_exp(m), b_lz(m);

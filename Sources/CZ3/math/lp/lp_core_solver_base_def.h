@@ -504,6 +504,7 @@ template <typename T, typename X> bool lp_core_solver_base<T, X>::calc_current_x
     unsigned j = this->m_n();
     while (j--) {
         if (!column_is_feasible(j)) {
+            TRACE("lar_solver", tout << "infeasible column: "; print_column_info(j, tout) << "\n";);
             return false;
         }
     }
@@ -995,9 +996,11 @@ lp_core_solver_base<T, X>::infeasibility_costs_are_correct() const {
     lp_assert(costs_on_nbasis_are_zeros());
     for (unsigned j :this->m_basis) {
         if (!infeasibility_cost_is_correct_for_column(j)) {
+            TRACE("lar_solver", tout << "incorrect cost for column " << j << std::endl;);
             return false;
         }
         if (!is_zero(m_d[j])) {
+            TRACE("lar_solver", tout << "non zero inf cost for basis j = " << j << std::endl;);
             return false;
         }
     }

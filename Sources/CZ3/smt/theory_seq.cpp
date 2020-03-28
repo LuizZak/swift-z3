@@ -357,11 +357,6 @@ final_check_status theory_seq::final_check_eh() {
         TRACEFIN("solve_eqs");
         return FC_CONTINUE;
     }    
-    if (check_contains()) {
-        ++m_stats.m_propagate_contains;
-        TRACEFIN("propagate_contains");
-        return FC_CONTINUE;
-    }
     if (check_lts()) {
         TRACEFIN("check_lts");
         return FC_CONTINUE;
@@ -369,6 +364,11 @@ final_check_status theory_seq::final_check_eh() {
     if (solve_nqs(0)) {
         ++m_stats.m_solve_nqs;
         TRACEFIN("solve_nqs");
+        return FC_CONTINUE;
+    }
+    if (check_contains()) {
+        ++m_stats.m_propagate_contains;
+        TRACEFIN("propagate_contains");
         return FC_CONTINUE;
     }
     if (fixed_length(true)) {
@@ -2132,6 +2132,13 @@ void theory_seq::mk_decompose(expr* e, expr_ref& head, expr_ref& tail) {
         head = e;
         tail = m_util.str.mk_empty(m.get_sort(e));
     }
+    else if (m_util.str.is_concat(e, e1, e2) && m_util.str.is_empty(e1)) {
+        mk_decompose(e2, head, tail);
+    }
+    else if (m_util.str.is_concat(e, e1, e2) && m_util.str.is_string(e1, s) && s.length() > 0) {
+        head = m_util.str.mk_unit(m_util.str.mk_char(s, 0));
+        tail = m_util.str.mk_concat(m_util.str.mk_string(s.extract(1, s.length()-1)), e2);
+    }
     else if (m_util.str.is_concat(e, e1, e2) && m_util.str.is_unit(e1)) {
         head = e1;
         tail = e2;
@@ -2141,10 +2148,12 @@ void theory_seq::mk_decompose(expr* e, expr_ref& head, expr_ref& tail) {
         expr* s = a->get_arg(0);        
         expr* idx = m_autil.mk_int(r.get_unsigned() + 1);
         head = m_util.str.mk_unit(mk_nth(s, idx));
+        m_rewrite(head);
         tail = mk_skolem(m_tail, s, idx);
     }
     else {
         head = m_util.str.mk_unit(mk_nth(e, m_autil.mk_int(0)));
+        m_rewrite(head);
         tail = mk_skolem(m_tail, e, m_autil.mk_int(0));
     }
 }
@@ -3465,7 +3474,6 @@ bool theory_seq::solve_ne(unsigned idx) {
 
 bool theory_seq::solve_nc(unsigned idx) {
     nc const& n = m_ncs[idx];
-    dependency* deps = n.deps();    
     literal len_gt = n.len_gt();
     context& ctx = get_context();
     expr_ref c(m);
@@ -3475,7 +3483,14 @@ bool theory_seq::solve_nc(unsigned idx) {
     expr_ref head(m), tail(m);
     literal pre, cnt, ctail, emp;
     lbool is_gt = ctx.get_assignment(len_gt);
-    TRACE("seq", ctx.display_literal_smt2(tout << len_gt << " := " << is_gt << "\n", len_gt) << "\n";);    
+    TRACE("seq", ctx.display_literal_smt2(tout << len_gt << " := " << is_gt << "\n", len_gt) << "\n";);
+
+#if 0
+    if (canonizes(false, n.contains())) {
+        return true;
+    }
+#endif
+    
     switch (is_gt) {
     case l_true:
         add_length_to_eqc(a);
@@ -3485,21 +3500,44 @@ bool theory_seq::solve_nc(unsigned idx) {
         ctx.mark_as_relevant(len_gt);
         m_new_propagation = true;
         return false;
-    case l_false: {
-        mk_decompose(a, head, tail);
-        pre = mk_literal(m_util.str.mk_prefix(b, a));
-        cnt = mk_literal(n.contains());
-        ctail = mk_literal(m_util.str.mk_contains(tail, b));
-        emp = mk_literal(m_util.str.mk_is_empty(a));
-        //expr_ref one(m_autil.mk_int(1), m);
-        add_axiom(cnt, ~pre);
-        add_axiom(cnt, ~ctail);
-        add_axiom(emp, mk_eq(a, m_util.str.mk_concat(head, tail), false));
+    case l_false: 
+        break;
+    }
+#if 0
+    expr_ref a1(m), b1(m);
+    dependency* deps = n.deps();    
+    if (!canonize(a, deps, a1)) {
+        return false;
+    }
+    if (!canonize(b, deps, b1)) {
+        return false;
+    }
+    if (a != a1 || b != b1) {
+        literal_vector lits;
+        expr_ref c(m_util.str.mk_contains(a1, b1), m);
+        propagate_eq(deps, lits, c, n.contains(), false);
+        m_ncs.push_back(nc(c, len_gt, deps));       
+        m_new_propagation = true;
         return true;
     }
-    }
+    IF_VERBOSE(0, verbose_stream() << n.contains() << "\n");
+#endif    
+    mk_decompose(a, head, tail);
+    expr_ref pref(m_util.str.mk_prefix(b, a), m);
+    expr_ref postf(m_util.str.mk_contains(tail, b), m);
+    m_rewrite(pref);
+    m_rewrite(postf);
+    pre = mk_literal(pref);
+    cnt = mk_literal(n.contains());
+    ctail = mk_literal(postf);
+    emp = mk_literal(m_util.str.mk_is_empty(a));
+    add_axiom(cnt, ~pre);
+    add_axiom(cnt, ~ctail);
+    add_axiom(emp, mk_eq(a, m_util.str.mk_concat(head, tail), false));
+    return true;
     
 #else
+    dependency* deps = n.deps();    
     if (!canonize(n.contains(), deps, c)) {
         return false;
     }
@@ -3508,7 +3546,10 @@ bool theory_seq::solve_nc(unsigned idx) {
     CTRACE("seq", c != n.contains(), 
            tout << n.contains() << " =>\n" << c << "\n";
            display_deps(tout, deps););    
-
+    if (c != n.contains()) {
+        IF_VERBOSE(0, verbose_stream() << n.contains() << " =>\n" << c << "\n";
+                   display_deps(verbose_stream(), deps););
+    }
     
     if (m.is_true(c)) {
         literal_vector lits;
@@ -3519,7 +3560,6 @@ bool theory_seq::solve_nc(unsigned idx) {
     if (m.is_false(c)) {
         return true;
     }
-
 
     if (m.is_eq(c, a, b)) {
         literal eq = mk_eq(a, b, false);

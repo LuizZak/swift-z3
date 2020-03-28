@@ -69,6 +69,7 @@ struct smt_params_helper {
     d.insert("arith.propagate_eqs", CPK_BOOL, "propagate (cheap) equalities", "true","smt");
     d.insert("arith.propagation_mode", CPK_UINT, "0 - no propagation, 1 - propagate existing literals, 2 - refine bounds", "2","smt");
     d.insert("arith.reflect", CPK_BOOL, "reflect arithmetical operators to the congruence closure", "true","smt");
+    d.insert("arith.branch_flip", CPK_BOOL, "flip branches randomly", "false","smt");
     d.insert("arith.branch_cut_ratio", CPK_UINT, "branch/cut ratio for linear integer arithmetic", "2","smt");
     d.insert("arith.int_eq_branch", CPK_BOOL, "branching using derived integer equations", "false","smt");
     d.insert("arith.ignore_int", CPK_BOOL, "treat integer variables as real", "false","smt");
@@ -82,7 +83,6 @@ struct smt_params_helper {
     d.insert("arith.simplex_strategy", CPK_UINT, "simplex strategy for the solver", "0","smt");
     d.insert("arith.enable_hnf", CPK_BOOL, "enable hnf (Hermite Normal Form) cuts", "true","smt");
     d.insert("arith.bprop_on_pivoted_rows", CPK_BOOL, "propagate bounds on rows changed by the pivot operation", "true","smt");
-    d.insert("arith.nla", CPK_BOOL, "call nonlinear solver", "true","smt");
     d.insert("arith.print_ext_var_names", CPK_BOOL, "print external variable names", "false","smt");
     d.insert("pb.conflict_frequency", CPK_UINT, "conflict frequency for Pseudo-Boolean theory", "1000","smt");
     d.insert("pb.learn_complements", CPK_BOOL, "learn complement literals for Pseudo-Boolean theory", "true","smt");
@@ -194,6 +194,7 @@ struct smt_params_helper {
   bool arith_propagate_eqs() const { return p.get_bool("arith.propagate_eqs", g, true); }
   unsigned arith_propagation_mode() const { return p.get_uint("arith.propagation_mode", g, 2u); }
   bool arith_reflect() const { return p.get_bool("arith.reflect", g, true); }
+  bool arith_branch_flip() const { return p.get_bool("arith.branch_flip", g, false); }
   unsigned arith_branch_cut_ratio() const { return p.get_uint("arith.branch_cut_ratio", g, 2u); }
   bool arith_int_eq_branch() const { return p.get_bool("arith.int_eq_branch", g, false); }
   bool arith_ignore_int() const { return p.get_bool("arith.ignore_int", g, false); }
@@ -207,7 +208,6 @@ struct smt_params_helper {
   unsigned arith_simplex_strategy() const { return p.get_uint("arith.simplex_strategy", g, 0u); }
   bool arith_enable_hnf() const { return p.get_bool("arith.enable_hnf", g, true); }
   bool arith_bprop_on_pivoted_rows() const { return p.get_bool("arith.bprop_on_pivoted_rows", g, true); }
-  bool arith_nla() const { return p.get_bool("arith.nla", g, true); }
   bool arith_print_ext_var_names() const { return p.get_bool("arith.print_ext_var_names", g, false); }
   unsigned pb_conflict_frequency() const { return p.get_uint("pb.conflict_frequency", g, 1000u); }
   bool pb_learn_complements() const { return p.get_bool("pb.learn_complements", g, true); }

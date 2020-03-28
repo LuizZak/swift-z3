@@ -9,7 +9,7 @@ struct opt_params {
   opt_params(params_ref const & _p = params_ref::get_empty()):
      p(_p), g(gparams::get_module("opt")) {}
   static void collect_param_descrs(param_descrs & d) {
-    d.insert("optsmt_engine", CPK_SYMBOL, "select optimization engine: 'basic', 'farkas', 'symba'", "basic","opt");
+    d.insert("optsmt_engine", CPK_SYMBOL, "select optimization engine: 'basic', 'symba'", "basic","opt");
     d.insert("maxsat_engine", CPK_SYMBOL, "select engine for maxsat: 'core_maxsat', 'wmax', 'maxres', 'pd-maxres'", "maxres","opt");
     d.insert("priority", CPK_SYMBOL, "select how to priortize objectives: 'lex' (lexicographic), 'pareto', 'box'", "lex","opt");
     d.insert("dump_benchmarks", CPK_BOOL, "dump benchmarks for profiling", "false","opt");

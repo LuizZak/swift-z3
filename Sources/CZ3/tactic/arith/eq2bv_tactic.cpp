@@ -184,6 +184,12 @@ public:
 
         m_bounds(*g);
 
+        if (m_bounds.inconsistent()) {
+            g->inc_depth();
+            result.push_back(g.get());
+            return;
+        }
+        
         for (unsigned i = 0; i < g->size(); i++) {            
             collect_fd(g->form(i));
         }
@@ -194,19 +200,25 @@ public:
             return;
         }
 
-        for (unsigned i = 0; i < g->size(); i++) {            
+        for (unsigned i = 0; !g->inconsistent() && i < g->size(); i++) {            
             expr_ref   new_curr(m);
             proof_ref  new_pr(m);  
             func_decl_ref var(m);
             unsigned val;
             if (is_bound(g->form(i), var, val) && !m_has_eq.is_marked(var)) {
-                g->update(i, m.mk_true(), nullptr, nullptr);
+                if (m.proofs_enabled()) {
+                    new_pr = m.mk_rewrite(g->form(i), m.mk_true());
+                    new_pr = m.mk_modus_ponens(g->pr(i), new_pr);
+                }
+                g->update(i, m.mk_true(), new_pr, nullptr);
                 mc1->insert(var, val);
                 continue;
             }
             m_rw(g->form(i), new_curr, new_pr);
-            if (m.proofs_enabled() && !new_pr) {
-                new_pr = m.mk_rewrite(g->form(i), new_curr);
+            if (g->form(i) == new_curr)
+                continue;
+            if (m.proofs_enabled()) {
+                if (!new_pr) new_pr = m.mk_rewrite(g->form(i), new_curr);
                 new_pr = m.mk_modus_ponens(g->pr(i), new_pr);
             }
             g->update(i, new_curr, new_pr, g->dep(i));
@@ -312,6 +324,7 @@ public:
         } 
         return false;
     }
+
 
     bool is_bound(expr* f, func_decl_ref& var, unsigned& val) {
         return is_lower(f, var, val) || is_upper(f, var, val);

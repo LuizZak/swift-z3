@@ -3,20 +3,13 @@
 
   Module Name:
 
-  <name>
-
-  Abstract:
-
-  <abstract>
+  nla_core.h
 
   Author:
   Nikolaj Bjorner (nbjorner)
   Lev Nachmanson (levnach)
 
-  Revision History:
-
-
-  --*/
+--*/
 #pragma once
 #include "math/lp/factorization.h"
 #include "math/lp/lp_types.h"
@@ -86,7 +79,7 @@ public:
     var_eqs<emonics>         m_evars;
     lp::lar_solver&          m_lar_solver;
     vector<lemma> *          m_lemma_vec;
-    lp::int_set              m_to_refine;
+    lp::u_set              m_to_refine;
     tangents                 m_tangents;
     basics                   m_basics;
     order                    m_order;
@@ -99,14 +92,13 @@ public:
 private:
     emonics                  m_emons;
     svector<lpvar>           m_add_buffer;
-    mutable lp::int_set      m_active_var_set;
-    lp::int_set              m_rows;
+    mutable lp::u_set      m_active_var_set;
+    lp::u_set              m_rows;
 public:
-    unsigned                 m_grobner_quota;
     reslimit                 m_reslim;
 
     
-    const lp::int_set&  active_var_set () const { return m_active_var_set;}
+    const lp::u_set&  active_var_set () const { return m_active_var_set;}
     bool active_var_set_contains(unsigned j) const { return m_active_var_set.contains(j); }
 
     void insert_to_active_var_set(unsigned j) const { m_active_var_set.insert(j); }    
@@ -136,7 +128,13 @@ public:
     bool is_monic_var(lpvar j) const { return m_emons.is_monic_var(j); }
     rational val(lpvar j) const { return m_lar_solver.get_column_value_rational(j); }
 
-    rational val(const monic& m) const { return m_lar_solver.get_column_value_rational(m.var()); }
+    rational var_val(const monic& m) const { return m_lar_solver.get_column_value_rational(m.var()); }
+
+    rational mul_val(const monic& m) const { 
+        rational r(1);
+        for (lpvar v : m.vars()) r *= m_lar_solver.get_column_value_rational(v);
+        return r;
+    }
 
     bool canonize_sign_is_correct(const monic& m) const;
 
@@ -144,7 +142,7 @@ public:
 
     rational val_rooted(const monic& m) const { return m.rsign()*val(m.var()); }
 
-    rational val(const factor& f) const {  return f.rat_sign() * (f.is_var()? val(f.var()) : val(m_emons[f.var()])); }
+    rational val(const factor& f) const {  return f.rat_sign() * (f.is_var()? val(f.var()) : var_val(m_emons[f.var()])); }
 
     rational val(const factorization&) const;
     
@@ -183,7 +181,7 @@ public:
     void pop(unsigned n);
 
     rational mon_value_by_vars(unsigned i) const;
-    rational product_value(const unsigned_vector & m) const;
+    rational product_value(const monic & m) const;
     
     // return true iff the monic value is equal to the product of the values of the factors
     bool check_monic(const monic& m) const;
@@ -283,8 +281,8 @@ public:
     const rational& get_upper_bound(unsigned j) const;
     const rational& get_lower_bound(unsigned j) const;    
     
-    bool zero_is_an_inner_point_of_bounds(lpvar j) const;
-    
+    bool zero_is_an_inner_point_of_bounds(lpvar j) const;    
+    bool var_is_int(lpvar j) const { return m_lar_solver.column_is_int(j); }
     int rat_sign(const monic& m) const;
     inline int rat_sign(lpvar j) const { return nla::rat_sign(val(j)); }
 
@@ -365,6 +363,8 @@ public:
     
     void negate_factor_relation(const rational& a_sign, const factor& a, const rational& b_sign, const factor& b);
 
+    void negate_var_relation_strictly(lpvar a, lpvar b);
+    
     std::unordered_set<lpvar> collect_vars(const lemma& l) const;
 
     bool rm_check(const monic&) const;

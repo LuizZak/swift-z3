@@ -71,7 +71,7 @@ class create_cut {
         }
         else {
             lp_assert(at_upper(j));
-            // here we have the expression  new_a*(xj - ub), so new_a*lb(j) is added to m_k
+            // here we have the expression  new_a*(xj - ub), so new_a*ub(j) is added to m_k
             new_a = - (m_fj <= m_f ? m_fj / m_f  : ((1 - m_fj) / m_one_minus_f));
             lp_assert(new_a.is_neg());
             m_k.addmul(new_a, upper_bound(j).x);
@@ -191,7 +191,7 @@ class create_cut {
     void dump_coeff(std::ostream & out, const T& c) const {
         out << "( * ";
         dump_coeff_val(out, c.coeff());
-        out << " " << var_name(c.var()) << ")";
+        out << " " << var_name(c.var().index()) << ")";
     }
     
     std::ostream& dump_row_coefficients(std::ostream & out) const {
@@ -221,8 +221,8 @@ class create_cut {
             dump_declaration(out, p.var());
         }
         for (const auto& p : m_t) {
-            unsigned v = p.var();
-            if (lia.lra.is_term(v)) {
+            unsigned v = p.var().index();
+            if (lp::tv::is_term(v)) {
                 dump_declaration(out, v);
             }
         }
@@ -289,7 +289,7 @@ public:
     lia_move cut() {
         TRACE("gomory_cut", dump(tout););
         
-        // gomory will be   t <= k and the current solution has a property t > k
+        // gomory will be   t >= k and the current solution has a property t < k
         m_k = 1;
         m_t.clear();
         mpq m_lcm_den(1);
