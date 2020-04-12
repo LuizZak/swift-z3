@@ -928,12 +928,6 @@ void cmd_context::insert_rec_fun_as_axiom(func_decl *f, expr_ref_vector const& b
 
 void cmd_context::insert_rec_fun(func_decl* f, expr_ref_vector const& binding, svector<symbol> const& ids, expr* rhs) {
 
-    if (gparams::get_value("smt.recfun.native") != "true") {
-        // just use an axiom
-        insert_rec_fun_as_axiom(f, binding, ids, rhs);
-        return;
-    }
-
     TRACE("recfun", tout<< "define recfun " << f->get_name()  << " = " << mk_pp(rhs, m()) << "\n";);
 
     recfun::decl::plugin& p = get_recfun_plugin();
@@ -1579,7 +1573,7 @@ void cmd_context::check_sat(unsigned num_assumptions, expr * const * assumptions
         scoped_rlimit _rlimit(m().limit(), rlimit);
         try {
             r = m_solver->check_sat(num_assumptions, assumptions);
-            if (r == l_undef && m().canceled()) {
+            if (r == l_undef && !m().inc()) {
                 m_solver->set_reason_unknown(eh);
             }
         }
@@ -1587,7 +1581,7 @@ void cmd_context::check_sat(unsigned num_assumptions, expr * const * assumptions
             throw ex;
         }
         catch (z3_exception & ex) {
-            if (m().canceled()) {
+            if (!m().inc()) {
                 m_solver->set_reason_unknown(eh);
             }
             else {
@@ -1795,6 +1789,8 @@ struct contains_underspecified_op_proc {
             throw found();
         if (m_arith.is_non_algebraic(n))
             throw found();
+        if (m_arith.is_irrational_algebraic_numeral(n))
+            throw found();
         if (n->get_family_id() == m_array_fid) {
             decl_kind k = n->get_decl_kind();
             if (k == OP_AS_ARRAY ||
@@ -1923,7 +1919,7 @@ void cmd_context::validate_model() {
                 analyze_failure(evaluator, a, true);
                 IF_VERBOSE(11, model_smt2_pp(verbose_stream(), *this, *md, 0););                
                 TRACE("model_validate", model_smt2_pp(tout, *this, *md, 0););
-                invalid_model = true;
+                invalid_model |= m().is_false(r);
             }
         }
         if (invalid_model) {
@@ -2050,6 +2046,29 @@ void cmd_context::display_statistics(bool show_total_time, double total_time) {
         m_opt->collect_statistics(st);
     }
     st.display_smt2(regular_stream());
+}
+
+
+expr_ref_vector cmd_context::tracked_assertions() {
+    expr_ref_vector result(m());
+    if (assertion_names().size() == assertions().size()) {
+        for (unsigned i = 0; i < assertions().size(); ++i) {
+            expr* an  = assertion_names()[i];
+            expr* asr = assertions()[i];
+            if (an) {
+                result.push_back(m().mk_implies(an, asr));
+            }
+            else {
+                result.push_back(asr);
+            }
+        }
+    }
+    else {
+        for (expr * e : assertions()) {
+            result.push_back(e);
+        }
+    }
+    return result;
 }
 
 

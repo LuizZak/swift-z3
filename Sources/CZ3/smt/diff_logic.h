@@ -1268,7 +1268,8 @@ public:
         m_dfs_time[v] = 0;
         succ.push_back(v);
         numeral gamma;
-        for (dl_var w : succ) {
+        for (unsigned i = 0; i < succ.size(); ++i) { // succ is updated inside of lopp
+            dl_var w = succ[i];
             for (edge_id e_id : m_out_edges[w]) {
                 edge & e = m_edges[e_id];
                 if (e.is_enabled() && set_gamma(e, gamma).is_zero()) {
@@ -1384,7 +1385,7 @@ public:
     template<typename Functor>
     bool find_shortest_path_aux(dl_var source, dl_var target, unsigned timestamp, Functor & f, bool zero_edge) {
         svector<bfs_elem> bfs_todo;
-        svector<bool>     bfs_mark;
+        bool_vector     bfs_mark;
         bfs_mark.resize(m_assignment.size(), false);
         
         bfs_todo.push_back(bfs_elem(source, -1, null_edge_id));

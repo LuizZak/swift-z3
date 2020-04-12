@@ -76,7 +76,7 @@ gparams::register_module_descr("nnf", "negation normal form");
 gparams::register_module_descr("pi", "pattern inference (heuristics) for universal formulas (without annotation)");
 gparams::register_module_descr("pp", "pretty printer");
 gparams::register_module_descr("rewriter", "new formula simplification module used in the tactic framework, and new solvers");
-gparams::register_module_descr("algebraic", "real algebraic number package");
+gparams::register_module_descr("algebraic", "real algebraic number package. Non-default parameter settings are not supported");
 gparams::register_module_descr("rcf", "real closed fields");
 gparams::register_module_descr("fp", "fixedpoint parameters");
 gparams::register_module_descr("nlsat", "nonlinear solver");

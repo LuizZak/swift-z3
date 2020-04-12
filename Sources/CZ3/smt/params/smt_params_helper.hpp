@@ -47,7 +47,7 @@ struct smt_params_helper {
     d.insert("bv.reflect", CPK_BOOL, "create enode for every bit-vector term", "true","smt");
     d.insert("bv.enable_int2bv", CPK_BOOL, "enable support for int2bv and bv2int operators", "true","smt");
     d.insert("arith.random_initial_value", CPK_BOOL, "use random initial values in the simplex-based procedure for linear arithmetic", "false","smt");
-    d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "2","smt");
+    d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "6","smt");
     d.insert("arith.nl", CPK_BOOL, "(incomplete) nonlinear arithmetic support based on Groebner basis and interval propagation, relevant only if smt.arith.solver=2", "true","smt");
     d.insert("arith.nl.gb", CPK_BOOL, "groebner Basis computation, this option is ignored when arith.nl=false, relevant only if smt.arith.solver=2", "true","smt");
     d.insert("arith.nl.branching", CPK_BOOL, "branching on integer variables in non linear clusters, relevant only if smt.arith.solver=2", "true","smt");
@@ -127,7 +127,6 @@ struct smt_params_helper {
     d.insert("core.extend_nonlocal_patterns", CPK_BOOL, "extend unsat cores with literals that have quantifiers with patterns that contain symbols which are not in the quantifier's body", "false","smt");
     d.insert("lemma_gc_strategy", CPK_UINT, "lemma garbage collection strategy: 0 - fixed, 1 - geometric, 2 - at restart, 3 - none", "0","smt");
     d.insert("dt_lazy_splits", CPK_UINT, "How lazy datatype splits are performed: 0- eager, 1- lazy for infinite types, 2- lazy", "1","smt");
-    d.insert("recfun.native", CPK_BOOL, "use native rec-fun solver", "true","smt");
     d.insert("recfun.depth", CPK_UINT, "initial depth for maxrec expansion", "2","smt");
   }
   /*
@@ -172,7 +171,7 @@ struct smt_params_helper {
   bool bv_reflect() const { return p.get_bool("bv.reflect", g, true); }
   bool bv_enable_int2bv() const { return p.get_bool("bv.enable_int2bv", g, true); }
   bool arith_random_initial_value() const { return p.get_bool("arith.random_initial_value", g, false); }
-  unsigned arith_solver() const { return p.get_uint("arith.solver", g, 2u); }
+  unsigned arith_solver() const { return p.get_uint("arith.solver", g, 6u); }
   bool arith_nl() const { return p.get_bool("arith.nl", g, true); }
   bool arith_nl_gb() const { return p.get_bool("arith.nl.gb", g, true); }
   bool arith_nl_branching() const { return p.get_bool("arith.nl.branching", g, true); }
@@ -252,7 +251,6 @@ struct smt_params_helper {
   bool core_extend_nonlocal_patterns() const { return p.get_bool("core.extend_nonlocal_patterns", g, false); }
   unsigned lemma_gc_strategy() const { return p.get_uint("lemma_gc_strategy", g, 0u); }
   unsigned dt_lazy_splits() const { return p.get_uint("dt_lazy_splits", g, 1u); }
-  bool recfun_native() const { return p.get_bool("recfun.native", g, true); }
   unsigned recfun_depth() const { return p.get_uint("recfun.depth", g, 2u); }
 };
 #endif

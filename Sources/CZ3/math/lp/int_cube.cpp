@@ -64,7 +64,7 @@ namespace lp {
         TRACE("cube", lra.print_term_as_indices(*t, tout); tout << ", delta = " << delta;);
         if (is_zero(delta))
             return true;
-        return lra.tighten_term_bounds_by_delta(i, delta);
+        return lra.tighten_term_bounds_by_delta(tv::term(i), delta);
     }
     
     bool int_cube::tighten_terms_for_cube() {
@@ -86,7 +86,7 @@ namespace lp {
             bool seen_minus = false;
             bool seen_plus = false;
             for(const auto & p : t) {
-                if (!lia.column_is_int(p.var().index()))
+                if (!lia.column_is_int(p.column()))
                     goto usual_delta;
                 const mpq & c = p.coeff();
                 if (c == one_of_type<mpq>()) {
@@ -104,7 +104,7 @@ namespace lp {
     usual_delta:
         mpq delta = zero_of_type<mpq>();
         for (const auto & p : t)
-            if (lia.column_is_int(p.var().index()))
+            if (lia.column_is_int(p.column()))
                 delta += abs(p.coeff());
         
         delta *= mpq(1, 2);

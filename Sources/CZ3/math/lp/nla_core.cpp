@@ -50,7 +50,7 @@ bool core::compare_holds(const rational& ls, llc cmp, const rational& rs) const 
 rational core::value(const lp::lar_term& r) const {
     rational ret(0);
     for (const auto & t : r) {
-        ret += t.coeff() * val(t.var().index());
+        ret += t.coeff() * val(t.column());
     }
     return ret;
 }
@@ -58,7 +58,7 @@ rational core::value(const lp::lar_term& r) const {
 lp::lar_term core::subs_terms_to_columns(const lp::lar_term& t) const {
     lp::lar_term r;
     for (const auto& p : t) {
-        lpvar j = p.var().index();
+        lpvar j = p.column();
         if (lp::tv::is_term(j))
             j = m_lar_solver.map_term_index_to_column_index(j);
         r.add_monomial(p.coeff(), j);
@@ -185,7 +185,7 @@ std::ostream& core::print_product(const T & m, std::ostream& out) const {
         if (lp_settings().m_print_external_var_name)
             out << "(" << m_lar_solver.get_variable_name(v) << "=" << val(v) << ")";
         else
-            out << "(v" << v << " =" << val(v) << ")";
+            out << "(j" << v << " =" << val(v) << ")";
             
     }
     return out;
@@ -199,7 +199,7 @@ std::string core::product_indices_str(const T & m) const {
             out << "*";
         else
             first = false;
-        out << "v" << v;;
+        out << "j" << v;;
     }
     return out.str();
 }
@@ -232,7 +232,7 @@ std::ostream& core::print_monic(const monic& m, std::ostream& out) const {
     if (lp_settings().m_print_external_var_name)
         out << "([" << m.var() << "] = " << m_lar_solver.get_variable_name(m.var()) << " = " << val(m.var()) << " = ";
     else 
-        out << "(v" << m.var() << " = " << val(m.var()) << " = ";
+        out << "(j" << m.var() << " = " << val(m.var()) << " = ";
     print_product(m.vars(), out) << ")\n";
     return out;
 }
@@ -323,25 +323,25 @@ bool core:: explain_coeff_lower_bound(const lp::lar_term::ival& p, rational& bou
     SASSERT(!a.is_zero());
     unsigned c; // the index for the lower or the upper bound
     if (a.is_pos()) {
-        unsigned c = m_lar_solver.get_column_lower_bound_witness(p.var().index());
+        unsigned c = m_lar_solver.get_column_lower_bound_witness(p.column());
         if (c + 1 == 0)
             return false;
-        bound = a * m_lar_solver.get_lower_bound(p.var().index()).x;
+        bound = a * m_lar_solver.get_lower_bound(p.column()).x;
         e.add(c);
         return true;
     }
     // a.is_neg()
-    c = m_lar_solver.get_column_upper_bound_witness(p.var().index());
+    c = m_lar_solver.get_column_upper_bound_witness(p.column());
     if (c + 1 == 0)
         return false;
-    bound = a * m_lar_solver.get_upper_bound(p.var().index()).x;
+    bound = a * m_lar_solver.get_upper_bound(p.column()).x;
     e.add(c);
     return true;
 }
 
 bool core::explain_coeff_upper_bound(const lp::lar_term::ival& p, rational& bound, lp::explanation& e) const {
     const rational& a = p.coeff();
-    lpvar j = p.var().is_term()? m_lar_solver.map_term_index_to_column_index(p.var().index()) : p.var().index();
+    lpvar j = p.column();
     SASSERT(!a.is_zero());
     unsigned c; // the index for the lower or the upper bound
     if (a.is_neg()) {
@@ -426,7 +426,6 @@ bool core:: explain_by_equiv(const lp::lar_term& t, lp::explanation& e) const {
 void core::mk_ineq(lp::lar_term& t, llc cmp, const rational& rs) {
     TRACE("nla_solver_details", m_lar_solver.print_term_as_indices(t, tout << "t = "););
     if (!explain_ineq(t, cmp, rs)) {
-        m_lar_solver.subs_term_columns(t);
         current_lemma().push_back(ineq(cmp, t, rs));
         CTRACE("nla_solver", ineq_holds(ineq(cmp, t, rs)), print_ineq(ineq(cmp, t, rs), tout) << "\n";);
         SASSERT(!ineq_holds(ineq(cmp, t, rs)));
@@ -435,7 +434,6 @@ void core::mk_ineq(lp::lar_term& t, llc cmp, const rational& rs) {
 
 void core::mk_ineq_no_expl_check(lp::lar_term& t, llc cmp, const rational& rs) {
     TRACE("nla_solver_details", m_lar_solver.print_term_as_indices(t, tout << "t = "););
-    m_lar_solver.subs_term_columns(t);
     current_lemma().push_back(ineq(cmp, t, rs));
     CTRACE("nla_solver", ineq_holds(ineq(cmp, t, rs)), print_ineq(ineq(cmp, t, rs), tout) << "\n";);
     SASSERT(!ineq_holds(ineq(cmp, t, rs)));
@@ -681,7 +679,7 @@ std::ostream & core::print_ineqs(const lemma& l, std::ostream & out) const {
             print_ineq(in, out);
             if (i + 1 < l.ineqs().size()) out << " or ";
             for (const auto & p: in.m_term)
-                vars.insert(p.var().index());
+                vars.insert(p.column());
         }
         out << std::endl;
         for (lpvar j : vars) {
@@ -864,9 +862,9 @@ bool core:: is_octagon_term(const lp::lar_term& t, bool & sign, lpvar& i, lpvar 
             return false;
         }
         if (i == static_cast<lpvar>(-1))
-            i = p.var().index();
+            i = p.column();
         else
-            j = p.var().index();
+            j = p.column();
     }
     SASSERT(j != static_cast<unsigned>(-1));
     sign = (seen_minus && seen_plus)? false : true;
@@ -958,6 +956,17 @@ void core::init_search() {
     SASSERT(elists_are_consistent(false));
 }
 
+void core::insert_to_refine(lpvar j) {
+    TRACE("lar_solver", tout << "j=" << j << '\n';);
+    m_to_refine.insert(j);
+}
+
+void core::erase_from_to_refine(lpvar j) {
+    TRACE("lar_solver", tout << "j=" << j << '\n';);
+    m_to_refine.erase(j);
+}
+
+
 void core::init_to_refine() {
     TRACE("nla_solver_details", tout << "emons:" << pp_emons(*this, m_emons););
     m_to_refine.clear();
@@ -966,12 +975,13 @@ void core::init_to_refine() {
     for (unsigned k = 0; k < sz; k++) {
         auto const & m = *(m_emons.begin() + (k + r)% sz);
         if (!check_monic(m)) 
-            m_to_refine.insert(m.var());
+            insert_to_refine(m.var());
     }
     
     TRACE("nla_solver", 
           tout << m_to_refine.size() << " mons to refine:\n";
-          for (lpvar v : m_to_refine) tout << pp_mon(*this, m_emons[v]) << "\n";);
+          for (lpvar v : m_to_refine) tout << pp_mon(*this, m_emons[v]) << ":error = " <<
+                                          (val(v) - mul_val(m_emons[v])).get_double() << "\n";);
 }
         
 std::unordered_set<lpvar> core::collect_vars(const lemma& l) const {
@@ -986,7 +996,7 @@ std::unordered_set<lpvar> core::collect_vars(const lemma& l) const {
     
     for (const auto& i : current_lemma().ineqs()) {
         for (const auto& p : i.term()) {                
-            insert_j(p.var().index());
+            insert_j(p.column());
         }
     }
     for (const auto& p : current_expl()) {
@@ -1329,6 +1339,145 @@ bool core::elists_are_consistent(bool check_in_model) const {
     return true;
 }
 
+bool core::var_is_used_in_a_correct_monic(lpvar j) const {
+    if (emons().is_monic_var(j)) {
+        if (!m_to_refine.contains(j))
+            return true;
+    }
+    for (const monic & m : emons().get_use_list(j)) {
+        if (!m_to_refine.contains(m.var())) {
+            TRACE("nla_solver", tout << "j" << j << " is used in a correct monic \n";);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void core::update_to_refine_of_var(lpvar j) {
+    for (const monic & m : emons().get_use_list(j)) {
+        if (var_val(m) == mul_val(m)) 
+            erase_from_to_refine(var(m));
+        else
+            insert_to_refine(var(m));
+    }
+    if (is_monic_var(j)) {
+        const monic& m = emons()[j];
+        if (var_val(m) == mul_val(m))
+            erase_from_to_refine(j);
+        else
+            insert_to_refine(j);        
+    }
+}
+
+bool core::patch_blocker(lpvar u, const monic& m) const {
+    SASSERT(m_to_refine.contains(m.var()));
+    if (var_is_used_in_a_correct_monic(u)) {
+        TRACE("nla_solver", tout << "u = " << u << " blocked as used in a correct monomial\n";);
+        return true;
+    }
+    
+    bool ret = u == m.var() || m.contains_var(u);
+    
+    TRACE("nla_solver", tout << "u = " << u << ", m  = "; print_monic(m, tout) <<
+          "ret = " << ret << "\n";);
+    
+    return ret;
+}
+
+bool core::try_to_patch(lpvar k, const rational& v, const monic & m) {
+    return m_lar_solver.try_to_patch(k, v,
+                                     [this, k, m](lpvar u) {
+                                         if (u == k)
+                                             return false; // ok to patch
+                                         return patch_blocker(u, m); },
+                                     [this](lpvar u) { update_to_refine_of_var(u); });
+}
+
+bool in_power(const svector<lpvar>& vs, unsigned l) {
+    unsigned k = vs[l];
+    return (l != 0 && vs[l - 1] == k) || (l + 1 < vs.size() && k == vs[l + 1]);
+}
+
+bool core::to_refine_is_correct() const {
+    for (unsigned j = 0; j < m_lar_solver.number_of_vars(); j++) {
+        if (!emons().is_monic_var(j)) continue;
+        bool valid = check_monic(emons()[j]);
+        if (valid == m_to_refine.contains(j)) {
+            TRACE("nla_solver", tout << "inconstency in m_to_refine : ";
+                  print_monic(emons()[j], tout) << "\n";
+                  if (valid) tout << "should NOT be in to_refine\n";
+                  else tout << "should be in to_refine\n";);
+            return false;
+        }
+    }
+    return true;
+}
+
+// looking for any real var to patch
+void core::patch_monomial_with_real_var(lpvar j) {    
+    const monic& m = emons()[j];
+    TRACE("nla_solver", tout << "m = "; print_monic(m, tout) << "\n";);
+    rational v = mul_val(m);
+    SASSERT(j == var(m));
+    if (var_val(m) == v) {
+        erase_from_to_refine(j);
+        return;
+    }
+    if (val(j).is_zero() || v.is_zero()) // a lemma will catch it
+        return;
+
+    if (!var_is_int(j) && !var_is_used_in_a_correct_monic(j) && try_to_patch(j, v, m)) {
+        SASSERT(to_refine_is_correct());        
+        return;
+    }
+
+    // handle perfect squares
+    if (m.vars().size() == 2 && m.vars()[0] == m.vars()[1]) {        
+        rational root;
+        if (v.is_perfect_square(root)) {
+            lpvar k = m.vars()[0];
+            if (!var_is_int(k) && 
+                !var_is_used_in_a_correct_monic(k) &&
+                (try_to_patch(k, root, m) || try_to_patch(k, -root, m))
+                ) { 
+            }
+        }
+        return;
+    }
+    // We have v != abc. Let us suppose we patch b. Then b should
+    // be equal to v/ac = v/(abc/b) = b(v/abc)
+    rational r = val(j) / v;
+    SASSERT(m.is_sorted());
+    for (unsigned l = 0; l < m.size(); l++) {
+        lpvar k = m.vars()[l];
+        if (!in_power(m.vars(), l) &&
+            !var_is_int(k) && 
+            !var_is_used_in_a_correct_monic(k) &&
+            try_to_patch(k, r * val(k), m)) { // r * val(k) gives the right value of k
+            SASSERT(mul_val(m) == var_val(m));
+            erase_from_to_refine(j);
+            break;
+        }
+    }
+                              
+}
+
+void core::patch_monomials_with_real_vars() {
+    auto to_refine = m_to_refine.index();
+    // the rest of the function might change m_to_refine, so have to copy
+    unsigned sz = to_refine.size();
+    TRACE("nla_solver", tout << "sz = " << sz << "\n";);
+    unsigned start = random();
+    for (unsigned i = 0; i < sz; i++) {
+        patch_monomial_with_real_var(to_refine[(start + i) % sz]);
+        if (m_to_refine.size() == 0)
+            break;
+    }
+    TRACE("nla_solver", tout << "sz = " << m_to_refine.size() << "\n";);
+    SASSERT(m_lar_solver.ax_is_correct());
+}
+
 lbool core::check(vector<lemma>& l_vec) {
     lp_settings().stats().m_nla_calls++;
     TRACE("nla_solver", tout << "calls = " << lp_settings().stats().m_nla_calls << "\n";);
@@ -1340,10 +1489,13 @@ lbool core::check(vector<lemma>& l_vec) {
     }
 
     init_to_refine();
+    patch_monomials_with_real_vars();
     if (m_to_refine.is_empty()) {
         return l_true;
     }
+    
     init_search();
+    
     lbool ret = inner_check(true);
     if (ret == l_undef)
         ret = inner_check(false);
@@ -1388,7 +1540,7 @@ std::ostream& core::print_terms(std::ostream& out) const {
 
 std::string core::var_str(lpvar j) const {
     return is_monic_var(j)?
-        (product_indices_str(m_emons[j].vars()) + (check_monic(m_emons[j])? "": "_")) : (std::string("v") + lp::T_to_string(j));        
+        (product_indices_str(m_emons[j].vars()) + (check_monic(m_emons[j])? "": "_")) : (std::string("j") + lp::T_to_string(j));        
 }
 
 std::ostream& core::print_term( const lp::lar_term& t, std::ostream& out) const {
@@ -1626,11 +1778,11 @@ std::unordered_set<lpvar> core::get_vars_of_expr_with_opening_terms(const nex *e
     for (unsigned i = 0; i < added.size(); ++i) {
         lpvar j = added[i];
         if (ls.column_corresponds_to_term(j)) {
-            const auto& t = m_lar_solver.get_term(ls.local_to_external(j));
+            const auto& t = m_lar_solver.get_term(lp::tv::raw(ls.local_to_external(j)));
             for (auto p : t) {
-                if (ret.find(p.var().index()) == ret.end()) {
-                    added.push_back(p.var().index());
-                    ret.insert(p.var().index());
+                if (ret.find(p.column()) == ret.end()) {
+                    added.push_back(p.column());
+                    ret.insert(p.column());
                 }
             }
         }

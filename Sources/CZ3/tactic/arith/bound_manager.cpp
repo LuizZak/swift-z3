@@ -18,10 +18,12 @@ Notes:
 --*/
 #include "tactic/arith/bound_manager.h"
 #include "ast/ast_smt2_pp.h"
+#include "ast/ast_pp.h"
 #include "tactic/goal.h"
 
 bound_manager::bound_manager(ast_manager & m):
-    m_util(m) {
+    m_util(m),
+    m_bounded_vars(m) {
 }
 
 bound_manager::~bound_manager() {
@@ -163,7 +165,6 @@ void bound_manager::insert_upper(expr * v, bool strict, numeral const & n, expr_
             m_upper_deps.insert(v, d);
         if (!m_lowers.contains(v)) {
             m_bounded_vars.push_back(v);
-            m().inc_ref(v);
         }
     }
 }
@@ -184,7 +185,6 @@ void bound_manager::insert_lower(expr * v, bool strict, numeral const & n, expr_
             m_lower_deps.insert(v, d);
         if (!m_uppers.contains(v)) {
             m_bounded_vars.push_back(v);
-            m().inc_ref(v);
         }
     }
 }
@@ -244,14 +244,16 @@ bool bound_manager::is_disjunctive_bound(expr * f, expr_dependency * d) {
 }
 
 void bound_manager::operator()(goal const & g) {
+    if (g.proofs_enabled())
+        return;
     unsigned sz = g.size();
     for (unsigned i = 0; i < sz; i++) {
         operator()(g.form(i), g.dep(i));
     }
 }
 
+
 void bound_manager::reset() {
-    m().dec_array_ref(m_bounded_vars.size(), m_bounded_vars.c_ptr());
     m_bounded_vars.finalize();
     m_lowers.finalize();
     m_uppers.finalize();

@@ -50,7 +50,7 @@ namespace lp  {
         m_constraints_for_explanation.push_back(ci);
        
         for (const auto &p : *t) {
-            m_var_register.add_var(p.var().index(), true); // hnf only deals with integral variables for now
+            m_var_register.add_var(p.column().index(), true); // hnf only deals with integral variables for now
             mpq t = abs(ceil(p.coeff()));
             if (t > m_abs_max)
                 m_abs_max = t;
@@ -201,13 +201,13 @@ namespace lp  {
 
     svector<unsigned> hnf_cutter::vars() const { return m_var_register.vars(); }
 
-    void hnf_cutter::try_add_term_to_A_for_hnf(unsigned i) {
+    void hnf_cutter::try_add_term_to_A_for_hnf(tv const &i) {
         mpq rs;
-        const lar_term* t = lra.terms()[i];
+        const lar_term& t = lra.get_term(i);
         constraint_index ci;
         bool upper_bound;
         if (!is_full() && lra.get_equality_and_right_side_for_term_on_current_x(i, rs, ci, upper_bound)) {
-            add_term(t, rs, ci, upper_bound);
+            add_term(&t, rs, ci, upper_bound);
         }
     }
 
@@ -221,7 +221,7 @@ namespace lp  {
     bool hnf_cutter::init_terms_for_hnf_cut() {
         clear();
         for (unsigned i = 0; i < lra.terms().size() && !is_full(); i++) {
-            try_add_term_to_A_for_hnf(i);
+            try_add_term_to_A_for_hnf(tv::term(i));
         }
         return hnf_has_var_with_non_integral_value();
     }

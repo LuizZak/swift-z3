@@ -58,7 +58,6 @@ struct fp_params {
     d.insert("xform.fix_unbound_vars", CPK_BOOL, "fix unbound variables in tail", "false","fp");
     d.insert("xform.unfold_rules", CPK_UINT, "unfold rules statically using iterative squaring", "0","fp");
     d.insert("xform.slice", CPK_BOOL, "simplify clause set using slicing", "true","fp");
-    d.insert("xform.karr", CPK_BOOL, "Add linear invariants to clauses using Karr's method", "false","fp");
     d.insert("spacer.use_euf_gen", CPK_BOOL, "Generalize lemmas and pobs using implied equalities", "false","fp");
     d.insert("xform.transform_arrays", CPK_BOOL, "Rewrites arrays equalities and applies select over store", "false","fp");
     d.insert("xform.instantiate_arrays", CPK_BOOL, "Transforms P(a) into P(i, a[i] a)", "false","fp");
@@ -176,7 +175,6 @@ struct fp_params {
   bool xform_fix_unbound_vars() const { return p.get_bool("xform.fix_unbound_vars", g, false); }
   unsigned xform_unfold_rules() const { return p.get_uint("xform.unfold_rules", g, 0u); }
   bool xform_slice() const { return p.get_bool("xform.slice", g, true); }
-  bool xform_karr() const { return p.get_bool("xform.karr", g, false); }
   bool spacer_use_euf_gen() const { return p.get_bool("spacer.use_euf_gen", g, false); }
   bool xform_transform_arrays() const { return p.get_bool("xform.transform_arrays", g, false); }
   bool xform_instantiate_arrays() const { return p.get_bool("xform.instantiate_arrays", g, false); }

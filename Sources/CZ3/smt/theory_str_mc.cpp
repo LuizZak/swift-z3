@@ -631,6 +631,7 @@ namespace smt {
                     cex = expr_ref(m_autil.mk_ge(mk_strlen(term), mk_int(0)), m);
                     return false;
                 }
+                SASSERT(varLen_value.is_unsigned() && "actually arithmetic solver can assign it a very large number");
                 TRACE("str_fl", tout << "creating character terms for variable " << mk_pp(term, m) << ", length = " << varLen_value << std::endl;);
                 ptr_vector<expr> new_chars;
                 for (unsigned i = 0; i < varLen_value.get_unsigned(); ++i) {
@@ -1136,7 +1137,7 @@ namespace smt {
             }
             // TODO insert length values into substitution table as well?
             if (m_params.m_FixedLengthRefinement) {
-                scoped_ptr<expr_replacer> replacer = mk_default_expr_replacer(m);
+                scoped_ptr<expr_replacer> replacer = mk_default_expr_replacer(m, false);
                 replacer->set_substitution(&subst);
                 th_rewriter rw(m);
                 if (!abstracted_boolean_formulas.empty()) {

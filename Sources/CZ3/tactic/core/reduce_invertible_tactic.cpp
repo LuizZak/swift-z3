@@ -76,7 +76,7 @@ public:
             }
             reduce_q_rw rw(*this);
             unsigned sz = g->size();
-            for (unsigned idx = 0; idx < sz; idx++) {
+            for (unsigned idx = 0; !g->inconsistent() && idx < sz; idx++) {
                 checkpoint();
                 expr* f = g->form(idx);
                 expr_ref f_new(m);
@@ -86,6 +86,7 @@ public:
                 proof_ref new_pr(m);
                 if (g->proofs_enabled()) {
                     proof * pr = g->pr(idx);
+                    new_pr     = m.mk_rewrite(f, f_new);
                     new_pr     = m.mk_modus_ponens(pr, new_pr);
                 }
                 g->update(idx, f_new, new_pr, g->dep(idx));
@@ -100,8 +101,18 @@ public:
 
 private:
     void checkpoint() { 
-        if (m.canceled())
-            throw tactic_exception(m.limit().get_cancel_msg());
+        tactic::checkpoint(m);
+    }
+
+    bool is_bv_neg(expr * e) {
+        if (m_bv.is_bv_neg(e))
+            return true;
+
+        expr *a, *b;
+        if (m_bv.is_bv_mul(e, a, b)) {
+            return m_bv.is_allone(a) || m_bv.is_allone(b);
+        }
+        return false;
     }
 
     expr_mark        m_inverted;
@@ -255,7 +266,7 @@ private:
 
         if (m_bv.is_bv_xor(p) ||
             m_bv.is_bv_not(p) ||
-            m_bv.is_bv_neg(p)) {
+            is_bv_neg(p)) {
             if (mc) {
                 ensure_mc(mc);
                 (*mc)->add(v, p);
@@ -403,7 +414,7 @@ private:
                 return false;
             }
             else if (is_var(v) && is_non_singleton_sort(m.get_sort(v))) {
-                new_v = m.mk_var(to_var(v)->get_idx(), m.mk_bool_sort());                
+                new_v = m.mk_var(to_var(v)->get_idx(), m.mk_bool_sort());
                 return true;
             }
         }
@@ -412,13 +423,13 @@ private:
 
     bool has_diagonal(expr* e) {
         return 
-            m_bv.is_bv(e) || 
+            m_bv.is_bv(e) ||
             m.is_bool(e) ||
             m_arith.is_int_real(e);
     }
 
     expr * mk_diagonal(expr* e) {
-        if (m_bv.is_bv(e)) return m_bv.mk_bv_neg(e);
+        if (m_bv.is_bv(e)) return m_bv.mk_bv_not(e);
         if (m.is_bool(e)) return m.mk_not(e);
         if (m_arith.is_int(e)) return m_arith.mk_add(m_arith.mk_int(1), e);
         if (m_arith.is_real(e)) return m_arith.mk_add(m_arith.mk_real(1), e);

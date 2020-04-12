@@ -79,7 +79,7 @@ public:
     var_eqs<emonics>         m_evars;
     lp::lar_solver&          m_lar_solver;
     vector<lemma> *          m_lemma_vec;
-    lp::u_set              m_to_refine;
+    lp::u_set                m_to_refine;
     tangents                 m_tangents;
     basics                   m_basics;
     order                    m_order;
@@ -97,6 +97,8 @@ private:
 public:
     reslimit                 m_reslim;
 
+    void insert_to_refine(lpvar j);
+    void erase_from_to_refine(lpvar j);
     
     const lp::u_set&  active_var_set () const { return m_active_var_set;}
     bool active_var_set_contains(unsigned j) const { return m_active_var_set.contains(j); }
@@ -415,6 +417,13 @@ public:
     bool influences_nl_var(lpvar) const;
     bool is_nl_var(lpvar) const;
     bool is_used_in_monic(lpvar) const;
+    void patch_monomials_with_real_vars();
+    void patch_monomial_with_real_var(lpvar);
+    bool var_is_used_in_a_correct_monic(lpvar) const;
+    void update_to_refine_of_var(lpvar j);
+    bool try_to_patch(lpvar, const rational&, const monic&);
+    bool to_refine_is_correct() const;
+    bool patch_blocker(lpvar u, const monic& m) const;
 };  // end of core
 
 struct pp_mon {

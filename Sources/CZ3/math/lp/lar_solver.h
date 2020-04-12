@@ -34,7 +34,7 @@ Revision History:
 #include "math/lp/scaler.h"
 #include "math/lp/lp_primal_core_solver.h"
 #include "math/lp/random_updater.h"
-#include "math/lp/stacked_value.h"
+#include "util/stacked_value.h"
 #include "math/lp/stacked_vector.h"
 #include "math/lp/implied_bound.h"
 #include "math/lp/bound_analyzer_on_row.h"
@@ -42,12 +42,10 @@ Revision History:
 #include "math/lp/int_solver.h"
 #include "math/lp/nra_solver.h"
 #include "math/lp/lp_bound_propagator.h"
+#include "math/lp/lp_types.h"
 
 namespace lp {
 
-typedef unsigned lpvar;
-const lpvar null_lpvar = UINT_MAX;
-const constraint_index null_ci = UINT_MAX;
 
 class lar_solver : public column_namer {
     struct term_hasher {
@@ -59,7 +57,7 @@ class lar_solver : public column_namer {
             size_t seed = 0;
             int i = 0;
             for (const auto p : t) {
-                hash_combine(seed, p.var().index());
+                hash_combine(seed, (unsigned)p.column());
                 hash_combine(seed, p.coeff());
                 if (i++ > 10)
                     break;
@@ -95,18 +93,19 @@ public:
     stacked_vector<ul_pair>                             m_columns_to_ul_pairs;
     constraint_set                                      m_constraints;
     // the set of column indices j such that bounds have changed for j
-    u_set                                             m_columns_with_changed_bound;
-    u_set                                             m_rows_with_changed_bounds;
-    u_set                                             m_basic_columns_with_changed_cost;
+    u_set                                               m_columns_with_changed_bound;
+    u_set                                               m_rows_with_changed_bounds;
+    u_set                                               m_basic_columns_with_changed_cost;
     // these are basic columns with the value changed, so the the corresponding row in the tableau
     // does not sum to zero anymore
-    u_set                                             m_incorrect_columns;
+    u_set                                               m_incorrect_columns;
     stacked_value<int>                                  m_crossed_bounds_column_index; // such can be found at the initialization step
     stacked_value<unsigned>                             m_term_count;
     vector<lar_term*>                                   m_terms;
     indexed_vector<mpq>                                 m_column_buffer;
     std::unordered_map<lar_term, std::pair<mpq, unsigned>, term_hasher, term_comparer>
                                                         m_normalized_terms_to_columns;
+    vector<impq>                                        m_backup_x;
     // end of fields
 
     const vector<lar_term*> & terms() const { return m_terms; }
@@ -121,21 +120,19 @@ public:
     static_matrix<double, double> & A_d();
     static_matrix<double, double > const & A_d() const;
     
-    static bool valid_index(unsigned j){ return static_cast<int>(j) >= 0;}
+    static bool valid_index(unsigned j) { return static_cast<int>(j) >= 0;}
 
     bool column_is_int(unsigned j) const;
-    bool column_value_is_int(unsigned j) const {
-        return m_mpq_lar_core_solver.m_r_x[j].is_int();
-    }
-
-    const impq& get_column_value(unsigned j) const {
-        return m_mpq_lar_core_solver.m_r_x[j];
-    }
+    bool column_value_is_int(unsigned j) const { return m_mpq_lar_core_solver.m_r_x[j].is_int(); }
+    const impq& get_column_value(unsigned j) const { return m_mpq_lar_core_solver.m_r_x[j]; }
 
     void set_column_value(unsigned j, const impq& v) {
         m_mpq_lar_core_solver.m_r_x[j] = v;
     }
-    
+
+    unsigned external_to_column_index(unsigned) const;
+
+    // NSB code review: function seems misnamed. 'j' can be a term index. Columns are not term indices.    
     const mpq& get_column_value_rational(unsigned j) const {
         if (tv::is_term(j)) {
             j = m_var_register.external_to_local(j);
@@ -145,6 +142,9 @@ public:
 
     bool column_is_fixed(unsigned j) const;
     bool column_is_free(unsigned j) const;
+
+    const lar_term & get_term(unsigned j) const;
+
 public:
 
     // init region
@@ -196,6 +196,14 @@ public:
     bool compare_values(var_index j, lconstraint_kind kind, const mpq & right_side);
 
     bool compare_values(impq const& lhs, lconstraint_kind k, const mpq & rhs);
+
+    // columns
+
+    bool column_is_int(column_index const& j) const { return column_is_int((unsigned)j); }
+    column_index to_column_index(unsigned v) const { return column_index(external_to_column_index(v)); }
+    bool is_fixed(column_index const& j) const { return column_is_fixed(j); }
+    const impq& get_value(column_index const& j) const { return get_column_value(j); }
+
 
     void update_column_type_and_bound(var_index j, lconstraint_kind kind, const mpq & right_side, constraint_index constr_index);
     void update_column_type_and_bound_with_ub(var_index j, lconstraint_kind kind, const mpq & right_side, constraint_index constr_index);
@@ -274,14 +282,13 @@ public:
     
     var_index external_to_local(unsigned j) const {
         var_index local_j;
-        if (
-            m_var_register.external_is_used(j, local_j) ||
-            m_term_register.external_is_used(j, local_j))
-            {
-                return local_j;
-            }
-        else
+        if (m_var_register.external_is_used(j, local_j) ||
+            m_term_register.external_is_used(j, local_j)) {
+            return local_j;
+        }
+        else {
             return -1;
+        }
     }
 
     bool column_has_upper_bound(unsigned j) const {
@@ -292,11 +299,11 @@ public:
         return m_mpq_lar_core_solver.m_r_solver.column_has_lower_bound(j);
     }
 
-    const impq& get_upper_bound(unsigned j) const {
+    const impq& get_upper_bound(column_index j) const {
         return m_mpq_lar_core_solver.m_r_solver.m_upper_bounds[j];
     }
 
-    const impq& get_lower_bound(unsigned j) const {
+    const impq& get_lower_bound(column_index j) const {
         return m_mpq_lar_core_solver.m_r_solver.m_lower_bounds[j];
     }
     
@@ -354,10 +361,10 @@ public:
     // return true if found and false if unbounded
     lp_status maximize_term(unsigned j_or_term, impq &term_max);
     
-
     
-    const lar_term &  get_term(unsigned j) const;
 
+    const lar_term & get_term(tv const& t) const { lp_assert(t.is_term()); return *m_terms[t.id()]; }
+    
     void pop_core_solver_params();
 
     void pop_core_solver_params(unsigned k);
@@ -575,26 +582,17 @@ public:
         return m_columns_to_ul_pairs()[j].lower_bound_witness();
     }
 
-    void subs_term_columns(lar_term& t) {
-        vector<std::pair<unsigned,unsigned>> columns_to_subs;
-        for (const auto & m : t) {
-            unsigned tj = adjust_column_index_to_term_index(m.var().index());
-            if (tj == m.var().index()) continue;
-            columns_to_subs.push_back(std::make_pair(m.var().index(), tj));
-        }
-        for (const auto & p : columns_to_subs) {
-            t.subst_index(p.first, p.second);            
-        }
+    tv column2tv(column_index const& c) const {
+        return tv::raw(adjust_column_index_to_term_index(c));
     }
     
     std::ostream& print_column_info(unsigned j, std::ostream& out) const {
         m_mpq_lar_core_solver.m_r_solver.print_column_info(j, out);
         if (tv::is_term(j)) {
-            const lar_term& t = * m_terms[tv::unmask_term(j)];
-            print_term_as_indices(t, out) << "\n";
+            print_term_as_indices(get_term(j), out) << "\n";
             
-        } else if(column_corresponds_to_term(j)) { 
-            const lar_term& t = * m_terms[tv::unmask_term(m_var_register.local_to_external(j))];
+        } else if (column_corresponds_to_term(j)) { 
+            const lar_term& t = get_term(m_var_register.local_to_external(j));
             print_term_as_indices(t, out) << "\n";
         }
         return out;
@@ -622,7 +620,7 @@ public:
     bool column_corresponds_to_term(unsigned) const;
     void catch_up_in_updating_int_solver();
     var_index to_column(unsigned ext_j) const;
-    bool tighten_term_bounds_by_delta(unsigned, const impq&);
+    bool tighten_term_bounds_by_delta(tv const& t, const impq&);
     void round_to_integer_solution();
     void fix_terms_with_rounded_columns();
     void update_delta_for_terms(const impq & delta, unsigned j, const vector<unsigned>&);
@@ -631,7 +629,7 @@ public:
     unsigned row_count() const { return A_r().row_count(); }
     const vector<unsigned> & r_basis() const { return m_mpq_lar_core_solver.r_basis(); }
     const vector<unsigned> & r_nbasis() const { return m_mpq_lar_core_solver.r_nbasis(); }
-    bool get_equality_and_right_side_for_term_on_current_x(unsigned i, mpq &rs, constraint_index& ci, bool &upper_bound) const;
+    bool get_equality_and_right_side_for_term_on_current_x(tv const& t, mpq &rs, constraint_index& ci, bool &upper_bound) const;
     bool remove_from_basis(unsigned);
     lar_term get_term_to_maximize(unsigned ext_j) const;
     void set_cut_strategy(unsigned cut_frequency);
@@ -641,5 +639,9 @@ public:
     void register_normalized_term(const lar_term&, lpvar);
     void deregister_normalized_term(const lar_term&);
     bool fetch_normalized_term_column(const lar_term& t, std::pair<mpq, lpvar>& ) const;
+    bool try_to_patch(lpvar, const mpq&, const std::function<bool (lpvar)>& blocker,const std::function<void (lpvar)>& change_report);
+    bool inside_bounds(lpvar, const impq&) const;
+    void backup_x() { m_backup_x = m_mpq_lar_core_solver.m_r_x; }
+    void restore_x() { m_mpq_lar_core_solver.m_r_x = m_backup_x; }
 };
 }

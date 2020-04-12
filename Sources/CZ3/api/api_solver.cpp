@@ -254,7 +254,7 @@ extern "C" {
         bool initialized = to_solver(s)->m_solver.get() != nullptr;
         if (!initialized)
             init_solver(c, s);
-        for (expr * e : ctx->assertions()) {
+        for (expr* e : ctx->tracked_assertions()) {
             to_solver(s)->assert_expr(e);
         }
         to_solver_ref(s)->set_model_converter(ctx->get_model_converter());
@@ -583,7 +583,7 @@ extern "C" {
             catch (z3_exception & ex) {
                 to_solver_ref(s)->set_reason_unknown(eh);
                 to_solver(s)->set_eh(nullptr);
-                if (!mk_c(c)->m().canceled()) {
+                if (mk_c(c)->m().inc()) {
                     mk_c(c)->handle_exception(ex);
                 }
                 return Z3_L_UNDEF;

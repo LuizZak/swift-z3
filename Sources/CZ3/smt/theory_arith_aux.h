@@ -468,7 +468,7 @@ namespace smt {
         SASSERT(upper  || new_bound->get_bound_kind() == B_LOWER);
         theory_var v = new_bound->get_var();
         set_bound_core(v, new_bound, upper);
-        if ((propagate_eqs() || propagate_diseqs()) && is_fixed(v))
+        if ((propagate_eqs() || propagate_diseqs()) && is_fixed(v)) 
             fixed_var_eh(v);
     }
     
@@ -2146,6 +2146,8 @@ namespace smt {
                 candidates.push_back(other);
             }
         }
+        TRACE("arith_rand", tout << "candidates.size() == " << candidates.size() << "\n";);
+
         if (candidates.empty())
             return;
         m_tmp_var_set.reset();

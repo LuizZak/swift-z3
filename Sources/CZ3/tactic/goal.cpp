@@ -18,6 +18,7 @@ Revision History:
 --*/
 #include "ast/ast_ll_pp.h"
 #include "ast/ast_smt2_pp.h"
+#include "ast/ast_pp.h"
 #include "ast/for_each_expr.h"
 #include "ast/well_sorted.h"
 #include "ast/display_dimacs.h"
@@ -115,6 +116,7 @@ void goal::copy_to(goal & target) const {
 }
 
 void goal::push_back(expr * f, proof * pr, expr_dependency * d) {
+    SASSERT(!proofs_enabled() || pr);
     if (m().is_true(f))
         return;
     if (m().is_false(f)) {
@@ -133,7 +135,7 @@ void goal::push_back(expr * f, proof * pr, expr_dependency * d) {
             m().push_back(m_dependencies, saved_d);
     }
     else {
-        // SASSERT(!pr || m().get_fact(pr) == f);
+        SASSERT(!pr || m().get_fact(pr) == f);
         SASSERT(!m_inconsistent);
         m().push_back(m_forms, f);
         m().push_back(m_proofs, pr);
@@ -252,8 +254,10 @@ void goal::assert_expr(expr * f, proof * pr, expr_dependency * d) {
     if (m_inconsistent) {
         return;
     }
+    SASSERT(!proofs_enabled() || pr);
     if (pr) {
-        // SASSERT(f == m().get_fact(pr));
+        CTRACE("goal", f != m().get_fact(pr), tout << mk_pp(f, m()) << "\n" << mk_pp(pr, m()) << "\n";);
+        SASSERT(f == m().get_fact(pr));
         slow_process(f, pr, d);
     }
     else {
@@ -284,7 +288,7 @@ void goal::update(unsigned i, expr * f, proof * pr, expr_dependency * d) {
     if (m_inconsistent)
         return;
     if (pr) {
-        // SASSERT(f == m().get_fact(pr));
+        SASSERT(f == m().get_fact(pr));
         expr_ref out_f(m());
         proof_ref out_pr(m());
         slow_process(true, f, pr, d, out_f, out_pr);
@@ -301,6 +305,7 @@ void goal::update(unsigned i, expr * f, proof * pr, expr_dependency * d) {
         }
     }
     else {
+        SASSERT(!proofs_enabled());
         expr_ref fr(f, m());
         quick_process(true, fr, d);
         if (!m_inconsistent) {
@@ -630,7 +635,6 @@ goal * goal::translate(ast_translation & translator) const {
 
     return res;
 }
-
 
 bool goal::sat_preserved() const {
     return prec() == PRECISE || prec() == UNDER;
