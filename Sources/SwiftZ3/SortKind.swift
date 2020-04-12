@@ -104,11 +104,14 @@ extension Double: FloatingSort {
         return context.floatingPoint64Sort()
     }
 }
+
+#if os(macOS) || os(Linux)
 extension Float80: FloatingSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.floatingPointSort(ebits: 15, sbits: 63)
     }
 }
+#endif
 
 /// A Quadruple-precision floating point sort
 public struct FP128Sort: FloatingSort {
