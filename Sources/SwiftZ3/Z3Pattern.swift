@@ -21,3 +21,9 @@ public class Z3Pattern: Z3AstBase {
         return Z3Pattern(context: newContext, pattern: newAst!)
     }
 }
+
+internal extension Sequence where Element: Z3Pattern {
+    func toZ3_patternPointerArray() -> [Z3_pattern?] {
+        return map { $0.pattern }
+    }
+}

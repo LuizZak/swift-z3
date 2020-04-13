@@ -50,7 +50,117 @@ public extension Z3Context {
     ///   - ty: sort of the bound variable
     /// - seealso: `makeForAll`
     /// - seealso: `makeExists`
-    func makeBounds(_ index: UInt32, _ ty: Z3Sort) -> AnyZ3Ast {
+    func makeBound(_ index: UInt32, _ ty: Z3Sort) -> AnyZ3Ast {
         return AnyZ3Ast(context: self, ast: Z3_mk_bound(context, index, ty.sort))
+    }
+    
+    /// Create a forall formula. It takes an expression `body` that contains
+    /// bound variables of the same sorts as the sorts listed in the array
+    /// `declarations`.
+    /// The bound variables are de-Bruijn indices created using `makeBound`.
+    /// The array `declarations` contains the names that the quantified formula
+    /// uses for the bound variables. Z3 applies the convention that the last
+    /// element in the `declarations` array refers to the variable with index 0,
+    /// the second to last element of `declarations` refers to the variable with
+    /// index 1, etc.
+    ///
+    /// - Parameters:
+    ///   - weight: quantifiers are associated with weights indicating the
+    ///   importance of using the quantifier during instantiation. By default,
+    ///   pass the weight 0.
+    ///   - patterns: array containing the patterns created using `makePattern`
+    ///   - declarations: an array of declarations containing the sorts and names
+    ///   of the bound variables.
+    ///   - body: the body of the quantifier.
+    ///
+    /// - seealso: `makePattern`
+    /// - seealso: `makeBound`
+    /// - seealso: `makeExists`
+    func makeForall(weight: UInt32,
+                    patterns: [Z3Pattern],
+                    declarations: [(Z3Sort, Z3Symbol)],
+                    body: AnyZ3Ast) -> AnyZ3Ast {
+        
+        let patterns = patterns.toZ3_patternPointerArray()
+        let sorts = declarations.map(\.0).toZ3_sortPointerArray()
+        let symbols = declarations.map(\.1).toZ3_symbolPointerArray()
+        
+        let ast = Z3_mk_forall(context,
+                               weight,
+                               UInt32(patterns.count), patterns,
+                               UInt32(declarations.count), sorts, symbols,
+                               body.ast)
+        
+        return AnyZ3Ast(context: self, ast: ast)
+    }
+    
+    /// Create an exists formula. Similar to `makeForall`.
+    ///
+    /// - Parameters:
+    ///   - weight: quantifiers are associated with weights indicating the
+    ///   importance of using the quantifier during instantiation. By default,
+    ///   pass the weight 0.
+    ///   - patterns: array containing the patterns created using `makePattern`
+    ///   - declarations: an array of declarations containing the sorts and names
+    ///   of the bound variables.
+    ///   - body: the body of the quantifier.
+    ///
+    /// - seealso: `makePattern`
+    /// - seealso: `makeBound`
+    /// - seealso: `makeForall`
+    /// - seealso: `makeQuantifier`
+    func makeExists(weight: UInt32,
+                    patterns: [Z3Pattern],
+                    declarations: [(Z3Sort, Z3Symbol)],
+                    body: AnyZ3Ast) -> AnyZ3Ast {
+        
+        let patterns = patterns.toZ3_patternPointerArray()
+        let sorts = declarations.map(\.0).toZ3_sortPointerArray()
+        let symbols = declarations.map(\.1).toZ3_symbolPointerArray()
+        
+        let ast = Z3_mk_exists(context,
+                               weight,
+                               UInt32(patterns.count), patterns,
+                               UInt32(declarations.count), sorts, symbols,
+                               body.ast)
+        
+        return AnyZ3Ast(context: self, ast: ast)
+    }
+    
+    /// Create a quantifier - universal or existential, with pattern hints.
+    ///
+    /// - Parameters:
+    ///   - isForall: flag to indicate if this is a universal or existential
+    ///   quantifier.
+    ///   - weight: quantifiers are associated with weights indicating the
+    ///   importance of using the quantifier during instantiation. By default,
+    ///   pass the weight 0.
+    ///   - patterns: array containing the patterns created using `makePattern`
+    ///   - declarations: an array of declarations containing the sorts and names
+    ///   of the bound variables.
+    ///   - body: the body of the quantifier.
+    ///
+    /// - seealso: `makePattern`
+    /// - seealso: `makeBound`
+    /// - seealso: `makeForall`
+    /// - seealso: `makeExists`
+    func makeQuantifier(isForall: Bool,
+                        weight: UInt32,
+                        patterns: [Z3Pattern],
+                        declarations: [(Z3Sort, Z3Symbol)],
+                        body: AnyZ3Ast) -> AnyZ3Ast {
+        
+        let patterns = patterns.toZ3_patternPointerArray()
+        let sorts = declarations.map(\.0).toZ3_sortPointerArray()
+        let symbols = declarations.map(\.1).toZ3_symbolPointerArray()
+        
+        let ast = Z3_mk_quantifier(context,
+                                   isForall,
+                                   weight,
+                                   UInt32(patterns.count), patterns,
+                                   UInt32(declarations.count), sorts, symbols,
+                                   body.ast)
+        
+        return AnyZ3Ast(context: self, ast: ast)
     }
 }
