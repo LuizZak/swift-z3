@@ -1,28 +1,20 @@
 import CZ3
 
-public enum Z3SortKind: UInt32 {
-    case uninterpretedSort
-    case boolSort
-    case intSort
-    case realSort
-    case bvSort
-    case arraySort
-    case datatypeSort
-    case relationSort
-    case finiteDomainSort
-    case floatingPointSort
-    case roundingModeSort
-    case seqSort
-    case reSort
-    case unknownSort = 1000
-}
+public typealias Z3SortKind = Z3_sort_kind
 
 public extension Z3SortKind {
-    var toZ3_sort_kind: Z3_sort_kind {
-        return Z3_sort_kind(rawValue: rawValue)
-    }
-
-    static func fromZ3_sort_kind(_ value: Z3_sort_kind) -> Z3SortKind {
-        return Z3SortKind(rawValue: value.rawValue) ?? .unknownSort
-    }
+    static let uninterpretedSort = Z3_UNINTERPRETED_SORT
+    static let boolSort = Z3_BOOL_SORT
+    static let intSort = Z3_INT_SORT
+    static let realSort = Z3_REAL_SORT
+    static let bvSort = Z3_BV_SORT
+    static let arraySort = Z3_ARRAY_SORT
+    static let datatypeSort = Z3_DATATYPE_SORT
+    static let relationSort = Z3_RELATION_SORT
+    static let finiteDomainSort = Z3_FINITE_DOMAIN_SORT
+    static let floatingPointSort = Z3_FLOATING_POINT_SORT
+    static let roundingModeSort = Z3_ROUNDING_MODE_SORT
+    static let seqSort = Z3_SEQ_SORT
+    static let reSort = Z3_RE_SORT
+    static let unknownSort = Z3_UNKNOWN_SORT
 }

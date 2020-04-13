@@ -5,10 +5,11 @@ public class Z3Symbol {
     public let context: Z3Context
     var symbol: Z3_symbol
 
-    /// Return `Z3_INT_SYMBOL` if the symbol was constructed using `makeIntSymbol`,
-    /// and `Z3_STRING_SYMBOL` if the symbol was constructed using `makeStringSymbol`.
+    /// Return `Z3SymbolKind.intSymbol` if the symbol was constructed using
+    /// `makeIntSymbol`, and `Z3SymbolKind.stringSymbol` if the symbol was
+    /// constructed using `makeStringSymbol`.
     public var symbolKind: Z3SymbolKind {
-        return Z3SymbolKind.fromZ3_symbol_kind(Z3_get_symbol_kind(context.context, symbol))
+        return Z3_get_symbol_kind(context.context, symbol)
     }
 
     /// Return the symbol int value.

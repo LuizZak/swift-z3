@@ -15,7 +15,7 @@ public class Z3Sort: Z3AstBase {
     ///
     /// - seealso: `Z3SortKind`
     public var sortKind: Z3SortKind {
-        return Z3SortKind.fromZ3_sort_kind(Z3_get_sort_kind(context.context, sort))
+        return Z3_get_sort_kind(context.context, sort)
     }
 
     init(context: Z3Context, sort: Z3_sort) {

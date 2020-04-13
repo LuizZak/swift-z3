@@ -28,7 +28,7 @@ public class Z3Context {
 
     /// Return the error code for the last API call.
     public var errorCode: Z3ErrorCode {
-        return .fromZ3_error_code(Z3_get_error_code(context))
+        return Z3_get_error_code(context)
     }
     
     /// Return `true` if the last API call resulted in an error.
@@ -40,7 +40,7 @@ public class Z3Context {
         context = Z3_mk_context(configuration?.config)
         Z3_set_error_handler(context) { (context, code) in
             let tempContext = Z3Context(borrowing: context!)
-            print("Z3 Error: \(tempContext.errorMessage(Z3ErrorCode.fromZ3_error_code(code)))")
+            print("Z3 Error: \(tempContext.errorMessage(code))")
         }
     }
     
@@ -57,7 +57,7 @@ public class Z3Context {
 
     /// Return a string describing the given error code.
     public func errorMessage(_ code: Z3ErrorCode) -> String {
-        return String(cString: Z3_get_error_msg(context, code.toZ3_error_code))
+        return String(cString: Z3_get_error_msg(context, code))
     }
     
     /// Interrupt the execution of a Z3 procedure.

@@ -80,7 +80,7 @@ public class Z3AstBase {
 
     /// Return the kind of the given AST.
     public var astKind: Z3AstKind {
-        return Z3AstKind.fromZ3_ast_kind(Z3_get_ast_kind(context.context, ast))
+        return Z3_get_ast_kind(context.context, ast)
     }
 
     init(context: Z3Context, ast: Z3_ast) {
