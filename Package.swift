@@ -7,8 +7,10 @@ let package = Package(
     products: [
         .library(
             name: "SwiftZ3",
-            type: .dynamic,
             targets: ["SwiftZ3"]),
+        .library(
+            name: "CZ3",
+            targets: ["CZ3"]),
         .executable(
             name: "SwiftZ3Sample",
             targets: ["SwiftZ3Sample"]),
