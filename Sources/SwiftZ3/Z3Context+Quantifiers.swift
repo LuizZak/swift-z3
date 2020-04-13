@@ -91,7 +91,7 @@ public extension Z3Context {
                                UInt32(declarations.count), sorts, symbols,
                                body.ast)
         
-        return AnyZ3Ast(context: self, ast: ast)
+        return AnyZ3Ast(context: self, ast: ast!)
     }
     
     /// Create an exists formula. Similar to `makeForall`.
@@ -124,7 +124,7 @@ public extension Z3Context {
                                UInt32(declarations.count), sorts, symbols,
                                body.ast)
         
-        return AnyZ3Ast(context: self, ast: ast)
+        return AnyZ3Ast(context: self, ast: ast!)
     }
     
     /// Create a quantifier - universal or existential, with pattern hints.
@@ -161,6 +161,6 @@ public extension Z3Context {
                                    UInt32(declarations.count), sorts, symbols,
                                    body.ast)
         
-        return AnyZ3Ast(context: self, ast: ast)
+        return AnyZ3Ast(context: self, ast: ast!)
     }
 }
