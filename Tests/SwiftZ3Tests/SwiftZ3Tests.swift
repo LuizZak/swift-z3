@@ -188,7 +188,7 @@ final class SwiftZ3Tests: XCTestCase {
         for i in 0..<9 {
             x.append([])
             for j in 0..<9 {
-                x[i].append(context.makeConstant(name: "x_\(i + 1)_\(j + 1)", sort: IntSort.self))
+                x[i].append(context.makeConstant(name: "x_\(i + 1)_\(j + 1)"))
             }
         }
 
@@ -392,8 +392,7 @@ final class SwiftZ3Tests: XCTestCase {
             grid.append([])
             for y in 0..<gridSize {
                 grid[x].append(
-                    context.makeConstant(name: "x_\(x + 1)_\(y + 1)",
-                                         sort: IntSort.self)
+                    context.makeConstant(name: "x_\(x + 1)_\(y + 1)")
                 )
             }
         }

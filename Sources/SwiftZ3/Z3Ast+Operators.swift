@@ -45,7 +45,29 @@ public extension Z3Ast where T: IntOrRealSort {
     }
 }
 
+public extension Z3Ast where T: IntOrRealSort {
+    static func + (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeAdd([lhs, rhs])
+    }
+    
+    static func - (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeSub([lhs, rhs])
+    }
+    
+    static func * (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeMul([lhs, rhs])
+    }
+    
+    static func / (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeDiv(lhs, rhs)
+    }
+}
+
 public extension Z3Ast where T == IntSort {
+    static func % (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeMod(lhs, rhs)
+    }
+    
     static func == (lhs: Int32, rhs: Z3Ast) -> Z3Bool {
         let lhsInt = rhs.context.makeInteger(lhs)
         return lhsInt == rhs
@@ -101,29 +123,7 @@ public extension Z3Ast where T == IntSort {
     }
 }
 
-public extension Z3Ast where T: IntOrRealSort {
-    static func + (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
-        return lhs.context.makeAdd([lhs, rhs])
-    }
-    
-    static func - (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
-        return lhs.context.makeSub([lhs, rhs])
-    }
-    
-    static func * (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
-        return lhs.context.makeMul([lhs, rhs])
-    }
-    
-    static func / (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
-        return lhs.context.makeDiv(lhs, rhs)
-    }
-}
-
 public extension Z3Ast where T == IntSort {
-    static func % (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
-        return lhs.context.makeMod(lhs, rhs)
-    }
-    
     // MARK: - Constants Casting
     static func + (lhs: Int32, rhs: Z3Ast) -> Z3Int {
         let lhsInt = rhs.context.makeInteger(lhs)
@@ -194,6 +194,10 @@ public extension Z3Ast where T: BitVectorSort {
     
     static func * (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
         return lhs.context.makeBvMul(lhs, rhs)
+    }
+    
+    static func / (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+        return lhs.context.makeBvSDiv(lhs, rhs)
     }
     
     /// Two's complement signed less than.

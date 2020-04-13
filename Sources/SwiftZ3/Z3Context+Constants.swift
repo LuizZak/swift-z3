@@ -76,7 +76,7 @@ public extension Z3Context {
     /// - seealso: `makeApply`
     /// - seealso: `makeFreshConst`
     /// - seealso: `makeFuncDecl`
-    func makeConstant<T: SortKind>(name: String, sort: T.Type) -> Z3Ast<T> {
+    func makeConstant<T: SortKind>(name: String, sort: T.Type = T.self) -> Z3Ast<T> {
         let symbol = makeStringSymbol(name)
 
         return makeConstant(name: symbol, sort: sort.getSort(self)).castTo()
@@ -92,7 +92,7 @@ public extension Z3Context {
     /// - seealso: `makeApply`
     /// - seealso: `makeFreshConst`
     /// - seealso: `makeFuncDecl`
-    func makeConstant<T: SortKind>(name: Z3Symbol, sort: T.Type) -> Z3Ast<T> {
+    func makeConstant<T: SortKind>(name: Z3Symbol, sort: T.Type = T.self) -> Z3Ast<T> {
         return makeConstant(name: name, sort: sort.getSort(self)).castTo()
     }
 
