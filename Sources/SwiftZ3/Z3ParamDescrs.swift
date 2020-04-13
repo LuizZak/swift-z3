@@ -11,7 +11,7 @@ public class Z3ParamDescrs {
     }
     
     /// Return the kind associated with the given parameter name `n`.
-    public func getKind(_ n: Z3Symbol) -> Z3_param_kind {
+    public func getKind(_ n: Z3Symbol) -> Z3ParamKind {
         return Z3_param_descrs_get_kind(context.context, descrs, n.symbol)
     }
     

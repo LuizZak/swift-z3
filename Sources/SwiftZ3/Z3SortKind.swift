@@ -1,5 +1,6 @@
 import CZ3
 
+/// The different kinds of Z3 types (See `Z3Context.getSortKind`).
 public typealias Z3SortKind = Z3_sort_kind
 
 public extension Z3SortKind {
