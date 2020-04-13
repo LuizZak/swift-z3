@@ -40,11 +40,15 @@ if let model = solver.getModel() {
 
 Development is ongoing and the public API might change at any time without notice.
 
+### Requirements
+
+Swift 5.2
+
 ### Instalation
 
 SwiftZ3 is available to Swift Package Manager:
 
-```
+```swift
 dependencies: [
     .package(url: "https://github.com/LuizZak/swift-z3.git", .branch("master"))
 ]
