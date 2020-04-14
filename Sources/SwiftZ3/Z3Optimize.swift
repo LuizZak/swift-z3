@@ -66,10 +66,21 @@ public class Z3Optimize {
     public func maximize<T: IntOrRealSort>(_ a: Z3Ast<T>) -> UInt32 {
         return Z3_optimize_maximize(context.context, optimize, a.ast)
     }
+    
+    /// Add a maximization constraint.
+    ///
+    /// AST must be of bit vector, int, or real type.
+    ///
+    /// - seealso: `minimize()`
+    /// - seealso: `minimizeAny()`
+    public func maximizeAny(_ a: AnyZ3Ast) -> UInt32 {
+        return Z3_optimize_maximize(context.context, optimize, a.ast)
+    }
 
     /// Add a minimization constraint.
     ///
-    /// - seealso: `maximize()`
+    /// - seealso: `minimize()`
+    /// - seealso: `minimizeAny()`
     public func minimize<T: BitVectorSort>(_ a: Z3Ast<T>) -> UInt32 {
         return Z3_optimize_minimize(context.context, optimize, a.ast)
     }
@@ -77,7 +88,18 @@ public class Z3Optimize {
     /// Add a minimization constraint.
     ///
     /// - seealso: `maximize()`
+    /// - seealso: `maximizeAny()`
     public func minimize<T: IntOrRealSort>(_ a: Z3Ast<T>) -> UInt32 {
+        return Z3_optimize_minimize(context.context, optimize, a.ast)
+    }
+    
+    /// Add a minimization constraint.
+    ///
+    /// AST must be of bit vector, int, or real type.
+    ///
+    /// - seealso: `maximize()`
+    /// - seealso: `maximizeAny()`
+    public func minimizeAny(_ a: AnyZ3Ast) -> UInt32 {
         return Z3_optimize_minimize(context.context, optimize, a.ast)
     }
 

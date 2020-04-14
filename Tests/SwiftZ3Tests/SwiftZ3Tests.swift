@@ -280,7 +280,7 @@ final class SwiftZ3Tests: XCTestCase {
             for i in 0..<9 {
                 r.append([])
                 for j in 0..<9 {
-                    r[i].append(m.eval(x[i][j], completion: false)!)
+                    r[i].append(m.eval(x[i][j])!)
                 }
             }
 
@@ -473,7 +473,7 @@ final class SwiftZ3Tests: XCTestCase {
             for i in 0..<gridSize {
                 r.append([])
                 for j in 0..<gridSize {
-                    r[i].append(m.eval(grid[i][j], completion: false)!)
+                    r[i].append(m.eval(grid[i][j])!)
                 }
             }
 
