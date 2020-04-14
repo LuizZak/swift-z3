@@ -26,6 +26,18 @@ public class Z3AstVector {
             Z3_ast_vector_set(context.context, astVector, index, newValue.ast)
         }
     }
+    
+    /// Return or update the AST at position `index` in this AST vector.
+    ///
+    /// - precondition: `i >= 0 && i < size`
+    public subscript(index: Int) -> AnyZ3Ast {
+        get {
+            return self[UInt32(index)]
+        }
+        set {
+            self[UInt32(index)] = newValue
+        }
+    }
 
     init(context: Z3Context) {
         self.context = context
@@ -47,5 +59,40 @@ public class Z3AstVector {
 
     public func push(_ ast: AnyZ3Ast) {
         Z3_ast_vector_push(context.context, astVector, ast.ast)
+    }
+    
+    /// Translate/Copy the AST vector `self` from its current context to context
+    /// `target`
+    public func translate(to newContext: Z3Context) -> Z3AstVector {
+        if context === newContext {
+            return self
+        }
+
+        let newAstVector =
+            Z3_ast_vector_translate(context.context,
+                                    astVector,
+                                    newContext.context)
+        
+        return Z3AstVector(context: newContext, astVector: newAstVector!)
+    }
+}
+
+extension Z3AstVector: Sequence {
+    public func makeIterator() -> AnyIterator<AnyZ3Ast> {
+        var index: UInt32 = 0
+        var isAtEnd = false
+        
+        return AnyIterator {
+            if index >= self.size {
+                isAtEnd = true
+            }
+            if isAtEnd {
+                return nil
+            }
+            
+            defer { index += 1 }
+            
+            return self[index]
+        }
     }
 }
