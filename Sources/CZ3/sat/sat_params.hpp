@@ -61,7 +61,6 @@ struct sat_params {
     d.insert("cardinality.solver", CPK_BOOL, "use cardinality solver", "true","sat");
     d.insert("pb.solver", CPK_SYMBOL, "method for handling Pseudo-Boolean constraints: circuit (arithmetical circuit), sorting (sorting circuit), totalizer (use totalizer encoding), binary_merge, segmented, solver (use native solver)", "solver","sat");
     d.insert("pb.min_arity", CPK_UINT, "minimal arity to compile pb/cardinality constraints to CNF", "9","sat");
-    d.insert("xor.solver", CPK_BOOL, "use xor solver", "false","sat");
     d.insert("cardinality.encoding", CPK_SYMBOL, "encoding used for at-most-k constraints: grouped, bimander, ordered, unate, circuit", "grouped","sat");
     d.insert("pb.resolve", CPK_SYMBOL, "resolution strategy for boolean algebra solver: cardinality, rounding", "cardinality","sat");
     d.insert("pb.lemma_format", CPK_SYMBOL, "generate either cardinality or pb lemmas", "cardinality","sat");
@@ -76,8 +75,6 @@ struct sat_params {
     d.insert("local_search_threads", CPK_UINT, "number of local search threads to find satisfiable solution", "0","sat");
     d.insert("local_search_mode", CPK_SYMBOL, "local search algorithm, either default wsat or qsat", "wsat","sat");
     d.insert("local_search_dbg_flips", CPK_BOOL, "write debug information for number of flips", "false","sat");
-    d.insert("unit_walk", CPK_BOOL, "use unit-walk search instead of CDCL", "false","sat");
-    d.insert("unit_walk_threads", CPK_UINT, "number of unit-walk search threads to find satisfiable solution", "0","sat");
     d.insert("binspr", CPK_BOOL, "enable SPR inferences of binary propagation redundant clauses. This inprocessing step eliminates models", "false","sat");
     d.insert("anf", CPK_BOOL, "enable ANF based simplification in-processing", "false","sat");
     d.insert("anf.delay", CPK_UINT, "delay ANF simplification by in-processing round", "2","sat");
@@ -164,7 +161,6 @@ struct sat_params {
   bool cardinality_solver() const { return p.get_bool("cardinality.solver", g, true); }
   symbol pb_solver() const { return p.get_sym("pb.solver", g, symbol("solver")); }
   unsigned pb_min_arity() const { return p.get_uint("pb.min_arity", g, 9u); }
-  bool xor_solver() const { return p.get_bool("xor.solver", g, false); }
   symbol cardinality_encoding() const { return p.get_sym("cardinality.encoding", g, symbol("grouped")); }
   symbol pb_resolve() const { return p.get_sym("pb.resolve", g, symbol("cardinality")); }
   symbol pb_lemma_format() const { return p.get_sym("pb.lemma_format", g, symbol("cardinality")); }
@@ -179,8 +175,6 @@ struct sat_params {
   unsigned local_search_threads() const { return p.get_uint("local_search_threads", g, 0u); }
   symbol local_search_mode() const { return p.get_sym("local_search_mode", g, symbol("wsat")); }
   bool local_search_dbg_flips() const { return p.get_bool("local_search_dbg_flips", g, false); }
-  bool unit_walk() const { return p.get_bool("unit_walk", g, false); }
-  unsigned unit_walk_threads() const { return p.get_uint("unit_walk_threads", g, 0u); }
   bool binspr() const { return p.get_bool("binspr", g, false); }
   bool anf() const { return p.get_bool("anf", g, false); }
   unsigned anf_delay() const { return p.get_uint("anf.delay", g, 2u); }

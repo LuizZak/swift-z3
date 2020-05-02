@@ -52,9 +52,11 @@ public:
     }
     bool current_x_is_infeasible() const { return m_inf_set.size() != 0; }
     u_set m_inf_set;
+private:
     bool m_using_infeas_costs;
-
-
+public:
+    bool using_infeas_costs() const { return m_using_infeas_costs; }
+    void set_using_infeas_costs(bool val)  { m_using_infeas_costs = val; }
     vector<unsigned>      m_columns_nz; // m_columns_nz[i] keeps an approximate value of non zeroes the i-th column
     vector<unsigned>      m_rows_nz; // m_rows_nz[i] keeps an approximate value of non zeroes in the i-th row
     indexed_vector<T>     m_pivot_row_of_B_1;  // the pivot row of the reverse of B
@@ -143,11 +145,13 @@ public:
         return m_status;
     }
 
-    void fill_cb(T * y);
+    void fill_cb(T * y) const;
 
-    void fill_cb(vector<T> & y);
+    void fill_cb(vector<T> & y) const;
 
-    void solve_yB(vector<T> & y);
+    void solve_yB(vector<T> & y) const;
+    
+    void solve_Bd(unsigned entering, indexed_vector<T> & d_buff, indexed_vector<T>& w_buff) const;
 
     void solve_Bd(unsigned entering);
 
@@ -159,7 +163,7 @@ public:
 
     void restore_state(T * w_buffer, T * d_buffer);
 
-    X get_cost() {
+    X get_cost() const {
         return dot_product(m_costs, m_x);
     }
 
@@ -451,8 +455,6 @@ public:
     void pivot_fixed_vars_from_basis();
     bool remove_from_basis(unsigned j);
     bool pivot_column_general(unsigned j, unsigned j_basic, indexed_vector<T> & w);
-    bool pivot_for_tableau_on_basis();
-    bool pivot_row_for_tableau_on_basis(unsigned row);
     void init_basic_part_of_basis_heading() {
         unsigned m = m_basis.size();
         for (unsigned i = 0; i < m; i++) {
@@ -557,7 +559,7 @@ public:
         return true;
     }
 
-    void print_column_bound_info(unsigned j, std::ostream & out) const {
+    std::ostream& print_column_bound_info(unsigned j, std::ostream & out) const {
         out << column_name(j) << " type = " << column_type_to_string(m_column_types[j]) << std::endl;
         switch (m_column_types[j]) {
         case column_type::fixed:
@@ -573,6 +575,7 @@ public:
         default:
             break;
         }
+        return out;
     }
 
     std::ostream& print_column_info(unsigned j, std::ostream & out) const {
@@ -685,6 +688,11 @@ public:
         return m_inf_set.contains(j);
     }
 
+    bool column_is_base(unsigned j) const {
+        return m_basis_heading[j] >= 0;
+    }
+
+    
     void update_x_with_feasibility_tracking(unsigned j, const X & v) {
         TRACE("lar_solver", tout << "j = " << j << ", v = " << v << "\n";);
         m_x[j] = v;

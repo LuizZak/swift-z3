@@ -282,7 +282,7 @@ public:
     void dump(std::ostream& out) {
         out << "applying cut at:\n"; print_linear_combination_indices_only<row_strip<mpq>, mpq>(m_row, out); out << std::endl;
         for (auto & p : m_row) {
-            lia.lra.m_mpq_lar_core_solver.m_r_solver.print_column_info(p.var(), out);
+            lia.lra.print_column_info(p.var(), out);
         }
         out << "inf_col = " << m_inf_col << std::endl;
     }
@@ -442,12 +442,7 @@ int gomory::find_basic_var() {
 }
     
 lia_move gomory::operator()() {
-    if (lra.move_non_basic_columns_to_bounds()) {
-        lp_status st = lra.find_feasible_solution();
-        (void)st;
-        lp_assert(st == lp_status::FEASIBLE || st == lp_status::OPTIMAL);
-    }
-        
+    lra.move_non_basic_columns_to_bounds();
     int j = find_basic_var();
     if (j == -1) return lia_move::undef;
     unsigned r = lia.row_of_basic_column(j);

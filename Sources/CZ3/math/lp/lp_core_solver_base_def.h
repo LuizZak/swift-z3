@@ -85,16 +85,6 @@ init() {
         init_factorization(m_factorization, m_A, m_basis, m_settings);
 }
 
-template <typename T, typename X> bool lp_core_solver_base<T, X>::
-pivot_for_tableau_on_basis() {
-    m_d = m_costs; // we will be pivoting to m_d as well
-    unsigned m = m_A.row_count();
-    for (unsigned i = 0; i < m; i++)
-        if (!pivot_column_tableau(m_basis[i], i))
-            return false;
-    return true;
-}
-
 // i is the pivot row, and j is the pivot column
 template <typename T, typename X> void lp_core_solver_base<T, X>::
 pivot_to_reduced_costs_tableau(unsigned i, unsigned j) {
@@ -112,7 +102,7 @@ pivot_to_reduced_costs_tableau(unsigned i, unsigned j) {
 
 
 template <typename T, typename X> void lp_core_solver_base<T, X>::
-fill_cb(T * y){
+fill_cb(T * y) const {
     for (unsigned i = 0; i < m_m(); i++) {
         y[i] = m_costs[m_basis[i]];
     }
@@ -120,14 +110,14 @@ fill_cb(T * y){
 
 
 template <typename T, typename X> void lp_core_solver_base<T, X>::
-fill_cb(vector<T> & y){
+fill_cb(vector<T> & y) const {
     for (unsigned i = 0; i < m_m(); i++) {
         y[i] = m_costs[m_basis[i]];
     }
 }
 
 template <typename T, typename X> void lp_core_solver_base<T, X>::
-solve_yB(vector<T> & y) {
+solve_yB(vector<T> & y) const {
     fill_cb(y); // now y = cB, that is the projection of costs to basis
     m_factorization->solve_yB_with_error_check(y, m_basis);
 }
@@ -149,6 +139,9 @@ template <typename T, typename X> void lp_core_solver_base<T, X>::solve_Bd(unsig
     m_factorization->solve_Bd_faster(entering, column);
 }
 
+template <typename T, typename X> void lp_core_solver_base<T, X>::solve_Bd(unsigned , indexed_vector<T>& , indexed_vector<T> &) const  {
+    NOT_IMPLEMENTED_YET();
+}
 
 template <typename T, typename X> void lp_core_solver_base<T, X>::
 solve_Bd(unsigned entering) {

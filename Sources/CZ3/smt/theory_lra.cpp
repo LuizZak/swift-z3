@@ -396,7 +396,6 @@ class theory_lra::imp {
         lp().settings().print_statistics = lpar.arith_print_stats();
 
         // todo : do not use m_arith_branch_cut_ratio for deciding on cheap cuts
-        lp().settings().set_branch_flip(lpar.arith_branch_flip());
         unsigned branch_cut_ratio = ctx().get_fparams().m_arith_branch_cut_ratio;
         lp().set_cut_strategy(branch_cut_ratio);
         
@@ -789,10 +788,6 @@ class theory_lra::imp {
         return v;
     }
 
-    bool theory_var_is_registered_in_lar_solver(theory_var v) const {
-        return lp().external_is_used(v);
-    }
-
     bool const has_int() const { return lp().has_int_var(); }
     
     lpvar register_theory_var_in_lar_solver(theory_var v) {
@@ -957,9 +952,7 @@ class theory_lra::imp {
     
     theory_var internalize_linearized_def(app* term, scoped_internalize_state& st) {
         theory_var v = mk_var(term);
-        TRACE("arith", 
-              tout << mk_bounded_pp(term, m) << " v" << v << "\n";
-              tout << st.offset() << " " << st.coeffs().size() << " " << st.coeffs()[0] << "\n";);
+        TRACE("arith", tout << mk_bounded_pp(term, m) << " v" << v << "\n";);
 
         if (is_unit_var(st) && v == st.vars()[0]) {
             return st.vars()[0];
@@ -1180,6 +1173,11 @@ public:
 
     void apply_sort_cnstr(enode* n, sort*) {
         TRACE("arith", tout << "sort constraint: " << mk_pp(n->get_owner(), m) << "\n";);
+#if 0
+        if (!th.is_attached_to_var(n)) {
+            mk_var(n->get_owner());
+        }
+#endif
     }
 
     void push_scope_eh() {
@@ -1510,6 +1508,12 @@ public:
         return can_get_bound(v);
     }
 
+    void ensure_column(theory_var v) {
+        if (!lp().external_is_used(v)) {
+            register_theory_var_in_lar_solver(v);
+        }
+    }
+
     mutable vector<std::pair<lp::tv, rational>> m_todo_terms;
  
     lp::impq get_ivalue(theory_var v) const {
@@ -1596,16 +1600,13 @@ public:
         svector<lpvar> vars;
         theory_var sz = static_cast<theory_var>(th.get_num_vars());
         for (theory_var v = 0; v < sz; ++v) {
-            if (!can_get_ivalue(v)) {
-                continue;
-            }
             enode * n1 = get_enode(v);
             if (!th.is_relevant_and_shared(n1)) {
                 continue;
             }
+            ensure_column(v);
             lp::column_index vj = lp().to_column_index(v);
-            if (vj.is_null()) 
-                continue;
+            SASSERT(!vj.is_null());
             theory_var other = m_model_eqs.insert_if_not_there(v);
             if (other == v) {
                 continue;
@@ -1650,6 +1651,7 @@ public:
             if (!th.is_relevant_and_shared(n1)) {                    
                 continue;
             }
+            ensure_column(v);
             if (!can_get_ivalue(v)) {
                 continue;
             }
@@ -3812,11 +3814,9 @@ public:
             out << lp().constraints();
             lp().print_terms(out);
             // the tableau
-            auto pp = lp ::core_solver_pretty_printer<lp::mpq, lp::impq>(
-                lp().m_mpq_lar_core_solver.m_r_solver, out);
-            pp.print();
+            lp().pp(out).print();
             for (unsigned j = 0; j < lp().number_of_vars(); j++) {
-                lp().m_mpq_lar_core_solver.m_r_solver.print_column_info(j, out);
+                lp().print_column_info(j, out);
             }
         }
         if (m_nla) {
@@ -3830,7 +3830,7 @@ public:
             auto t = get_tv(v);
             if (!ctx().is_relevant(get_enode(v))) out << "irr: ";
             out << "v" << v << " ";
-            out << (t.is_term() ? "t":"j") << t.id();
+            if (t.is_null()) out << "null"; else out << (t.is_term() ? "t":"j") << t.id();
             if (can_get_value(v)) out << " = " << get_value(v); 
             if (is_int(v)) out << ", int";
             if (ctx().is_shared(get_enode(v))) out << ", shared";

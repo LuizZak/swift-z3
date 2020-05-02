@@ -44,6 +44,7 @@ struct smt_params_helper {
     d.insert("qi.cost", CPK_STRING, "expression specifying what is the cost of a given quantifier instantiation", "(+ weight generation)","smt");
     d.insert("qi.max_multi_patterns", CPK_UINT, "specify the number of extra multi patterns", "0","smt");
     d.insert("qi.quick_checker", CPK_UINT, "specify quick checker mode, 0 - no quick checker, 1 - using unsat instances, 2 - using both unsat and no-sat instances", "0","smt");
+    d.insert("induction", CPK_BOOL, "enable generation of induction lemmas", "false","smt");
     d.insert("bv.reflect", CPK_BOOL, "create enode for every bit-vector term", "true","smt");
     d.insert("bv.enable_int2bv", CPK_BOOL, "enable support for int2bv and bv2int operators", "true","smt");
     d.insert("arith.random_initial_value", CPK_BOOL, "use random initial values in the simplex-based procedure for linear arithmetic", "false","smt");
@@ -69,7 +70,6 @@ struct smt_params_helper {
     d.insert("arith.propagate_eqs", CPK_BOOL, "propagate (cheap) equalities", "true","smt");
     d.insert("arith.propagation_mode", CPK_UINT, "0 - no propagation, 1 - propagate existing literals, 2 - refine bounds", "2","smt");
     d.insert("arith.reflect", CPK_BOOL, "reflect arithmetical operators to the congruence closure", "true","smt");
-    d.insert("arith.branch_flip", CPK_BOOL, "flip branches randomly", "false","smt");
     d.insert("arith.branch_cut_ratio", CPK_UINT, "branch/cut ratio for linear integer arithmetic", "2","smt");
     d.insert("arith.int_eq_branch", CPK_BOOL, "branching using derived integer equations", "false","smt");
     d.insert("arith.ignore_int", CPK_BOOL, "treat integer variables as real", "false","smt");
@@ -127,7 +127,6 @@ struct smt_params_helper {
     d.insert("core.extend_nonlocal_patterns", CPK_BOOL, "extend unsat cores with literals that have quantifiers with patterns that contain symbols which are not in the quantifier's body", "false","smt");
     d.insert("lemma_gc_strategy", CPK_UINT, "lemma garbage collection strategy: 0 - fixed, 1 - geometric, 2 - at restart, 3 - none", "0","smt");
     d.insert("dt_lazy_splits", CPK_UINT, "How lazy datatype splits are performed: 0- eager, 1- lazy for infinite types, 2- lazy", "1","smt");
-    d.insert("recfun.depth", CPK_UINT, "initial depth for maxrec expansion", "2","smt");
   }
   /*
      REG_MODULE_PARAMS('smt', 'smt_params_helper::collect_param_descrs')
@@ -168,6 +167,7 @@ struct smt_params_helper {
   char const * qi_cost() const { return p.get_str("qi.cost", g, "(+ weight generation)"); }
   unsigned qi_max_multi_patterns() const { return p.get_uint("qi.max_multi_patterns", g, 0u); }
   unsigned qi_quick_checker() const { return p.get_uint("qi.quick_checker", g, 0u); }
+  bool induction() const { return p.get_bool("induction", g, false); }
   bool bv_reflect() const { return p.get_bool("bv.reflect", g, true); }
   bool bv_enable_int2bv() const { return p.get_bool("bv.enable_int2bv", g, true); }
   bool arith_random_initial_value() const { return p.get_bool("arith.random_initial_value", g, false); }
@@ -193,7 +193,6 @@ struct smt_params_helper {
   bool arith_propagate_eqs() const { return p.get_bool("arith.propagate_eqs", g, true); }
   unsigned arith_propagation_mode() const { return p.get_uint("arith.propagation_mode", g, 2u); }
   bool arith_reflect() const { return p.get_bool("arith.reflect", g, true); }
-  bool arith_branch_flip() const { return p.get_bool("arith.branch_flip", g, false); }
   unsigned arith_branch_cut_ratio() const { return p.get_uint("arith.branch_cut_ratio", g, 2u); }
   bool arith_int_eq_branch() const { return p.get_bool("arith.int_eq_branch", g, false); }
   bool arith_ignore_int() const { return p.get_bool("arith.ignore_int", g, false); }
@@ -251,6 +250,5 @@ struct smt_params_helper {
   bool core_extend_nonlocal_patterns() const { return p.get_bool("core.extend_nonlocal_patterns", g, false); }
   unsigned lemma_gc_strategy() const { return p.get_uint("lemma_gc_strategy", g, 0u); }
   unsigned dt_lazy_splits() const { return p.get_uint("dt_lazy_splits", g, 1u); }
-  unsigned recfun_depth() const { return p.get_uint("recfun.depth", g, 2u); }
 };
 #endif

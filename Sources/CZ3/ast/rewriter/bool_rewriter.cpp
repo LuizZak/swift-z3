@@ -646,13 +646,13 @@ br_status bool_rewriter::try_ite_value(app * ite, app * val, expr_ref & result) 
     }
 
     expr* cond2 = nullptr, *t2 = nullptr, *e2 = nullptr;
-    if (m().is_ite(t, cond2, t2, e2) && m().is_value(t2) && m().is_value(e2)) {
-        VERIFY(BR_FAILED != try_ite_value(to_app(t), val, result));
+    if (m().is_ite(t, cond2, t2, e2) && m().is_value(t2) && m().is_value(e2) &&
+        BR_FAILED != try_ite_value(to_app(t), val, result)) {
         result = m().mk_ite(cond, result, mk_eq(e, val));
         return BR_REWRITE2;
     }
-    if (m().is_ite(e, cond2, t2, e2) && m().is_value(t2) && m().is_value(e2)) {
-        VERIFY(BR_FAILED != try_ite_value(to_app(e), val, result));
+    if (m().is_ite(e, cond2, t2, e2) && m().is_value(t2) && m().is_value(e2) && 
+        BR_FAILED != try_ite_value(to_app(e), val, result)) {
         result = m().mk_ite(cond, mk_eq(t, val), result);
         return BR_REWRITE2;
     }
@@ -1030,5 +1030,23 @@ void bool_rewriter::mk_nor(expr * arg1, expr * arg2, expr_ref & result) {
     mk_or(arg1, arg2, tmp);
     mk_not(tmp, result);
 }
+
+
+void bool_rewriter::mk_ge2(expr* a, expr* b, expr* c, expr_ref& r) {
+    if (m().is_false(a)) mk_and(b, c, r);
+    else if (m().is_false(b)) mk_and(a, c, r);
+    else if (m().is_false(c)) mk_and(a, b, r);
+    else if (m().is_true(a)) mk_or(b, c, r);
+    else if (m().is_true(b)) mk_or(a, c, r);
+    else if (m().is_true(c)) mk_or(a, b, r);
+    else {
+        expr_ref i1(m()), i2(m()), i3(m());
+        mk_and(a, b, i1);
+        mk_and(a, c, i2);
+        mk_and(b, c, i3);
+        mk_or(i1, i2, i3, r);
+    }
+}
+
 
 template class rewriter_tpl<bool_rewriter_cfg>;

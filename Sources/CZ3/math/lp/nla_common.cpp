@@ -41,7 +41,7 @@ rational common::mul_val(monic const& m) const { return c().mul_val(m); }
 template <typename T> lpvar common::var(T const& t) const { return c().var(t); }
 template lpvar common::var<factor>(factor const& t) const;
 template lpvar common::var<monic>(monic const& t) const;
-void common::add_empty_lemma() { c().add_empty_lemma(); }
+void common::add_lemma() { c().add_lemma(); }
 template <typename T> bool common::canonize_sign(const T& t) const {
     return c().canonize_sign(t);
 }
@@ -194,4 +194,4 @@ template <typename T> void common::create_sum_from_row(const T& row,
 
 
 }
-template void nla::common::create_sum_from_row<old_vector<lp::row_cell<rational>, true, unsigned int> >(old_vector<lp::row_cell<rational>, true, unsigned int> const&, nla::nex_creator&, nla::nex_creator::sum_factory&, u_dependency*&);  
+template void nla::common::create_sum_from_row<vector<lp::row_cell<rational>, true, unsigned int> >(vector<lp::row_cell<rational>, true, unsigned int> const&, nla::nex_creator&, nla::nex_creator::sum_factory&, u_dependency*&);  

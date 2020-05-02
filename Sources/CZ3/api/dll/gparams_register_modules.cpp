@@ -14,6 +14,7 @@
 #include "ast/rewriter/fpa_rewriter_params.hpp"
 #include "ast/rewriter/poly_rewriter_params.hpp"
 #include "ast/rewriter/rewriter_params.hpp"
+#include "ast/rewriter/seq_rewriter_params.hpp"
 #include "cmd_context/context_params.h"
 #include "math/polynomial/algebraic_params.hpp"
 #include "math/realclosure/rcf_params.hpp"
@@ -52,6 +53,7 @@ void gparams_register_modules() {
 { std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); fpa_rewriter_params::collect_param_descrs(*d); return d; }; gparams::register_module("rewriter", f); }
 { std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); poly_rewriter_params::collect_param_descrs(*d); return d; }; gparams::register_module("rewriter", f); }
 { std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); rewriter_params::collect_param_descrs(*d); return d; }; gparams::register_module("rewriter", f); }
+{ std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); seq_rewriter_params::collect_param_descrs(*d); return d; }; gparams::register_module("rewriter", f); }
 { std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); algebraic_params::collect_param_descrs(*d); return d; }; gparams::register_module("algebraic", f); }
 { std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); rcf_params::collect_param_descrs(*d); return d; }; gparams::register_module("rcf", f); }
 { std::function<param_descrs *(void)> f = []() { auto* d = alloc(param_descrs); model_evaluator_params::collect_param_descrs(*d); return d; }; gparams::register_module("model_evaluator", f); }

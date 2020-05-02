@@ -1379,7 +1379,6 @@ ast_manager::ast_manager(proof_gen_mode m, char const * trace_file, bool is_form
     m_proof_mode(m),
     m_trace_stream(nullptr),
     m_trace_stream_owner(false),
-    m_rec_fun(":rec-fun"),
     m_lambda_def(":lambda-def") {
 
     if (trace_file) {
@@ -1403,7 +1402,6 @@ ast_manager::ast_manager(proof_gen_mode m, std::fstream * trace_stream, bool is_
     m_proof_mode(m),
     m_trace_stream(trace_stream),
     m_trace_stream_owner(false),
-    m_rec_fun(":rec-fun"),
     m_lambda_def(":lambda-def") {
 
     if (!is_format_manager)
@@ -1421,7 +1419,6 @@ ast_manager::ast_manager(ast_manager const & src, bool disable_proofs):
     m_proof_mode(disable_proofs ? PGM_DISABLED : src.m_proof_mode),
     m_trace_stream(src.m_trace_stream),
     m_trace_stream_owner(false),
-    m_rec_fun(":rec-fun"),
     m_lambda_def(":lambda-def") {
     SASSERT(!src.is_format_manager());
     m_format_manager = alloc(ast_manager, PGM_DISABLED, m_trace_stream, true);
@@ -1756,13 +1753,6 @@ quantifier* ast_manager::is_lambda_def(func_decl* f) {
     return nullptr;
 }
 
-
-func_decl* ast_manager::get_rec_fun_decl(quantifier* q) const {
-    SASSERT(is_rec_fun_def(q)); 
-    return to_app(to_app(q->get_pattern(0))->get_arg(0))->get_decl(); 
-}
-
-
 void ast_manager::register_plugin(family_id id, decl_plugin * plugin) {
     SASSERT(m_plugins.get(id, 0) == 0);
     m_plugins.setx(id, plugin, 0);
@@ -1796,11 +1786,11 @@ bool ast_manager::slow_not_contains(ast const * n) {
 
 #if 0
 static unsigned s_count = 0;
-static void track_id(ast* n, unsigned id) {
+static void track_id(ast_manager& m, ast* n, unsigned id) {
     if (n->get_id() != id) return;
     ++s_count;
-    std::cout << s_count << "\n";
-    //SASSERT(s_count != 1);
+    std::cout << &m << " " << s_count << "\n";
+    SASSERT(s_count != 240);
 }
 #endif
 
@@ -1834,7 +1824,7 @@ ast * ast_manager::register_node_core(ast * n) {
 
     n->m_id = is_decl(n) ? m_decl_id_gen.mk() : m_expr_id_gen.mk();
 
-    // track_id(n, 77);
+    // track_id(*this, n, 254);
 
     TRACE("ast", tout << "Object " << n->m_id << " was created.\n";);
     TRACE("mk_var_bug", tout << "mk_ast: " << n->m_id << "\n";);
@@ -1991,10 +1981,11 @@ void ast_manager::delete_node(ast * n) {
         }
         if (m_debug_ref_count) {
             m_debug_free_indices.insert(n->m_id,0);
-        }
+        }       
         deallocate_node(n, ::get_node_size(n));
     }
 }
+
 
 sort * ast_manager::mk_sort(family_id fid, decl_kind k, unsigned num_parameters, parameter const * parameters) {
     decl_plugin * p = get_plugin(fid);

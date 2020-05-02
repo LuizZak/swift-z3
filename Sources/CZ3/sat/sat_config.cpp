@@ -98,8 +98,6 @@ namespace sat {
         else
             m_local_search_mode = local_search_mode::wsat;
         m_local_search_dbg_flips = p.local_search_dbg_flips();
-        m_unit_walk       = p.unit_walk();
-        m_unit_walk_threads = p.unit_walk_threads();
         m_binspr            = p.binspr();
         m_binspr            = false;     // prevent adventurous users from trying feature that isn't ready
         m_anf_simplify      = p.anf();
@@ -244,7 +242,7 @@ namespace sat {
             throw sat_param_exception("invalid PB lemma format: 'cardinality' or 'pb' expected");
         
         m_card_solver = p.cardinality_solver();
-        m_xor_solver = p.xor_solver();
+        m_xor_solver = false; // prevent users from playing with this option
 
         sat_simplifier_params sp(_p);
         m_elim_vars = sp.elim_vars();

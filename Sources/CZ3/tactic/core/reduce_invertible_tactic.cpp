@@ -25,6 +25,7 @@ Notes:
 #include "ast/ast_pp.h"
 #include "ast/rewriter/expr_safe_replace.h"
 #include "ast/rewriter/rewriter_def.h"
+#include "ast/rewriter/th_rewriter.h"
 #include "tactic/tactic.h"
 #include "tactic/core/reduce_invertible_tactic.h"
 #include "tactic/core/collect_occs.h"
@@ -95,6 +96,7 @@ public:
             g->inc_depth();
         }        
         result.push_back(g.get());
+        CTRACE("invertible_tactic", g->mc(), g->mc()->display(tout););
     }
 
     void cleanup() override {}
@@ -256,6 +258,7 @@ private:
     // TBD: could be made to be recursive, by walking multiple layers of parents.
     
     bool is_invertible(expr* v, expr*& p, expr_ref& new_v, generic_model_converter_ref* mc, unsigned max_var = 0) {
+        rational r;
         if (m_parents.size() <= v->get_id()) {
             return false;
         }
@@ -305,6 +308,10 @@ private:
             }
             if (!rest) return false;
 
+            // so far just support numeral
+            if (!m_bv.is_numeral(rest, r)) 
+                return false;
+
             // create case split on
             // divisbility of 2
             // v * t -> 
@@ -317,31 +324,30 @@ private:
             // to reproduce the original v from t
             // solve for v*t = extract[sz-1:i](v') ++ zero[i-1:0]
             // using values for t and v'
-            // thus
-            //
-            //    udiv(extract[sz-1:i](v') ++ zero[i-1:0], t)
+            // thus let t' = t / 2^i
+            // and t'' = the multiplicative inverse of t'
+            // then t'' * v' * t = t'' * v' * t' * 2^i = v' * 2^i = extract[sz-1:i](v') ++ zero[i-1:0]
+            // so t'' *v' works 
             // 
-            // TBD: this argument is flawed. Unit test breaks with either
-            // the above or udiv(v, t)
-
             unsigned sz = m_bv.get_bv_size(p);
             expr_ref bit1(m_bv.mk_numeral(1, 1), m);
             new_v = m_bv.mk_numeral(0, sz);
-            for (unsigned i = sz; i-- > 0; ) {
-                expr_ref extr_i(m_bv.mk_extract(i, i, rest), m);
-                expr_ref cond(m.mk_eq(extr_i, bit1), m);
-                expr_ref part(v, m);
-                if (i > 0) {
-                    part = m_bv.mk_concat(m_bv.mk_extract(sz-1, i, v), m_bv.mk_numeral(0, i));
-                }
-                new_v = m.mk_ite(cond, part, new_v);
+
+            
+            unsigned sh = 0;
+            while (r.is_pos() && r.is_even()) {
+                r /= rational(2);
+                ++sh;
             }
-            if (mc) {
+            if (r.is_pos() && sh > 0) {
+                new_v = m_bv.mk_concat(m_bv.mk_extract(sz-1, sh, v), m_bv.mk_numeral(0, sh));
+            }
+            if (mc && !r.is_zero()) {
                 ensure_mc(mc);
-                expr_ref div(m), def(m);
-                div = m.mk_app(m_bv.get_fid(), OP_BUDIV_I, v, rest);
-                def = m_bv.mk_numeral(0, sz);
-                def = m.mk_ite(m.mk_eq(def, rest), def, div);
+                expr_ref def(m);
+                rational inv_r;
+                VERIFY(m_bv.mult_inverse(r, sz, inv_r));
+                def = m_bv.mk_bv_mul(m_bv.mk_numeral(inv_r, sz), v);
                 (*mc)->add(v, def);
                 TRACE("invertible_tactic", tout << def << "\n";);
             }
@@ -367,6 +373,8 @@ private:
                 }
             }
             if (!rest) return false;
+            if (!m_arith.is_numeral(rest, r) || r.is_zero())
+                return false;
             expr_ref zero(m_arith.mk_real(0), m);
             new_v = m.mk_ite(m.mk_eq(zero, rest), zero, v);
             if (mc) {
@@ -379,23 +387,15 @@ private:
 
 
         expr* e1 = nullptr, *e2 = nullptr;
-
-        // t / v -> if t = 0 then 0 else v 
-        // inverse: t = 0 then 1 else v / t
-        if (m_arith.is_div(p, e1, e2) && e2 == v) {
-            expr_ref zero(m_arith.mk_real(0), m);
-            new_v = m.mk_ite(m.mk_eq(zero, e1), zero, v);
-            if (mc) {
-                ensure_mc(mc);
-                expr_ref def(m.mk_ite(m.mk_eq(zero, e1), m_arith.mk_real(1), m_arith.mk_div(e1, v)), m);
-                (*mc)->add(v, def);
-            }
-            return true;
-        }
         
         // v / t unless t != 0
-        if (m_arith.is_div(p, e1, e2) && e1 == v) {
-            return false;
+        if (m_arith.is_div(p, e1, e2) && e1 == v && m_arith.is_numeral(e2, r) && !r.is_zero()) {
+            new_v = v;
+            if (mc) {
+                ensure_mc(mc);
+                (*mc)->add(v, m_arith.mk_mul(e1, e2));
+            }
+            return true;
         }
        
         if (m.is_eq(p, e1, e2)) {

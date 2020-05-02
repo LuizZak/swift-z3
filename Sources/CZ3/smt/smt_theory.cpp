@@ -122,11 +122,29 @@ namespace smt {
             return true_literal;
         }
         context & ctx = get_context();
-        app * eq = ctx.mk_eq_atom(a, b);
+        app_ref eq(ctx.mk_eq_atom(a, b), get_manager());
         TRACE("mk_var_bug", tout << "mk_eq: " << eq->get_id() << " " << a->get_id() << " " << b->get_id() << "\n";
               tout << mk_ll_pp(a, get_manager()) << "\n" << mk_ll_pp(b, get_manager()););		
         ctx.internalize(eq, gate_ctx);
         return ctx.get_literal(eq);
+    }
+
+    literal theory::mk_preferred_eq(expr* a, expr* b) {
+        context& ctx = get_context();
+        ctx.assume_eq(ensure_enode(a), ensure_enode(b));
+        literal lit = mk_eq(a, b, false);
+        ctx.force_phase(lit);
+        return lit;
+    }
+
+    enode* theory::ensure_enode(expr* e) {
+        context& ctx = get_context();
+        if (!ctx.e_internalized(e)) {
+            ctx.internalize(e, false);
+        }
+        enode* n = ctx.get_enode(e);
+        ctx.mark_as_relevant(n);
+        return n;
     }
 
     theory::theory(family_id fid):
@@ -138,6 +156,17 @@ namespace smt {
     theory::~theory() {
     }
 
+
+    void theory::log_axiom_instantiation(literal_vector const& ls) {
+        ast_manager& m = get_manager();
+        expr_ref_vector fmls(m);
+        expr_ref tmp(m);
+        for (literal l : ls) {
+            get_context().literal2expr(l, tmp);
+            fmls.push_back(tmp);
+        }
+        log_axiom_instantiation(mk_or(fmls));
+    }
 
     void theory::log_axiom_instantiation(app * r, unsigned axiom_id, unsigned num_bindings, app * const * bindings, unsigned pattern_id, const vector<std::tuple<enode *, enode *>> & used_enodes) {
         ast_manager & m = get_manager();

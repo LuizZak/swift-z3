@@ -240,6 +240,10 @@ struct check_logic::imp {
             if (!m_bvs)
                 fail("logic does not support bitvectors");
         }
+        else if (m_dt_util.is_datatype(s)) {
+            if (!m_dt) 
+                fail("logic does not support algebraic datatypes");
+        }
         else if (m_ar_util.is_array(s)) {
             if (m_arrays) {
                 return;
@@ -302,9 +306,8 @@ struct check_logic::imp {
     }
 
     // check if the divisor is a numeral
-    void check_div(app * n) {
-        SASSERT(n->get_num_args() == 2);
-        if (!m_nonlinear && !is_numeral(n->get_arg(1)))
+    void check_div(app * n) {        
+        if (n->get_num_args() != 2 || (!m_nonlinear && !is_numeral(n->get_arg(1))))
             fail("logic does not support nonlinear arithmetic");
     }
 
