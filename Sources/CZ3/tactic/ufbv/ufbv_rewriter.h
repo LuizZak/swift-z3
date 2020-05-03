@@ -101,11 +101,11 @@ class ufbv_rewriter {
     typedef std::pair<expr *, bool> expr_bool_pair;
 
     class plugin {
-        ast_manager& m;
+        ast_manager& m_manager;
     public:
-        plugin(ast_manager& m): m(m) { }        
-        void ins_eh(expr* k, expr_bool_pair v) { m.inc_ref(k); m.inc_ref(v.first); }
-        void del_eh(expr* k, expr_bool_pair v) { m.dec_ref(k); m.dec_ref(v.first); }
+        plugin(ast_manager& m): m_manager(m) { }        
+        void ins_eh(expr* k, expr_bool_pair v) { m_manager.inc_ref(k); m_manager.inc_ref(v.first); }
+        void del_eh(expr* k, expr_bool_pair v) { m_manager.dec_ref(k); m_manager.dec_ref(v.first); }
         static unsigned to_int(expr const * k) { return k->get_id(); }
     };
     typedef array_map<expr*, expr_bool_pair, plugin> expr_map;
@@ -127,7 +127,7 @@ class ufbv_rewriter {
 
         void reset();
 
-        ast_manager &         m;
+        ast_manager &         m_manager;
         substitution          m_subst;
         cache                 m_cache;
         svector<expr_pair>    m_todo;
@@ -157,7 +157,7 @@ class ufbv_rewriter {
         bool operator()(expr * t, expr * i);
     };
 
-    ast_manager &       m;
+    ast_manager &       m_manager;
     match_subst         m_match_subst;
     bool_rewriter       m_bsimp;
     fwd_idx_map         m_fwd_idx;
@@ -165,8 +165,7 @@ class ufbv_rewriter {
     demodulator2lhs_rhs m_demodulator2lhs_rhs;
     expr_ref_buffer     m_todo;
     obj_hashtable<expr> m_processed;
-    expr_ref_vector     m_in_processed;
-    expr_ref_vector     m_new_args;
+    ptr_vector<expr>    m_new_args;
 
     expr_ref_buffer     m_rewrite_todo;
     rewrite_cache_map   m_rewrite_cache;
@@ -176,11 +175,11 @@ class ufbv_rewriter {
     void remove_fwd_idx(func_decl * f, quantifier * demodulator);
     bool check_fwd_idx_consistency();
     void show_fwd_idx(std::ostream & out);
-    bool is_demodulator(expr * e, app_ref & large, expr_ref & small) const;
+    bool is_demodulator(expr * e, expr_ref & large, expr_ref & small) const;
     bool can_rewrite(expr * n, expr * lhs);
     
     expr * rewrite(expr * n);
-    bool rewrite1(func_decl * f, expr_ref_vector & m_new_args, expr_ref & np);
+    bool rewrite1(func_decl * f, ptr_vector<expr> & m_new_args, expr_ref & np);
     bool rewrite_visit_children(app * a);
     void rewrite_cache(expr * e, expr * new_e, bool done);
     void reschedule_processed(func_decl * f);

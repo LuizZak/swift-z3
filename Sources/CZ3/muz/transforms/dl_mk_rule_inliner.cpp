@@ -91,7 +91,7 @@ namespace datalog {
 
     void rule_unifier::apply(
         rule const& r, bool is_tgt, unsigned skipped_index,
-        app_ref_vector& res, bool_vector& res_neg) {
+        app_ref_vector& res, svector<bool>& res_neg) {
         unsigned rule_len = r.get_tail_size();
         for (unsigned i = 0; i < rule_len; i++) {
             if (i != skipped_index) { //i can never be UINT_MAX, so we'll never skip if we're not supposed to
@@ -107,7 +107,7 @@ namespace datalog {
         SASSERT(m_ready);
         app_ref new_head(m);
         app_ref_vector tail(m);
-        bool_vector tail_neg;
+        svector<bool> tail_neg;
         rule_ref simpl_rule(m_rm);
         apply(tgt.get_head(), true, new_head);
         apply(tgt, true,  tail_index, tail, tail_neg);
@@ -172,8 +172,7 @@ namespace datalog {
 
         tgt.norm_vars(m_context.get_rule_manager());
 
-        if (has_quantifier(src))
-            throw has_new_quantifier();
+        SASSERT(!has_quantifier(src));
 
         if (!m_unifier.unify_rules(tgt, tail_index, src)) {
             return false;
@@ -426,11 +425,7 @@ namespace datalog {
             unsigned i = 0;
             for  (; i < pt_len && !inlining_allowed(orig, r->get_decl(i)); ++i) {};
 
-            CTRACE("dl", has_quantifier(*r.get()), r->display(m_context, tout););
-            if (has_quantifier(*r.get())) {
-                tgt.add_rule(r);
-                continue;
-            }
+            SASSERT(!has_quantifier(*r.get()));
 
             if (i == pt_len) {
                 //there's nothing we can inline in this rule
@@ -639,9 +634,9 @@ namespace datalog {
     }
 
     unsigned_vector const& mk_rule_inliner::visitor::add_position(expr* e, unsigned j) {
-        auto& value = m_positions.insert_if_not_there(e, unsigned_vector());
-        value.push_back(j);
-        return value;
+        obj_map<expr, unsigned_vector>::obj_map_entry * et = m_positions.insert_if_not_there2(e, unsigned_vector());
+        et->get_data().m_value.push_back(j);
+        return et->get_data().m_value;
     }
 
     unsigned_vector const& mk_rule_inliner::visitor::del_position(expr* e, unsigned j) {
@@ -652,8 +647,8 @@ namespace datalog {
     }
 
     void mk_rule_inliner::add_rule(rule_set const& source, rule* r, unsigned i) {
-        bool_vector& can_remove = m_head_visitor.can_remove();
-        bool_vector& can_expand = m_head_visitor.can_expand();
+        svector<bool>& can_remove = m_head_visitor.can_remove();
+        svector<bool>& can_expand = m_head_visitor.can_expand();
         app* head = r->get_head();
         func_decl* headd = head->get_decl();
         m_head_visitor.add_position(head, i);
@@ -710,8 +705,8 @@ namespace datalog {
         }
 
         // set up unification index.
-        bool_vector& can_remove = m_head_visitor.can_remove();
-        bool_vector& can_expand = m_head_visitor.can_expand();
+        svector<bool>& can_remove = m_head_visitor.can_remove();
+        svector<bool>& can_expand = m_head_visitor.can_expand();
 
         for (unsigned i = 0; i < sz; ++i) {
             add_rule(*rules, acc[i].get(), i);
@@ -732,7 +727,7 @@ namespace datalog {
         m_subst.reserve_vars(max_var+1);
         m_subst.reserve_offsets(std::max(m_tail_index.get_approx_num_regs(), 2+m_head_index.get_approx_num_regs()));
 
-        bool_vector valid;
+        svector<bool> valid;
         valid.reset();
         valid.resize(sz, true);
 
@@ -847,12 +842,7 @@ namespace datalog {
         if (m_context.get_params().xform_inline_eager()) {
             TRACE("dl", source.display(tout << "before eager inlining\n"););
             plan_inlining(source);
-            try {
-                something_done = transform_rules(source, *res);
-            }
-            catch (has_new_quantifier) {
-                return nullptr;
-            }
+            something_done = transform_rules(source, *res);
             VERIFY(res->close()); //this transformation doesn't break the negation stratification
             // try eager inlining
             if (do_eager_inlining(res)) {

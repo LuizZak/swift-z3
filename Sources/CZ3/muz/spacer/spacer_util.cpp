@@ -28,84 +28,46 @@ Notes:
 #include <sstream>
 #include <algorithm>
 
-#include "util/util.h"
 #include "ast/ast.h"
 #include "ast/occurs.h"
 #include "ast/ast_pp.h"
-#include "ast/scoped_proof.h"
-#include "ast/for_each_expr.h"
 #include "ast/rewriter/bool_rewriter.h"
+#include "muz/base/dl_util.h"
+#include "ast/for_each_expr.h"
+#include "smt/params/smt_params.h"
+#include "model/model.h"
+#include "model/model_evaluator.h"
+#include "util/ref_vector.h"
+#include "ast/rewriter/rewriter.h"
+#include "ast/rewriter/rewriter_def.h"
+#include "util/util.h"
+#include "muz/spacer/spacer_manager.h"
+#include "muz/spacer/spacer_util.h"
+#include "ast/rewriter/expr_replacer.h"
+#include "model/model_smt2_pp.h"
+#include "ast/scoped_proof.h"
+#include "qe/qe_lite.h"
+#include "muz/spacer/spacer_qe_project.h"
+#include "model/model_pp.h"
 #include "ast/rewriter/expr_safe_replace.h"
+
 #include "ast/array_decl_plugin.h"
 #include "ast/arith_decl_plugin.h"
 #include "ast/datatype_decl_plugin.h"
 #include "ast/bv_decl_plugin.h"
-#include "ast/rewriter/rewriter.h"
-#include "ast/rewriter/rewriter_def.h"
-#include "ast/rewriter/factor_equivs.h"
-#include "ast/rewriter/expr_replacer.h"
 
-
-#include "smt/params/smt_params.h"
-#include "model/model.h"
-#include "model/model_evaluator.h"
-#include "model/model_smt2_pp.h"
-#include "model/model_pp.h"
-
-#include "qe/qe_lite.h"
+#include "muz/spacer/spacer_legacy_mev.h"
 #include "qe/qe_mbp.h"
-#include "qe/qe_term_graph.h"
 
 #include "tactic/tactical.h"
 #include "tactic/core/propagate_values_tactic.h"
 #include "tactic/arith/propagate_ineqs_tactic.h"
 #include "tactic/arith/arith_bounds_tactic.h"
 
-#include "muz/base/dl_util.h"
-#include "muz/spacer/spacer_legacy_mev.h"
-#include "muz/spacer/spacer_qe_project.h"
-#include "muz/spacer/spacer_manager.h"
-#include "muz/spacer/spacer_util.h"
+#include "ast/rewriter/factor_equivs.h"
+#include "qe/qe_term_graph.h"
 
 namespace spacer {
-
-    bool is_clause(ast_manager &m, expr *n) {
-      if (spacer::is_literal(m, n))
-        return true;
-      if (m.is_or(n)) {
-        for (expr *arg : *to_app(n)){
-          if (!spacer::is_literal(m, arg))
-            return false;
-          return true;
-        }
-      }
-      return false;
-    }
-
-    bool is_literal(ast_manager &m, expr *n) {
-      return spacer::is_atom(m, n) || (m.is_not(n) && spacer::is_atom(m, to_app(n)->get_arg(0)));
-    }
-
-    bool is_atom(ast_manager &m, expr *n) {
-      if (is_quantifier(n) || !m.is_bool(n))
-        return false;
-      if (is_var(n))
-        return true;
-      SASSERT(is_app(n));
-      if (to_app(n)->get_family_id() != m.get_basic_family_id()) {
-        return true;
-      }
-
-      if ((m.is_eq(n) && !m.is_bool(to_app(n)->get_arg(0))) ||
-          m.is_true(n) || m.is_false(n))
-        return true;
-
-      // x=y is atomic if x and y are Bool and atomic
-      expr *e1, *e2;
-      if (m.is_eq(n, e1, e2) && spacer::is_atom(m, e1) && spacer::is_atom(m, e2))
-        return true;
-      return false;
-    }
 
     void subst_vars(ast_manager& m,
                     app_ref_vector const& vars, model& mdl, expr_ref& fml) {
@@ -409,11 +371,10 @@ namespace {
                 }
             }
 
-            
             if (!m_model.is_true(res)) {
-                IF_VERBOSE(2, verbose_stream() 
-                           << "(spacer-model-anomaly: " << res << ")\n");
+                verbose_stream() << "Bad literal: " << res << "\n";
             }
+            SASSERT(m_model.is_true(res));
             out.push_back(res);
         }
 
@@ -426,7 +387,7 @@ namespace {
 
             if (!is_true && !m.is_false(v)) return;
 
-            expr* na = nullptr, * f1 = nullptr, * f2 = nullptr, * f3 = nullptr;
+            expr *na = nullptr, *f1 = nullptr, *f2 = nullptr, *f3 = nullptr;
 
             SASSERT(!m.is_false(a));
             if (m.is_true(a)) {
@@ -443,8 +404,8 @@ namespace {
             }
             else if (m.is_distinct(a)) {
                 if (!is_true) {
-                    expr_ref tmp = qe::project_plugin::pick_equality(m, m_model, a);
-                    m_todo.push_back(tmp);
+                    f1 = qe::project_plugin::pick_equality(m, m_model, a);
+                    m_todo.push_back(f1);
                 }
                 else if (a->get_num_args() == 2) {
                     add_literal(a, out);
@@ -535,21 +496,16 @@ namespace {
             SASSERT(m_todo.empty());
             if (m_visited.is_marked(e) || !is_app(e)) return;
 
-            // -- keep track of all created expressions to
-            // -- make sure that expression ids are stable
-            expr_ref_vector pinned(m);
-
-            m_todo.reset();
             m_todo.push_back(e);
-            while(!m_todo.empty()) {
-                pinned.push_back(m_todo.back());
+            do {
+                e = m_todo.back();
+                if (!is_app(e)) continue;
+                app * a = to_app(e);
                 m_todo.pop_back();
-                if (!is_app(pinned.back())) continue;
-                app* a = to_app(pinned.back());
                 process_app(a, out);
                 m_visited.mark(a, true);
-            }
-            m_todo.reset();
+            } 
+            while (!m_todo.empty());
         }
 
         bool pick_implicant(const expr_ref_vector &in, expr_ref_vector &out) {
@@ -577,20 +533,19 @@ namespace {
     };
 }
 
-    expr_ref_vector compute_implicant_literals(model &mdl,
-                                     expr_ref_vector &formula) {
+    void compute_implicant_literals(model &mdl,
+                                     expr_ref_vector &formula,
+                                     expr_ref_vector &res) {
         // flatten the formula and remove all trivial literals
 
         // TBD: not clear why there is a dependence on it(other than
         // not handling of Boolean constants by implicant_picker), however,
         // it was a source of a problem on a benchmark
-        expr_ref_vector res(formula.get_manager());
         flatten_and(formula);
-        if (!formula.empty()) {
-            implicant_picker ipick(mdl);
-            ipick(formula, res);
-        }
-        return res;
+        if (formula.empty()) {return;}
+
+        implicant_picker ipick(mdl);
+        ipick(formula, res);
     }
 
     void simplify_bounds_old(expr_ref_vector& cube) {

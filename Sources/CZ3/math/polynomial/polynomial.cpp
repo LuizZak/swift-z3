@@ -794,15 +794,11 @@ namespace polynomial {
         ~monomial_manager() {
             dec_ref(m_unit);
             CTRACE("polynomial", !m_monomials.empty(),
-                   tout << "monomials leaked (can happen during cancelation)\n";
+                   tout << "monomials leaked\n";
                    for (auto * m : m_monomials) {
                        m->display(tout << m->id() << " " << m->ref_count() << " ") << "\n";
                    });
-            for (monomial* m : m_monomials) {
-                unsigned obj_sz = monomial::get_obj_size(m->size());
-                m_allocator->deallocate(obj_sz, m);                
-            }
-            m_monomials.reset();
+            SASSERT(m_monomials.empty());
             if (m_own_allocator)
                 dealloc(m_allocator);
         }
@@ -1276,7 +1272,7 @@ namespace polynomial {
             SASSERT(sz == num_vars());
             DEBUG_CODE({
                 // check whether xs is really a permutation
-                bool_vector found;
+                svector<bool> found;
                 found.resize(num_vars(), false);
                 for (unsigned i = 0; i < sz; i++) {
                     SASSERT(xs[i] < num_vars());
@@ -2657,9 +2653,6 @@ namespace polynomial {
                 m_tmp_linear_ms.push_back(mk_unit());
             }
             polynomial * p = mk_polynomial(m_tmp_linear_as.size(), m_tmp_linear_as.c_ptr(), m_tmp_linear_ms.c_ptr());
-            for (auto& a : m_tmp_linear_as) {
-                m_manager.del(a);
-            }
             m_tmp_linear_as.reset();
             m_tmp_linear_ms.reset();
             return p;
@@ -3225,7 +3218,7 @@ namespace polynomial {
             }
         };
 
-        bool_vector  m_found_vars;
+        svector<bool>  m_found_vars;
         void vars(polynomial const * p, var_vector & xs) {
             xs.reset();
             m_found_vars.reserve(num_vars(), false);

@@ -18,7 +18,6 @@ Revision History:
 --*/
 #include "ast/ast_ll_pp.h"
 #include "ast/ast_smt2_pp.h"
-#include "ast/ast_pp.h"
 #include "ast/for_each_expr.h"
 #include "ast/well_sorted.h"
 #include "ast/display_dimacs.h"
@@ -116,7 +115,6 @@ void goal::copy_to(goal & target) const {
 }
 
 void goal::push_back(expr * f, proof * pr, expr_dependency * d) {
-    SASSERT(!proofs_enabled() || pr);
     if (m().is_true(f))
         return;
     if (m().is_false(f)) {
@@ -135,7 +133,6 @@ void goal::push_back(expr * f, proof * pr, expr_dependency * d) {
             m().push_back(m_dependencies, saved_d);
     }
     else {
-        SASSERT(!pr || m().get_fact(pr) == f);
         SASSERT(!m_inconsistent);
         m().push_back(m_forms, f);
         m().push_back(m_proofs, pr);
@@ -226,12 +223,10 @@ void goal::process_not_or(bool save_first, app * f, proof * pr, expr_dependency 
 }
 
 void goal::slow_process(bool save_first, expr * f, proof * pr, expr_dependency * d, expr_ref & out_f, proof_ref & out_pr) {
-    expr* g = nullptr;
-    proof_ref _pr(pr, m());
     if (m().is_and(f))
         process_and(save_first, to_app(f), pr, d, out_f, out_pr);
-    else if (m().is_not(f, g) && m().is_or(g))
-        process_not_or(save_first, to_app(g), pr, d, out_f, out_pr);
+    else if (m().is_not(f) && m().is_or(to_app(f)->get_arg(0)))
+        process_not_or(save_first, to_app(to_app(f)->get_arg(0)), pr, d, out_f, out_pr);
     else if (save_first) {
         out_f  = f;
         out_pr = pr;
@@ -254,10 +249,7 @@ void goal::assert_expr(expr * f, proof * pr, expr_dependency * d) {
     if (m_inconsistent) {
         return;
     }
-    SASSERT(!proofs_enabled() || pr);
     if (pr) {
-        CTRACE("goal", f != m().get_fact(pr), tout << mk_pp(f, m()) << "\n" << mk_pp(pr, m()) << "\n";);
-        SASSERT(f == m().get_fact(pr));
         slow_process(f, pr, d);
     }
     else {
@@ -288,7 +280,6 @@ void goal::update(unsigned i, expr * f, proof * pr, expr_dependency * d) {
     if (m_inconsistent)
         return;
     if (pr) {
-        SASSERT(f == m().get_fact(pr));
         expr_ref out_f(m());
         proof_ref out_pr(m());
         slow_process(true, f, pr, d, out_f, out_pr);
@@ -305,7 +296,6 @@ void goal::update(unsigned i, expr * f, proof * pr, expr_dependency * d) {
         }
     }
     else {
-        SASSERT(!proofs_enabled());
         expr_ref fr(f, m());
         quick_process(true, fr, d);
         if (!m_inconsistent) {
@@ -403,20 +393,6 @@ void goal::display_with_dependencies(std::ostream & out) const {
     out << "\n  :precision " << prec() << " :depth " << depth() << ")" << std::endl;
 }
 
-
-void goal::display_with_proofs(std::ostream& out) const {
-    out << "(goal";
-    unsigned sz = size();
-    for (unsigned i = 0; i < sz; i++) {
-        out << "\n  |-";
-        if (pr(i)) {
-            out << mk_ismt2_pp(pr(i), m(), 4);
-        }
-        out << "\n  " << mk_ismt2_pp(form(i), m(), 2);
-    }
-    out << "\n  :precision " << prec() << " :depth " << depth() << ")" << std::endl;
-}
-
 void goal::display(ast_printer_context & ctx) const {
     display(ctx, ctx.regular_stream());
 }
@@ -455,10 +431,10 @@ void goal::display_ll(std::ostream & out) const {
 /**
    \brief Assumes that the formula is already in CNF.
 */
-void goal::display_dimacs(std::ostream & out, bool include_names) const {
+void goal::display_dimacs(std::ostream & out) const {
     expr_ref_vector fmls(m());
     get_formulas(fmls);
-    ::display_dimacs(out, fmls, include_names);
+    ::display_dimacs(out, fmls);
 }
 
 unsigned goal::num_exprs() const {
@@ -592,19 +568,12 @@ void goal::elim_redundancies() {
     shrink(j);
 }
 
-bool goal::is_well_formed() const {
+bool goal::is_well_sorted() const {
     unsigned sz = size();
     for (unsigned i = 0; i < sz; i++) {
         expr * t = form(i);
         if (!::is_well_sorted(m(), t))
             return false;
-#if 0
-        if (pr(i) && m().get_fact(pr(i)) != form(i)) {
-            TRACE("tactic", tout << mk_ismt2_pp(pr(i), m()) << "\n" << mk_ismt2_pp(form(i), m()) << "\n";);
-            SASSERT(m().get_fact(pr(i)) == form(i));
-            return false;
-        }
-#endif
     }
     return true;
 }
@@ -635,6 +604,7 @@ goal * goal::translate(ast_translation & translator) const {
 
     return res;
 }
+
 
 bool goal::sat_preserved() const {
     return prec() == PRECISE || prec() == UNDER;

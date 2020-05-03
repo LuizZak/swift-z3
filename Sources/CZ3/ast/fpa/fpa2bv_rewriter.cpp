@@ -186,13 +186,12 @@ bool fpa2bv_rewriter_cfg::pre_visit(expr * t)
 }
 
 
-bool fpa2bv_rewriter_cfg::reduce_quantifier(
-    quantifier * old_q,
-    expr * new_body,
-    expr * const * new_patterns,
-    expr * const * new_no_patterns,
-    expr_ref & result,
-    proof_ref & result_pr) {
+bool fpa2bv_rewriter_cfg::reduce_quantifier(quantifier * old_q,
+                           expr * new_body,
+                           expr * const * new_patterns,
+                           expr * const * new_no_patterns,
+                           expr_ref & result,
+                           proof_ref & result_pr) {
     if (is_lambda(old_q)) {
         return false;
     }
@@ -229,9 +228,6 @@ bool fpa2bv_rewriter_cfg::reduce_quantifier(
                                new_body, old_q->get_weight(), old_q->get_qid(), old_q->get_skid(),
                                old_q->get_num_patterns(), new_patterns, old_q->get_num_no_patterns(), new_no_patterns);
     result_pr = nullptr;
-    if (m().proofs_enabled()) {
-        result_pr = m().mk_rewrite(old_q, result);
-    }
     m_bindings.shrink(old_sz);
     TRACE("fpa2bv", tout << "reduce_quantifier[" << old_q->get_depth() << "]: " <<
           mk_ismt2_pp(old_q->get_expr(), m()) << std::endl <<

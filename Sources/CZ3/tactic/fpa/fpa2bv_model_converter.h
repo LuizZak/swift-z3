@@ -38,8 +38,8 @@ public:
     }
 
     void operator()(model_ref & md) override {
-        model_ref new_model = alloc(model, m);
-        convert(md.get(), new_model.get());
+        model * new_model = alloc(model, m);
+        convert(md.get(), new_model);
         md = new_model;
     }
 

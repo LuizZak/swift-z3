@@ -21,7 +21,6 @@ Revision History:
 #include "ast/array_decl_plugin.h"
 #include "ast/datatype_decl_plugin.h"
 #include "ast/ast_smt2_pp.h"
-#include "ast/ast_pp.h"
 #include "ast/ast_translation.h"
 
 
@@ -354,7 +353,6 @@ namespace datatype {
         }
 
 #define VALIDATE_PARAM(_pred_) if (!(_pred_)) m_manager->raise_exception("invalid parameter to datatype function "  #_pred_);
-#define VALIDATE_PARAM_PP(_pred_, _msg_) if (!(_pred_)) m_manager->raise_exception(_msg_);
         
         func_decl * decl::plugin::mk_constructor(unsigned num_parameters, parameter const * parameters, 
                                                  unsigned arity, sort * const * domain, sort * range) {
@@ -370,10 +368,8 @@ namespace datatype {
         func_decl * decl::plugin::mk_recognizer(unsigned num_parameters, parameter const * parameters, 
                                                 unsigned arity, sort * const * domain, sort *) {
             ast_manager& m = *m_manager;
-            VALIDATE_PARAM(arity == 1 && num_parameters == 2 && parameters[1].is_symbol());
-            VALIDATE_PARAM(parameters[0].is_ast() && is_func_decl(parameters[0].get_ast()));
+            VALIDATE_PARAM(arity == 1 && num_parameters == 2 && parameters[1].is_symbol() && parameters[0].is_ast() && is_func_decl(parameters[0].get_ast()));
             VALIDATE_PARAM(u().is_datatype(domain[0]));
-            VALIDATE_PARAM(to_func_decl(parameters[0].get_ast())->get_range()== domain[0])
             // blindly trust that parameter is a constructor
             sort* range = m_manager->mk_bool_sort();
             func_decl_info info(m_family_id, OP_DT_RECOGNISER, num_parameters, parameters);
@@ -386,7 +382,6 @@ namespace datatype {
             ast_manager& m = *m_manager;
             VALIDATE_PARAM(arity == 1 && num_parameters == 1 && parameters[0].is_ast() && is_func_decl(parameters[0].get_ast()));
             VALIDATE_PARAM(u().is_datatype(domain[0]));
-            VALIDATE_PARAM_PP(domain[0] == to_func_decl(parameters[0].get_ast())->get_range(), "invalid sort argument passed to recognizer");
             // blindly trust that parameter is a constructor
             sort* range = m_manager->mk_bool_sort();
             func_decl_info info(m_family_id, OP_DT_IS, num_parameters, parameters);
@@ -542,15 +537,10 @@ namespace datatype {
             sort_ref_vector ps(*m_manager);
             for (symbol const& s : m_def_block) {                
                 new_sorts.push_back(m_defs[s]->instantiate(ps));
-            }
-            if (m_manager->has_trace_stream()) {
-                for (unsigned i = 0; i < m_def_block.size(); ++i) {
-                    symbol const& s = m_def_block[i];
-                    sort* srt = new_sorts.get(i);
-                    log_axiom_definitions(s, srt);
+                if (m_manager->has_trace_stream()) {
+                    log_axiom_definitions(s, new_sorts.back());
                 }
             }
-
             return true;
         }
 
@@ -623,7 +613,7 @@ namespace datatype {
             for (unsigned i = 0; i < c->get_arity(); i++) {
                 args.push_back(m_manager->get_some_value(c->get_domain(i)));
             }
-            return m_manager->mk_app(c, args);
+            return m_manager->mk_app(c, args.size(), args.c_ptr());
         }
 
         bool plugin::is_fully_interp(sort * s) const {
@@ -736,8 +726,6 @@ namespace datatype {
             param_size::size* sz;
             obj_map<sort, param_size::size*> S;
             unsigned n = get_datatype_num_parameter_sorts(s);
-            if (!is_declared(s))
-                return nullptr;
             def & d = get_def(s->get_name());
             SASSERT(n == d.params().size());
             for (unsigned i = 0; i < n; ++i) {
@@ -774,7 +762,7 @@ namespace datatype {
     }
 
     bool util::is_declared(sort* s) const {
-        return plugin().is_declared(s);
+        return m_plugin->is_declared(s);
     }
     
     void util::compute_datatype_size_functions(svector<symbol> const& names) {
@@ -829,8 +817,7 @@ namespace datatype {
             for (constructor const* c : d) {
                 ptr_vector<param_size::size> s_mul;
                 for (accessor const* a : *c) {
-                    auto* sz = get_sort_size(d.params(), a->range());
-                    if (sz) s_mul.push_back(sz);
+                    s_mul.push_back(get_sort_size(d.params(), a->range()));
                 }
                 s_add.push_back(param_size::size::mk_times(s_mul));
             }
@@ -931,7 +918,7 @@ namespace datatype {
     }
 
     def const& util::get_def(sort* s) const {
-        return plugin().get_def(s);
+        return m_plugin->get_def(s);
     }
 
     void util::get_subsorts(sort* s, ptr_vector<sort>& sorts) const {
@@ -946,24 +933,12 @@ namespace datatype {
 
     util::util(ast_manager & m):
         m(m),
-        m_family_id(null_family_id),
-        m_plugin(nullptr),
+        m_family_id(m.mk_family_id("datatype")),
         m_asts(m),
         m_start(0) {
-    }
-
-
-    decl::plugin& util::plugin() const {
-        if (!m_plugin) m_plugin = dynamic_cast<decl::plugin*>(m.get_plugin(fid()));
+        m_plugin = dynamic_cast<decl::plugin*>(m.get_plugin(m_family_id));
         SASSERT(m_plugin);
-        return *m_plugin;
     }
-
-    family_id util::fid() const {
-        if (m_family_id == null_family_id) m_family_id = m.get_family_id("datatype");
-        return m_family_id;
-    }
-
 
     util::~util() {
         std::for_each(m_vectors.begin(), m_vectors.end(), delete_proc<ptr_vector<func_decl> >());
@@ -978,8 +953,6 @@ namespace datatype {
         m_asts.push_back(ty);
         m_vectors.push_back(r);
         m_datatype2constructors.insert(ty, r);
-        if (!is_declared(ty)) 
-            m.raise_exception("datatype constructors have not been created");
         def const& d = get_def(ty);
         for (constructor const* c : d) {
             func_decl_ref f = c->instantiate(ty);
@@ -1019,7 +992,7 @@ namespace datatype {
         SASSERT(is_constructor(con));
         sort * datatype = con->get_range();
         parameter ps[1] = { parameter(con)};
-        return m.mk_func_decl(fid(), OP_DT_IS, 1, ps, 1, &datatype);
+        return m.mk_func_decl(m_family_id, OP_DT_IS, 1, ps, 1, &datatype);
     }
 
     func_decl * util::get_constructor_recognizer(func_decl * con) {
@@ -1036,7 +1009,7 @@ namespace datatype {
             }
         }
         parameter ps[2] = { parameter(con), parameter(r) };
-        d  = m.mk_func_decl(fid(), OP_DT_RECOGNISER, 2, ps, 1, &datatype);
+        d  = m.mk_func_decl(m_family_id, OP_DT_RECOGNISER, 2, ps, 1, &datatype);
         SASSERT(d);
         m_asts.push_back(con);
         m_asts.push_back(d);
@@ -1045,7 +1018,7 @@ namespace datatype {
     }
 
     app* util::mk_is(func_decl * c, expr *f) {
-        return m.mk_app(get_constructor_is(c), f);
+        return m.mk_app(get_constructor_is(c), 1, &f);
     }
 
     func_decl * util::get_recognizer_constructor(func_decl * recognizer) const {
@@ -1140,8 +1113,7 @@ namespace datatype {
         TRACE("util_bug", tout << "invoke get-non-rec: " << sort_ref(ty, m) << "\n";);
         cd = get_non_rec_constructor_core(ty, forbidden_set);
         SASSERT(forbidden_set.back() == ty);
-        if (!cd.first) // datatypes are not completed on parse errors
-            throw default_exception("constructor not available");
+        SASSERT(cd.first);
         return cd.first;
     }
 
@@ -1239,7 +1211,6 @@ namespace datatype {
     }
 
     unsigned util::get_datatype_num_constructors(sort * ty) {
-        if (!is_declared(ty)) return 0;
         def const& d = get_def(ty->get_name());
         return d.constructors().size();
     }
@@ -1252,7 +1223,7 @@ namespace datatype {
         while (!todo.empty()) {
             sort* s = todo.back();
             todo.pop_back();
-            defs.push_back(&plugin().get_def(s->get_name()));
+            defs.push_back(&m_plugin->get_def(s->get_name()));
             def const& d = get_def(s);
             for (constructor* c : d) {
                 for (accessor* a : *c) {
@@ -1307,7 +1278,7 @@ namespace datatype {
             mk_constructor_decl(symbol("nil"), symbol("is_nil"), 0, nullptr),
             mk_constructor_decl(symbol("cons"), symbol("is_cons"), 2, head_tail)
         };
-        decl::plugin& p = plugin();
+        decl::plugin& p = *get_plugin();
 
         sort_ref_vector sorts(m);
         datatype_decl * decl = mk_datatype_decl(*this, name, 0, nullptr, 2, constrs);
@@ -1339,7 +1310,7 @@ namespace datatype {
         auto * p = mk_constructor_decl(symbol("pair"), symbol("is-pair"), 2, accd);
         auto* dt = mk_datatype_decl(*this, symbol("pair"), 0, nullptr, 1, &p);
         sort_ref_vector sorts(m);
-        VERIFY(plugin().mk_datatypes(1, &dt, 0, nullptr, sorts));
+        VERIFY(get_plugin()->mk_datatypes(1, &dt, 0, nullptr, sorts));
         del_datatype_decl(dt);
         sort* s = sorts.get(0);
         ptr_vector<func_decl> const& cnstrs = *get_datatype_constructors(s);
@@ -1361,7 +1332,7 @@ namespace datatype {
         auto* tuple = mk_constructor_decl(name, test, accd.size(), accd.c_ptr());
         auto* dt = mk_datatype_decl(*this, name, 0, nullptr, 1, &tuple);
         sort_ref_vector sorts(m);
-        VERIFY(plugin().mk_datatypes(1, &dt, 0, nullptr, sorts));
+        VERIFY(get_plugin()->mk_datatypes(1, &dt, 0, nullptr, sorts));
         del_datatype_decl(dt);
         sort* s = sorts.get(0);
         ptr_vector<func_decl> const& cnstrs = *get_datatype_constructors(s);
@@ -1375,8 +1346,8 @@ namespace datatype {
 }
 
 datatype_decl * mk_datatype_decl(datatype_util& u, symbol const & n, unsigned num_params, sort*const* params, unsigned num_constructors, constructor_decl * const * cs) {
-    datatype::decl::plugin& p = u.plugin();
-    datatype::def* d = p.mk(n, num_params, params);
+    datatype::decl::plugin* p = u.get_plugin();
+    datatype::def* d = p->mk(n, num_params, params);
     for (unsigned i = 0; i < num_constructors; ++i) {
         d->add(cs[i]);
     }

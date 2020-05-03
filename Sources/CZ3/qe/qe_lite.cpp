@@ -37,7 +37,7 @@ Revision History:
 #include "qe/qe_vartest.h"
 #include "qe/qe_solve_plugin.h"
 
-namespace qel {
+namespace eq {
 
     bool occurs_var(unsigned idx, expr* e) {
         if (is_ground(e)) return false;
@@ -64,7 +64,7 @@ namespace qel {
         return false;
     }
 
-    class eq_der {
+    class der {
         ast_manager &   m;
         arith_util      a;
         datatype_util   dt;
@@ -143,6 +143,11 @@ namespace qel {
             for (unsigned i = 0; i < definitions.size(); i++) {
                 if (definitions[i] == nullptr)
                     continue;
+                if (is_sub_extract(vars[i]->get_idx(), definitions[i])) {
+                    order.push_back(i);
+                    done.mark(definitions[i]);
+                    continue;
+                }
                 var * v = vars[i];
                 SASSERT(v->get_idx() == i);
                 SASSERT(todo.empty());
@@ -167,10 +172,6 @@ namespace qel {
                                     visiting.reset_mark(t);
                                     definitions[vidx] = nullptr;
                                 }
-                                else if (is_sub_extract(vidx, definitions[vidx])) {
-                                    order.push_back(vidx);
-                                    done.mark(definitions[vidx]);
-                                }
                                 else {
                                     visiting.mark(t);
                                     fr.second = 1;
@@ -182,8 +183,10 @@ namespace qel {
                         else {
                             SASSERT(fr.second == 1);
                             visiting.reset_mark(t);
-                            if (!done.is_marked(t) && definitions.get(vidx, nullptr) != nullptr) {
-                                order.push_back(vidx);
+                            if (!done.is_marked(t)) {
+                                if (definitions.get(vidx, nullptr) != nullptr)
+                                    order.push_back(vidx);
+                                done.mark(t);
                             }
                         }
                         done.mark(t);
@@ -191,6 +194,7 @@ namespace qel {
                         break;
                     case AST_QUANTIFIER:
                         UNREACHABLE();
+                        todo.pop_back();
                         break;
                     case AST_APP:
                         num = to_app(t)->get_num_args();
@@ -206,6 +210,7 @@ namespace qel {
                         break;
                     default:
                         UNREACHABLE();
+                        todo.pop_back();
                         break;
                     }
                 }
@@ -320,6 +325,8 @@ namespace qel {
         }
 
         void get_elimination_order() {
+            m_order.reset();
+
             TRACE("top_sort",
                   tout << "DEFINITIONS: " << std::endl;
                   for(unsigned i = 0; i < m_map.size(); i++)
@@ -553,7 +560,7 @@ namespace qel {
                   tout << mk_pp(tmp, m) << "\n";);
             for (unsigned i = 0; i < conjs.size(); ++i) {
                 expr* c = conjs[i].get();
-                expr *l = nullptr, *r = nullptr;
+                expr* l, *r;
                 if (m.is_false(c)) {
                     conjs[0] = c;
                     conjs.resize(1);
@@ -616,8 +623,6 @@ namespace qel {
         }
 
         bool is_unconstrained(var* x, expr* t, unsigned i, expr_ref_vector const& conjs) {
-            sort* s = m.get_sort(x);
-            if (!m.is_fully_interp(s) || !s->get_num_elements().is_infinite()) return false;
             bool occ = occurs_var(x->get_idx(), t);
             for (unsigned j = 0; !occ && j < conjs.size(); ++j) {
                 occ = (i != j) && occurs_var(x->get_idx(), conjs[j]);
@@ -627,7 +632,7 @@ namespace qel {
 
         bool remove_unconstrained(expr_ref_vector& conjs) {
             bool reduced = false, change = true;
-            expr *r = nullptr, *l = nullptr, *ne = nullptr;
+            expr* r, *l, *ne;
             while (change) {
                 change = false;
                 for (unsigned i = 0; i < conjs.size(); ++i) {
@@ -682,11 +687,12 @@ namespace qel {
         }
 
         void checkpoint() {
-            tactic::checkpoint(m);
+            if (m.canceled())
+                throw tactic_exception(m.limit().get_cancel_msg());
         }
 
     public:
-        eq_der(ast_manager & m, params_ref const & p):
+        der(ast_manager & m, params_ref const & p):
             m(m),
             a(m),
             dt(m),
@@ -744,11 +750,13 @@ namespace qel {
 
 
     };
+}; // namespace eq
 
 // ------------------------------------------------------------
 // basic destructive equality (and disequality) resolution for arrays.
 
-    class ar_der {
+namespace ar {
+    class der {
         ast_manager&             m;
         array_util               a;
         is_variable_proc*        m_is_variable;
@@ -869,12 +877,13 @@ namespace qel {
         }
 
         void checkpoint() {
-            tactic::checkpoint(m);
+            if (m.canceled())
+                throw tactic_exception(m.limit().get_cancel_msg());
     }
 
     public:
 
-        ar_der(ast_manager& m): m(m), a(m), m_is_variable(nullptr) {}
+        der(ast_manager& m): m(m), a(m), m_is_variable(nullptr) {}
 
         void operator()(expr_ref_vector& fmls) {
             for (unsigned i = 0; i < fmls.size(); ++i) {
@@ -889,6 +898,7 @@ namespace qel {
         void set_is_variable_proc(is_variable_proc& proc) { m_is_variable = &proc;}
 
     };
+}; // namespace ar
 
 
 // ------------------------------------------------------------
@@ -1668,7 +1678,7 @@ namespace fm {
                         expr * monomial = mons[j];
                         expr * a;
                         rational a_val;
-                        expr * x = nullptr;
+                        expr * x;
                         if (m_util.is_mul(monomial, a, x)) {
                             VERIFY(m_util.is_numeral(a, a_val));
                         }
@@ -2142,7 +2152,8 @@ namespace fm {
         }
 
         void checkpoint() {
-            tactic::checkpoint(m);
+            if (m.canceled())
+                throw tactic_exception(m.limit().get_cancel_msg());
         }
     public:
 
@@ -2209,9 +2220,9 @@ namespace fm {
     };
 
 } // namespace fm
-} // anonymous namespace
 
 class qe_lite::impl {
+public:
     struct elim_cfg : public default_rewriter_cfg {
         impl& m_imp;
         ast_manager& m;
@@ -2242,7 +2253,7 @@ class qe_lite::impl {
                 q,
                 q->get_num_patterns(), new_patterns,
                 q->get_num_no_patterns(), new_no_patterns, result);
-            m_imp.m_rewriter(result, result, result_pr);
+            m_imp.m_rewriter(result);
             return true;
         }
     };
@@ -2251,16 +2262,16 @@ class qe_lite::impl {
         elim_cfg m_cfg;
     public:
         elim_star(impl& i):
-            rewriter_tpl<elim_cfg>(i.m, i.m.proofs_enabled(), m_cfg),
+            rewriter_tpl<elim_cfg>(i.m, false, m_cfg),
             m_cfg(i)
         {}
     };
 
 private:
     ast_manager& m;
-    qel::eq_der  m_der;
-    qel::fm::fm  m_fm;
-    qel::ar_der  m_array_der;
+    eq::der      m_der;
+    fm::fm       m_fm;
+    ar::der      m_array_der;
     elim_star    m_elim_star;
     th_rewriter  m_rewriter;
 
@@ -2331,22 +2342,20 @@ public:
     }
 
     void operator()(expr_ref& fml, proof_ref& pr) {
-        if (!m.proofs_enabled()) {
-            expr_ref tmp(m);
-            m_elim_star(fml, tmp, pr);
-            fml = std::move(tmp);
-        }
+        expr_ref tmp(m);
+        m_elim_star(fml, tmp, pr);
+        fml = std::move(tmp);
     }
 
     void operator()(uint_set const& index_set, bool index_of_bound, expr_ref& fml) {
-        expr_ref_vector disjs(m), conjs(m);
+        expr_ref_vector disjs(m);
         flatten_or(fml, disjs);
-        for (unsigned i = 0, e = disjs.size(); i != e; ++i) {
-            conjs.reset();
+        for (unsigned i = 0; i < disjs.size(); ++i) {
+            expr_ref_vector conjs(m);
             conjs.push_back(disjs[i].get());
             (*this)(index_set, index_of_bound, conjs);
             bool_rewriter(m).mk_and(conjs.size(), conjs.c_ptr(), fml);
-            disjs[i] = std::move(fml);
+            disjs[i] = fml;
         }
         bool_rewriter(m).mk_or(disjs.size(), disjs.c_ptr(), fml);
     }
@@ -2403,56 +2412,107 @@ void qe_lite::operator()(uint_set const& index_set, bool index_of_bound, expr_re
 
 namespace {
 class qe_lite_tactic : public tactic {
-    ast_manager&             m;
-    params_ref               m_params;
-    qe_lite                  m_qe;
 
-    void checkpoint() {
-        tactic::checkpoint(m);
-    }
+    struct imp {
+        ast_manager&             m;
+        qe_lite                  m_qe;
 
-#if 0
-    void debug_diff(expr* a, expr* b) {
-        ptr_vector<expr> as, bs;
-        as.push_back(a);
-        bs.push_back(b);
-        expr* a1, *a2, *b1, *b2;
-        while (!as.empty()) {
-            a = as.back();
-            b = bs.back();
-            as.pop_back();
-            bs.pop_back();
-            if (a == b) {
-                continue;
-            }
-            else if (is_forall(a) && is_forall(b)) {
-                as.push_back(to_quantifier(a)->get_expr());
-                bs.push_back(to_quantifier(b)->get_expr());
-            }
-            else if (m.is_and(a, a1, a2) && m.is_and(b, b1, b2)) {
-                as.push_back(a1);
-                as.push_back(a2);
-                bs.push_back(b1);
-                bs.push_back(b2);
-            }
-            else if (m.is_eq(a, a1, a2) && m.is_eq(b, b1, b2)) {
-                as.push_back(a1);
-                as.push_back(a2);
-                bs.push_back(b1);
-                bs.push_back(b2);
-            }
-            else {
-                TRACE("qe", tout << mk_pp(a, m) << " != " << mk_pp(b, m) << "\n";);
+        imp(ast_manager& m, params_ref const & p):
+            m(m),
+            m_qe(m, p, true)
+        {}
+
+        void checkpoint() {
+            if (m.canceled())
+                throw tactic_exception(m.limit().get_cancel_msg());
+        }
+
+        void debug_diff(expr* a, expr* b) {
+            ptr_vector<expr> as, bs;
+            as.push_back(a);
+            bs.push_back(b);
+            expr* a1, *a2, *b1, *b2;
+            while (!as.empty()) {
+                a = as.back();
+                b = bs.back();
+                as.pop_back();
+                bs.pop_back();
+                if (a == b) {
+                    continue;
+                }
+                else if (is_forall(a) && is_forall(b)) {
+                    as.push_back(to_quantifier(a)->get_expr());
+                    bs.push_back(to_quantifier(b)->get_expr());
+                }
+                else if (m.is_and(a, a1, a2) && m.is_and(b, b1, b2)) {
+                    as.push_back(a1);
+                    as.push_back(a2);
+                    bs.push_back(b1);
+                    bs.push_back(b2);
+                }
+                else if (m.is_eq(a, a1, a2) && m.is_eq(b, b1, b2)) {
+                    as.push_back(a1);
+                    as.push_back(a2);
+                    bs.push_back(b1);
+                    bs.push_back(b2);
+                }
+                else {
+                    TRACE("qe", tout << mk_pp(a, m) << " != " << mk_pp(b, m) << "\n";);
+                }
             }
         }
-    }
-#endif
+
+        void operator()(goal_ref const & g,
+                        goal_ref_buffer & result) {
+            SASSERT(g->is_well_sorted());
+            tactic_report report("qe-lite", *g);
+            proof_ref new_pr(m);
+            expr_ref new_f(m);
+
+            unsigned sz = g->size();
+            for (unsigned i = 0; i < sz; i++) {
+                checkpoint();
+                if (g->inconsistent())
+                    break;
+                expr * f = g->form(i);
+                if (!has_quantifiers(f))
+                    continue;
+                new_f = f;
+                m_qe(new_f, new_pr);
+                if (new_pr) {
+                    expr* fact = m.get_fact(new_pr);
+                    if (to_app(fact)->get_arg(0) != to_app(fact)->get_arg(1)) {
+                        new_pr = m.mk_modus_ponens(g->pr(i), new_pr);
+                    }
+                    else {
+                        new_pr = g->pr(i);
+                    }
+                }
+                if (f != new_f) {
+                    TRACE("qe", tout << mk_pp(f, m) << "\n" << new_f << "\n";);
+                    g->update(i, new_f, new_pr, g->dep(i));
+                }
+            }
+            g->inc_depth();
+            result.push_back(g.get());
+            TRACE("qe", g->display(tout););
+            SASSERT(g->is_well_sorted());
+        }
+
+    };
+
+    params_ref m_params;
+    imp *      m_imp;
 
 public:
     qe_lite_tactic(ast_manager & m, params_ref const & p):
-        m(m),
-        m_params(p),
-        m_qe(m, p, true) {}
+        m_params(p) {
+        m_imp = alloc(imp, m, p);
+    }
+
+    ~qe_lite_tactic() override {
+        dealloc(m_imp);
+    }
 
     tactic * translate(ast_manager & m) override {
         return alloc(qe_lite_tactic, m, m_params);
@@ -2463,42 +2523,14 @@ public:
         // m_imp->updt_params(p);
     }
 
+
     void collect_param_descrs(param_descrs & r) override {
         // m_imp->collect_param_descrs(r);
     }
 
-    void operator()(goal_ref const & g,
+    void operator()(goal_ref const & in,
                     goal_ref_buffer & result) override {
-        tactic_report report("qe-lite", *g);
-        proof_ref new_pr(m);
-        expr_ref new_f(m);
-
-        unsigned sz = g->size();
-        for (unsigned i = 0; i < sz; i++) {
-            checkpoint();
-            if (g->inconsistent())
-                break;
-            expr * f = g->form(i);
-            if (!has_quantifiers(f))
-                continue;
-            new_f = f;
-            m_qe(new_f, new_pr);
-            if (new_pr) {
-                expr* fact = m.get_fact(new_pr);
-                if (to_app(fact)->get_arg(0) != to_app(fact)->get_arg(1)) {
-                    new_pr = m.mk_modus_ponens(g->pr(i), new_pr);
-                }
-                else {
-                    new_pr = g->pr(i);
-                }
-            }
-            if (f != new_f) {
-                TRACE("qe", tout << mk_pp(f, m) << "\n" << new_f << "\n" << new_pr << "\n";);
-                g->update(i, new_f, new_pr, g->dep(i));
-            }
-        }
-        g->inc_depth();
-        result.push_back(g.get());
+        (*m_imp)(in, result);
     }
 
     void collect_statistics(statistics & st) const override {
@@ -2510,12 +2542,16 @@ public:
     }
 
     void cleanup() override {
-        m_qe.~qe_lite();
-        new (&m_qe) qe_lite(m, m_params, true);
+        ast_manager & m = m_imp->m;
+        m_imp->~imp();
+        m_imp = new (m_imp) imp(m, m_params);
     }
+
 };
 }
 
 tactic * mk_qe_lite_tactic(ast_manager & m, params_ref const & p) {
     return alloc(qe_lite_tactic, m, p);
 }
+
+template class rewriter_tpl<qe_lite::impl::elim_cfg>;

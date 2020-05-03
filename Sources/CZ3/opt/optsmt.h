@@ -72,18 +72,22 @@ namespace opt {
         void update_upper(unsigned idx, inf_eps const& r);
 
         void reset();
-
-        lbool basic_opt();
         
-        bool can_increment_delta(vector<inf_eps> const& lower, unsigned i);
-
     private:
+
+        bool get_max_delta(vector<inf_eps> const& lower, unsigned& idx);
+        
+        lbool basic_opt();
 
         lbool geometric_opt();
 
         lbool symba_opt();
 
+        lbool basic_lex(unsigned idx, bool is_maximize);
+
         lbool geometric_lex(unsigned idx, bool is_maximize);
+
+        lbool farkas_opt();
 
         void set_max(vector<inf_eps>& dst, vector<inf_eps> const& src, expr_ref_vector& fmls);
 
@@ -91,7 +95,9 @@ namespace opt {
 
         void update_lower_lex(unsigned idx, inf_eps const& r, bool is_maximize);
 
+
         lbool update_upper();
+
 
     };
 

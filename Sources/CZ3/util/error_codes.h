@@ -33,7 +33,6 @@ Revision History:
 #define ERR_TYPE_CHECK          111
 #define ERR_UNKNOWN_RESULT      112
 #define ERR_ALLOC_EXCEEDED      113
-#define ERR_UNREACHABLE         114
 
 #endif /* ERROR_CODES_H_ */
 

@@ -21,6 +21,6 @@ Revision History:
 
 #include "ast.h"
 
-std::ostream& display_dimacs(std::ostream& out, expr_ref_vector const& fmls, bool include_names);
+std::ostream& display_dimacs(std::ostream& out, expr_ref_vector const& fmls);
 
 #endif /* DISPLAY_DIMACS_H__ */

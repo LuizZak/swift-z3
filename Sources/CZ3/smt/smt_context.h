@@ -34,7 +34,6 @@ Revision History:
 #include "smt/smt_statistics.h"
 #include "smt/smt_conflict_resolution.h"
 #include "smt/smt_relevancy.h"
-#include "smt/smt_induction.h"
 #include "smt/smt_case_split_queue.h"
 #include "smt/smt_almost_cg_table.h"
 #include "smt/smt_failure.h"
@@ -70,7 +69,6 @@ namespace smt {
     class context {
         friend class model_generator;
         friend class lookahead;
-        friend class parallel;
     public:
         statistics                  m_stats;
 
@@ -84,9 +82,7 @@ namespace smt {
         ast_manager &               m;
         smt_params &                m_fparams;
         params_ref                  m_params;
-        ::statistics                m_aux_stats;
         setup                       m_setup;
-        unsigned                    m_relevancy_lvl;
         timer                       m_timer;
         asserted_formulas           m_asserted_formulas;
         th_rewriter                 m_rewriter;
@@ -107,15 +103,12 @@ namespace smt {
         // enodes. Examples: boolean expression nested in an
         // uninterpreted function.
         expr_ref_vector             m_e_internalized_stack; // stack of the expressions already internalized as enodes.
-        quantifier_ref_vector       m_l_internalized_stack;
 
         ptr_vector<justification>   m_justifications;
 
         unsigned                    m_final_check_idx; // circular counter used for implementing fairness
 
         bool                        m_is_auxiliary; // used to prevent unwanted information from being logged.
-        class parallel*             m_par;
-        unsigned                    m_par_index;
 
         // -----------------------------------
         //
@@ -172,7 +165,7 @@ namespace smt {
         ptr_vector<expr>            m_bool_var2expr;         // bool_var -> expr
         signed_char_vector          m_assignment;  //!< mapping literal id -> assignment lbool
         vector<watch_list>          m_watches;     //!< per literal
-        unsigned_vector             m_lit_occs;    //!< occurrence count of literals
+        vector<clause_set>          m_lit_occs;    //!< index for backward subsumption
         svector<bool_var_data>      m_bdata;       //!< mapping bool_var -> data
         svector<double>             m_activity;
         clause_vector               m_aux_clauses;
@@ -187,7 +180,6 @@ namespace smt {
         unsigned                    m_simp_qhead;
         int                         m_simp_counter; //!< can become negative
         scoped_ptr<case_split_queue> m_case_split_queue;
-        scoped_ptr<induction>       m_induction;
         double                      m_bvar_inc;
         bool                        m_phase_cache_on;
         unsigned                    m_phase_counter; //!< auxiliary variable used to decide when to turn on/off phase caching
@@ -195,9 +187,7 @@ namespace smt {
 
         // A conflict is usually a single justification. That is, a justification
         // for false. If m_not_l is not null_literal, then m_conflict is a
-        // justification for l, and the conflict is union of m_not_l and m_conflict;
-        // m_empty_clause is set to ensure that an empty clause generated in deep scope 
-        // levels survives to the base level.
+        // justification for l, and the conflict is union of m_no_l and m_conflict;
         b_justification             m_conflict;
         literal                     m_not_l;
         scoped_ptr<conflict_resolution> m_conflict_resolution;
@@ -206,8 +196,8 @@ namespace smt {
 
         literal_vector              m_atom_propagation_queue;
 
-        obj_map<expr, unsigned>     m_cached_generation;
-        obj_hashtable<expr>         m_cache_generation_visited;
+        obj_map<expr, unsigned>      m_cached_generation;
+        obj_hashtable<expr>          m_cache_generation_visited;
         dyn_ack_manager             m_dyn_ack_manager;
 
         // -----------------------------------
@@ -218,8 +208,27 @@ namespace smt {
         proto_model_ref            m_proto_model;
         model_ref                  m_model;
         std::string                m_unknown;
-        void                       mk_proto_model();
-        void                       reset_model() { m_model = nullptr; m_proto_model = nullptr; }
+        void                       mk_proto_model(lbool r);
+        struct scoped_mk_model {
+            context & m_ctx;
+            scoped_mk_model(context & ctx):m_ctx(ctx) {
+                m_ctx.m_proto_model = nullptr;
+                m_ctx.m_model       = nullptr;
+            }
+            ~scoped_mk_model() {
+                if (m_ctx.m_proto_model.get() != nullptr) {
+                    m_ctx.m_model = m_ctx.m_proto_model->mk_model();
+                    try {
+                        m_ctx.add_rec_funs_to_model();
+                    }
+                    catch (...) {
+                        // no op
+                    }
+                    m_ctx.m_proto_model = nullptr; // proto_model is not needed anymore.
+                }
+            }
+        };
+
 
         // -----------------------------------
         //
@@ -271,10 +280,8 @@ namespace smt {
         }
 
         bool relevancy() const {
-            return relevancy_lvl() > 0;
+            return m_fparams.m_relevancy_lvl > 0;
         }
-
-        unsigned relevancy_lvl() const;
 
         enode * get_enode(expr const * n) const {
             SASSERT(e_internalized(n));
@@ -397,17 +404,25 @@ namespace smt {
             return js.get_kind() == b_justification::JUSTIFICATION && js.get_justification()->get_from_theory() == th_id;
         }
 
-        void set_random_seed(unsigned s) { m_random.set_seed(s); }
+        int get_random_value() {
+            return m_random();
+        }
 
-        int get_random_value() { return m_random(); }
+        bool is_searching() const {
+            return m_searching;
+        }
 
-        bool is_searching() const { return m_searching; }
+        svector<double> const & get_activity_vector() const {
+            return m_activity;
+        }
 
-        svector<double> const & get_activity_vector() const { return m_activity; }
+        double get_activity(bool_var v) const {
+            return m_activity[v];
+        }
 
-        double get_activity(bool_var v) const { return m_activity[v]; }
-
-        void set_activity(bool_var v, double act) { m_activity[v] = act; }
+        void set_activity(bool_var v, double act) {
+            m_activity[v] = act;
+        }
 
         void activity_changed(bool_var v, bool increased) {
             if (increased) {
@@ -640,6 +655,8 @@ namespace smt {
 
         void remove_watch_literal(clause * cls, unsigned idx);
 
+        void remove_lit_occs(clause * cls);
+
         void remove_cls_occs(clause * cls);
 
         void del_clause(bool log, clause * cls);
@@ -735,10 +752,6 @@ namespace smt {
 
         bool ts_visit_children(expr * n, bool gate_ctx, svector<int> & tcolors, svector<int> & fcolors, svector<expr_bool_pair> & todo);
 
-        svector<expr_bool_pair> ts_todo;
-        svector<int>      tcolors;
-        svector<int>      fcolors;
-
         void top_sort_expr(expr * n, svector<expr_bool_pair> & sorted_exprs);
 
         void assert_default(expr * n, proof * pr);
@@ -781,6 +794,7 @@ namespace smt {
             void undo(context & ctx) override { ctx.undo_mk_bool_var(); }
         };
         mk_bool_var_trail   m_mk_bool_var_trail;
+
         void undo_mk_bool_var();
 
         friend class mk_enode_trail;
@@ -788,17 +802,10 @@ namespace smt {
         public:
             void undo(context & ctx) override { ctx.undo_mk_enode(); }
         };
+
         mk_enode_trail   m_mk_enode_trail;
+
         void undo_mk_enode();
-
-        friend class mk_lambda_trail;
-        class mk_lambda_trail : public trail<context> {
-        public:
-            void undo(context & ctx) override { ctx.undo_mk_lambda(); }
-        };
-        mk_lambda_trail   m_mk_lambda_trail;
-        void undo_mk_lambda();
-
 
         void apply_sort_cnstr(app * term, enode * e);
 
@@ -852,16 +859,10 @@ namespace smt {
 
         void mk_ite_cnstr(app * n);
 
-        bool track_occs() const { return m_fparams.m_phase_selection == PS_OCCURRENCE; }
-        
-        void dec_ref(literal l);
+        bool lit_occs_enabled() const { return m_fparams.m_phase_selection==PS_OCCURRENCE; }
 
-        void inc_ref(literal l);
-
-        void remove_lit_occs(clause const& cls, unsigned num_bool_vars);
-
-        void add_lit_occs(clause const& cls);
-    public:        
+        void add_lit_occs(clause * cls);
+    public:
 
         void ensure_internalized(expr* e);
 
@@ -903,10 +904,6 @@ namespace smt {
         void add_theory_aware_branching_info(bool_var v, double priority, lbool phase);
 
     public:
-
-        void internalize_rec(expr * n, bool gate_ctx);
-
-        void internalize_deep(expr * n);
 
         // helper function for trail
         void undo_th_case_split(literal l);
@@ -1042,7 +1039,6 @@ namespace smt {
 
         void push_eq(enode * lhs, enode * rhs, eq_justification const & js) {
             if (lhs->get_root() != rhs->get_root()) {
-                SASSERT(m.get_sort(lhs->get_owner()) == m.get_sort(rhs->get_owner()));
                 m_eq_propagation_queue.push_back(new_eq(lhs, rhs, js));
             }
         }
@@ -1070,11 +1066,8 @@ namespace smt {
         }
 
         bool inconsistent() const {
-            return m_conflict != null_b_justification ||
-                m_asserted_formulas.inconsistent();
+            return m_conflict != null_b_justification;
         }
-
-        bool has_case_splits();
 
         unsigned get_num_conflicts() const {
             return m_num_conflicts;
@@ -1151,8 +1144,6 @@ namespace smt {
 
         void internalize_assertions();
 
-        void asserted_inconsistent();
-
         bool validate_assumptions(expr_ref_vector const& asms);
 
         void init_assumptions(expr_ref_vector const& asms);
@@ -1213,7 +1204,7 @@ namespace smt {
 
         bool is_relevant_core(expr * n) const { return m_relevancy_propagator->is_relevant(n); }
 
-        bool_vector  m_relevant_conflict_literals;
+        svector<bool>  m_relevant_conflict_literals;
         void record_relevancy(unsigned n, literal const* lits);
         void restore_relevancy(unsigned n, literal const* lits);
 
@@ -1280,8 +1271,6 @@ namespace smt {
     public:
         bool can_propagate() const;
 
-        induction& get_induction(); 
-
         // Retrieve arithmetic values. 
         bool get_arith_lo(expr* e, rational& lo, bool& strict);
         bool get_arith_up(expr* e, rational& up, bool& strict);
@@ -1326,11 +1315,7 @@ namespace smt {
 
         std::ostream& display_literal_smt2(std::ostream& out, literal lit) const;
 
-        std::ostream& display_literals_smt2(std::ostream& out, literal l1, literal l2) const { literal ls[2] = { l1, l2 }; return display_literals_smt2(out, 2, ls); }
-
         std::ostream& display_literals_smt2(std::ostream& out, unsigned num_lits, literal const* lits) const;
-
-        std::ostream& display_literals_smt2(std::ostream& out, literal_vector const& ls) const { return display_literals_smt2(out, ls.size(), ls.c_ptr()); }
 
         std::ostream& display_literal_verbose(std::ostream & out, literal lit) const;
 
@@ -1452,6 +1437,9 @@ namespace smt {
 
         bool check_missing_diseq_conflict() const;
 
+        bool check_lit_occs(literal l) const;
+
+        bool check_lit_occs() const;
 #endif
         // -----------------------------------
         //
@@ -1490,6 +1478,10 @@ namespace smt {
 
         // copy plugins into a fresh context.
         void copy_plugins(context& src, context& dst);
+
+        static literal translate_literal(
+            literal lit, context& src_ctx, context& dst_ctx,
+            vector<bool_var> b2v, ast_translation& tr);
 
         /*
           \brief Utilities for consequence finding.
@@ -1542,7 +1534,7 @@ namespace smt {
         */
         context * mk_fresh(symbol const * l = nullptr,  smt_params * smtp = nullptr, params_ref const & p = params_ref());
 
-        static void copy(context& src, context& dst, bool override_base = false);
+        static void copy(context& src, context& dst);
 
         /**
            \brief Translate context to use new manager m.
@@ -1574,7 +1566,8 @@ namespace smt {
 
         lbool setup_and_check(bool reset_cancel = true);
 
-        void reduce_assertions();
+        // return 'true' if assertions are inconsistent.
+        bool reduce_assertions();
 
         bool resource_limits_exceeded();
 
@@ -1602,6 +1595,8 @@ namespace smt {
                 m_case_split_queue->internalize_instance_eh(body, generation);
         }
 
+        bool already_internalized() const { return m_e_internalized_stack.size() > 2 || m_b_internalized_stack.size() > 1; }
+
         unsigned get_unsat_core_size() const {
             return m_unsat_core.size();
         }
@@ -1610,17 +1605,15 @@ namespace smt {
             return m_unsat_core.get(idx);
         }
 
-        expr_ref_vector const& unsat_core() const { return m_unsat_core; }
-
         void get_levels(ptr_vector<expr> const& vars, unsigned_vector& depth);
 
         expr_ref_vector get_trail();
 
-        void get_model(model_ref & m);
-
-        void set_model(model* m) { m_model = m; }
+        void get_model(model_ref & m) const;
 
         bool update_model(bool refinalize);
+
+        void get_proto_model(proto_model_ref & m) const;
 
         bool validate_model();
 

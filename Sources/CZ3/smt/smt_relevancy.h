@@ -95,7 +95,6 @@ namespace smt {
 
         context & get_context() { return m_context; }
 
-
         /**
            \brief Install an event handler that is invoked whenever n is marked as relevant.
         */

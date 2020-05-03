@@ -21,7 +21,6 @@ Revision History:
 #undef min
 #include "sat/sat_solver.h"
 
-namespace {
 struct lex_error {};
 
 class stream_buffer {
@@ -137,8 +136,6 @@ bool parse_dimacs_core(Buffer & in, std::ostream& err, sat::solver & solver) {
         return false;
     }
     return true;
-}
-
 }
 
 bool parse_dimacs(std::istream & in, std::ostream& err, sat::solver & solver) {

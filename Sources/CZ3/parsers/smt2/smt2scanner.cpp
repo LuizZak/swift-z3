@@ -24,8 +24,7 @@ namespace smt2 {
     void scanner::next() {
         if (m_cache_input)
             m_cache.push_back(m_curr);
-        if (m_at_eof)
-            throw scanner_exception("unexpected end of file");
+        SASSERT(!m_at_eof);
         if (m_interactive) {
             m_curr = m_stream.get();
             if (m_stream.eof())
@@ -380,7 +379,7 @@ namespace smt2 {
 
     char const * scanner::cached_str(unsigned begin, unsigned end) {
         m_cache_result.reset();
-        while (begin < end && isspace(m_cache[begin]))
+        while (isspace(m_cache[begin]) && begin < end)
             begin++;
         while (begin < end && isspace(m_cache[end-1]))
             end--;

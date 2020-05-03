@@ -40,8 +40,8 @@ namespace smt {
         SASSERT(is_fixed(v));
         // WARNINING: it is not safe to use get_value(v) here, since
         // get_value(v) may not satisfy v bounds at this point.
-        if (!lower_bound(v).is_rational())
-            return;
+        CTRACE("arith_bug", !lower_bound(v).is_rational(), display_var(tout, v););
+        SASSERT(lower_bound(v).is_rational());
         numeral const & val = lower_bound(v).get_rational();
         value_sort_pair key(val, is_int_src(v));
         TRACE("arith_eq", tout << mk_pp(get_enode(v)->get_owner(), get_manager()) << " = " << val << "\n";);

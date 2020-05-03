@@ -101,9 +101,9 @@ class recover_01_tactic : public tactic {
             }
             
             if (x != nullptr) {
-                auto& value = m_var2clauses.insert_if_not_there(x, ptr_vector<app>());
-                if (value.empty() || value.back()->get_num_args() == cls->get_num_args()) {
-                    value.push_back(cls);
+                var2clauses::obj_map_entry * entry = m_var2clauses.insert_if_not_there2(x, ptr_vector<app>());
+                if (entry->get_data().m_value.empty() || entry->get_data().m_value.back()->get_num_args() == cls->get_num_args()) {
+                    entry->get_data().m_value.push_back(cls);
                     return true;
                 }
             }
@@ -293,6 +293,7 @@ class recover_01_tactic : public tactic {
     
         void operator()(goal_ref const & g, 
                         goal_ref_buffer & result) {
+            SASSERT(g->is_well_sorted());
             fail_if_proof_generation("recover-01", g);
             fail_if_unsat_core_generation("recover-01", g);
             m_produce_models      = g->models_enabled();
@@ -364,7 +365,7 @@ class recover_01_tactic : public tactic {
             }
             result.push_back(new_goal.get());
             TRACE("recover_01", new_goal->display(tout););
-            SASSERT(new_goal->is_well_formed());
+            SASSERT(new_goal->is_well_sorted());
         }
         
         ~imp() {

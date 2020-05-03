@@ -172,8 +172,6 @@ public:
         return alloc(arith_decl_plugin);
     }
 
-    bool convert_int_numerals_to_real() const { return m_convert_int_numerals_to_real; }
-
     sort * mk_sort(decl_kind k, unsigned num_parameters, parameter const * parameters) override;
 
     func_decl * mk_func_decl(decl_kind k, unsigned num_parameters, parameter const * parameters,
@@ -289,8 +287,6 @@ public:
     bool is_idiv0(expr const * n) const { return is_app_of(n, m_afid, OP_IDIV0); }
     bool is_mod(expr const * n) const { return is_app_of(n, m_afid, OP_MOD); }
     bool is_rem(expr const * n) const { return is_app_of(n, m_afid, OP_REM); }
-    bool is_mod0(expr const * n) const { return is_app_of(n, m_afid, OP_MOD0); }
-    bool is_rem0(expr const * n) const { return is_app_of(n, m_afid, OP_REM0); }
     bool is_to_real(expr const * n) const { return is_app_of(n, m_afid, OP_TO_REAL); }
     bool is_to_int(expr const * n) const { return is_app_of(n, m_afid, OP_TO_INT); }
     bool is_is_int(expr const * n) const { return is_app_of(n, m_afid, OP_IS_INT); }
@@ -306,29 +302,14 @@ public:
     bool is_sin(expr const* n) const { return is_app_of(n, m_afid, OP_SIN); }
     bool is_cos(expr const* n) const { return is_app_of(n, m_afid, OP_COS); }
     bool is_tan(expr const* n) const { return is_app_of(n, m_afid, OP_TAN); }
-    bool is_tanh(expr const* n) const { return is_app_of(n, m_afid, OP_TANH); }
     bool is_asin(expr const* n) const { return is_app_of(n, m_afid, OP_ASIN); }
     bool is_acos(expr const* n) const { return is_app_of(n, m_afid, OP_ACOS); }
     bool is_atan(expr const* n) const { return is_app_of(n, m_afid, OP_ATAN); }
     bool is_asinh(expr const* n) const { return is_app_of(n, m_afid, OP_ASINH); }
     bool is_acosh(expr const* n) const { return is_app_of(n, m_afid, OP_ACOSH); }
     bool is_atanh(expr const* n) const { return is_app_of(n, m_afid, OP_ATANH); }
-    bool is_pi(expr const * arg) const { return is_app_of(arg, m_afid, OP_PI); }
-    bool is_e(expr const * arg) const { return is_app_of(arg, m_afid, OP_E); }
-    bool is_non_algebraic(expr const* n) const {
-        return is_sin(n) ||
-            is_cos(n) ||
-            is_tan(n) ||
-            is_tanh(n) || 
-            is_asin(n) ||
-            is_acos(n) ||
-            is_atan(n) ||
-            is_asinh(n) ||
-            is_acosh(n) ||
-            is_atanh(n) ||
-            is_e(n) ||
-            is_pi(n);
-    }
+    bool is_pi(expr * arg) { return is_app_of(arg, m_afid, OP_PI); }
+    bool is_e(expr * arg) { return is_app_of(arg, m_afid, OP_E); }
 
     MATCH_UNARY(is_uminus);
     MATCH_UNARY(is_to_real);
@@ -365,34 +346,28 @@ class arith_util : public arith_recognizers {
 
     void init_plugin();
 
-public:
-    arith_util(ast_manager & m);
-
-    ast_manager & get_manager() const { return m_manager; }
-
     arith_decl_plugin & plugin() const {
         if (!m_plugin) const_cast<arith_util*>(this)->init_plugin();
         SASSERT(m_plugin != 0);
         return *m_plugin;
     }
 
+public:
+    arith_util(ast_manager & m);
+
+    ast_manager & get_manager() const { return m_manager; }
+
     algebraic_numbers::manager & am() {
         return plugin().am();
     }
 
-    bool convert_int_numerals_to_real() const { return plugin().convert_int_numerals_to_real(); }
     bool is_irrational_algebraic_numeral2(expr const * n, algebraic_numbers::anum & val);
     algebraic_numbers::anum const & to_irrational_algebraic_numeral(expr const * n);
 
     sort * mk_int() { return m_manager.mk_sort(m_afid, INT_SORT); }
     sort * mk_real() { return m_manager.mk_sort(m_afid, REAL_SORT); }
 
-    func_decl* mk_rem0();
     func_decl* mk_div0();
-    func_decl* mk_idiv0();
-    func_decl* mk_mod0();
-    func_decl* mk_ipower0();
-    func_decl* mk_rpower0();
 
 
     app * mk_numeral(rational const & val, bool is_int) const {

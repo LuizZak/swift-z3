@@ -151,6 +151,7 @@ bool mpn_manager::div(mpn_digit const * numer, size_t const lnum,
                       mpn_digit const * denom, size_t const lden,
                       mpn_digit * quot,
                       mpn_digit * rem) {
+    MPN_BEGIN_CRITICAL();
     trace(numer, lnum, denom, lden, "/");
     bool res = false;    
 
@@ -159,6 +160,7 @@ bool mpn_manager::div(mpn_digit const * numer, size_t const lnum,
             quot[i] = 0;
         for (size_t i = 0; i < lden; i++)
             rem[i] = (i < lnum) ? numer[i] : 0;
+        MPN_END_CRITICAL();
         return false;
     }
 
@@ -168,6 +170,7 @@ bool mpn_manager::div(mpn_digit const * numer, size_t const lnum,
 
     if (all_zero) {
         UNREACHABLE();
+        MPN_END_CRITICAL();
         return res;
     }
 
@@ -183,7 +186,6 @@ bool mpn_manager::div(mpn_digit const * numer, size_t const lnum,
             rem[i] = (i < lnum) ? numer[i] : 0;       
     }        
     else  {
-        mpn_sbuffer u, v, t_ms, t_ab;
         size_t d = div_normalize(numer, lnum, denom, lden, u, v);
         if (lden == 1)
             res = div_1(u, v[0], quot);
@@ -212,6 +214,7 @@ bool mpn_manager::div(mpn_digit const * numer, size_t const lnum,
     SASSERT(ok);
 #endif
 
+    MPN_END_CRITICAL();
     return res;
 }
 

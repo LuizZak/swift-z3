@@ -67,9 +67,8 @@ namespace smt {
 
         /** 
             \brief add a multiple of constraint c to the current state 
-            Fail if the constraint cannot be classified.
          */
-        bool add(rational const & coef, app * c);
+        void add(rational const & coef, app * c);
 
         /**
            \brief Extract the complement of premises multiplied by Farkas coefficients.

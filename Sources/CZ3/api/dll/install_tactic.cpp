@@ -10,6 +10,7 @@
 #include "nlsat/tactic/qfnra_nlsat_tactic.h"
 #include "qe/nlqsat.h"
 #include "qe/qe_lite.h"
+#include "qe/qe_sat_tactic.h"
 #include "qe/qe_tactic.h"
 #include "qe/qsat.h"
 #include "sat/sat_solver/inc_sat_solver.h"
@@ -103,6 +104,7 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("qfnra-nlsat", "builtin strategy for solving QF_NRA problems using only nlsat.", mk_qfnra_nlsat_tactic(m, p));
   ADD_TACTIC_CMD("nlqsat", "apply a NL-QSAT solver.", mk_nlqsat_tactic(m, p));
   ADD_TACTIC_CMD("qe-light", "apply light-weight quantifier elimination.", mk_qe_lite_tactic(m, p));
+  ADD_TACTIC_CMD("qe-sat", "check satisfiability of quantified formulas using quantifier elimination.", qe::mk_sat_tactic(m, p));
   ADD_TACTIC_CMD("qe", "apply quantifier elimination.", mk_qe_tactic(m, p));
   ADD_TACTIC_CMD("qsat", "apply a QSAT solver.", mk_qsat_tactic(m, p));
   ADD_TACTIC_CMD("qe2", "apply a QSAT based quantifier elimination.", mk_qe2_tactic(m, p));

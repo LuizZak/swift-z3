@@ -279,7 +279,6 @@ private:
                         lbool last_status, double last_time) {
         std::string file_name = mk_file_name();
         std::ofstream out(file_name);
-        STRACE("spacer.ind_gen", tout << "Dumping benchmark to " << file_name << "\n";);
         if (!out) {
             IF_VERBOSE(0, verbose_stream() << "could not open file " << file_name << " for output\n");
             return;
@@ -295,7 +294,7 @@ private:
         }
 
         out << "(check-sat";
-        for (auto * lit : cube) out << " " << mk_pp(lit, m) << "\n";
+        for (auto * lit : cube) out << " " << mk_pp(lit, m);
         out << ")\n";
 
         out << "(exit)\n";
@@ -303,7 +302,6 @@ private:
         m_base->collect_statistics(st);
         st.update("time", last_time);
         st.display_smt2(out);
-        m_base->get_params().display(out);
         out.close();
     }
 

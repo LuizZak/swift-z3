@@ -33,7 +33,9 @@ struct arith_bounds_tactic : public tactic {
     }
     
     void checkpoint() {
-        tactic::checkpoint(m);
+        if (m.canceled()) {
+            throw tactic_exception(m.limit().get_cancel_msg());
+        }
     }
     
     

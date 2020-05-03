@@ -64,11 +64,11 @@ namespace datalog {
     }
 
     rule_dependencies::item_set & rule_dependencies::ensure_key(func_decl * pred) {
-        auto& value = m_data.insert_if_not_there(pred, 0);
-        if (!value) {
-            value = alloc(item_set);
+        deps_type::obj_map_entry * e = m_data.insert_if_not_there2(pred, 0);
+        if (!e->get_data().m_value) {
+            e->get_data().m_value = alloc(item_set);
         }
-        return *value;
+        return *e->get_data().m_value;
     }
 
     void rule_dependencies::insert(func_decl * depending, func_decl * master) {
@@ -188,10 +188,12 @@ namespace datalog {
         unsigned curr_index = init_len;
         rule_dependencies reversed(*this, true);
 
-        for (auto& kv : *this) {
-            func_decl * pred = kv.m_key;
+        iterator pit = begin();
+        iterator pend = end();
+        for (; pit!=pend; ++pit) {
+            func_decl * pred = pit->m_key;
             unsigned deg = in_degree(pred);
-            if (deg == 0) {
+            if (deg==0) {
                 res.push_back(pred);
             }
             else {
@@ -199,10 +201,13 @@ namespace datalog {
             }
         }
 
-        while (curr_index < res.size()) { //res.size() can change in the loop iteration
+        while (curr_index<res.size()) { //res.size() can change in the loop iteration
             func_decl * curr = res[curr_index];
             const item_set & children = reversed.get_deps(curr);
-            for (func_decl * child : children) {
+            item_set::iterator cit = children.begin();
+            item_set::iterator cend = children.end();
+            for (; cit!=cend; ++cit) {
+                func_decl * child = *cit;
                 deg_map::obj_map_entry * e = degs.find_core(child);
                 SASSERT(e);
                 unsigned & child_deg = e->get_data().m_value;
@@ -222,14 +227,20 @@ namespace datalog {
         return true;
     }
 
-    void rule_dependencies::display(std::ostream & out ) const {
-        for (auto const& kv : *this) {
-            func_decl * pred = kv.m_key;
-            const item_set & deps = *kv.m_value;
-            if (deps.empty()) {
-                out << pred->get_name()<<" - <none>\n";
+    void rule_dependencies::display(std::ostream & out ) const
+    {
+        iterator pit = begin();
+        iterator pend = end();
+        for (; pit != pend; ++pit) {
+            func_decl * pred = pit->m_key;
+            const item_set & deps = *pit->m_value;
+            item_set::iterator dit=deps.begin();
+            item_set::iterator dend=deps.end();
+            if (dit == dend) {
+                out<<pred->get_name()<<" - <none>\n";
             }
-            for (func_decl* dep : deps) {
+            for (; dit != dend; ++dit) {
+                func_decl * dep = *dit;
                 out << pred->get_name() << " -> " << dep->get_name() << "\n";
             }
         }
@@ -324,9 +335,9 @@ namespace datalog {
         app * head = r->get_head();
         SASSERT(head != 0);
         func_decl * d = head->get_decl();
-        auto& value = m_head2rules.insert_if_not_there(d, 0);
-        if (!value) value = alloc(ptr_vector<rule>);
-        value->push_back(r);
+        decl2rules::obj_map_entry* e = m_head2rules.insert_if_not_there2(d, 0);
+        if (!e->get_data().m_value) e->get_data().m_value = alloc(ptr_vector<rule>);
+        e->get_data().m_value->push_back(r);
     }
 
     void rule_set::del_rule(rule * r) {
@@ -394,18 +405,19 @@ namespace datalog {
     */
     bool rule_set::stratified_negation() {
         ptr_vector<rule>::const_iterator it  = m_rules.c_ptr();
-        ptr_vector<rule>::const_iterator end = m_rules.c_ptr() + m_rules.size();
+        ptr_vector<rule>::const_iterator end = m_rules.c_ptr()+m_rules.size();
         for (; it != end; it++) {
             rule * r = *it;
-            func_decl * head_decl = r->get_decl();
+            app * head = r->get_head();
+            func_decl * head_decl = head->get_decl();
             unsigned n = r->get_uninterpreted_tail_size();
             for (unsigned i = r->get_positive_tail_size(); i < n; i++) {
                 SASSERT(r->is_neg_tail(i));
-                func_decl * tail_decl = r->get_decl(i);
+                func_decl * tail_decl = r->get_tail(i)->get_decl();
                 unsigned neg_strat = get_predicate_strat(tail_decl);
                 unsigned head_strat = get_predicate_strat(head_decl);
 
-                SASSERT(head_strat >= neg_strat); // head strat can never be lower than that of a tail
+                SASSERT(head_strat>=neg_strat); //head strat can never be lower than that of a tail
                 if (head_strat == neg_strat) {
                     return false;
                 }
@@ -461,8 +473,9 @@ namespace datalog {
         bool change = true;
         while (change) {
             change = false;
-            for (func_decl * f : non_founded) {
-                rule_vector const& rv = get_predicate_rules(f);
+            func_decl_set::iterator it = non_founded.begin(), end = non_founded.end();
+            for (; it != end; ++it) {
+                rule_vector const& rv = get_predicate_rules(*it);
                 bool found = false;
                 for (unsigned i = 0; !found && i < rv.size(); ++i) {
                     rule const& r = *rv[i];
@@ -471,8 +484,8 @@ namespace datalog {
                         is_founded = founded.contains(r.get_decl(j));
                     }
                     if (is_founded) {
-                        founded.insert(f);
-                        non_founded.remove(f);
+                        founded.insert(*it);
+                        non_founded.remove(*it);
                         change = true;
                         found  = true;
                     }
@@ -484,12 +497,19 @@ namespace datalog {
     void rule_set::display(std::ostream & out) const {
         out << "; rule count: " << get_num_rules() << "\n";
         out << "; predicate count: " << m_head2rules.size() << "\n";
-        for (func_decl * f : m_output_preds) {
-            out << "; output: " << f->get_name() << '\n';
+        func_decl_set::iterator pit = m_output_preds.begin();
+        func_decl_set::iterator pend = m_output_preds.end();
+        for (; pit != pend; ++pit) {
+            out << "; output: " << (*pit)->get_name() << '\n';
         }
-        for (auto const& kv : m_head2rules) {
-            ptr_vector<rule> * rules = kv.m_value;
-            for (rule* r : *rules) {
+        decl2rules::iterator it  = m_head2rules.begin();
+        decl2rules::iterator end = m_head2rules.end();
+        for (; it != end; ++it) {
+            ptr_vector<rule> * rules = it->m_value;
+            ptr_vector<rule>::iterator it2  = rules->begin();
+            ptr_vector<rule>::iterator end2 = rules->end();
+            for (; it2 != end2; ++it2) {
+                rule * r = *it2;
                 if (!r->passes_output_thresholds(m_context)) {
                     continue;
                 }
@@ -702,8 +722,8 @@ namespace datalog {
     void rule_stratifier::display(std::ostream& out) const {
         m_deps.display(out << "dependencies\n");
         out << "strata\n";
-        for (auto * s : m_strats) {
-            for (auto * item : *s) {
+        for (unsigned i = 0; i < m_strats.size(); ++i) {
+            for (auto * item : *m_strats[i]) {
                 out << item->get_name() << " ";
             }
             out << "\n";

@@ -19,7 +19,6 @@ Author:
 
 --*/
 
-#include "ast/ast_pp.h"
 #include "opt/opt_context.h"
 #include "opt/maxsmt.h"
 #include "opt/maxlex.h"
@@ -76,20 +75,14 @@ namespace opt {
         }
 
         void update_assignment(model_ref & mdl) {
-            mdl->set_model_completion(true);
             bool first_undef = true, second_undef = false;
             for (auto & soft : m_soft) {
                 if (first_undef && soft.value != l_undef) {
                     continue;
                 }
-                else if (first_undef) {
-                    SASSERT(soft.value == l_undef);
-                    soft.set_value(l_true);
-                    assert_value(soft);            
-                    first_undef = false;
-                }
-                else if (soft.value != l_false) {
-                    lbool v = mdl->is_true(soft.s) ? l_true : l_undef;
+                first_undef = false;
+                if (soft.value != l_false) {
+                    lbool v = mdl->is_true(soft.s) ? l_true : l_undef;;
                     if (v == l_undef) {
                         second_undef = true;
                     }
@@ -131,16 +124,7 @@ namespace opt {
             }
             model_ref mdl;
             s().get_model(mdl);
-            if (mdl) {
-                for (auto & soft : m_soft) {
-                    if (!mdl->is_true(soft.s)) {
-                        break;
-                    }
-                    soft.set_value(l_true);
-                    assert_value(soft);
-                }
-                update_bounds();
-            }
+            if (mdl) update_assignment(mdl);           
         }
 
         //
@@ -159,7 +143,7 @@ namespace opt {
                 switch (is_sat) {
                 case l_true:
                     update_assignment();
-                    SASSERT(soft.value == l_true || m.limit().get_cancel_flag());
+                    SASSERT(soft.value == l_true);
                     break;
                 case l_false:
                     soft.set_value(l_false);

@@ -65,7 +65,6 @@ class macro_manager {
 public:
     macro_manager(ast_manager & m);
     ~macro_manager();
-    void copy_to(macro_manager& dst);
     ast_manager & get_manager() const { return m; }
     macro_util & get_util() { return m_util; }
     bool insert(func_decl * f, quantifier * m, proof * pr, expr_dependency * dep = nullptr);
@@ -79,13 +78,12 @@ public:
     bool is_forbidden(func_decl * d) const { return m_forbidden_set.contains(d); }
     obj_hashtable<func_decl> const & get_forbidden_set() const { return m_forbidden_set; }
     void display(std::ostream & out);
-    bool contains(func_decl* d) const { return m_decls.contains(d); }
     unsigned get_num_macros() const { return m_decls.size(); }
     unsigned get_first_macro_last_level() const { return m_scopes.empty() ? 0 : m_scopes.back().m_decls_lim; }
     func_decl * get_macro_func_decl(unsigned i) const { return m_decls.get(i); }
     func_decl * get_macro_interpretation(unsigned i, expr_ref & interp) const;
     quantifier * get_macro_quantifier(func_decl * f) const { quantifier * q = nullptr; m_decl2macro.find(f, q); return q; }
-    void get_head_def(quantifier * q, func_decl * d, app * & head, expr * & def, bool& revert) const;
+    void get_head_def(quantifier * q, func_decl * d, app * & head, expr * & def) const;
     void expand_macros(expr * n, proof * pr, expr_dependency * dep, expr_ref & r, proof_ref & new_pr, expr_dependency_ref & new_dep);
 
 

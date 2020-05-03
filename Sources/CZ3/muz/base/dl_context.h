@@ -497,7 +497,7 @@ namespace datalog {
         // -----------------------------------
 
         bool canceled() {
-            return !m.inc() && (m_last_status = CANCELED, true);
+            return m.canceled() && (m_last_status = CANCELED, true);
         }
 
         void cleanup();
@@ -527,8 +527,6 @@ namespace datalog {
            for PDR mode and Duality mode.
          */
         model_ref get_model();
-
-        bool is_monotone();
 
         /**
            \brief retrieve proof from derivation of the query.
@@ -607,6 +605,7 @@ namespace datalog {
            Just reset all tables.
         */
         void reset_tables();
+
 
         void flush_add_rules();
 

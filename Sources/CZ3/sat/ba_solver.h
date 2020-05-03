@@ -24,14 +24,13 @@ Revision History:
 #include "sat/sat_extension.h"
 #include "sat/sat_solver.h"
 #include "sat/sat_lookahead.h"
+#include "sat/sat_unit_walk.h"
 #include "sat/sat_big.h"
 #include "util/small_object_allocator.h"
 #include "util/scoped_ptr_vector.h"
 #include "util/sorting_network.h"
 
 namespace sat {
-
-    class xor_finder;
     
     class ba_solver : public extension {
 
@@ -229,6 +228,7 @@ namespace sat {
 
         solver*                m_solver;
         lookahead*             m_lookahead;
+        unit_walk*             m_unit_walk;
         stats                  m_stats; 
         small_object_allocator m_allocator;
        
@@ -287,13 +287,15 @@ namespace sat {
 
         // simplification routines
 
+        svector<unsigned>             m_visited;
+        unsigned                      m_visited_ts;
         vector<svector<constraint*>>    m_cnstr_use_list;
         use_list                  m_clause_use_list;
         bool                      m_simplify_change;
         bool                      m_clause_removed;
         bool                      m_constraint_removed;
         literal_vector            m_roots;
-        bool_vector             m_root_vars;
+        svector<bool>             m_root_vars;
         unsigned_vector           m_weights;
         svector<wliteral>         m_wlits;
         bool subsumes(card& c1, card& c2, literal_vector& comp);
@@ -305,6 +307,11 @@ namespace sat {
         void binary_subsumption(card& c1, literal lit);
         void clause_subsumption(card& c1, literal lit, clause_vector& removed_clauses);
         void card_subsumption(card& c1, literal lit);
+        void init_visited();
+        void mark_visited(literal l) { m_visited[l.index()] = m_visited_ts; }
+        void mark_visited(bool_var v) { mark_visited(literal(v, false)); }
+        bool is_visited(bool_var v) const { return is_visited(literal(v, false)); }
+        bool is_visited(literal l) const { return m_visited[l.index()] == m_visited_ts; }
         unsigned get_num_unblocked_bin(literal l);
         literal get_min_occurrence_literal(card const& c);
         void init_use_lists();
@@ -345,7 +352,7 @@ namespace sat {
         lbool add_assign(constraint& c, literal l);
         bool incremental_mode() const;
         void simplify(constraint& c);
-        void pre_simplify(xor_finder& xu, constraint& c);
+        void pre_simplify(constraint& c);
         void nullify_tracking_literal(constraint& c);
         void set_conflict(constraint& c, literal lit);
         void assign(constraint& c, literal lit);
@@ -394,6 +401,38 @@ namespace sat {
         void simplify(xr& x);
         void extract_xor();
         void merge_xor();
+        struct clause_filter {
+            unsigned m_filter;
+            clause*  m_clause;            
+            clause_filter(unsigned f, clause* cp):
+                m_filter(f), m_clause(cp) {}
+        };
+        typedef svector<bool> bool_vector;
+        unsigned                m_max_xor_size;
+        vector<svector<clause_filter>>   m_clause_filters;      // index of clauses.
+        unsigned                m_barbet_combination;  // bit-mask of parities that have been found
+        vector<bool_vector>     m_barbet_parity;       // lookup parity for clauses
+        clause_vector           m_barbet_clauses_to_remove;    // remove clauses that become xors
+        unsigned_vector         m_barbet_var_position; // position of var in main clause
+        literal_vector          m_barbet_clause;       // reference clause with literals sorted according to main clause
+        unsigned_vector         m_barbet_missing;      // set of indices not occurring in clause.
+        void init_clause_filter();
+        void init_clause_filter(clause_vector& clauses);
+        inline void barbet_set_combination(unsigned mask) { m_barbet_combination |= (1 << mask); }
+        inline bool barbet_get_combination(unsigned mask) const { return (m_barbet_combination & (1 << mask)) != 0; }
+        void barbet_extract_xor();
+        void barbet_init_parity();
+        void barbet_extract_xor(clause& c);
+        bool barbet_extract_xor(bool parity, clause& c, clause& c2);
+        bool barbet_extract_xor(bool parity, clause& c, literal l1, literal l2);
+        bool barbet_update_combinations(clause& c, bool parity, unsigned mask);
+        void barbet_add_xor(bool parity, clause& c);
+        unsigned get_clause_filter(clause& c);
+
+        vector<ptr_vector<clause>> m_ternary;
+        void extract_ternary(clause_vector const& clauses);
+        bool extract_xor(clause& c, literal l);
+        bool extract_xor(clause& c1, clause& c2);
         bool clausify(xr& x);
         void flush_roots(xr& x);
         lbool eval(xr const& x) const;
@@ -430,33 +469,29 @@ namespace sat {
 
         void bail_resolve_conflict(unsigned idx);        
 
-        void init_visited();
-        void mark_visited(literal l);
-        void mark_visited(bool_var v);
-        bool is_visited(bool_var v) const;
-        bool is_visited(literal l) const;
-
-
         // access solver
         inline lbool value(bool_var v) const { return value(literal(v, false)); }
         inline lbool value(literal lit) const { return m_lookahead ? m_lookahead->value(lit) : m_solver->value(lit); }
         inline lbool value(model const& m, literal l) const { return l.sign() ? ~m[l.var()] : m[l.var()]; }
         inline bool is_false(literal lit) const { return l_false == value(lit); }
 
-        inline unsigned lvl(literal lit) const { return m_lookahead ? 0 : m_solver->lvl(lit); }
-        inline unsigned lvl(bool_var v) const { return m_lookahead ? 0 : m_solver->lvl(v); }
+        inline unsigned lvl(literal lit) const { return m_lookahead || m_unit_walk ? 0 : m_solver->lvl(lit); }
+        inline unsigned lvl(bool_var v) const { return m_lookahead || m_unit_walk ? 0 : m_solver->lvl(v); }
         inline bool inconsistent() const { 
             if (m_lookahead) return m_lookahead->inconsistent(); 
+            if (m_unit_walk) return m_unit_walk->inconsistent();
             return m_solver->inconsistent(); 
         }
         inline watch_list& get_wlist(literal l) { return m_lookahead ? m_lookahead->get_wlist(l) : m_solver->get_wlist(l); }
         inline watch_list const& get_wlist(literal l) const { return m_lookahead ? m_lookahead->get_wlist(l) : m_solver->get_wlist(l); }
         inline void assign(literal l, justification j) { 
             if (m_lookahead) m_lookahead->assign(l); 
+            else if (m_unit_walk) m_unit_walk->assign(l);
             else m_solver->assign(l, j);
         }
         inline void set_conflict(justification j, literal l) { 
             if (m_lookahead) m_lookahead->set_conflict(); 
+            else if (m_unit_walk) m_unit_walk->set_conflict();
             else m_solver->set_conflict(j, l); 
         }
         inline config const& get_config() const { return m_lookahead ? m_lookahead->get_config() : m_solver->get_config(); }
@@ -528,8 +563,8 @@ namespace sat {
         constraint* add_xr(literal_vector const& lits, bool learned);
         literal     add_xor_def(literal_vector& lits, bool learned = false);
         bool        all_distinct(literal_vector const& lits);
-        bool        all_distinct(clause const& c);
         bool        all_distinct(xr const& x);
+        bool        all_distinct(clause const& cl);
 
         void copy_core(ba_solver* result, bool learned);
         void copy_constraints(ba_solver* result, ptr_vector<constraint> const& constraints);
@@ -539,6 +574,7 @@ namespace sat {
         ~ba_solver() override;
         void set_solver(solver* s) override { m_solver = s; }
         void set_lookahead(lookahead* l) override { m_lookahead = l; }
+        void set_unit_walk(unit_walk* u) override { m_unit_walk = u; }
         void    add_at_least(bool_var v, literal_vector const& lits, unsigned k);
         void    add_pb_ge(bool_var v, svector<wliteral> const& wlits, unsigned k);
         void    add_xr(literal_vector const& lits);

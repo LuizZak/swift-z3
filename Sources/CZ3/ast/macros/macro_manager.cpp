@@ -25,7 +25,6 @@ Revision History:
 #include "ast/rewriter/th_rewriter.h"
 #include "ast/rewriter/rewriter_def.h"
 #include "ast/ast_pp.h"
-#include "ast/ast_translation.h"
 #include "ast/recurse_expr_def.h"
 
 
@@ -96,26 +95,6 @@ void macro_manager::reset() {
     m_deps.reset();
 }
 
-void macro_manager::copy_to(macro_manager& dst) {
-    ast_manager& tm = dst.get_manager();
-    ast_translation tr(m, tm);
-    for (func_decl* f : m_decls) {
-        func_decl_ref f2(tr(f), tm);
-        quantifier_ref q2(tr(m_decl2macro[f]), tm);
-        proof_ref pr2(tm);
-        expr_dependency_ref dep2(tm);
-        proof* pr1 = nullptr;
-        if (m_decl2macro_pr.find(f, pr1)) {
-            pr2 = tr(pr1);
-        }
-        expr_dependency* dep1 = m_decl2macro_dep[f];
-        if (dep1) {
-            dep2 = ::translate(dep1, m, tm);
-        }
-        dst.insert(f2, q2, pr2, dep2);        
-    }
-}
-
 bool macro_manager::insert(func_decl * f, quantifier * q, proof * pr, expr_dependency* dep) {
     TRACE("macro_insert", tout << "trying to create macro: " << f->get_name() << "\n" << mk_pp(q, m) << "\n";);
 
@@ -127,8 +106,7 @@ bool macro_manager::insert(func_decl * f, quantifier * q, proof * pr, expr_depen
 
     app * head;
     expr * definition;
-    bool revert = false;
-    get_head_def(q, f, head, definition, revert);
+    get_head_def(q, f, head, definition);
 
     func_decl_set * s = m_deps.mk_func_decl_set();
     m_deps.collect_func_decls(definition, s);
@@ -142,8 +120,7 @@ bool macro_manager::insert(func_decl * f, quantifier * q, proof * pr, expr_depen
     m_macros.push_back(q);
     if (m.proofs_enabled()) {
         m_macro_prs.push_back(pr);
-        m_decl2macro_pr.insert(f, pr);       
-        SASSERT(m.get_fact(pr) == q);
+        m_decl2macro_pr.insert(f, pr);
     }
     m_macro_deps.push_back(dep);
     m_decl2macro_dep.insert(f, dep);
@@ -190,19 +167,17 @@ void macro_manager::mark_forbidden(unsigned n, justified_expr const * exprs) {
 }
 
 
-void macro_manager::get_head_def(quantifier * q, func_decl * d, app * & head, expr * & def, bool& revert) const {
+void macro_manager::get_head_def(quantifier * q, func_decl * d, app * & head, expr * & def) const {
     app * body = to_app(q->get_expr());
     expr * lhs = nullptr, *rhs = nullptr;
     VERIFY(m.is_eq(body, lhs, rhs));
     SASSERT(is_app_of(lhs, d) || is_app_of(rhs, d));
     SASSERT(!is_app_of(lhs, d) || !is_app_of(rhs, d));
     if (is_app_of(lhs, d)) {
-        revert = false;
         head = to_app(lhs);
         def  = rhs;
     }
     else {
-        revert = true;
         head = to_app(rhs);
         def  = lhs;
     }
@@ -216,8 +191,7 @@ void macro_manager::display(std::ostream & out) {
         m_decl2macro.find(f, q);
         app * head;
         expr * def;
-        bool r;
-        get_head_def(q, f, head, def, r);
+        get_head_def(q, f, head, def);
         SASSERT(q);
         out << mk_pp(head, m) << " ->\n" << mk_pp(def, m) << "\n";
     }
@@ -228,8 +202,7 @@ func_decl * macro_manager::get_macro_interpretation(unsigned i, expr_ref & inter
     quantifier * q = m_macros.get(i);
     app * head;
     expr * def;
-    bool r;
-    get_head_def(q, f, head, def, r);
+    get_head_def(q, f, head, def);
     TRACE("macro_bug",
           tout << f->get_name() << "\n" << mk_pp(head, m) << "\n" << mk_pp(q, m) << "\n";);
     m_util.mk_macro_interpretation(head, q->get_num_decls(), def, interp);
@@ -283,9 +256,6 @@ struct macro_manager::macro_expander_cfg : public default_rewriter_cfg {
         if (erase_patterns) {
             result = m.update_quantifier(old_q, 0, nullptr, 0, nullptr, new_body);
         }
-        if (erase_patterns && m.proofs_enabled()) {
-            result_pr = m.mk_rewrite(old_q, result);
-        }
         return erase_patterns;
     }
 
@@ -296,20 +266,18 @@ struct macro_manager::macro_expander_cfg : public default_rewriter_cfg {
         quantifier * q = nullptr;
         func_decl * d  = n->get_decl();
         TRACE("macro_manager", tout << "trying to expand:\n" << mk_pp(n, m) << "\nd:\n" << d->get_name() << "\n";);
-        if (mm.m_decl2macro.find(d, q)) {            
+        if (mm.m_decl2macro.find(d, q)) {
+            TRACE("macro_manager", tout << "expanding: " << mk_pp(n, m) << "\n";);
             app * head = nullptr;
             expr * def = nullptr;
-            bool revert = false;
-            mm.get_head_def(q, d, head, def, revert);
+            mm.get_head_def(q, d, head, def);
             unsigned num = n->get_num_args();
             SASSERT(head && def);
-            TRACE("macro_manager", tout << "expanding: " << mk_pp(n, m) << "\n" << mk_pp(head, m) << " " << mk_pp(def, m) << "\n";);
             ptr_buffer<expr> subst_args;
             subst_args.resize(num, 0);
             for (unsigned i = 0; i < num; i++) {
                 var * v = to_var(head->get_arg(i));
-                if (v->get_idx() >= num)
-                    return false;
+                SASSERT(v->get_idx() < num);
                 unsigned nidx = num - v->get_idx() - 1;
                 SASSERT(subst_args[nidx] == 0);
                 subst_args[nidx] = n->get_arg(i);
@@ -321,10 +289,11 @@ struct macro_manager::macro_expander_cfg : public default_rewriter_cfg {
             if (m.proofs_enabled()) {
                 expr_ref instance = s(q->get_expr(), num, subst_args.c_ptr());
                 proof * qi_pr = m.mk_quant_inst(m.mk_or(m.mk_not(q), instance), num, subst_args.c_ptr());
-                proof * q_pr  = mm.m_decl2macro_pr.find(d);
+                proof * q_pr  = nullptr;
+                mm.m_decl2macro_pr.find(d, q_pr);
+                SASSERT(q_pr != 0);
                 proof * prs[2] = { qi_pr, q_pr };
                 p = m.mk_unit_resolution(2, prs);
-                if (revert) p = m.mk_symmetry(p);
             }
             else {
                 p = nullptr;
@@ -360,7 +329,6 @@ void macro_manager::expand_macros(expr * n, proof * pr, expr_dependency * dep, e
         for (;;) {
             macro_expander_rw proc(m, *this);
             proof_ref n_eq_r_pr(m);
-            SASSERT(!old_pr || m.get_fact(old_pr) == old_n);
             TRACE("macro_manager_bug", tout << "expand_macros:\n" << mk_pp(n, m) << "\n";);
             proc(old_n, r, n_eq_r_pr);
             new_pr = m.mk_modus_ponens(old_pr, n_eq_r_pr);
@@ -371,7 +339,6 @@ void macro_manager::expand_macros(expr * n, proof * pr, expr_dependency * dep, e
             old_pr = new_pr;
             old_dep = new_dep;
             change = true;
-            SASSERT(!new_pr || m.get_fact(new_pr) == r);
         }
         // apply th_rewrite to the result.
         if (change) {
@@ -380,7 +347,6 @@ void macro_manager::expand_macros(expr * n, proof * pr, expr_dependency * dep, e
             expr_ref r1(r, m);
             rw(r1, r, rw_pr);
             new_pr = m.mk_modus_ponens(new_pr, rw_pr);
-            SASSERT(!new_pr || m.get_fact(new_pr) == r);
         }
     }
     else {
@@ -388,8 +354,5 @@ void macro_manager::expand_macros(expr * n, proof * pr, expr_dependency * dep, e
         new_pr = pr;
         new_dep = dep;
     }
-
-    SASSERT(!new_pr || m.get_fact(new_pr) == r);
-    SASSERT(!dep || new_dep);
 }
 

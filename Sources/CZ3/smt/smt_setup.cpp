@@ -49,8 +49,8 @@ namespace smt {
     }
 
     void setup::operator()(config_mode cm) {
-        TRACE("internalize", tout << "setup " << &m_context << "\n";);
         SASSERT(m_context.get_scope_level() == 0);
+        SASSERT(!m_context.already_internalized());
         SASSERT(!m_already_configured);
         // if (m_params.m_mbqi && m_params.m_model_compact) {
         //    warning_msg("ignoring MODEL_COMPACT=true because it cannot be used with MBQI=true");
@@ -65,7 +65,6 @@ namespace smt {
         case CFG_LOGIC: setup_default(); break;
         case CFG_AUTO:  setup_auto_config(); break;
         }
-        setup_card();
     }
 
     void setup::setup_default() {
@@ -153,7 +152,6 @@ namespace smt {
             ptr_vector<expr> fmls;
             m_context.get_asserted_formulas(fmls);
             st.collect(fmls.size(), fmls.c_ptr());
-            TRACE("setup", st.display_primitive(tout););
             IF_VERBOSE(1000, st.display_primitive(verbose_stream()););
             if (m_logic == "QF_UF") 
                 setup_QF_UF(st);
@@ -303,6 +301,12 @@ namespace smt {
         // Example: (x < 1) and (x > 0)
         if (m_manager.proofs_enabled()) {
             m_context.register_plugin(alloc(smt::theory_mi_arith, m_manager, m_params));
+        }
+        else if (!m_params.m_arith_auto_config_simplex && is_dense(st)) {
+            if (!st.m_has_rational && !m_params.m_model && st.arith_k_sum_is_small())
+                m_context.register_plugin(alloc(smt::theory_dense_smi, m_manager, m_params));
+            else
+                m_context.register_plugin(alloc(smt::theory_dense_mi, m_manager, m_params));
         }
         else {
             if (m_params.m_arith_auto_config_simplex || st.m_num_uninterpreted_constants > 4 * st.m_num_bool_constants 
@@ -567,7 +571,7 @@ namespace smt {
         m_params.m_bv_cc               = false;
         m_params.m_bb_ext_gates        = true;
         m_params.m_nnf_cnf             = false;
-        m_context.register_plugin(alloc(smt::theory_bv, m_manager, m_params));
+        m_context.register_plugin(alloc(smt::theory_bv, m_manager, m_params, m_params));
     }
 
     void setup::setup_QF_AUFBV() {
@@ -576,7 +580,7 @@ namespace smt {
         m_params.m_bv_cc               = false;
         m_params.m_bb_ext_gates        = true;
         m_params.m_nnf_cnf             = false;
-        m_context.register_plugin(alloc(smt::theory_bv, m_manager, m_params));
+        m_context.register_plugin(alloc(smt::theory_bv, m_manager, m_params, m_params));
         setup_arrays();
     }
 
@@ -839,7 +843,10 @@ namespace smt {
                 m_context.register_plugin(alloc(smt::theory_mi_arith, m_manager, m_params));
             break;
         case AS_NEW_ARITH:
-            setup_lra_arith();
+            if (st.m_num_non_linear != 0 && st.m_has_int) 
+                m_context.register_plugin(alloc(smt::theory_mi_arith, m_manager, m_params));
+            else 
+                setup_lra_arith();
             break;
         default:
             m_context.register_plugin(alloc(smt::theory_mi_arith, m_manager, m_params));
@@ -853,7 +860,7 @@ namespace smt {
             m_context.register_plugin(alloc(smt::theory_dummy, m_manager.mk_family_id("bv"), "no bit-vector"));
             break;
         case BS_BLASTER:
-            m_context.register_plugin(alloc(smt::theory_bv, m_manager, m_params));
+            m_context.register_plugin(alloc(smt::theory_bv, m_manager, m_params, m_params));
             break;
         }
     }
@@ -877,7 +884,7 @@ namespace smt {
 
     void setup::setup_datatypes() {
         TRACE("datatype", tout << "registering theory datatype...\n";);
-        m_context.register_plugin(alloc(theory_datatype, m_manager));
+        m_context.register_plugin(alloc(theory_datatype, m_manager, m_params));
     }
 
     void setup::setup_recfuns() {
@@ -949,7 +956,7 @@ namespace smt {
         ptr_vector<expr> fmls;
         m_context.get_asserted_formulas(fmls);
         st.collect(fmls.size(), fmls.c_ptr());
-        TRACE("setup", tout << "setup_unknown\n";);
+        TRACE("setup", tout << "setup_unknown\n";);        
         setup_arith();
         setup_arrays();
         setup_bv();
@@ -957,6 +964,7 @@ namespace smt {
         setup_recfuns();
         setup_dl();
         setup_seq_str(st);
+        setup_card();
         setup_fpa();
         if (st.m_has_sr) setup_special_relations();
     }
@@ -972,6 +980,7 @@ namespace smt {
             setup_bv();
             setup_dl();
             setup_seq_str(st);
+            setup_card();
             setup_fpa();
             setup_recfuns();
             if (st.m_has_sr) setup_special_relations();

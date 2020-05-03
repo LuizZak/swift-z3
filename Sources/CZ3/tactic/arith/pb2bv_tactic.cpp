@@ -885,6 +885,7 @@ private:
         void operator()(goal_ref const & g, 
                         goal_ref_buffer & result) {
             TRACE("pb2bv", g->display(tout););
+            SASSERT(g->is_well_sorted());
             fail_if_proof_generation("pb2bv", g);
             m_produce_models      = g->models_enabled();
             m_produce_unsat_cores = g->unsat_core_enabled();
@@ -957,6 +958,8 @@ private:
 
             g->inc_depth();
             result.push_back(g.get());
+            TRACE("pb2bv", g->display(tout););
+            SASSERT(g->is_well_sorted());
         }
 
         void throw_tactic(expr* e) {

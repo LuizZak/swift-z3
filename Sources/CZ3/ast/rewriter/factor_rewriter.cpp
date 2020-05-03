@@ -341,8 +341,11 @@ bool factor_rewriter::extract_factors() {
 
 void factor_rewriter::collect_powers() {
     m_powers.reset();
-    for (expr* f : m_factors) {
-        m_powers.insert_if_not_there(f, 0)++;
+    for (unsigned i = 0; i < m_factors.size(); ++i) {
+        obj_map<expr,unsigned>::obj_map_entry* entry = m_powers.insert_if_not_there2(m_factors[i].get(), 0);
+        if (entry) {
+            ++(entry->get_data().m_value);
+        }
     }
 }
 

@@ -105,7 +105,7 @@ class asserted_formulas {
     public:
         nnf_cnf_fn(asserted_formulas& af): simplify_fmls(af, "nnf-cnf") {}
         void operator()() override { af.nnf_cnf(); }
-        bool should_apply() const override { return af.m_smt_params.m_nnf_cnf || af.has_quantifiers(); }
+        bool should_apply() const override { return af.m_smt_params.m_nnf_cnf || (af.m_smt_params.m_mbqi && af.has_quantifiers()); }
         void simplify(justified_expr const& j, expr_ref& n, proof_ref& p) override { UNREACHABLE(); }
     };
 
@@ -160,15 +160,6 @@ class asserted_formulas {
         void pop(unsigned n) { m_elim.pop(n); }
     };
 
-    class flatten_clauses_fn : public simplify_fmls {
-    public:
-        flatten_clauses_fn(asserted_formulas& af): simplify_fmls(af, "flatten-clauses") {}
-        void operator()() override { af.flatten_clauses(); }
-        bool should_apply() const override { return true; }
-        void simplify(justified_expr const& j, expr_ref& n, proof_ref& p) override { UNREACHABLE(); }
-    };
-    void flatten_clauses();
-
 #define MK_SIMPLIFIERA(NAME, FUNCTOR, MSG, APP, ARG, REDUCE)            \
     class NAME : public simplify_fmls {                                 \
         FUNCTOR m_functor;                                              \
@@ -207,12 +198,11 @@ class asserted_formulas {
     propagate_values_fn         m_propagate_values;
     nnf_cnf_fn                  m_nnf_cnf;
     apply_quasi_macros_fn       m_apply_quasi_macros;
-    flatten_clauses_fn          m_flatten_clauses;
 
     bool invoke(simplify_fmls& s);
     void swap_asserted_formulas(vector<justified_expr>& new_fmls);
     void push_assertion(expr * e, proof * pr, vector<justified_expr>& result);
-    bool canceled() { return !m.inc(); }
+    bool canceled() { return m.canceled(); }
     bool check_well_sorted() const;
     unsigned get_total_size() const;
 
@@ -268,7 +258,6 @@ public:
     // Macros
     //
     // -----------------------------------
-    macro_manager& get_macro_manager() { return m_macro_manager; }
     unsigned get_num_macros() const { return m_macro_manager.get_num_macros(); }
     unsigned get_first_macro_last_level() const { return m_macro_manager.get_first_macro_last_level(); }
     func_decl * get_macro_func_decl(unsigned i) const { return m_macro_manager.get_macro_func_decl(i); }

@@ -34,7 +34,7 @@ namespace datalog {
     struct matrix {
         vector<vector<rational> > A;
         vector<rational>          b;
-        bool_vector             eq;
+        svector<bool>             eq;
         unsigned size() const { return A.size(); }
         void reset() { A.reset(); b.reset(); eq.reset(); }
         matrix& operator=(matrix const& other);

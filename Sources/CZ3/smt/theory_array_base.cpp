@@ -28,14 +28,8 @@ namespace smt {
 
     theory_array_base::theory_array_base(ast_manager & m):
         theory(m.mk_family_id("array")),
-        m_found_unsupported_op(false),
-        m_array_weak_head(0)
+        m_found_unsupported_op(false)
     {
-    }
-
-    void theory_array_base::add_weak_var(theory_var v) {
-        get_context().push_trail(push_back_vector<context, svector<theory_var>>(m_array_weak_trail));
-        m_array_weak_trail.push_back(v);
     }
 
     void theory_array_base::found_unsupported_op(expr * n) {
@@ -342,8 +336,8 @@ namespace smt {
             args1.push_back(k);
             args2.push_back(k);
         }
-        expr_ref sel1(mk_select(args1.size(), args1.c_ptr()), m);
-        expr_ref sel2(mk_select(args2.size(), args2.c_ptr()), m);
+        expr * sel1 = mk_select(args1.size(), args1.c_ptr());
+        expr * sel2 = mk_select(args2.size(), args2.c_ptr());
         TRACE("ext", tout << mk_bounded_pp(sel1, m) << "\n" << mk_bounded_pp(sel2, m) << "\n";);
         literal n1_eq_n2     = mk_eq(e1, e2, true);
         literal sel1_eq_sel2 = mk_eq(sel1, sel2, true);
@@ -371,8 +365,10 @@ namespace smt {
         literal n1_eq_n2 = mk_eq(e1, e2, true);
         ctx.mark_as_relevant(n1_eq_n2);
         expr_ref_vector args1(m), args2(m);
-        args1.push_back(instantiate_lambda(e1));
-        args2.push_back(instantiate_lambda(e2));
+        expr_ref f1 = instantiate_lambda(e1);
+        expr_ref f2 = instantiate_lambda(e2);
+        args1.push_back(f1);
+        args2.push_back(f2);
         svector<symbol> names;
         sort_ref_vector sorts(m);
         for (unsigned i = 0; i < dimension; i++) {
@@ -401,32 +397,14 @@ namespace smt {
         quantifier * q = m.is_lambda_def(e->get_decl());
         expr_ref f(e, m);
         if (q) {
-            // the variables in q are maybe not consecutive.
             var_subst sub(m, false);
-            expr_free_vars fv;
-            fv(q);
-            expr_ref_vector es(m);
-            es.resize(fv.size());
-            for (unsigned i = 0, j = 0; i < e->get_num_args(); ++i) {
-                SASSERT(j < es.size());
-                while (!fv[j]) {
-                    ++j; 
-                    SASSERT(j < es.size());
-                }
-                es[j++] = e->get_arg(i);
-            }
-            f = sub(q, es.size(), es.c_ptr());
+            f = sub(q, e->get_num_args(), e->get_args());
         }
         return f;
     }
 
     bool theory_array_base::can_propagate() {
-        return 
-            !m_axiom1_todo.empty() || 
-            !m_axiom2_todo.empty() || 
-            !m_extensionality_todo.empty() || 
-            !m_congruent_todo.empty() ||
-            (!get_context().get_fparams().m_array_weak && has_propagate_up_trail());
+        return !m_axiom1_todo.empty() || !m_axiom2_todo.empty() || !m_extensionality_todo.empty() || !m_congruent_todo.empty();
     }
 
     void theory_array_base::propagate() {
@@ -443,12 +421,6 @@ namespace smt {
                 assert_congruent_core(m_congruent_todo[i].first, m_congruent_todo[i].second);
             m_extensionality_todo.reset();
             m_congruent_todo.reset();
-            if (!get_context().get_fparams().m_array_weak && has_propagate_up_trail()) {
-                get_context().push_trail(value_trail<context, unsigned>(m_array_weak_head));
-                for (; m_array_weak_head < m_array_weak_trail.size(); ++m_array_weak_head) {
-                    set_prop_upward(m_array_weak_trail[m_array_weak_head]);
-                }                
-            }
         }
     }
 
@@ -522,46 +494,27 @@ namespace smt {
         unmark_enodes(to_unmark.size(), to_unmark.c_ptr());
     }
 #else
-
-    bool theory_array_base::is_select_arg(enode* r) {
-        for (enode* n : r->get_parents()) {
-            if (is_select(n)) {
-                for (unsigned i = 1; i < n->get_num_args(); ++i) {
-                    if (r == n->get_arg(i)->get_root()) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
     void theory_array_base::collect_shared_vars(sbuffer<theory_var> & result) {
+        TRACE("array_shared", tout << "collecting shared vars...\n";);
         context & ctx = get_context();
         ptr_buffer<enode> to_unmark;
         unsigned num_vars = get_num_vars();
         for (unsigned i = 0; i < num_vars; i++) {
-            enode * n = get_enode(i);
-            if (!ctx.is_relevant(n) || !is_array_sort(n)) {
-                continue;
-            }
+        enode * n = get_enode(i);
+            if (ctx.is_relevant(n)) {
             enode * r = n->get_root();
-            if (r->is_marked()) {
-                continue;
-            }
-            // arrays used as indices in other arrays have to be treated as shared.
-            // issue #3532, #3529
-            // 
-            if (ctx.is_shared(r) || is_select_arg(r)) {
-                TRACE("array", tout << "new shared var: #" << r->get_owner_id() << "\n";);
-                theory_var r_th_var = r->get_th_var(get_id());
-                SASSERT(r_th_var != null_theory_var);
-                result.push_back(r_th_var);
+        if (!r->is_marked()){
+            if(is_array_sort(r) && ctx.is_shared(r)) {
+              TRACE("array_shared", tout << "new shared var: #" << r->get_owner_id() << "\n";);
+              theory_var r_th_var = r->get_th_var(get_id());
+              SASSERT(r_th_var != null_theory_var);
+              result.push_back(r_th_var);
             }
             r->set_mark();
-            to_unmark.push_back(r);            
+            to_unmark.push_back(r);
         }
-        TRACE("array", tout << "collecting shared vars...\n" << unsigned_vector(result.size(), (unsigned*)result.c_ptr())  << "\n";);
+            }
+        }
         unmark_enodes(to_unmark.size(), to_unmark.c_ptr());
     }
 #endif
@@ -1027,8 +980,6 @@ namespace smt {
                     // IMPORTANT:
                     // The implementation should not assume a fresh value is created for 
                     // the else_val if the range is finite
-
-                    TRACE("array", tout << mk_pp(n->get_owner(), get_manager()) << " " << mk_pp(range, get_manager()) << " " << range->is_infinite() << "\n";);
                     if (range->is_infinite())
                         else_val = TAG(void*, m.mk_extra_fresh_value(range), 1);
                     else

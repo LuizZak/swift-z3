@@ -47,29 +47,24 @@ bool model_core::eval(func_decl* f, expr_ref & r) const {
 }
 
 void model_core::register_decl(func_decl * d, expr * v) {
-    if (d->get_arity() > 0) {
-        func_interp* fi = alloc(func_interp, m, d->get_arity());
-        fi->set_else(v);
-        register_decl(d, fi);
-        return;
-    }
+    SASSERT(d->get_arity() == 0);
     TRACE("model", tout << "register " << d->get_name() << "\n";
           if (v) tout << mk_pp(v, m) << "\n";
           );
-    auto& value = m_interp.insert_if_not_there(d, nullptr);
-    if (value == nullptr) {
+    decl2expr::obj_map_entry * entry = m_interp.insert_if_not_there2(d, nullptr);
+    if (entry->get_data().m_value == nullptr) {
         // new entry
         m_decls.push_back(d);
         m_const_decls.push_back(d);
         m.inc_ref(d);
         m.inc_ref(v);
-        value = v;
+        entry->get_data().m_value = v;
     }
     else {
         // replacing entry
         m.inc_ref(v);
-        m.dec_ref(value);
-        value = v;
+        m.dec_ref(entry->get_data().m_value);
+        entry->get_data().m_value = v;
     }
 }
 
@@ -77,19 +72,19 @@ void model_core::register_decl(func_decl * d, func_interp * fi) {
     TRACE("model", tout << "register " << d->get_name() << "\n";);
     SASSERT(d->get_arity() > 0);
     SASSERT(&fi->m() == &m);
-    auto& value = m_finterp.insert_if_not_there(d, nullptr);
-    if (value == nullptr) {
+    decl2finterp::obj_map_entry * entry = m_finterp.insert_if_not_there2(d, nullptr);
+    if (entry->get_data().m_value == nullptr) {
         // new entry
         m_decls.push_back(d);
         m_func_decls.push_back(d);
         m.inc_ref(d);
-        value = fi;
+        entry->get_data().m_value = fi;
     }
     else {
         // replacing entry
-        if (fi != value)
-            dealloc(value);
-        value = fi;
+        if (fi != entry->get_data().m_value)
+            dealloc(entry->get_data().m_value);
+        entry->get_data().m_value = fi;
     }
 }
 

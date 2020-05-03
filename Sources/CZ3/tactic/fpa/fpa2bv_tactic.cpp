@@ -29,10 +29,17 @@ class fpa2bv_tactic : public tactic {
         fpa2bv_rewriter   m_rw;
         unsigned          m_num_steps;
 
+        bool              m_proofs_enabled;
+        bool              m_produce_models;
+        bool              m_produce_unsat_cores;
+
         imp(ast_manager & _m, params_ref const & p):
             m(_m),
             m_conv(m),
-            m_rw(m, m_conv, p) {
+            m_rw(m, m_conv, p),
+            m_proofs_enabled(false),
+            m_produce_models(false),
+            m_produce_unsat_cores(false) {
             }
 
         void updt_params(params_ref const & p) {
@@ -41,12 +48,16 @@ class fpa2bv_tactic : public tactic {
 
         void operator()(goal_ref const & g,
                         goal_ref_buffer & result) {
-            bool proofs_enabled      = g->proofs_enabled();
+            SASSERT(g->is_well_sorted());
+            m_proofs_enabled      = g->proofs_enabled();
+            m_produce_models      = g->models_enabled();
+            m_produce_unsat_cores = g->unsat_core_enabled();
+
             result.reset();
             tactic_report report("fpa2bv", *g);
             m_rw.reset();
 
-            TRACE("fpa2bv", g->display(tout << "BEFORE: " << std::endl););
+            TRACE("fpa2bv", tout << "BEFORE: " << std::endl; g->display(tout););
 
             if (g->inconsistent()) {
                 result.push_back(g.get());
@@ -63,7 +74,7 @@ class fpa2bv_tactic : public tactic {
                 expr * curr = g->form(idx);
                 m_rw(curr, new_curr, new_pr);
                 m_num_steps += m_rw.get_num_steps();
-                if (proofs_enabled) {
+                if (m_proofs_enabled) {
                     proof * pr = g->pr(idx);
                     new_pr     = m.mk_modus_ponens(pr, new_pr);
                 }
@@ -91,15 +102,12 @@ class fpa2bv_tactic : public tactic {
             g->inc_depth();
             result.push_back(g.get());
 
-            for (expr* e : m_conv.m_extra_assertions) {
-                proof* pr = nullptr;
-                if (proofs_enabled)
-                    pr = m.mk_asserted(e);
-                result.back()->assert_expr(e, pr);
-            }                
+            for (unsigned i = 0; i < m_conv.m_extra_assertions.size(); i++)
+                result.back()->assert_expr(m_conv.m_extra_assertions[i].get());
 
-            TRACE("fpa2bv", g->display(tout << "AFTER:\n");
-            if (g->mc()) g->mc()->display(tout); tout << std::endl; );
+            SASSERT(g->is_well_sorted());
+            TRACE("fpa2bv", tout << "AFTER: " << std::endl; g->display(tout);
+                  if (g->mc()) g->mc()->display(tout); tout << std::endl; );
         }
     };
 

@@ -137,18 +137,17 @@ public:
     void display(std::ostream & out) const;
     void display_ll(std::ostream & out) const;
     void display_as_and(std::ostream & out) const;
-    void display_dimacs(std::ostream & out, bool include_names) const;
+    void display_dimacs(std::ostream & out) const;
     void display_with_dependencies(ast_printer & prn, std::ostream & out) const;
     void display_with_dependencies(ast_printer_context & ctx) const;
     void display_with_dependencies(std::ostream & out) const;
-    void display_with_proofs(std::ostream& out) const;
 
     bool sat_preserved() const;
     bool unsat_preserved() const;
     bool is_decided_sat() const;
     bool is_decided_unsat() const;
     bool is_decided() const;
-    bool is_well_formed() const;
+    bool is_well_sorted() const;
 
     dependency_converter* dc() { return m_dc.get(); }
     model_converter* mc() const { return m_mc.get(); }

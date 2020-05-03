@@ -37,15 +37,15 @@ namespace datalog {
     }
 
     void compiler::ensure_predicate_loaded(func_decl * pred, instruction_block & acc) {
-        auto& value = m_pred_regs.insert_if_not_there(pred, UINT_MAX);
-        if (value != UINT_MAX) {
+        pred2idx::obj_map_entry * e = m_pred_regs.insert_if_not_there2(pred, UINT_MAX);
+        if(e->get_data().m_value!=UINT_MAX) {
             //predicate is already loaded
             return;
         }
         relation_signature sig;
         m_context.get_rel_context()->get_rmanager().from_predicate(pred, sig);
         reg_idx reg = get_fresh_register(sig);
-        value = reg;
+        e->get_data().m_value=reg;
 
         acc.push_back(instruction::mk_load(m_context.get_manager(), pred, reg));
     }
@@ -570,8 +570,8 @@ namespace datalog {
                 else {
                     SASSERT(is_var(exp));
                     unsigned var_num=to_var(exp)->get_idx();
-                    auto& value = var_indexes.insert_if_not_there(var_num, unsigned_vector());
-                    value.push_back(i);
+                    int2ints::entry * e = var_indexes.insert_if_not_there2(var_num, unsigned_vector());
+                    e->get_data().m_value.push_back(i);
                 }
             }
         }
@@ -631,8 +631,8 @@ namespace datalog {
                     src_col = single_res_expr.size();
                     single_res_expr.push_back(m.mk_var(v, unbound_sort));
 
-
-                    var_indexes.insert_if_not_there(v, unsigned_vector()).push_back(src_col);
+                    entry = var_indexes.insert_if_not_there2(v, unsigned_vector());
+                    entry->get_data().m_value.push_back(src_col);
                 }
                 relation_sort var_sort = m_reg_signatures[filtered_res][src_col];
                 binding[m_free_vars.size()-v] = m.mk_var(src_col, var_sort);
@@ -728,7 +728,7 @@ namespace datalog {
             expr_ref renamed = m_context.get_var_subst()(filter_cond, binding.size(), binding.c_ptr());
             app_ref app_renamed(to_app(renamed), m);
             if (remove_columns.empty()) {
-                if (!dealloc && filtered_res != UINT_MAX)
+                if (!dealloc)
                     make_clone(filtered_res, filtered_res, acc);
                 acc.push_back(instruction::mk_filter_interpreted(filtered_res, app_renamed));
             } else {
@@ -790,7 +790,7 @@ namespace datalog {
                     unsigned unbound_column_index = single_res_expr.size();
                     single_res_expr.push_back(m.mk_var(v, unbound_sort));
 
-                    e = var_indexes.insert_if_not_there3(v, unsigned_vector());
+                    e = var_indexes.insert_if_not_there2(v, unsigned_vector());
                     e->get_data().m_value.push_back(unbound_column_index);
                 }
                 unsigned src_col=e->get_data().m_value.back();
@@ -819,15 +819,15 @@ namespace datalog {
                 aci.domain=head_sig[i];
 
                 expr * exp = h->get_arg(i);
-                if (is_var(exp)) {
-                    unsigned var_num = to_var(exp)->get_idx();
-                    int2ints::entry* e = var_indexes.find_core(var_num);
-                    if (e) {
-                        unsigned_vector& binding_indexes = e->get_data().m_value;
-                        aci.kind = ACK_BOUND_VAR;
-                        aci.source_column = binding_indexes.back();
-                        SASSERT(aci.source_column < single_res_expr.size()); //we bind only to existing columns
-                        if (binding_indexes.size() > 1) {
+                if(is_var(exp)) {
+                    unsigned var_num=to_var(exp)->get_idx();
+                    int2ints::entry * e = var_indexes.find_core(var_num);
+                    if(e) {
+                        unsigned_vector & binding_indexes = e->get_data().m_value;
+                        aci.kind=ACK_BOUND_VAR;
+                        aci.source_column=binding_indexes.back();
+                        SASSERT(aci.source_column<single_res_expr.size()); //we bind only to existing columns
+                        if(binding_indexes.size()>1) {
                             //if possible, we do not want multiple head columns
                             //point to a single column in the intermediate table,
                             //since then we would have to duplicate the column
@@ -836,14 +836,13 @@ namespace datalog {
                         }
                     }
                     else {
-                        aci.kind = ACK_UNBOUND_VAR;
-                        aci.var_index = var_num;
+                        aci.kind=ACK_UNBOUND_VAR;
+                        aci.var_index=var_num;
                     }
                 }
                 else {
                     SASSERT(is_app(exp));
-                    if (!m_context.get_decl_util().is_numeral_ext(exp))
-                        throw default_exception("could not process non-numeral in Datalog engine");
+                    SASSERT(m_context.get_decl_util().is_numeral_ext(exp));
                     aci.kind=ACK_CONSTANT;
                     aci.constant=to_app(exp);
                 }

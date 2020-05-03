@@ -60,7 +60,7 @@ public:
         g->updt_prec(goal::OVER);
         result.push_back(g.get());
         TRACE("sine", result[0]->display(tout););
-        SASSERT(g->is_well_formed());
+        SASSERT(g->is_well_sorted());
     }
 
     void cleanup() override {
@@ -215,8 +215,6 @@ private:
             visiting = to_visit.back();
             to_visit.pop_back();
             visited.insert(visiting);
-            if (!exp2const.contains(visiting))
-                continue;
             for (func_decl* f : exp2const[visiting]) 
                 for (expr* e : const2exp[f]) {
                     if (!visited.contains(e))

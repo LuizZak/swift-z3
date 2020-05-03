@@ -57,7 +57,8 @@ namespace smt {
     std::ostream& theory::display_app(std::ostream & out, app * n) const {
         func_decl * d = n->get_decl();
         if (n->get_num_args() == 0) {
-            out << mk_bounded_pp(n, get_manager(), 1);
+            out << d->get_name();
+            display_parameters(out, d->get_num_parameters(), d->get_parameters());
         }
         else if (n->get_family_id() == get_family_id()) {
             out << "(" << d->get_name();
@@ -78,7 +79,8 @@ namespace smt {
     std::ostream& theory::display_flat_app(std::ostream & out, app * n) const {
         func_decl * d = n->get_decl();
         if (n->get_num_args() == 0) {
-            display_app(out, n);
+            out << d->get_name();
+            display_parameters(out, d->get_num_parameters(), d->get_parameters());
         }
         else if (n->get_family_id() == get_family_id()) {
             out << "(" << d->get_name();
@@ -103,7 +105,7 @@ namespace smt {
             out << ")";
         }
         else {
-            out << mk_bounded_pp(n, get_manager(), 1);
+            out << "#" << n->get_id();
         }
         return out;
     }
@@ -122,29 +124,11 @@ namespace smt {
             return true_literal;
         }
         context & ctx = get_context();
-        app_ref eq(ctx.mk_eq_atom(a, b), get_manager());
+        app * eq = ctx.mk_eq_atom(a, b);
         TRACE("mk_var_bug", tout << "mk_eq: " << eq->get_id() << " " << a->get_id() << " " << b->get_id() << "\n";
               tout << mk_ll_pp(a, get_manager()) << "\n" << mk_ll_pp(b, get_manager()););		
         ctx.internalize(eq, gate_ctx);
         return ctx.get_literal(eq);
-    }
-
-    literal theory::mk_preferred_eq(expr* a, expr* b) {
-        context& ctx = get_context();
-        ctx.assume_eq(ensure_enode(a), ensure_enode(b));
-        literal lit = mk_eq(a, b, false);
-        ctx.force_phase(lit);
-        return lit;
-    }
-
-    enode* theory::ensure_enode(expr* e) {
-        context& ctx = get_context();
-        if (!ctx.e_internalized(e)) {
-            ctx.internalize(e, false);
-        }
-        enode* n = ctx.get_enode(e);
-        ctx.mark_as_relevant(n);
-        return n;
     }
 
     theory::theory(family_id fid):
@@ -157,20 +141,8 @@ namespace smt {
     }
 
 
-    void theory::log_axiom_instantiation(literal_vector const& ls) {
-        ast_manager& m = get_manager();
-        expr_ref_vector fmls(m);
-        expr_ref tmp(m);
-        for (literal l : ls) {
-            get_context().literal2expr(l, tmp);
-            fmls.push_back(tmp);
-        }
-        log_axiom_instantiation(mk_or(fmls));
-    }
-
     void theory::log_axiom_instantiation(app * r, unsigned axiom_id, unsigned num_bindings, app * const * bindings, unsigned pattern_id, const vector<std::tuple<enode *, enode *>> & used_enodes) {
         ast_manager & m = get_manager();
-        app_ref _r(r, m);
         std::ostream& out = m.trace_stream();
         symbol const & family_name = m.get_family_name(get_family_id());
         if (pattern_id == UINT_MAX) {
@@ -188,8 +160,7 @@ namespace smt {
                     out << " #" << substituted->get_owner_id();
                 }
             }
-        } 
-        else {
+        } else {
             SASSERT(axiom_id != UINT_MAX);
             obj_hashtable<enode> already_visited;
             for (auto n : used_enodes) {

@@ -53,12 +53,12 @@ namespace smt {
         bool                     m_can_propagate;
         bool                     m_normalize; 
         rational                 m_den;         // lcm of denominators for rational weights.
-        bool_vector            m_assigned, m_enabled;
+        svector<bool>            m_assigned, m_enabled;
         stats                    m_stats;
     public:
         theory_wmaxsat(ast_manager& m, generic_model_converter& mc);
         ~theory_wmaxsat() override;
-        void get_assignment(bool_vector& result);
+        void get_assignment(svector<bool>& result);
         expr* assert_weighted(expr* fml, rational const& w);
         void  disable_var(expr* var);
         bool_var register_var(app* var, bool attach);

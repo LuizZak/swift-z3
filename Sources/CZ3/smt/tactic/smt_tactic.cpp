@@ -16,10 +16,9 @@ Author:
 Notes:
 
 --*/
-#include "util/debug.h"
+#include "util/lp/lp_params.hpp"
 #include "ast/rewriter/rewriter_types.h"
 #include "ast/ast_util.h"
-#include "ast/ast_ll_pp.h"
 #include "smt/smt_kernel.h"
 #include "smt/params/smt_params.h"
 #include "smt/params/smt_params_helper.hpp"
@@ -92,6 +91,7 @@ public:
         r.insert("candidate_models", CPK_BOOL, "(default: false) create candidate models even when quantifier or theory reasoning is incomplete.");
         r.insert("fail_if_inconclusive", CPK_BOOL, "(default: true) fail if found unsat (sat) for under (over) approximated goal.");
         smt_params_helper::collect_param_descrs(r);
+        lp_params::collect_param_descrs(r);
     }
 
 
@@ -151,8 +151,8 @@ public:
                     goal_ref_buffer & result) override {
         try {
             IF_VERBOSE(10, verbose_stream() << "(smt.tactic start)\n";);
+            SASSERT(in->is_well_sorted());
             ast_manager & m = in->m();
-            tactic_report report("smt", *in);
             TRACE("smt_tactic", tout << this << "\nAUTO_CONFIG: " << fparams().m_auto_config << " HIDIV0: " << fparams().m_hi_div0 << " "
                   << " PREPROCESS: " << fparams().m_preprocess << "\n";
                   tout << "RELEVANCY: " << fparams().m_relevancy_lvl << "\n";
@@ -209,7 +209,7 @@ public:
             }
             SASSERT(m_ctx);
             m_ctx->collect_statistics(m_stats);
-            proof_ref pr(m_ctx->get_proof(), m);
+            proof * pr = m_ctx->get_proof();
             TRACE("smt_tactic", tout << r << " " << pr << "\n";);
             switch (r) {
             case l_true: {
@@ -250,11 +250,7 @@ public:
                         lcore = m.mk_join(lcore, m.mk_leaf(d));
                     }
                 }
-
-                if (m.proofs_enabled() && !pr) pr = m.mk_asserted(m.mk_false()); // bail out
-                if (pr && m.get_fact(pr) != m.mk_false()) pr = m.mk_asserted(m.mk_false()); // could happen in clause_proof mode
                 in->assert_expr(m.mk_false(), pr, lcore);
-                
                 result.push_back(in.get());
                 return;
             }
@@ -272,8 +268,7 @@ public:
                 result.push_back(in.get());
                 if (pr) {
                     in->reset();
-                    in->assert_expr(m.get_fact(pr), pr, nullptr);
-                    in->updt_prec(goal::UNDER_OVER);
+                    in->assert_expr(m.mk_const(symbol("trail"), m.mk_bool_sort()), pr, nullptr);
                 }
                 if (m_candidate_models) {
                     switch (m_ctx->last_failure()) {

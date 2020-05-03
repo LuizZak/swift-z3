@@ -210,7 +210,7 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
         
     }
     else if (f->get_family_id() == m_manager.get_basic_family_id() && is_bv_array(f->get_range())) {
-        throw default_exception("not handled by bvarray2uf");
+        NOT_IMPLEMENTED_YET();
     }
     else if (f->get_family_id() == null_family_id) {
         TRACE("bvarray2uf_rw", tout << "UF APP: " << f->get_name() << std::endl; );
@@ -360,8 +360,8 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
                     }
                 }
                 else {
-                    throw default_exception("not handled by bvarray2uf");
-                    // res = BR_FAILED;
+                    NOT_IMPLEMENTED_YET();
+                    res = BR_FAILED;
                 }
             }
         }
@@ -393,13 +393,15 @@ bool bvarray2uf_rewriter_cfg::reduce_quantifier(quantifier * old_q,
     expr * const * new_no_patterns,
     expr_ref & result,
     proof_ref & result_pr) {
-    throw default_exception("not handled by bvarray2uf");
+    NOT_IMPLEMENTED_YET();
+    return true;
 }
 
 bool bvarray2uf_rewriter_cfg::reduce_var(var * t, expr_ref & result, proof_ref & result_pr) {
     if (t->get_idx() >= m_bindings.size())
         return false;
-    throw default_exception("not handled by bvarray2uf");
+    NOT_IMPLEMENTED_YET();
+    return true;
 }
 
 template class rewriter_tpl<bvarray2uf_rewriter_cfg>;

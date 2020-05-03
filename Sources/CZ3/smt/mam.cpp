@@ -27,8 +27,6 @@ Revision History:
 #include "smt/mam.h"
 #include "smt/smt_context.h"
 
-using namespace smt;
-
 // #define _PROFILE_MAM
 
 // -----------------------------------------
@@ -55,7 +53,7 @@ using namespace smt;
 
 #define IS_CGR_SUPPORT true
 
-namespace {
+namespace smt {
     // ------------------------------------
     //
     // Trail
@@ -386,6 +384,12 @@ namespace {
     //
     // ------------------------------------
 
+    inline enode * get_enode(context & ctx, app * n) {
+        SASSERT(ctx.e_internalized(n));
+        enode * e = ctx.get_enode(n);
+        SASSERT(e);
+        return e;
+    }
     inline enode * mk_enode(context & ctx, quantifier * qa, app * n) {
         ctx.internalize(n, false, ctx.get_generation(qa));
         enode * e = ctx.get_enode(n);
@@ -440,13 +444,6 @@ namespace {
         }
 
 #ifdef Z3DEBUG
-        inline enode * get_enode(context & ctx, app * n) const {
-            SASSERT(ctx.e_internalized(n));
-            enode * e = ctx.get_enode(n);
-            SASSERT(e);
-            return e;
-        }
-
         void display_label_hashes_core(std::ostream & out, app * p) const {
             if (p->is_ground()) {
                 enode * e = get_enode(*m_context, p);
@@ -588,12 +585,10 @@ namespace {
         }
     };
 
-#ifdef _TRACE
-    std::ostream & operator<<(std::ostream & out, code_tree const & tree) {
+    inline std::ostream & operator<<(std::ostream & out, code_tree const & tree) {
         tree.display(out);
         return out;
     }
-#endif
 
     // ------------------------------------
     //
@@ -800,7 +795,7 @@ namespace {
         code_tree *             m_tree;
         unsigned                m_num_choices;
         bool                    m_is_tmp_tree;
-        bool_vector           m_mp_already_processed;
+        svector<bool>           m_mp_already_processed;
         obj_map<expr, unsigned> m_matched_exprs;
 
         struct pcheck_checked {
@@ -1370,8 +1365,6 @@ namespace {
         */
         bool is_semi_compatible(check * instr) const {
             unsigned reg  = instr->m_reg;
-            if (instr->m_enode && !instr->m_enode->has_lbl_hash())
-                instr->m_enode->set_lbl_hash(m_context);
             return
                 m_registers[reg] != 0 &&
                 // if the register was already checked by another filter, then it doesn't make sense
@@ -1810,7 +1803,7 @@ namespace {
         }
     };
 
-#if 0
+#ifdef Z3DEBUG
     bool check_lbls(enode * n) {
         approx_set  lbls;
         approx_set plbls;
@@ -1992,13 +1985,11 @@ namespace {
 
         enode * init_continue(cont const * c, unsigned expected_num_args);
 
-#ifdef _TRACE
         void display_reg(std::ostream & out, unsigned reg);
 
         void display_instr_input_reg(std::ostream & out, instruction const * instr);
 
         void display_pc_info(std::ostream & out);
-#endif
 
 #define INIT_ARGS_SIZE 16
 
@@ -2115,7 +2106,6 @@ namespace {
             enode * p = *it1;
             if (p->get_decl() == j2->m_decl &&
                 m_context.is_relevant(p) &&
-                p->get_num_args() > j2->m_arg_pos && 
                 p->is_cgr() &&
                 p->get_arg(j2->m_arg_pos)->get_root() == n) {
                 // p is in joint2
@@ -2126,10 +2116,8 @@ namespace {
                     enode * p2 = *it2;
                     if (p2->get_decl() == f &&
                         num_args == n->get_num_args() && 
-                        num_args == p2->get_num_args() &&
                         m_context.is_relevant(p2) &&
                         p2->is_cgr() &&
-                        i < num_args && 
                         p2->get_arg(i)->get_root() == p) {
                         v->push_back(p2);
                     }
@@ -2232,7 +2220,6 @@ namespace {
         return *(bp.m_it);
     }
 
-#ifdef _TRACE
     void interpreter::display_reg(std::ostream & out, unsigned reg) {
         out << "reg[" << reg << "]: ";
         enode * n = m_registers[reg];
@@ -2284,7 +2271,6 @@ namespace {
         out << "\n";
         display_instr_input_reg(out, m_pc);
     }
-#endif
 
     bool interpreter::execute_core(code_tree * t, enode * n) {
         TRACE("trigger_bug", tout << "interpreter::execute_core\n"; t->display(tout); tout << "\nenode\n" << mk_ismt2_pp(n->get_owner(), m) << "\n";);
@@ -2851,7 +2837,6 @@ namespace {
         return false;
     } // end of execute_core
 
-#if 0
     void display_trees(std::ostream & out, const ptr_vector<code_tree> & trees) {
         unsigned lbl = 0;
         for (code_tree * tree : trees) {
@@ -2862,7 +2847,6 @@ namespace {
             ++lbl;
         }
     }
-#endif
 
     // ------------------------------------
     //
@@ -3111,10 +3095,10 @@ namespace {
 
         // m_is_plbl[f] is true, then when f(c_1, ..., c_n) becomes relevant,
         //  for each c_i. c_i->get_root()->lbls().insert(lbl_hash(f))
-        bool_vector               m_is_plbl;
+        svector<bool>               m_is_plbl;
         // m_is_clbl[f] is true, then when n=f(c_1, ..., c_n) becomes relevant,
         //  n->get_root()->lbls().insert(lbl_hash(f))
-        bool_vector               m_is_clbl;    // children labels
+        svector<bool>               m_is_clbl;    // children labels
 
         // auxiliary field used to update data-structures...
         typedef ptr_vector<func_decl> func_decls;
@@ -4024,11 +4008,14 @@ namespace {
             SASSERT(approx_subset(r1->get_lbls(), r2->get_lbls()));
         }
     };
-}
 
-namespace smt {
     mam * mk_mam(context & ctx) {
         return alloc(mam_impl, ctx, true);
     }
-}
+};
 
+#ifdef Z3DEBUG
+void pp(smt::code_tree * c) {
+    c->display(std::cout);
+}
+#endif

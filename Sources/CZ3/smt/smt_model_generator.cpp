@@ -318,7 +318,7 @@ namespace smt {
         for (source const& curr : sources) {
             if (curr.is_fresh_value()) {
                 sort * s = curr.get_value()->get_sort();
-                TRACE("model_fresh_bug", tout << curr << " : " << mk_pp(s, m) << " " << curr.get_value()->get_value() << "\n";);
+                TRACE("model_fresh_bug", tout << curr << " : " << mk_pp(s, m) << "\n";);
                 expr * val = m_model->get_fresh_value(s);
                 TRACE("model_fresh_bug", tout << curr << " := #" << (val == nullptr ? UINT_MAX : val->get_id()) << "\n";);
                 m_asts.push_back(val);
@@ -430,10 +430,6 @@ namespace smt {
                           tout << "#" << n->get_arg(i)->get_owner_id() << " ";
                       }
                       tout << "\n";
-                      for (expr* arg : args) {
-                          tout << mk_pp(arg, m) << " ";
-                      }
-                      tout << "\n";
                       tout << "value: #" << n->get_owner_id() << "\n" << mk_ismt2_pp(result, m) << "\n";);
                 if (fi->get_entry(args.c_ptr()) == nullptr)
                     fi->insert_new_entry(args.c_ptr(), result);
@@ -501,7 +497,7 @@ namespace smt {
         mk_func_interps();
         finalize_theory_models();
         register_macros();
-        TRACE("model", model_v2_pp(tout, *m_model, true););        
+        TRACE("model", model_v2_pp(tout, *m_model, true););
         return m_model.get();
     }
     

@@ -21,7 +21,6 @@ Revision History:
 #include "ast/ast_pp.h"
 #include "ast/bv_decl_plugin.h"
 
-
 bit_blaster_cfg::bit_blaster_cfg(bv_util & u, bit_blaster_params const & p, bool_rewriter& rw):
     m_util(u),
     m_params(p),
@@ -35,7 +34,6 @@ static void sort_args(expr * & l1, expr * & l2, expr * & l3) {
     std::sort(args, args+3, ast_lt_proc());
     l1 = args[0]; l2 = args[1]; l3 = args[2];
 }
-
 
 void bit_blaster_cfg::mk_xor3(expr * l1, expr * l2, expr * l3, expr_ref & r) {
     TRACE("xor3", tout << "#" << l1->get_id() << " #" << l2->get_id() << " #" << l3->get_id(););

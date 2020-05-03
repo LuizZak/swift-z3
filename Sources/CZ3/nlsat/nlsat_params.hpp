@@ -19,7 +19,7 @@ struct nlsat_params {
     d.insert("randomize", CPK_BOOL, "randomize selection of a witness in nlsat.", "true","nlsat");
     d.insert("max_conflicts", CPK_UINT, "maximum number of conflicts.", "4294967295","nlsat");
     d.insert("shuffle_vars", CPK_BOOL, "use a random variable order.", "false","nlsat");
-    d.insert("inline_vars", CPK_BOOL, "inline variables that can be isolated from equations (not supported in incremental mode)", "false","nlsat");
+    d.insert("inline_vars", CPK_BOOL, "inline variables that can be isolated from equations", "false","nlsat");
     d.insert("seed", CPK_UINT, "random seed.", "0","nlsat");
     d.insert("factor", CPK_BOOL, "factor polynomials produced during conflict resolution.", "true","nlsat");
   }

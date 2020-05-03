@@ -27,8 +27,6 @@ struct smt_params_helper {
     d.insert("refine_inj_axioms", CPK_BOOL, "refine injectivity axioms", "true","smt");
     d.insert("max_conflicts", CPK_UINT, "maximum number of conflicts before giving up.", "4294967295","smt");
     d.insert("restart.max", CPK_UINT, "maximal number of restarts.", "4294967295","smt");
-    d.insert("threads", CPK_UINT, "maximal number of parallel threads.", "1","smt");
-    d.insert("threads.max_conflicts", CPK_UINT, "maximal number of conflicts between rounds of cubing for parallel SMT", "400","smt");
     d.insert("mbqi", CPK_BOOL, "model based quantifier instantiation (MBQI)", "true","smt");
     d.insert("mbqi.max_cexs", CPK_UINT, "initial maximal number of counterexamples used in MBQI, each counterexample generates a quantifier instantiation", "1","smt");
     d.insert("mbqi.max_cexs_incr", CPK_UINT, "increment for MBQI_MAX_CEXS, the increment is performed after each round of MBQI", "0","smt");
@@ -44,29 +42,15 @@ struct smt_params_helper {
     d.insert("qi.cost", CPK_STRING, "expression specifying what is the cost of a given quantifier instantiation", "(+ weight generation)","smt");
     d.insert("qi.max_multi_patterns", CPK_UINT, "specify the number of extra multi patterns", "0","smt");
     d.insert("qi.quick_checker", CPK_UINT, "specify quick checker mode, 0 - no quick checker, 1 - using unsat instances, 2 - using both unsat and no-sat instances", "0","smt");
-    d.insert("induction", CPK_BOOL, "enable generation of induction lemmas", "false","smt");
     d.insert("bv.reflect", CPK_BOOL, "create enode for every bit-vector term", "true","smt");
     d.insert("bv.enable_int2bv", CPK_BOOL, "enable support for int2bv and bv2int operators", "true","smt");
     d.insert("arith.random_initial_value", CPK_BOOL, "use random initial values in the simplex-based procedure for linear arithmetic", "false","smt");
-    d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "6","smt");
-    d.insert("arith.nl", CPK_BOOL, "(incomplete) nonlinear arithmetic support based on Groebner basis and interval propagation, relevant only if smt.arith.solver=2", "true","smt");
-    d.insert("arith.nl.gb", CPK_BOOL, "groebner Basis computation, this option is ignored when arith.nl=false, relevant only if smt.arith.solver=2", "true","smt");
-    d.insert("arith.nl.branching", CPK_BOOL, "branching on integer variables in non linear clusters, relevant only if smt.arith.solver=2", "true","smt");
-    d.insert("arith.nl.rounds", CPK_UINT, "threshold for number of (nested) final checks for non linear arithmetic, relevant only if smt.arith.solver=2", "1024","smt");
-    d.insert("arith.nl.order", CPK_BOOL, "run order lemmas", "true","smt");
-    d.insert("arith.nl.tangents", CPK_BOOL, "run tangent lemmas", "true","smt");
-    d.insert("arith.nl.horner", CPK_BOOL, "run horner's heuristic", "true","smt");
-    d.insert("arith.nl.horner_subs_fixed", CPK_UINT, "0 - no subs, 1 - substitute, 2 - substitute fixed zeros only", "2","smt");
-    d.insert("arith.nl.horner_frequency", CPK_UINT, "horner's call frequency", "4","smt");
-    d.insert("arith.nl.horner_row_length_limit", CPK_UINT, "row is disregarded by the heuristic if its length is longer than the value", "10","smt");
-    d.insert("arith.nl.grobner", CPK_BOOL, "run grobner's basis heuristic", "true","smt");
-    d.insert("arith.nl.grobner_eqs_growth", CPK_UINT, "grobner's number of equalities growth ", "10","smt");
-    d.insert("arith.nl.grobner_expr_size_growth", CPK_UINT, "grobner's maximum expr size growth", "2","smt");
-    d.insert("arith.nl.grobner_expr_degree_growth", CPK_UINT, "grobner's maximum expr degree growth", "2","smt");
-    d.insert("arith.nl.grobner_max_simplified", CPK_UINT, "grobner's maximum number of simplifications", "10000","smt");
-    d.insert("arith.nl.grobner_cnfl_to_report", CPK_UINT, "grobner's maximum number of conflicts to report", "1","smt");
-    d.insert("arith.nl.gr_q", CPK_UINT, "grobner's quota", "10","smt");
-    d.insert("arith.nl.grobner_subs_fixed", CPK_UINT, "0 - no subs, 1 - substitute, 2 - substitute fixed zeros only", "2","smt");
+    d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "2","smt");
+    d.insert("arith.nl", CPK_BOOL, "(incomplete) nonlinear arithmetic support based on Groebner basis and interval propagation", "true","smt");
+    d.insert("arith.nl.gb", CPK_BOOL, "groebner Basis computation, this option is ignored when arith.nl=false", "true","smt");
+    d.insert("arith.nl.branching", CPK_BOOL, "branching on integer variables in non linear clusters", "true","smt");
+    d.insert("arith.nl.rounds", CPK_UINT, "threshold for number of (nested) final checks for non linear arithmetic", "1024","smt");
+    d.insert("arith.euclidean_solver", CPK_BOOL, "eucliean solver for linear integer arithmetic", "false","smt");
     d.insert("arith.propagate_eqs", CPK_BOOL, "propagate (cheap) equalities", "true","smt");
     d.insert("arith.propagation_mode", CPK_UINT, "0 - no propagation, 1 - propagate existing literals, 2 - refine bounds", "2","smt");
     d.insert("arith.reflect", CPK_BOOL, "reflect arithmetical operators to the congruence closure", "true","smt");
@@ -77,13 +61,6 @@ struct smt_params_helper {
     d.insert("arith.greatest_error_pivot", CPK_BOOL, "Pivoting strategy", "false","smt");
     d.insert("arith.eager_eq_axioms", CPK_BOOL, "eager equality axioms", "true","smt");
     d.insert("arith.auto_config_simplex", CPK_BOOL, "force simplex solver in auto_config", "false","smt");
-    d.insert("arith.rep_freq", CPK_UINT, "the report frequency, in how many iterations print the cost and other info", "0","smt");
-    d.insert("arith.min", CPK_BOOL, "minimize cost", "false","smt");
-    d.insert("arith.print_stats", CPK_BOOL, "print statistic", "false","smt");
-    d.insert("arith.simplex_strategy", CPK_UINT, "simplex strategy for the solver", "0","smt");
-    d.insert("arith.enable_hnf", CPK_BOOL, "enable hnf (Hermite Normal Form) cuts", "true","smt");
-    d.insert("arith.bprop_on_pivoted_rows", CPK_BOOL, "propagate bounds on rows changed by the pivot operation", "true","smt");
-    d.insert("arith.print_ext_var_names", CPK_BOOL, "print external variable names", "false","smt");
     d.insert("pb.conflict_frequency", CPK_UINT, "conflict frequency for Pseudo-Boolean theory", "1000","smt");
     d.insert("pb.learn_complements", CPK_BOOL, "learn complement literals for Pseudo-Boolean theory", "true","smt");
     d.insert("array.weak", CPK_BOOL, "weak array theory", "false","smt");
@@ -97,9 +74,8 @@ struct smt_params_helper {
     d.insert("dack.threshold", CPK_UINT, " number of times the congruence rule must be used before Leibniz's axiom is expanded", "10","smt");
     d.insert("theory_case_split", CPK_BOOL, "Allow the context to use heuristics involving theory case splits, which are a set of literals of which exactly one can be assigned True. If this option is false, the context will generate extra axioms to enforce this instead.", "false","smt");
     d.insert("string_solver", CPK_SYMBOL, "solver for string/sequence theories. options are: 'z3str3' (specialized string solver), 'seq' (sequence solver), 'auto' (use static features to choose best solver), 'empty' (a no-op solver that forces an answer unknown if strings were used), 'none' (no solver)", "seq","smt");
-    d.insert("core.validate", CPK_BOOL, "[internal] validate unsat core produced by SMT context. This option is intended for debugging", "false","smt");
+    d.insert("core.validate", CPK_BOOL, "validate unsat core produced by SMT context", "false","smt");
     d.insert("seq.split_w_len", CPK_BOOL, "enable splitting guided by length constraints", "true","smt");
-    d.insert("seq.validate", CPK_BOOL, "enable self-validation of theory axioms created by seq theory", "false","smt");
     d.insert("str.strong_arrangements", CPK_BOOL, "assert equivalences instead of implications when generating string arrangement axioms", "true","smt");
     d.insert("str.aggressive_length_testing", CPK_BOOL, "prioritize testing concrete length values over generating more options", "false","smt");
     d.insert("str.aggressive_value_testing", CPK_BOOL, "prioritize testing concrete string constant values over generating more options", "false","smt");
@@ -118,15 +94,14 @@ struct smt_params_helper {
     d.insert("str.regex_automata_failed_automaton_threshold", CPK_UINT, "number of failed automaton construction attempts after which a full automaton is automatically built", "10","smt");
     d.insert("str.regex_automata_failed_intersection_threshold", CPK_UINT, "number of failed automaton intersection attempts after which intersection is always computed", "10","smt");
     d.insert("str.regex_automata_length_attempt_threshold", CPK_UINT, "number of length/path constraint attempts before checking unsatisfiability of regex terms", "10","smt");
-    d.insert("str.fixed_length_models", CPK_BOOL, "use fixed-length equation solver to construct models (Z3str3 only)", "true","smt");
-    d.insert("str.fixed_length_refinement", CPK_BOOL, "use abstraction refinement in fixed-length equation solver (Z3str3 only)", "false","smt");
-    d.insert("str.fixed_length_naive_cex", CPK_BOOL, "construct naive counterexamples when fixed-length model construction fails for a given length assignment (Z3str3 only)", "true","smt");
     d.insert("core.minimize", CPK_BOOL, "minimize unsat core produced by SMT context", "false","smt");
     d.insert("core.extend_patterns", CPK_BOOL, "extend unsat core with literals that trigger (potential) quantifier instances", "false","smt");
     d.insert("core.extend_patterns.max_distance", CPK_UINT, "limits the distance of a pattern-extended unsat core", "4294967295","smt");
     d.insert("core.extend_nonlocal_patterns", CPK_BOOL, "extend unsat cores with literals that have quantifiers with patterns that contain symbols which are not in the quantifier's body", "false","smt");
     d.insert("lemma_gc_strategy", CPK_UINT, "lemma garbage collection strategy: 0 - fixed, 1 - geometric, 2 - at restart, 3 - none", "0","smt");
     d.insert("dt_lazy_splits", CPK_UINT, "How lazy datatype splits are performed: 0- eager, 1- lazy for infinite types, 2- lazy", "1","smt");
+    d.insert("recfun.native", CPK_BOOL, "use native rec-fun solver", "true","smt");
+    d.insert("recfun.depth", CPK_UINT, "initial depth for maxrec expansion", "2","smt");
   }
   /*
      REG_MODULE_PARAMS('smt', 'smt_params_helper::collect_param_descrs')
@@ -150,8 +125,6 @@ struct smt_params_helper {
   bool refine_inj_axioms() const { return p.get_bool("refine_inj_axioms", g, true); }
   unsigned max_conflicts() const { return p.get_uint("max_conflicts", g, 4294967295u); }
   unsigned restart_max() const { return p.get_uint("restart.max", g, 4294967295u); }
-  unsigned threads() const { return p.get_uint("threads", g, 1u); }
-  unsigned threads_max_conflicts() const { return p.get_uint("threads.max_conflicts", g, 400u); }
   bool mbqi() const { return p.get_bool("mbqi", g, true); }
   unsigned mbqi_max_cexs() const { return p.get_uint("mbqi.max_cexs", g, 1u); }
   unsigned mbqi_max_cexs_incr() const { return p.get_uint("mbqi.max_cexs_incr", g, 0u); }
@@ -167,29 +140,15 @@ struct smt_params_helper {
   char const * qi_cost() const { return p.get_str("qi.cost", g, "(+ weight generation)"); }
   unsigned qi_max_multi_patterns() const { return p.get_uint("qi.max_multi_patterns", g, 0u); }
   unsigned qi_quick_checker() const { return p.get_uint("qi.quick_checker", g, 0u); }
-  bool induction() const { return p.get_bool("induction", g, false); }
   bool bv_reflect() const { return p.get_bool("bv.reflect", g, true); }
   bool bv_enable_int2bv() const { return p.get_bool("bv.enable_int2bv", g, true); }
   bool arith_random_initial_value() const { return p.get_bool("arith.random_initial_value", g, false); }
-  unsigned arith_solver() const { return p.get_uint("arith.solver", g, 6u); }
+  unsigned arith_solver() const { return p.get_uint("arith.solver", g, 2u); }
   bool arith_nl() const { return p.get_bool("arith.nl", g, true); }
   bool arith_nl_gb() const { return p.get_bool("arith.nl.gb", g, true); }
   bool arith_nl_branching() const { return p.get_bool("arith.nl.branching", g, true); }
   unsigned arith_nl_rounds() const { return p.get_uint("arith.nl.rounds", g, 1024u); }
-  bool arith_nl_order() const { return p.get_bool("arith.nl.order", g, true); }
-  bool arith_nl_tangents() const { return p.get_bool("arith.nl.tangents", g, true); }
-  bool arith_nl_horner() const { return p.get_bool("arith.nl.horner", g, true); }
-  unsigned arith_nl_horner_subs_fixed() const { return p.get_uint("arith.nl.horner_subs_fixed", g, 2u); }
-  unsigned arith_nl_horner_frequency() const { return p.get_uint("arith.nl.horner_frequency", g, 4u); }
-  unsigned arith_nl_horner_row_length_limit() const { return p.get_uint("arith.nl.horner_row_length_limit", g, 10u); }
-  bool arith_nl_grobner() const { return p.get_bool("arith.nl.grobner", g, true); }
-  unsigned arith_nl_grobner_eqs_growth() const { return p.get_uint("arith.nl.grobner_eqs_growth", g, 10u); }
-  unsigned arith_nl_grobner_expr_size_growth() const { return p.get_uint("arith.nl.grobner_expr_size_growth", g, 2u); }
-  unsigned arith_nl_grobner_expr_degree_growth() const { return p.get_uint("arith.nl.grobner_expr_degree_growth", g, 2u); }
-  unsigned arith_nl_grobner_max_simplified() const { return p.get_uint("arith.nl.grobner_max_simplified", g, 10000u); }
-  unsigned arith_nl_grobner_cnfl_to_report() const { return p.get_uint("arith.nl.grobner_cnfl_to_report", g, 1u); }
-  unsigned arith_nl_gr_q() const { return p.get_uint("arith.nl.gr_q", g, 10u); }
-  unsigned arith_nl_grobner_subs_fixed() const { return p.get_uint("arith.nl.grobner_subs_fixed", g, 2u); }
+  bool arith_euclidean_solver() const { return p.get_bool("arith.euclidean_solver", g, false); }
   bool arith_propagate_eqs() const { return p.get_bool("arith.propagate_eqs", g, true); }
   unsigned arith_propagation_mode() const { return p.get_uint("arith.propagation_mode", g, 2u); }
   bool arith_reflect() const { return p.get_bool("arith.reflect", g, true); }
@@ -200,13 +159,6 @@ struct smt_params_helper {
   bool arith_greatest_error_pivot() const { return p.get_bool("arith.greatest_error_pivot", g, false); }
   bool arith_eager_eq_axioms() const { return p.get_bool("arith.eager_eq_axioms", g, true); }
   bool arith_auto_config_simplex() const { return p.get_bool("arith.auto_config_simplex", g, false); }
-  unsigned arith_rep_freq() const { return p.get_uint("arith.rep_freq", g, 0u); }
-  bool arith_min() const { return p.get_bool("arith.min", g, false); }
-  bool arith_print_stats() const { return p.get_bool("arith.print_stats", g, false); }
-  unsigned arith_simplex_strategy() const { return p.get_uint("arith.simplex_strategy", g, 0u); }
-  bool arith_enable_hnf() const { return p.get_bool("arith.enable_hnf", g, true); }
-  bool arith_bprop_on_pivoted_rows() const { return p.get_bool("arith.bprop_on_pivoted_rows", g, true); }
-  bool arith_print_ext_var_names() const { return p.get_bool("arith.print_ext_var_names", g, false); }
   unsigned pb_conflict_frequency() const { return p.get_uint("pb.conflict_frequency", g, 1000u); }
   bool pb_learn_complements() const { return p.get_bool("pb.learn_complements", g, true); }
   bool array_weak() const { return p.get_bool("array.weak", g, false); }
@@ -222,7 +174,6 @@ struct smt_params_helper {
   symbol string_solver() const { return p.get_sym("string_solver", g, symbol("seq")); }
   bool core_validate() const { return p.get_bool("core.validate", g, false); }
   bool seq_split_w_len() const { return p.get_bool("seq.split_w_len", g, true); }
-  bool seq_validate() const { return p.get_bool("seq.validate", g, false); }
   bool str_strong_arrangements() const { return p.get_bool("str.strong_arrangements", g, true); }
   bool str_aggressive_length_testing() const { return p.get_bool("str.aggressive_length_testing", g, false); }
   bool str_aggressive_value_testing() const { return p.get_bool("str.aggressive_value_testing", g, false); }
@@ -241,14 +192,13 @@ struct smt_params_helper {
   unsigned str_regex_automata_failed_automaton_threshold() const { return p.get_uint("str.regex_automata_failed_automaton_threshold", g, 10u); }
   unsigned str_regex_automata_failed_intersection_threshold() const { return p.get_uint("str.regex_automata_failed_intersection_threshold", g, 10u); }
   unsigned str_regex_automata_length_attempt_threshold() const { return p.get_uint("str.regex_automata_length_attempt_threshold", g, 10u); }
-  bool str_fixed_length_models() const { return p.get_bool("str.fixed_length_models", g, true); }
-  bool str_fixed_length_refinement() const { return p.get_bool("str.fixed_length_refinement", g, false); }
-  bool str_fixed_length_naive_cex() const { return p.get_bool("str.fixed_length_naive_cex", g, true); }
   bool core_minimize() const { return p.get_bool("core.minimize", g, false); }
   bool core_extend_patterns() const { return p.get_bool("core.extend_patterns", g, false); }
   unsigned core_extend_patterns_max_distance() const { return p.get_uint("core.extend_patterns.max_distance", g, 4294967295u); }
   bool core_extend_nonlocal_patterns() const { return p.get_bool("core.extend_nonlocal_patterns", g, false); }
   unsigned lemma_gc_strategy() const { return p.get_uint("lemma_gc_strategy", g, 0u); }
   unsigned dt_lazy_splits() const { return p.get_uint("dt_lazy_splits", g, 1u); }
+  bool recfun_native() const { return p.get_bool("recfun.native", g, true); }
+  unsigned recfun_depth() const { return p.get_uint("recfun.depth", g, 2u); }
 };
 #endif

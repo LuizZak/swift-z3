@@ -198,8 +198,7 @@ class fm_tactic : public tactic {
                 clauses::iterator it  = m_clauses[i].begin();
                 clauses::iterator end = m_clauses[i].end();
                 for (; it != end; ++it) {
-                    if (!m.inc()) 
-                        throw tactic_exception(m.limit().get_cancel_msg());
+                    if (m.canceled()) throw tactic_exception(m.limit().get_cancel_msg());
                     switch (process(x, *it, u, *md, val)) {
                     case NONE: 
                         TRACE("fm_mc", tout << "no bound for:\n" << mk_ismt2_pp(*it, m) << "\n";);
@@ -1543,7 +1542,7 @@ class fm_tactic : public tactic {
         }
         
         void checkpoint() {
-            if (!m.inc())
+            if (m.canceled())
                 throw tactic_exception(m.limit().get_cancel_msg());
             if (memory::get_allocation_size() > m_max_memory)
                 throw tactic_exception(TACTIC_MAX_MEMORY_MSG);
@@ -1551,6 +1550,7 @@ class fm_tactic : public tactic {
         
         void operator()(goal_ref const & g, 
                         goal_ref_buffer & result) {
+            SASSERT(g->is_well_sorted());
             tactic_report report("fm", *g);
             fail_if_proof_generation("fm", g);
             m_produce_models = g->models_enabled();
@@ -1604,6 +1604,7 @@ class fm_tactic : public tactic {
             reset_constraints();
             result.push_back(m_new_goal.get());
             TRACE("fm", m_new_goal->display(tout););
+            SASSERT(m_new_goal->is_well_sorted());
         }
         
         void display_constraints(std::ostream & out, constraints const & cs) const {

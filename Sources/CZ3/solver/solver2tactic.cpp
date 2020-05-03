@@ -153,7 +153,7 @@ public:
             break;
         }
         case l_undef:
-            if (!m.inc()) {
+            if (m.canceled()) {
                 throw tactic_exception(Z3_CANCELED_MSG);
             }
             model_converter_ref mc;

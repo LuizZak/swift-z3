@@ -54,6 +54,7 @@ public:
     void operator()(goal_ref const & g, 
                     goal_ref_buffer & result) override {
         TRACE("card2bv-before", g->display(tout););
+        SASSERT(g->is_well_sorted());
         result.reset();
         tactic_report report("card2bv", *g);
         th_rewriter rw1(m, m_params);
@@ -65,15 +66,14 @@ public:
         }
                 
         expr_ref new_f1(m), new_f2(m);
+        proof_ref new_pr1(m), new_pr2(m);
         for (unsigned idx = 0; !g->inconsistent() && idx < g->size(); idx++) {
-            proof_ref new_pr1(m), new_pr2(m);
             rw1(g->form(idx), new_f1, new_pr1);
-            TRACE("card2bv", tout << "Rewriting " << new_f1 << "\n" << new_pr1 << std::endl;);
+            TRACE("card2bv", tout << "Rewriting " << mk_ismt2_pp(new_f1.get(), m) << std::endl;);
             rw2(false, new_f1, new_f2, new_pr2);
-            TRACE("card2bv", tout << "Rewriting " << new_f2 << "\n" << new_pr2 << std::endl;);
             if (m.proofs_enabled()) {
-                new_pr1 = m.mk_transitivity(new_pr1, new_pr2);
-                new_pr1 = m.mk_modus_ponens(g->pr(idx), new_pr1);
+                new_pr1  = m.mk_modus_ponens(g->pr(idx), new_pr1);
+                new_pr1  = m.mk_modus_ponens(new_pr1, new_pr2);
             }
             g->update(idx, new_f2, new_pr1, g->dep(idx));
         }
@@ -92,6 +92,8 @@ public:
 
         g->inc_depth();
         result.push_back(g.get());
+        TRACE("card2bv", g->display(tout););
+        SASSERT(g->is_well_sorted());
     }
     
     void cleanup() override {

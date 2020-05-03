@@ -31,9 +31,7 @@ namespace sat {
         for (unsigned i = 0; i < m_assumptions.size(); ++i) {
             add_clause(1, m_assumptions.c_ptr() + i);
         }
-        if (m_is_unsat)
-            return;
-        
+
         // add sentinel variable.
         m_vars.push_back(var_info());
 
@@ -169,9 +167,9 @@ namespace sat {
         init_goodvars();
         set_best_unsat();
 
-        for (unsigned i = 0; !m_is_unsat && i < m_units.size(); ++i) {
-            bool_var v = m_units[i];
+        for (bool_var v : m_units) {
             propagate(literal(v, !cur_solution(v)));
+            if (m_is_unsat) break;
         }
         if (m_is_unsat) {
             IF_VERBOSE(0, verbose_stream() << "unsat during reinit\n");
@@ -225,7 +223,7 @@ namespace sat {
     }    
     
     void local_search::verify_solution() const {
-        IF_VERBOSE(10, verbose_stream() << "verifying solution\n");
+        IF_VERBOSE(0, verbose_stream() << "verifying solution\n");
         for (constraint const& c : m_constraints) 
             verify_constraint(c);
     }
@@ -335,12 +333,7 @@ namespace sat {
 
     void local_search::add_unit(literal lit, literal exp) {
         bool_var v = lit.var();
-        if (is_unit(lit)) {
-            if (m_vars[v].m_value == lit.sign()) {
-                m_is_unsat = true;                
-            }
-            return;
-        }
+        if (is_unit(lit)) return;
         SASSERT(!m_units.contains(v));
         if (m_vars[v].m_value == lit.sign() && !m_initializing) {
             flip_walksat(v);
@@ -355,7 +348,6 @@ namespace sat {
 
     local_search::local_search() :         
         m_is_unsat(false),
-        m_initializing(false),
         m_par(nullptr) {
     }
 
@@ -497,7 +489,7 @@ namespace sat {
                     break;
                 }
                 case ba_solver::xr_t:
-                    throw default_exception("local search is incompatible with enabling xor solving");
+                    NOT_IMPLEMENTED_YET();
                     break;
                 }
             }
@@ -582,16 +574,14 @@ namespace sat {
         m_assumptions.append(sz, assumptions);
         unsigned num_units = m_units.size();
         init();
-        if (m_is_unsat)
-            return l_false;
         walksat();
-
-        TRACE("sat", tout << m_units << "\n";);
+        
         // remove unit clauses
         for (unsigned i = m_units.size(); i-- > num_units; ) {
             m_vars[m_units[i]].m_unit = false;
         }
         m_units.shrink(num_units); 
+        m_vars.pop_back();  // remove sentinel variable
 
         TRACE("sat", display(tout););
 
@@ -607,7 +597,6 @@ namespace sat {
         else {
             result = l_undef;
         }
-        m_vars.pop_back();  // remove sentinel variable
         IF_VERBOSE(1, verbose_stream() << "(sat.local-search " << result << ")\n";);
         IF_VERBOSE(20, display(verbose_stream()););
         return result;
@@ -649,7 +638,7 @@ namespace sat {
             propagate(~best);
         }        
         else {
-            IF_VERBOSE(1, verbose_stream() << "(sat.local-search no best)\n");
+            std::cout << "no best\n";
         }
     }
 
@@ -754,12 +743,10 @@ namespace sat {
             }
             add_unit(~lit, null_literal);
             if (!propagate(~lit)) {
-                IF_VERBOSE(2, verbose_stream() << "unsat\n");
+                IF_VERBOSE(0, verbose_stream() << "unsat\n");
                 m_is_unsat = true;
                 return;
             }
-            if (m_unsat_stack.empty())
-                return;
             goto reflip;
         }
 

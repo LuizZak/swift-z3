@@ -150,9 +150,6 @@ namespace smt {
     void qi_queue::instantiate() {
         unsigned since_last_check = 0;
         for (entry & curr : m_new_entries) {
-            if (m_context.get_cancel_flag()) {
-                break;
-            }
             fingerprint * f    = curr.m_qb;
             quantifier * qa    = static_cast<quantifier*>(f->get_data());
 
@@ -172,6 +169,9 @@ namespace smt {
             // Periodically check if we didn't run out of time/memory.
             if (since_last_check++ > 100) {
                 if (m_context.resource_limits_exceeded()) {
+                    break;
+                }
+                if (m_context.get_cancel_flag()) {
                     break;
                 }
                 since_last_check = 0;
@@ -226,7 +226,6 @@ namespace smt {
 
             return;
         }
-        TRACE("qi_queue", tout << "simplified instance:\n" << s_instance << "\n";);
         quantifier_stat * stat = m_qm.get_stat(q);
         stat->inc_num_instances();
         if (stat->get_num_instances() % m_params.m_qi_profile_freq == 0) {
@@ -317,7 +316,7 @@ namespace smt {
     void qi_queue::push_scope() {
         TRACE("new_entries_bug", tout << "[qi:push-scope]\n";);
         m_scopes.push_back(scope());
-        SASSERT(m_context.inconsistent() || m_new_entries.empty());
+        SASSERT(m_new_entries.empty());
         scope & s = m_scopes.back();
         s.m_delayed_entries_lim    = m_delayed_entries.size();
         s.m_instances_lim          = m_instances.size();
@@ -348,7 +347,6 @@ namespace smt {
 
     void qi_queue::init_search_eh() {
         m_subst.reset();
-        m_new_entries.reset();
     }
 
     bool qi_queue::final_check_eh() {

@@ -154,6 +154,8 @@ public:
         }
         g->inc_depth();
         result.push_back(g.get());
+        TRACE("dt2bv", g->display(tout););
+        SASSERT(g->is_well_sorted());
     }
     
     void cleanup() override {

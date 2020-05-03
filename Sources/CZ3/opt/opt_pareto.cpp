@@ -33,13 +33,12 @@ namespace opt {
         lbool is_sat = m_solver->check_sat(0, nullptr);
         if (is_sat == l_true) {
             {
-                m_solver->get_model(m_model);
                 solver::scoped_push _s(*m_solver.get());
                 while (is_sat == l_true) {
-                    if (!m.inc()) {
+                    if (m.canceled()) {
                         return l_undef;
                     }
-                    
+                    m_solver->get_model(m_model);
                     m_solver->get_labels(m_labels);
                     m_model->set_model_completion(true);
                     IF_VERBOSE(1,
@@ -49,7 +48,6 @@ namespace opt {
                     // TBD: we can also use local search to tune solution coordinate-wise.
                     mk_dominates();
                     is_sat = m_solver->check_sat(0, nullptr);
-                    if (is_sat == l_true) m_solver->get_model(m_model);
                 }
             }
             if (is_sat == l_undef) {
@@ -96,7 +94,7 @@ namespace opt {
     lbool oia_pareto::operator()() {
         solver::scoped_push _s(*m_solver.get());
         lbool is_sat = m_solver->check_sat(0, nullptr);
-        if (!m.inc()) {
+        if (m.canceled()) {
             is_sat = l_undef;
         }
         if (is_sat == l_true) {

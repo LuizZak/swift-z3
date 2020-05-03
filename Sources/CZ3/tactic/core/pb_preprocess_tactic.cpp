@@ -110,7 +110,8 @@ public:
     void operator()(
         goal_ref const & g, 
         goal_ref_buffer & result) override {
-        tactic_report report("pb-preprocess", *g);
+        SASSERT(g->is_well_sorted());
+
         if (g->proofs_enabled()) {
             throw tactic_exception("pb-preprocess does not support proofs");
         }
@@ -417,7 +418,8 @@ private:
     }
 
     bool pure_args(app* a) const {
-        for (expr* e : *a) { 
+        for (unsigned i = 0; i < a->get_num_args(); ++i) {
+            expr* e = a->get_arg(i);
             m.is_not(e, e);
             if (!is_uninterp_const(e) && !m.is_true(e) && !m.is_false(e)) {
                 return false;
@@ -564,8 +566,7 @@ private:
         }
         else if (pb.is_ge(e)) {
             app* a = to_app(e);
-            if (!pure_args(a))
-                return false;
+            SASSERT(pure_args(a));
             for (unsigned i = 0; i < a->get_num_args(); ++i) {
                 args.push_back(a->get_arg(i));
                 coeffs.push_back(pb.get_coeff(a, i));
@@ -574,10 +575,9 @@ private:
         }
         else if (m.is_or(e)) {
             app* a = to_app(e);
-            if (!pure_args(a))
-                return false; 
-            for (expr* arg : *a) {
-                args.push_back(arg);
+            SASSERT(pure_args(a));
+            for (unsigned i = 0; i < a->get_num_args(); ++i) {
+                args.push_back(a->get_arg(i));
                 coeffs.push_back(rational::one());
             }
             k = rational::one();

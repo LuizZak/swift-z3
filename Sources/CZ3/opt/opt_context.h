@@ -133,7 +133,6 @@ namespace opt {
                 m_hard(m),
                 m_asms(m)
             {}
-            unsigned num_scopes() const { return m_hard_lim.size(); }
             void push();
             void pop();
             void add(expr* hard);

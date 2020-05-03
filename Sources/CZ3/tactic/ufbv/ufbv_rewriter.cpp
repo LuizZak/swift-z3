@@ -27,12 +27,10 @@ Revision History:
 #include "tactic/ufbv/ufbv_rewriter.h"
 
 ufbv_rewriter::ufbv_rewriter(ast_manager & m):
-    m(m),
+    m_manager(m),
     m_match_subst(m),
     m_bsimp(m),
     m_todo(m),
-    m_in_processed(m),
-    m_new_args(m), 
     m_rewrite_todo(m),
     m_rewrite_cache(m),
     m_new_exprs(m) {
@@ -44,67 +42,77 @@ ufbv_rewriter::ufbv_rewriter(ast_manager & m):
 ufbv_rewriter::~ufbv_rewriter() {
     reset_dealloc_values(m_fwd_idx);
     reset_dealloc_values(m_back_idx);
-    for (auto & kv : m_demodulator2lhs_rhs) {
-        m.dec_ref(kv.m_key);
-        m.dec_ref(kv.m_value.first);
-        m.dec_ref(kv.m_value.second);
+    for (demodulator2lhs_rhs::iterator it = m_demodulator2lhs_rhs.begin(); it != m_demodulator2lhs_rhs.end(); it++) {
+        m_manager.dec_ref(it->m_key);
+        m_manager.dec_ref(it->m_value.first);
+        m_manager.dec_ref(it->m_value.second);
     }
 }
 
-bool ufbv_rewriter::is_demodulator(expr * e, app_ref & large, expr_ref & small) const {
-    if (!is_forall(e)) {
-        return false;
-    }
-    expr * qe = to_quantifier(e)->get_expr();
-    expr * lhs = nullptr, *rhs = nullptr, *n;
-    if (m.is_eq(qe, lhs, rhs)) {
-        int subset  = is_subset(lhs, rhs);
-        int smaller = is_smaller(lhs, rhs);
-        TRACE("demodulator", tout << "testing is_demodulator:\n"
-              << mk_pp(lhs, m) << "\n"
-              << mk_pp(rhs, m) << "\n"
-              << "subset: " << subset << ", smaller: " << smaller << "\n";);
-        // We only track uninterpreted functions, everything else is likely too expensive.
-        if ((subset == +1 || subset == +2) && smaller == +1) {
-            if (is_uninterp(rhs)) {
-                large = to_app(rhs);
-                small = lhs;
+bool ufbv_rewriter::is_demodulator(expr * e, expr_ref & large, expr_ref & small) const {
+    if (e->get_kind() == AST_QUANTIFIER) {
+        quantifier * q = to_quantifier(e);
+        if (is_forall(q)) {
+            expr * qe = q->get_expr();
+            if ((m_manager.is_eq(qe) || m_manager.is_iff(qe))) {
+                app * eq = to_app(q->get_expr());
+                expr * lhs = eq->get_arg(0);
+                expr * rhs = eq->get_arg(1);
+                int subset = is_subset(lhs, rhs);
+                int smaller = is_smaller(lhs, rhs);
+                TRACE("demodulator", tout << "testing is_demodulator:\n"
+                      << mk_pp(lhs, m_manager) << "\n"
+                      << mk_pp(rhs, m_manager) << "\n"
+                      << "subset: " << subset << ", smaller: " << smaller << "\n";);
+                // We only track uninterpreted functions, everything else is likely too expensive.
+                if ((subset == +1 || subset == +2) && smaller == +1) {
+                    if (is_uninterp(rhs)) {
+                        large = rhs;
+                        small = lhs;
+                        return true;
+                    }
+#if 1
+                    // lhs = (not rhs) --> (not lhs) = rhs
+                    expr * not_rhs;
+                    if (m_manager.is_not(rhs, not_rhs) && is_uninterp(not_rhs)) {
+                        large = not_rhs;
+                        small = m_manager.mk_not(lhs);
+                        return true;
+                    }
+#endif
+                }
+
+                if ((subset == -1 || subset == +2) && smaller == -1) {
+                    if (is_uninterp(lhs)) {
+                        large = lhs;
+                        small = rhs;
+                        return true;
+                    }
+#if 1
+                    // (not lhs) = rhs --> lhs = (not rhs)
+                    expr * not_lhs;
+                    if (m_manager.is_not(lhs, not_lhs) && is_uninterp(not_lhs)) {
+                        large = not_lhs;
+                        small = m_manager.mk_not(rhs);
+                        return true;
+                    }
+#endif
+                }
+
+            } else if (m_manager.is_not(qe) && is_uninterp(to_app(qe)->get_arg(0))) {
+                // this is like (not (f ... )) --> (= (f ...) false)
+                large = to_app(qe)->get_arg(0);
+                small = m_manager.mk_false();
                 return true;
-            }
-            // lhs = (not rhs) --> (not lhs) = rhs
-            if (m.is_not(rhs, n) && is_uninterp(n)) {
-                large = to_app(n);
-                small = m.mk_not(lhs);
+            } else if (is_uninterp(qe)) {
+                // this is like (f ... ) --> (= (f ...) true)
+                large = to_app(qe);
+                small = m_manager.mk_true();
                 return true;
             }
         }
-        
-        if ((subset == -1 || subset == +2) && smaller == -1) {
-            if (is_uninterp(lhs)) {
-                large = to_app(lhs);
-                small = rhs;
-                return true;
-            }
-            // (not lhs) = rhs --> lhs = (not rhs)
-            if (m.is_not(lhs, n) && is_uninterp(n)) {
-                large = to_app(n);
-                small = m.mk_not(rhs);
-                return true;
-            }
-        }        
-    } 
-    else if (m.is_not(qe, n) && is_app(n)) {
-        // this is like (not (f ... )) --> (= (f ...) false)
-        large = to_app(n);
-        small = m.mk_false();
-        return true;
-    } 
-    else if (is_uninterp(qe)) {
-        // this is like (f ... ) --> (= (f ...) true)
-        large = to_app(qe);
-        small = m.mk_true();
-        return true;
     }
+
     return false;
 }
 
@@ -120,7 +128,7 @@ public:
 int ufbv_rewriter::is_subset(expr * e1, expr * e2) const {
     uint_set ev1, ev2;
 
-    if (m.is_value(e1))
+    if (m_manager.is_value(e1))
         return 1; // values are always a subset!
 
     var_set_proc proc1(ev1);
@@ -138,9 +146,9 @@ int ufbv_rewriter::is_smaller(expr * e1, expr * e2) const {
     unsigned sz1 = 0, sz2 = 0;
 
     // values are always smaller!
-    if (m.is_value(e1))
+    if (m_manager.is_value(e1))
         return +1;
-    else if (m.is_value(e2))
+    else if (m_manager.is_value(e2))
         return -1;
 
     // interpreted stuff is always better than uninterpreted.
@@ -165,8 +173,20 @@ int ufbv_rewriter::is_smaller(expr * e1, expr * e2) const {
                 return -1;
         }
     }
-    sz1 = get_depth(e1);
-    sz2 = get_depth(e2);
+
+    switch (e1->get_kind()) {
+        case AST_VAR: sz1 = 1; break;
+        case AST_QUANTIFIER: sz1 = to_quantifier(e1)->get_depth(); break;
+        case AST_APP: sz1 = to_app(e1)->get_depth(); break;
+        default: UNREACHABLE();
+    }
+
+    switch (e2->get_kind()) {
+        case AST_VAR: sz2 = 1; break;
+        case AST_QUANTIFIER: sz2 = to_quantifier(e2)->get_depth(); break;
+        case AST_APP: sz2 = to_app(e2)->get_depth(); break;
+        default: UNREACHABLE();
+    }
 
     return (sz1 == sz2) ?  0 :
            (sz1  < sz2) ? +1 :
@@ -197,7 +217,7 @@ void ufbv_rewriter::insert_fwd_idx(expr * large, expr * small, quantifier * demo
     SASSERT(large->get_kind() == AST_APP);
     SASSERT(demodulator);
     SASSERT(large && small);
-    TRACE("demodulator_fwd", tout << "INSERT: " << mk_pp(demodulator, m) << std::endl; );
+    TRACE("demodulator_fwd", tout << "INSERT: " << mk_pp(demodulator, m_manager) << std::endl; );
 
     func_decl * fd = to_app(large)->get_decl();
 
@@ -211,9 +231,9 @@ void ufbv_rewriter::insert_fwd_idx(expr * large, expr * small, quantifier * demo
     SASSERT(it->m_value);
     it->m_value->insert(demodulator);
 
-    m.inc_ref(demodulator);
-    m.inc_ref(large);
-    m.inc_ref(small);
+    m_manager.inc_ref(demodulator);
+    m_manager.inc_ref(large);
+    m_manager.inc_ref(small);
     m_demodulator2lhs_rhs.insert(demodulator, expr_pair(large, small));
 }
 
@@ -223,24 +243,23 @@ void ufbv_rewriter::remove_fwd_idx(func_decl * f, quantifier * demodulator) {
     fwd_idx_map::iterator it = m_fwd_idx.find_iterator(f);
     if (it != m_fwd_idx.end()) {
         demodulator2lhs_rhs::iterator fit = m_demodulator2lhs_rhs.find_iterator(demodulator);
-        expr_pair p = fit->m_value;
+        m_manager.dec_ref(fit->m_value.first);
+        m_manager.dec_ref(fit->m_value.second);
+        m_manager.dec_ref(demodulator);
         m_demodulator2lhs_rhs.erase(demodulator);
         it->m_value->erase(demodulator);
-        m.dec_ref(p.first);
-        m.dec_ref(p.second);
-        m.dec_ref(demodulator);
     } else {
         SASSERT(m_demodulator2lhs_rhs.contains(demodulator));
     }
 }
 
 bool ufbv_rewriter::check_fwd_idx_consistency() {
-    for (auto & kv : m_fwd_idx) {
-        quantifier_set * set = kv.m_value;
+    for (fwd_idx_map::iterator it = m_fwd_idx.begin(); it != m_fwd_idx.end() ; it++ ) {
+        quantifier_set * set = it->m_value;
         SASSERT(set);
-        for (auto e : *set) {
-            if (!m_demodulator2lhs_rhs.contains(e)) 
-                return false;
+
+        for (quantifier_set::iterator sit = set->begin(); sit != set->end(); sit++) {
+            if (!m_demodulator2lhs_rhs.contains(*sit)) return false;
         }
     }
 
@@ -248,29 +267,32 @@ bool ufbv_rewriter::check_fwd_idx_consistency() {
 }
 
 void ufbv_rewriter::show_fwd_idx(std::ostream & out) {
-    for (auto & kv : m_fwd_idx) {
-        quantifier_set * set = kv.m_value;
+    for (fwd_idx_map::iterator it = m_fwd_idx.begin(); it != m_fwd_idx.end() ; it++ ) {
+        quantifier_set * set = it->m_value;
         SASSERT(!set);
 
-        out << kv.m_key->get_name() << ": " << std::endl;
+        out << it->m_key->get_name() << ": " << std::endl;
 
-        for (auto e : *set) {
-            out << std::hex << (size_t)e << std::endl;
+        for (quantifier_set::iterator sit = set->begin(); sit != set->end(); sit++) {
+            out << std::hex << (size_t)*sit << std::endl;
         }
     }
 
     out << "D2LR: " << std::endl;
-    for (auto & kv : m_demodulator2lhs_rhs) {
-        out << (size_t) kv.m_key << std::endl;
+    for (demodulator2lhs_rhs::iterator it = m_demodulator2lhs_rhs.begin(); it != m_demodulator2lhs_rhs.end() ; it++) {
+        out << (size_t) it->m_key << std::endl;
     }
 }
 
-bool ufbv_rewriter::rewrite1(func_decl * f, expr_ref_vector & m_new_args, expr_ref & np) {
+bool ufbv_rewriter::rewrite1(func_decl * f, ptr_vector<expr> & m_new_args, expr_ref & np) {
     fwd_idx_map::iterator it = m_fwd_idx.find_iterator(f);
     if (it != m_fwd_idx.end()) {
         TRACE("demodulator_bug", tout << "trying to rewrite: " << f->get_name() << " args:\n";
-              tout << m_new_args << "\n";);
-        for (quantifier* d : *it->m_value) {
+              for (unsigned i = 0; i < m_new_args.size(); i++) { tout << mk_pp(m_new_args[i], m_manager) << "\n"; });
+        quantifier_set::iterator dit = it->m_value->begin();
+        quantifier_set::iterator dend = it->m_value->end();
+        for ( ; dit != dend ; dit++ ) {
+            quantifier * d = *dit;
 
             SASSERT(m_demodulator2lhs_rhs.contains(d));
             expr_pair l_s;
@@ -280,12 +302,12 @@ bool ufbv_rewriter::rewrite1(func_decl * f, expr_ref_vector & m_new_args, expr_r
             if (large->get_num_args() != m_new_args.size())
                 continue;
 
-            TRACE("demodulator_bug", tout << "Matching with demodulator: " << mk_pp(d, m) << std::endl; );
+            TRACE("demodulator_bug", tout << "Matching with demodulator: " << mk_pp(d, m_manager) << std::endl; );
 
             SASSERT(large->get_decl() == f);
 
             if (m_match_subst(large, l_s.second, m_new_args.c_ptr(), np)) {
-                TRACE("demodulator_bug", tout << "succeeded...\n" << mk_pp(l_s.second, m) << "\n===>\n" << mk_pp(np, m) << "\n";);
+                TRACE("demodulator_bug", tout << "succeeded...\n" << mk_pp(l_s.second, m_manager) << "\n===>\n" << mk_pp(np, m_manager) << "\n";);
                 return true;
             }
         }
@@ -305,16 +327,15 @@ bool ufbv_rewriter::rewrite_visit_children(app * a) {
             expr * v = e;
             if (m_rewrite_cache.contains(e)) {
                 expr_bool_pair const & ebp = m_rewrite_cache.get(e);
-                if (ebp.second) {
+                if (ebp.second)
                     v = ebp.first;
-                }
             }
-            for (unsigned i = sz; i-- > 0;) {
-                if (m_rewrite_todo[i] == v) {
+            for (unsigned i = sz; i > 0; i--) {
+                if (m_rewrite_todo[i - 1] == v) {
                     recursive = true;
                     TRACE("demodulator", tout << "Detected demodulator cycle: " <<
-                        mk_pp(a, m) << " --> " << mk_pp(v, m) << std::endl;);
-                    rewrite_cache(e, v, true);
+                        mk_pp(a, m_manager) << " --> " << mk_pp(v, m_manager) << std::endl;);
+                    m_rewrite_cache.insert(e, expr_bool_pair(v, true));
                     break;
                 }
             }
@@ -335,7 +356,7 @@ expr * ufbv_rewriter::rewrite(expr * n) {
     if (m_fwd_idx.empty())
         return n;
 
-    TRACE("demodulator", tout << "rewrite: " << mk_pp(n, m) << std::endl; );
+    TRACE("demodulator", tout << "rewrite: " << mk_pp(n, m_manager) << std::endl; );
     app * a;
 
     SASSERT(m_rewrite_todo.empty());
@@ -344,13 +365,13 @@ expr * ufbv_rewriter::rewrite(expr * n) {
     m_rewrite_todo.push_back(n);
     while (!m_rewrite_todo.empty()) {
         TRACE("demodulator_stack", tout << "STACK: " << std::endl;
-              for (unsigned i = 0; i < m_rewrite_todo.size(); i++)
+              for ( unsigned i = 0; i<m_rewrite_todo.size(); i++)
                   tout << std::dec << i << ": " << std::hex << (size_t)m_rewrite_todo[i] <<
-                  " = " << mk_pp(m_rewrite_todo[i], m) << std::endl;
+                  " = " << mk_pp(m_rewrite_todo[i], m_manager) << std::endl;
               );
 
         expr * e = m_rewrite_todo.back();
-        expr_ref actual(e, m);
+        expr * actual = e;
 
         if (m_rewrite_cache.contains(e)) {
             const expr_bool_pair &ebp = m_rewrite_cache.get(e);
@@ -373,8 +394,10 @@ expr * ufbv_rewriter::rewrite(expr * n) {
             if (rewrite_visit_children(a)) {
                 func_decl * f = a->get_decl();
                 m_new_args.reset();
-                bool all_untouched = true;
-                for (expr* o_child : *a) {
+                unsigned num_args = a->get_num_args();
+                bool all_untouched=true;
+                for (unsigned i = 0 ; i < num_args ; i++ ) {
+                    expr * o_child = a->get_arg(i);
                     expr * n_child;
                     SASSERT(m_rewrite_cache.contains(o_child) && m_rewrite_cache.get(o_child).second);
                     expr_bool_pair const & ebp = m_rewrite_cache.get(o_child);
@@ -383,25 +406,24 @@ expr * ufbv_rewriter::rewrite(expr * n) {
                         all_untouched = false;
                     m_new_args.push_back(n_child);
                 }
-                expr_ref np(m);
+                expr_ref np(m_manager);
                 if (rewrite1(f, m_new_args, np)) {
                     rewrite_cache(e, np, false);
                     // No pop.
-                } 
-                else {
-                    if (all_untouched) {
+                } else {
+                    if(all_untouched) {
                         rewrite_cache(e, actual, true);
                     }
                     else {
-                        expr_ref na(m);
-                        if (f->get_family_id() != m.get_basic_family_id())
-                            na = m.mk_app(f, m_new_args);
+                        expr_ref na(m_manager);
+                        if (f->get_family_id() != m_manager.get_basic_family_id())
+                            na = m_manager.mk_app(f, m_new_args.size(), m_new_args.c_ptr());
                         else
                             m_bsimp.mk_app(f, m_new_args.size(), m_new_args.c_ptr(), na);
-                        TRACE("demodulator_bug", tout << "e:\n" << mk_pp(e, m) << "\nnew_args: \n";
-                              tout << m_new_args << "\n";
+                        TRACE("demodulator_bug", tout << "e:\n" << mk_pp(e, m_manager) << "\nnew_args: \n";
+                              for (unsigned i = 0; i < m_new_args.size(); i++) { tout << mk_pp(m_new_args[i], m_manager) << "\n"; }
                               tout << "=====>\n";
-                              tout << "na:\n " << na << "\n";);
+                              tout << "na:\n " << mk_pp(na, m_manager) << "\n";);
                         rewrite_cache(e, na, true);
                     }
                     m_rewrite_todo.pop_back();
@@ -414,10 +436,10 @@ expr * ufbv_rewriter::rewrite(expr * n) {
                 const expr_bool_pair ebp = m_rewrite_cache.get(body);
                 SASSERT(ebp.second);
                 expr * new_body = ebp.first;
-                quantifier_ref q(m);
-                q = m.update_quantifier(to_quantifier(actual), new_body);
+                quantifier_ref q(m_manager);
+                q = m_manager.update_quantifier(to_quantifier(actual), new_body);
                 m_new_exprs.push_back(q);
-                expr_ref new_q = elim_unused_vars(m, q, params_ref());
+                expr_ref new_q = elim_unused_vars(m_manager, q, params_ref());
                 m_new_exprs.push_back(new_q);
                 rewrite_cache(e, new_q, true);
                 m_rewrite_todo.pop_back();
@@ -436,7 +458,7 @@ expr * ufbv_rewriter::rewrite(expr * n) {
     SASSERT(ebp.second);
     expr * r = ebp.first;
 
-    TRACE("demodulator", tout << "rewrite result: " << mk_pp(r, m) << std::endl; );
+    TRACE("demodulator", tout << "rewrite result: " << mk_pp(r, m_manager) << std::endl; );
 
     return r;
 }
@@ -495,12 +517,18 @@ void ufbv_rewriter::reschedule_processed(func_decl * f) {
         SASSERT(it->m_value);
         expr_set temp;
 
-        for (expr* p : *it->m_value) {
+        expr_set::iterator sit  = it->m_value->begin();
+        expr_set::iterator send = it->m_value->end();
+        for ( ; sit != send ; sit++ ) {
+            expr * p = *sit;
             if (m_processed.contains(p))
               temp.insert(p);
         }
 
-        for (expr * p : temp) {
+        sit  = temp.begin();
+        send = temp.end();
+        for ( ; sit != send; sit++) {
+            expr * p = *sit;
             // remove p from m_processed and m_back_idx
             m_processed.remove(p);
             remove_back_idx_proc proc(m_back_idx, p); // this could change it->m_value, thus we need the `temp' set.
@@ -577,13 +605,18 @@ void ufbv_rewriter::reschedule_demodulators(func_decl * f, expr * lhs) {
     if (it != m_back_idx.end()) {
         SASSERT(it->m_value);
         expr_set all_occurrences;
-        expr_ref l(m);
+        expr_ref l(m_manager);
 
-        for (auto s : *it->m_value) 
-            all_occurrences.insert(s);
+        expr_set::iterator esit = it->m_value->begin();
+        expr_set::iterator esend = it->m_value->end();
+        for ( ; esit != esend ; esit++)
+          all_occurrences.insert(*esit);
 
         // Run over all f-demodulators
-        for (expr* occ : all_occurrences) {
+        esit = all_occurrences.begin();
+        esend = all_occurrences.end();
+        for ( ; esit != esend ; esit++ ) {
+            expr * occ = *esit;
 
             if (!is_quantifier(occ))
                 continue;
@@ -592,15 +625,15 @@ void ufbv_rewriter::reschedule_demodulators(func_decl * f, expr * lhs) {
             demodulator2lhs_rhs::iterator d2lr_it = m_demodulator2lhs_rhs.find_iterator(to_quantifier(occ));
             if (d2lr_it != m_demodulator2lhs_rhs.end()) {
                 l = d2lr_it->m_value.first;
-                quantifier_ref d(m);
-                func_decl_ref df(m);
+                quantifier_ref d(m_manager);
+                func_decl_ref df(m_manager);
                 d = to_quantifier(occ);
                 df = to_app(l)->get_decl();
 
                 // Now we know there is an occurrence of f in d
                 //   if n' can rewrite d {
                 if (can_rewrite(d, lhs)) {
-                    TRACE("demodulator", tout << "Rescheduling: " << std::endl << mk_pp(d, m) << std::endl; );
+                    TRACE("demodulator", tout << "Rescheduling: " << std::endl << mk_pp(d, m_manager) << std::endl; );
                     //     remove d from m_fwd_idx
                     remove_fwd_idx(df, d);
                     //     remove d from m_back_idx
@@ -614,13 +647,18 @@ void ufbv_rewriter::reschedule_demodulators(func_decl * f, expr * lhs) {
             }
         }
     }
+
+    //for (ptr_vector<expr>::iterator it = to_remove.begin(); it != to_remove.end(); it++) {
+    //    expr * d = *it;
+    //    remove_back_idx_proc proc(m_manager, m_back_idx, d);
+    //    for_each_expr(proc, d);
+    //}
 }
 
-void ufbv_rewriter::operator()(unsigned n, expr * const * exprs, proof * const * prs, 
-                               expr_ref_vector & new_exprs, proof_ref_vector & new_prs) {
-    if (m.proofs_enabled()) {
-        TRACE("tactic", tout << "PRE_DEMODULATOR=true is not supported when proofs are enabled.";);
+void ufbv_rewriter::operator()(unsigned n, expr * const * exprs, proof * const * prs, expr_ref_vector & new_exprs, proof_ref_vector & new_prs) {
+    if (m_manager.proofs_enabled()) {
         // Let us not waste time with proof production
+        warning_msg("PRE_DEMODULATOR=true is not supported when proofs are enabled.");
         new_exprs.append(n, exprs);
         new_prs.append(n, prs);
         return;
@@ -628,7 +666,7 @@ void ufbv_rewriter::operator()(unsigned n, expr * const * exprs, proof * const *
 
     TRACE("demodulator", tout << "before demodulator:\n";
                          for ( unsigned i = 0 ; i < n ; i++ )
-                            tout << mk_pp(exprs[i], m) << std::endl; );
+                            tout << mk_pp(exprs[i], m_manager) << std::endl; );
 
     // Initially, m_todo contains all formulas. That is, it contains the argument exprs. m_fwd_idx, m_processed, m_back_idx are empty.
     unsigned max_vid = 0;
@@ -641,31 +679,28 @@ void ufbv_rewriter::operator()(unsigned n, expr * const * exprs, proof * const *
 
     while (!m_todo.empty()) {
         // let n be the next formula in m_todo.
-        expr_ref cur(m);
+        expr_ref cur(m_manager);
         cur = m_todo.back();
         m_todo.pop_back();
 
         // rewrite cur using m_fwd_idx, and let n' be the result.
-        expr_ref np(rewrite(cur), m);
+        expr * np = rewrite(cur);
         // at this point, it should be the case that there is no demodulator in m_fwd_idx that can rewrite n'.
-        // unless there is a demodulator cycle
-        // SASSERT(rewrite(np)==np);
+        SASSERT(rewrite(np)==np);
 
         //    if (n' is not a demodulator) {
-        app_ref large(m);
-        expr_ref small(m);
+        expr_ref large(m_manager), small(m_manager);
         if (!is_demodulator(np, large, small)) {
             // insert n' into m_processed
             m_processed.insert(np);
-            m_in_processed.push_back(np);
             // update m_back_idx (traverse n' and for each uninterpreted function declaration f in n' add the entry f->n' to m_back_idx)
             add_back_idx_proc proc(m_back_idx, np);
             for_each_expr(proc, np);
         } else {
             // np is a demodulator that allows us to replace 'large' with 'small'.
             TRACE("demodulator", tout << "Found demodulator: " << std::endl;
-                                 tout << mk_pp(large.get(), m) << std::endl << " ---> " <<
-                                      std::endl << mk_pp(small.get(), m) << std::endl; );
+                                 tout << mk_pp(large.get(), m_manager) << std::endl << " ---> " <<
+                                      std::endl << mk_pp(small.get(), m_manager) << std::endl; );
 
             TRACE("demodulator_s", tout << "Found demodulator: " << std::endl;
                                    tout << to_app(large)->get_decl()->get_name() <<
@@ -674,10 +709,11 @@ void ufbv_rewriter::operator()(unsigned n, expr * const * exprs, proof * const *
                                        tout << to_app(small)->get_decl()->get_name() <<
                                         "[" << to_app(small)->get_depth() << "]" << std::endl;
                                    else
-                                       tout << mk_pp(small.get(), m) << std::endl; );
+                                       tout << mk_pp(small.get(), m_manager) << std::endl; );
 
             // let f be the top symbol of n'
-            func_decl * f = large->get_decl();
+            SASSERT(is_app(large));
+            func_decl * f = to_app(large)->get_decl();
 
             reschedule_processed(f);
             reschedule_demodulators(f, large);
@@ -692,26 +728,35 @@ void ufbv_rewriter::operator()(unsigned n, expr * const * exprs, proof * const *
     }
 
     // the result is the contents of m_processed + all demodulators in m_fwd_idx.
-    for (expr* e : m_processed) {
-        new_exprs.push_back(e);
-        TRACE("demodulator", tout << mk_pp(e, m) << std::endl; );
+    obj_hashtable<expr>::iterator pit = m_processed.begin();
+    obj_hashtable<expr>::iterator pend = m_processed.end();
+    for ( ; pit != pend ; pit++ ) {
+        new_exprs.push_back(*pit);
+        TRACE("demodulator", tout << mk_pp(*pit, m_manager) << std::endl; );
     }
 
-    for (auto const& kv : m_fwd_idx) {
-        if (kv.m_value) {
-            for (expr* e : *kv.m_value) {
+    fwd_idx_map::iterator fit = m_fwd_idx.begin();
+    fwd_idx_map::iterator fend = m_fwd_idx.end();
+    for ( ; fit != fend ; fit++ ) {
+        if (fit->m_value) {
+            quantifier_set::iterator dit = fit->m_value->begin();
+            quantifier_set::iterator dend = fit->m_value->end();
+            for ( ; dit != dend ; dit++ ) {
+                expr * e = *dit;
                 new_exprs.push_back(e);
-                TRACE("demodulator", tout << mk_pp(e, m) << std::endl; );
+                TRACE("demodulator", tout << mk_pp(*dit, m_manager) << std::endl; );
             }
         }
     }
 
-    TRACE("demodulator", tout << "after demodulator:\n" << new_exprs << "\n";);
+    TRACE("demodulator", tout << "after demodulator:\n";
+                         for ( unsigned i = 0 ; i < new_exprs.size() ; i++ )
+                            tout << mk_pp(new_exprs[i].get(), m_manager) << std::endl; );
 }
 
 
 ufbv_rewriter::match_subst::match_subst(ast_manager & m):
-    m(m),
+    m_manager(m),
     m_subst(m) {
 }
 
@@ -857,7 +902,6 @@ bool ufbv_rewriter::match_subst::match_args(app * lhs, expr * const * args) {
 
 
 bool ufbv_rewriter::match_subst::operator()(app * lhs, expr * rhs, expr * const * args, expr_ref & new_rhs) {
-    
     if (match_args(lhs, args)) {
         if (m_all_args_eq) {
             // quick success...
@@ -876,9 +920,7 @@ bool ufbv_rewriter::match_subst::operator()(expr * t, expr * i) {
     m_todo.reset();
     if (is_var(t))
         return true;
-    if (is_app(t) && is_app(i) && 
-        to_app(t)->get_decl() == to_app(i)->get_decl() && 
-        to_app(t)->get_num_args() == to_app(i)->get_num_args()) {
+    if (is_app(t) && is_app(i) && to_app(t)->get_decl() == to_app(i)->get_decl() && to_app(t)->get_num_args() == to_app(i)->get_num_args()) {
         return match_args(to_app(t), to_app(i)->get_args());
     }
     return false;

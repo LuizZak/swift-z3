@@ -173,7 +173,7 @@ namespace algebraic_numbers {
         /**
            \brief Isolate the roots of the given polynomial, and compute its sign between them.
         */
-        void isolate_roots(polynomial_ref const & p, polynomial::var2anum const & x2v, numeral_vector & roots, svector<sign> & signs);
+        void isolate_roots(polynomial_ref const & p, polynomial::var2anum const & x2v, numeral_vector & roots, svector<polynomial::sign> & signs);
 
         /**
            \brief Store in r the i-th root of p.
@@ -250,7 +250,7 @@ namespace algebraic_numbers {
            Return 0  if a == b
            Return 1  if a > b
         */
-        sign compare(numeral const & a, numeral const & b);
+        int compare(numeral const & a, numeral const & b);
         
         /**
            \brief a == b
@@ -304,10 +304,9 @@ namespace algebraic_numbers {
            Return 0                if p(alpha_1, ..., alpha_n) == 0
            Return positive number  if p(alpha_1, ..., alpha_n) >  0
         */
-        sign eval_sign_at(polynomial_ref const & p, polynomial::var2anum const & x2v);
+        polynomial::sign eval_sign_at(polynomial_ref const & p, polynomial::var2anum const & x2v);
 
         void get_polynomial(numeral const & a, svector<mpz> & r);
-        unsigned get_i(numeral const & a);
         
         // Procedures for getting lower and upper bounds for irrational numbers
         void get_lower(numeral const & a, mpbq & l);
@@ -326,32 +325,32 @@ namespace algebraic_numbers {
            \brief Display algebraic number as a rational if is_rational(n)
            Otherwise, display it as an interval.
         */
-        std::ostream& display_interval(std::ostream & out, numeral const & a) const;
+        void display_interval(std::ostream & out, numeral const & a) const;
 
         /**
            \brief Display algebraic number in decimal notation.
            A question mark is added based on the precision requested.
         */
-        std::ostream& display_decimal(std::ostream & out, numeral const & a, unsigned precision = 10) const;
+        void display_decimal(std::ostream & out, numeral const & a, unsigned precision = 10) const;
 
         /**
            \brief Display algebraic number as a root object: (p, i)
            That is, 'a' is the i-th root of p.
         */
-        std::ostream& display_root(std::ostream & out, numeral const & a) const;
+        void display_root(std::ostream & out, numeral const & a) const;
         
         /**
            \brief Display algebraic number as a root object in SMT 2.0 style: (root-obj p i)
            That is, 'a' is the i-th root of p.
         */
-        std::ostream& display_root_smt2(std::ostream & out, numeral const & a) const;
+        void display_root_smt2(std::ostream & out, numeral const & a) const;
 
         /**
            \brief Display algebraic number in Mathematica format.
         */
-        std::ostream& display_mathematica(std::ostream & out, numeral const & a) const;
+        void display_mathematica(std::ostream & out, numeral const & a) const;
 
-        std::ostream& display(std::ostream & out, numeral const & a) { return display_decimal(out, a); }
+        void display(std::ostream & out, numeral const & a) { return display_decimal(out, a); }
 
         void reset_statistics();
         

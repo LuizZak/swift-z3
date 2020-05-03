@@ -112,7 +112,8 @@ struct reduce_args_tactic::imp {
     }
 
     void checkpoint() { 
-        tactic::checkpoint(m_manager);
+        if (m_manager.canceled())
+            throw tactic_exception(m_manager.limit().get_cancel_msg());
     }
     
     struct find_non_candidates_proc {
@@ -196,7 +197,7 @@ struct reduce_args_tactic::imp {
             expr* base;
             if (it == m_decl2args.end()) {
                 m_decl2args.insert(d, bit_vector());
-                svector<expr*>& bases = m_decl2base.insert_if_not_there(d, svector<expr*>());
+                svector<expr*>& bases = m_decl2base.insert_if_not_there2(d, svector<expr*>())->get_data().m_value;
                 bases.resize(j);
                 it = m_decl2args.find_iterator(d);
                 SASSERT(it != m_decl2args.end());
@@ -347,13 +348,13 @@ struct reduce_args_tactic::imp {
                 return BR_FAILED;
 
             bit_vector & bv = it->m_value;
-            arg2func *& map = m_decl2arg2funcs.insert_if_not_there(f, 0);
+            arg2func *& map = m_decl2arg2funcs.insert_if_not_there2(f, 0)->get_data().m_value;
             if (!map) {
                 map = alloc(arg2func, arg2func_hash_proc(bv), arg2func_eq_proc(bv));
             }
 
             app_ref tmp(m.mk_app(f, num, args), m);
-            func_decl *& new_f = map->insert_if_not_there(tmp, nullptr);
+            func_decl *& new_f = map->insert_if_not_there2(tmp, nullptr)->get_data().m_value;
             if (!new_f) {
                 // create fresh symbol
                 ptr_buffer<sort> domain;
@@ -481,13 +482,14 @@ reduce_args_tactic::~reduce_args_tactic() {
 
 void reduce_args_tactic::operator()(goal_ref const & g, 
                                     goal_ref_buffer & result) {
+    SASSERT(g->is_well_sorted());
+    fail_if_proof_generation("reduce-args", g);
     fail_if_unsat_core_generation("reduce-args", g);
     result.reset();
-    if (!m_imp->m().proofs_enabled()) {
-        m_imp->operator()(*(g.get()));
-    }
+    m_imp->operator()(*(g.get()));
     g->inc_depth();
     result.push_back(g.get());
+    SASSERT(g->is_well_sorted());
 }
 
 void reduce_args_tactic::cleanup() {

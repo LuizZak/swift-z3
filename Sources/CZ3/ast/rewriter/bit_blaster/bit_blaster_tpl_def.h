@@ -16,10 +16,10 @@ Author:
 Revision History:
 
 --*/
-#include "util/rational.h"
-#include "util/common_msgs.h"
 #include "ast/rewriter/bit_blaster/bit_blaster_tpl.h"
+#include "util/rational.h"
 #include "ast/ast_pp.h"
+#include "util/common_msgs.h"
 #include "ast/rewriter/rewriter_types.h"
 
 
@@ -27,7 +27,7 @@ template<typename Cfg>
 void bit_blaster_tpl<Cfg>::checkpoint() {
     if (memory::get_allocation_size() > m_max_memory)
         throw rewriter_exception(Z3_MAX_MEMORY_MSG);
-    if (!m().inc())
+    if (m().canceled())
         throw rewriter_exception(m().limit().get_cancel_msg());
 }
 
@@ -1101,17 +1101,23 @@ template<typename Cfg>
 template<bool Signed>
 void bit_blaster_tpl<Cfg>::mk_le(unsigned sz, expr * const * a_bits, expr * const * b_bits, expr_ref & out) {
     SASSERT(sz > 0);
-    expr_ref not_a(m());
+    expr_ref i1(m()), i2(m()), i3(m()), not_a(m());
     mk_not(a_bits[0], not_a);
     mk_or(not_a, b_bits[0], out);
     for (unsigned idx = 1; idx < (Signed ? sz - 1 : sz); idx++) {
         mk_not(a_bits[idx], not_a);
-        mk_ge2(not_a, b_bits[idx], out, out);
+        mk_and(not_a,       b_bits[idx], i1);
+        mk_and(not_a,       out,         i2);
+        mk_and(b_bits[idx], out,         i3);
+        mk_or(i1, i2, i3, out);
     }
     if (Signed) {
         expr_ref not_b(m());
         mk_not(b_bits[sz-1], not_b);
-        mk_ge2(not_b, a_bits[sz-1], out, out);
+        mk_and(not_b,        a_bits[sz-1], i1);
+        mk_and(not_b,        out,          i2);
+        mk_and(a_bits[sz-1], out,          i3);
+        mk_or(i1, i2, i3, out);
     }
 }
 

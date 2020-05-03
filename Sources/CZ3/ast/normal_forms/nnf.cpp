@@ -142,7 +142,7 @@ class skolemizer {
                 }
             }
         }
-        r = s(body, substitution);
+        r = s(body, substitution.size(), substitution.c_ptr());
         p = nullptr;
         if (m_proofs_enabled) {
             if (q->get_kind() == forall_k) 
@@ -382,7 +382,7 @@ struct nnf::imp {
     void checkpoint() {
         if (memory::get_allocation_size() > m_max_memory)
             throw nnf_exception(Z3_MAX_MEMORY_MSG);
-        if (!m.inc()) 
+        if (m.canceled()) 
             throw nnf_exception(m.limit().get_cancel_msg());
     }
 
@@ -585,8 +585,7 @@ struct nnf::imp {
     bool is_eq(app * t) const { return m.is_eq(t); }
 
     bool process_iff_xor(app * t, frame & fr) {
-        if (t->get_num_args() != 2)
-            throw default_exception("apply simplification before nnf to normalize arguments to xor/=");
+        SASSERT(t->get_num_args() == 2);
         switch (fr.m_i) {
         case 0:
             fr.m_i = 1;
@@ -697,7 +696,8 @@ struct nnf::imp {
         else {
             r = arg;
             if (proofs_enabled()) {
-                pr = mk_proof(fr.m_pol, 1, &arg_pr, t, to_app(r));
+                proof * p1 = m.mk_iff_oeq(m.mk_rewrite(t, t->get_arg(0)));
+                pr = m.mk_transitivity(p1, arg_pr);
             }
         }
 

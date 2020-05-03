@@ -102,7 +102,6 @@ namespace smt2 {
         void stop_caching() { m_cache_input = false; }
         unsigned cache_size() const { return m_cache.size(); }
         void reset_cache() { m_cache.reset(); }
-
         char const * cached_str(unsigned begin, unsigned end);
     };
 

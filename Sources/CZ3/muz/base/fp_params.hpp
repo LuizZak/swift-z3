@@ -58,6 +58,7 @@ struct fp_params {
     d.insert("xform.fix_unbound_vars", CPK_BOOL, "fix unbound variables in tail", "false","fp");
     d.insert("xform.unfold_rules", CPK_UINT, "unfold rules statically using iterative squaring", "0","fp");
     d.insert("xform.slice", CPK_BOOL, "simplify clause set using slicing", "true","fp");
+    d.insert("xform.karr", CPK_BOOL, "Add linear invariants to clauses using Karr's method", "false","fp");
     d.insert("spacer.use_euf_gen", CPK_BOOL, "Generalize lemmas and pobs using implied equalities", "false","fp");
     d.insert("xform.transform_arrays", CPK_BOOL, "Rewrites arrays equalities and applies select over store", "false","fp");
     d.insert("xform.instantiate_arrays", CPK_BOOL, "Transforms P(a) into P(i, a[i] a)", "false","fp");
@@ -110,7 +111,6 @@ struct fp_params {
     d.insert("spacer.p3.share_invariants", CPK_BOOL, "Share invariants lemmas", "false","fp");
     d.insert("spacer.min_level", CPK_UINT, "Minimal level to explore", "0","fp");
     d.insert("spacer.print_json", CPK_SYMBOL, "Print pobs tree in JSON format to a given file", "","fp");
-    d.insert("spacer.trace_file", CPK_SYMBOL, "Log file for progress events", "","fp");
     d.insert("spacer.ctp", CPK_BOOL, "Enable counterexample-to-pushing", "true","fp");
     d.insert("spacer.use_inc_clause", CPK_BOOL, "Use incremental clause to represent trans", "true","fp");
     d.insert("spacer.dump_benchmarks", CPK_BOOL, "Dump SMT queries as benchmarks", "false","fp");
@@ -119,8 +119,6 @@ struct fp_params {
     d.insert("spacer.gpdr.bfs", CPK_BOOL, "Use BFS exploration strategy for expanding model search", "true","fp");
     d.insert("spacer.use_bg_invs", CPK_BOOL, "Enable external background invariants", "false","fp");
     d.insert("spacer.use_lim_num_gen", CPK_BOOL, "Enable limit numbers generalizer to get smaller numbers", "false","fp");
-    d.insert("spacer.logic", CPK_SYMBOL, "SMT-LIB logic to configure internal SMT solvers", "","fp");
-    d.insert("spacer.arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "2","fp");
   }
   /*
      REG_MODULE_PARAMS('fp', 'fp_params::collect_param_descrs')
@@ -175,6 +173,7 @@ struct fp_params {
   bool xform_fix_unbound_vars() const { return p.get_bool("xform.fix_unbound_vars", g, false); }
   unsigned xform_unfold_rules() const { return p.get_uint("xform.unfold_rules", g, 0u); }
   bool xform_slice() const { return p.get_bool("xform.slice", g, true); }
+  bool xform_karr() const { return p.get_bool("xform.karr", g, false); }
   bool spacer_use_euf_gen() const { return p.get_bool("spacer.use_euf_gen", g, false); }
   bool xform_transform_arrays() const { return p.get_bool("xform.transform_arrays", g, false); }
   bool xform_instantiate_arrays() const { return p.get_bool("xform.instantiate_arrays", g, false); }
@@ -227,7 +226,6 @@ struct fp_params {
   bool spacer_p3_share_invariants() const { return p.get_bool("spacer.p3.share_invariants", g, false); }
   unsigned spacer_min_level() const { return p.get_uint("spacer.min_level", g, 0u); }
   symbol spacer_print_json() const { return p.get_sym("spacer.print_json", g, symbol("")); }
-  symbol spacer_trace_file() const { return p.get_sym("spacer.trace_file", g, symbol("")); }
   bool spacer_ctp() const { return p.get_bool("spacer.ctp", g, true); }
   bool spacer_use_inc_clause() const { return p.get_bool("spacer.use_inc_clause", g, true); }
   bool spacer_dump_benchmarks() const { return p.get_bool("spacer.dump_benchmarks", g, false); }
@@ -236,7 +234,5 @@ struct fp_params {
   bool spacer_gpdr_bfs() const { return p.get_bool("spacer.gpdr.bfs", g, true); }
   bool spacer_use_bg_invs() const { return p.get_bool("spacer.use_bg_invs", g, false); }
   bool spacer_use_lim_num_gen() const { return p.get_bool("spacer.use_lim_num_gen", g, false); }
-  symbol spacer_logic() const { return p.get_sym("spacer.logic", g, symbol("")); }
-  unsigned spacer_arith_solver() const { return p.get_uint("spacer.arith.solver", g, 2u); }
 };
 #endif

@@ -15,7 +15,6 @@ Revision History:
 #include "smt/smt_clause_proof.h"
 #include "smt/smt_context.h"
 #include "ast/ast_pp.h"
-#include "ast/ast_ll_pp.h"
 
 namespace smt {
     clause_proof::clause_proof(context& ctx): ctx(ctx), m(ctx.get_manager()), m_lits(m) {}
@@ -43,19 +42,18 @@ namespace smt {
     void clause_proof::add(clause& c) {
         if (ctx.get_fparams().m_clause_proof) {  
             justification* j = c.get_justification();
-            proof_ref pr(justification2proof(j), m);
-            CTRACE("mk_clause", pr.get(), tout << mk_bounded_pp(pr, m, 4) << "\n";);
+            proof* pr = justification2proof(j);
             update(c, kind2st(c.get_kind()), pr);
         }
     }
 
     void clause_proof::add(unsigned n, literal const* lits, clause_kind k, justification* j) {
-        if (ctx.get_fparams().m_clause_proof) {              
-            proof_ref pr(justification2proof(j), m);
-            CTRACE("mk_clause", pr.get(), tout << mk_bounded_pp(pr, m, 4) << "\n";);
+        if (ctx.get_fparams().m_clause_proof) {  
+            proof* pr = justification2proof(j);
             m_lits.reset();
             for (unsigned i = 0; i < n; ++i) {
-                m_lits.push_back(ctx.literal2expr(lits[i]));
+                literal lit = lits[i];
+                m_lits.push_back(ctx.literal2expr(lit));
             }
             update(kind2st(k), m_lits, pr);
         }
@@ -101,7 +99,7 @@ namespace smt {
     }
 
     void clause_proof::update(status st, expr_ref_vector& v, proof* p) {
-        TRACE("clause_proof", tout << m_trail.size() << " " << st << " " << v << "\n";);
+        TRACE("clause_proof", tout << st << " " << v << "\n";);
         IF_VERBOSE(3, verbose_stream() << st << " " << v << "\n");
         m_trail.push_back(info(st, v, p));
     }
@@ -116,7 +114,7 @@ namespace smt {
         }
     }
 
-    proof_ref clause_proof::get_proof(bool inconsistent) {
+    proof_ref clause_proof::get_proof() {
         TRACE("context", tout << "get-proof " << ctx.get_fparams().m_clause_proof << "\n";);
         if (!ctx.get_fparams().m_clause_proof) {
             return proof_ref(m);
@@ -142,12 +140,6 @@ namespace smt {
                 ps.push_back(m.mk_redundant_del(fact));
                 break;
             }
-        }
-        if (inconsistent) {
-            ps.push_back(m.mk_false());
-        }
-        else {
-            ps.push_back(m.mk_const("clause-trail-end", m.mk_bool_sort()));
         }
         return proof_ref(m.mk_clause_trail(ps.size(), ps.c_ptr()), m);
     }

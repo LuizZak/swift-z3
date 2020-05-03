@@ -18,7 +18,7 @@ struct algebraic_params {
   }
   /*
      REG_MODULE_PARAMS('algebraic', 'algebraic_params::collect_param_descrs')
-     REG_MODULE_DESCRIPTION('algebraic', 'real algebraic number package. Non-default parameter settings are not supported')
+     REG_MODULE_DESCRIPTION('algebraic', 'real algebraic number package')
   */
   unsigned zero_accuracy() const { return p.get_uint("zero_accuracy", g, 0u); }
   unsigned min_mag() const { return p.get_uint("min_mag", g, 16u); }

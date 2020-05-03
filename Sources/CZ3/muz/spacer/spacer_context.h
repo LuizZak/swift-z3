@@ -24,8 +24,6 @@ Notes:
 #define _SPACER_CONTEXT_H_
 
 #include <queue>
-#include <fstream>
-
 #include "util/scoped_ptr_vector.h"
 #include "muz/spacer/spacer_manager.h"
 #include "muz/spacer/spacer_prop_solver.h"
@@ -487,7 +485,7 @@ public:
     bool is_ctp_blocked(lemma *lem);
     const datalog::rule *find_rule(model &mdl);
     const datalog::rule *find_rule(model &mev, bool& is_concrete,
-                                   bool_vector& reach_pred_used,
+                                   vector<bool>& reach_pred_used,
                                    unsigned& num_reuse_reach);
     expr* get_transition(datalog::rule const& r) {
         pt_rule *p;
@@ -510,7 +508,7 @@ public:
     /// initialize reachability facts using initial rules
     void init_rfs ();
     reach_fact *mk_rf(pob &n, model &mdl, const datalog::rule &r);
-    void add_rf (reach_fact *fact, bool force = false);  // add reachability fact
+    void add_rf (reach_fact *fact);  // add reachability fact
     reach_fact* get_last_rf () const { return m_reach_facts.back (); }
     expr* get_last_rf_tag () const;
 
@@ -530,7 +528,7 @@ public:
     lbool is_reachable(pob& n, expr_ref_vector* core, model_ref *model,
                        unsigned& uses_level, bool& is_concrete,
                        datalog::rule const*& r,
-                       bool_vector& reach_pred_used,
+                       vector<bool>& reach_pred_used,
                        unsigned& num_reuse_reach);
     bool is_invariant(unsigned level, lemma* lem,
                       unsigned& solver_level,
@@ -901,7 +899,7 @@ enum spacer_children_order {
 };
 
 class context {
-    friend class pred_transformer;
+
     struct stats {
         unsigned m_num_queries;
         unsigned m_num_reuse_reach;
@@ -984,7 +982,6 @@ class context {
     unsigned             m_blast_term_ite_inflation;
     scoped_ptr_vector<spacer_callback> m_callbacks;
     json_marshaller      m_json_marshaller;
-    std::fstream*        m_trace_stream;
 
     // Solve using gpdr strategy
     lbool gpdr_solve_core();
@@ -993,12 +990,6 @@ class context {
                                     expr *trans,
                                     model &mdl,
                                     pob_ref_buffer &out);
-
-    // progress logging
-    void log_enter_level(unsigned lvl);
-    void log_propagate();
-    void log_expand_pob(pob &);
-    void log_add_lemma(pred_transformer &, lemma&);
 
     // Functions used by search.
     lbool solve_core(unsigned from_lvl = 0);
@@ -1010,16 +1001,13 @@ class context {
     lbool expand_pob(pob &n, pob_ref_buffer &out);
     bool create_children(pob& n, const datalog::rule &r,
                          model &mdl,
-                         const bool_vector& reach_pred_used,
+                         const vector<bool>& reach_pred_used,
                          pob_ref_buffer &out);
 
     /**
        \brief Retrieve satisfying assignment with explanation.
     */
-    expr_ref mk_sat_answer() const {
-        proof_ref pr = get_ground_refutation();
-        return expr_ref(pr.get(), pr.get_manager());
-    }
+    expr_ref mk_sat_answer() const {return get_ground_sat_answer();}
     expr_ref mk_unsat_answer() const;
     unsigned get_cex_depth ();
 

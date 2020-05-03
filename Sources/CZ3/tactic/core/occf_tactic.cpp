@@ -35,7 +35,8 @@ class occf_tactic : public tactic {
         }
 
         void checkpoint() {
-            tactic::checkpoint(m);
+            if (m.canceled())
+                throw tactic_exception(TACTIC_CANCELED_MSG);
         }
 
         bool is_literal(expr * t) const {
@@ -126,6 +127,7 @@ class occf_tactic : public tactic {
         
         void operator()(goal_ref const & g, 
                         goal_ref_buffer & result) {
+            SASSERT(g->is_well_sorted());
             fail_if_proof_generation("occf", g);
 
             bool produce_models = g->models_enabled();
@@ -179,6 +181,8 @@ class occf_tactic : public tactic {
             }
             g->inc_depth();
             result.push_back(g.get());
+            TRACE("occf", g->display(tout););
+            SASSERT(g->is_well_sorted());
         }
     };
     

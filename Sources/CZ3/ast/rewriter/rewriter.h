@@ -87,8 +87,6 @@ protected:
         push_frame_core(t, must_cache(t), st);
     } 
 
-    bool rewrites_to(expr* t, proof* p);
-    bool rewrites_from(expr* t, proof* p);
     void init_cache_stack();
     void del_cache_stack();
     void reset_cache();

@@ -35,6 +35,7 @@ protected:
     unsigned                m_som_blowup;
     bool                    m_sort_sums;
     bool                    m_hoist_mul;
+    bool                    m_hoist_cmul;
     bool                    m_ast_order;
     bool                    m_hoist_ite;
 
@@ -87,7 +88,9 @@ protected:
     bool hoist_multiplication(expr_ref& som);
     expr* merge_muls(expr* x, expr* y);
 
+    struct hoist_cmul_lt;
     bool is_mul(expr * t, numeral & c, expr * & pp);
+    void hoist_cmul(expr_ref_buffer & args);
 
     class mon_lt {
         poly_rewriter& rw;
@@ -105,6 +108,7 @@ public:
         updt_params(p);
         SASSERT(!m_som || m_flat); // som of monomials form requires flattening to be enabled.
         SASSERT(!m_som || !m_hoist_mul); // som is mutually exclusive with hoisting multiplication.
+        updt_params(p);
     }
 
     ast_manager & m() const { return Config::m(); }

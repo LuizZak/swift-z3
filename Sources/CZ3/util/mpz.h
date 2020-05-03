@@ -196,17 +196,9 @@ class mpz_manager {
     mutable mpz_t     m_int64_min;
 
     mpz_t * allocate() {        
-        mpz_t * cell;
-#ifdef SINGLE_THREAD
-        cell = reinterpret_cast<mpz_t*>(m_allocator.allocate(sizeof(mpz_t)));        
-#else
-        if (SYNCH) {
-            cell = reinterpret_cast<mpz_t*>(memory::allocate(sizeof(mpz_t)));
-        }
-        else {
-            cell = reinterpret_cast<mpz_t*>(m_allocator.allocate(sizeof(mpz_t)));        
-        }
-#endif
+        MPZ_BEGIN_CRITICAL();
+        mpz_t * cell = reinterpret_cast<mpz_t*>(m_allocator.allocate(sizeof(mpz_t)));
+        MPZ_END_CRITICAL();
         mpz_init(*cell);
         return cell;
     }
@@ -214,16 +206,9 @@ class mpz_manager {
     void deallocate(bool is_heap, mpz_t * ptr) { 
         mpz_clear(*ptr); 
         if (is_heap) {
-#ifdef SINGLE_THREAD
+            MPZ_BEGIN_CRITICAL();
             m_allocator.deallocate(sizeof(mpz_t), ptr); 
-#else
-            if (SYNCH) {
-                memory::deallocate(ptr);
-            }
-            else {
-                m_allocator.deallocate(sizeof(mpz_t), ptr); 
-            }
-#endif
+            MPZ_END_CRITICAL();
         }
     }
 
@@ -401,9 +386,7 @@ public:
 
     static mpz mk_z(int val) { return mpz(val); }
     
-    void del(mpz & a) { del(this, a); }
-
-    static void del(mpz_manager* m, mpz & a);
+    void del(mpz & a);
     
     void add(mpz const & a, mpz const & b, mpz & c);
 

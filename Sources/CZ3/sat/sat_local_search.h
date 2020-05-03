@@ -78,6 +78,7 @@ namespace sat {
             pbcoeff(unsigned id, unsigned coeff):
                 m_constraint_id(id), m_coeff(coeff) {}
         };
+        typedef svector<bool> bool_vector;
         typedef svector<pbcoeff> coeff_vector;
 
 
@@ -138,7 +139,7 @@ namespace sat {
         local_search_config m_config;        
         
         vector<var_info>    m_vars;                      // variables
-        bool_vector       m_best_phase;                // best value in round
+        svector<bool>       m_best_phase;                // best value in round
         svector<bool_var>   m_units;                     // unit clauses
         vector<constraint>  m_constraints;               // all constraints
         literal_vector      m_assumptions;               // temporary assumptions

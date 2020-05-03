@@ -31,10 +31,9 @@ Revision History:
 #include "sat/sat_simplifier.h"
 #include "sat/sat_scc.h"
 #include "sat/sat_asymm_branch.h"
-#include "sat/sat_cut_simplifier.h"
+#include "sat/sat_iff3_finder.h"
 #include "sat/sat_probing.h"
 #include "sat/sat_mus.h"
-#include "sat/sat_binspr.h"
 #include "sat/sat_drat.h"
 #include "sat/sat_parallel.h"
 #include "sat/sat_local_search.h"
@@ -89,7 +88,6 @@ namespace sat {
         config                  m_config;
         stats                   m_stats;
         scoped_ptr<extension>   m_ext;
-        scoped_ptr<cut_simplifier> m_cut_simplifier;
         parallel*               m_par;
         drat                    m_drat;          // DRAT for generating proofs
         clause_allocator        m_cls_allocator[2];
@@ -104,7 +102,6 @@ namespace sat {
         asymm_branch            m_asymm_branch;
         probing                 m_probing;
         mus                     m_mus;           // MUS for minimal core extraction
-        binspr                  m_binspr;
         bool                    m_inconsistent;
         bool                    m_searching;
         // A conflict is usually a single justification. That is, a justification
@@ -118,11 +115,11 @@ namespace sat {
         vector<watch_list>      m_watches;
         svector<lbool>          m_assignment;
         svector<justification>  m_justification; 
-        bool_vector             m_decision;
-        bool_vector             m_mark;
-        bool_vector             m_lit_mark;
-        bool_vector             m_eliminated;
-        bool_vector             m_external;
+        svector<bool>           m_decision;
+        svector<bool>           m_mark;
+        svector<bool>           m_lit_mark;
+        svector<bool>           m_eliminated;
+        svector<bool>           m_external;
         unsigned_vector         m_touched;
         unsigned                m_touch_index;
         literal_vector          m_replay_assign;
@@ -137,9 +134,9 @@ namespace sat {
         int                     m_action;
         double                  m_step_size;
         // phase
-        bool_vector             m_phase; 
-        bool_vector             m_best_phase;
-        bool_vector             m_prev_phase;
+        svector<bool>           m_phase; 
+        svector<bool>           m_best_phase;
+        svector<bool>           m_prev_phase;
         svector<char>           m_assigned_since_gc;
         search_state            m_search_state; 
         unsigned                m_search_unsat_conflicts;
@@ -163,9 +160,6 @@ namespace sat {
         literal_vector          m_trail;
         clause_wrapper_vector   m_clauses_to_reinit;
         std::string             m_reason_unknown;
-
-        svector<unsigned>       m_visited;
-        unsigned                m_visited_ts;
 
         struct scope {
             unsigned m_trail_lim;
@@ -195,19 +189,17 @@ namespace sat {
 
         friend class integrity_checker;
         friend class cleaner;
-        friend class asymm_branch;
-        friend class big;
-        friend class binspr;
-        friend class drat;
-        friend class elim_eqs;
-        friend class bcd;
-        friend class mus;
-        friend class probing;
         friend class simplifier;
         friend class scc;
+        friend class big;
+        friend class binspr;
+        friend class elim_eqs;
+        friend class asymm_branch;
+        friend class probing;
+        friend class iff3_finder;
+        friend class mus;
+        friend class drat;
         friend class ba_solver;
-        friend class anf_simplifier;
-        friend class cut_simplifier;
         friend class parallel;
         friend class lookahead;
         friend class local_search;
@@ -217,10 +209,6 @@ namespace sat {
         friend struct mk_stat;
         friend class elim_vars;
         friend class scoped_detach;
-        friend class xor_finder;
-        friend class aig_finder;
-        friend class lut_finder;
-        friend class npn3_finder;
     public:
         solver(params_ref const & p, reslimit& l);
         ~solver() override;
@@ -254,7 +242,6 @@ namespace sat {
         bool_var add_var(bool ext) override { return mk_var(ext, true); }
 
         bool_var mk_var(bool ext = false, bool dvar = true);
-
         clause* mk_clause(literal_vector const& lits, bool learned = false) { return mk_clause(lits.size(), lits.c_ptr(), learned); }
         clause* mk_clause(unsigned num_lits, literal * lits, bool learned = false);
         clause* mk_clause(literal l1, literal l2, bool learned = false);
@@ -313,14 +300,6 @@ namespace sat {
         void detach_ter_clause(clause & c);
         void push_reinit_stack(clause & c);
 
-        void init_visited();
-        void mark_visited(literal l) { m_visited[l.index()] = m_visited_ts; }
-        void mark_visited(bool_var v) { mark_visited(literal(v, false)); }
-        bool is_visited(bool_var v) const { return is_visited(literal(v, false)); }
-        bool is_visited(literal l) const { return m_visited[l.index()] == m_visited_ts; }
-        bool all_distinct(literal_vector const& lits);
-        bool all_distinct(clause const& cl);
-
         // -----------------------
         //
         // Basic
@@ -344,8 +323,6 @@ namespace sat {
         bool  at_base_lvl() const override { return m_scope_lvl == 0; }
         lbool value(literal l) const { return m_assignment[l.index()]; }
         lbool value(bool_var v) const { return m_assignment[literal(v, false).index()]; }
-        justification get_justification(literal l) const { return m_justification[l.var()]; }
-        justification get_justification(bool_var v) const { return m_justification[v]; }
         unsigned lvl(bool_var v) const { return m_justification[v].level(); }
         unsigned lvl(literal l) const { return m_justification[l.var()].level(); }
         unsigned init_trail_size() const override { return at_base_lvl() ? m_trail.size() : m_scopes[0].m_trail_lim; }
@@ -402,11 +379,9 @@ namespace sat {
         bool is_incremental() const { return m_config.m_incremental; }
         extension* get_extension() const override { return m_ext.get(); }
         void       set_extension(extension* e) override;
-        cut_simplifier* get_cut_simplifier() override { return m_cut_simplifier.get(); }
         bool       set_root(literal l, literal r);
         void       flush_roots();
         typedef std::pair<literal, literal> bin_clause;
-        struct bin_clause_hash { unsigned operator()(bin_clause const& b) const { return b.first.hash() + 2*b.second.hash(); } };
     protected:
         watch_list & get_wlist(literal l) { return m_watches[l.index()]; }
         watch_list const & get_wlist(literal l) const { return m_watches[l.index()]; }
@@ -445,7 +420,7 @@ namespace sat {
         literal_vector const& get_core() const override { return m_core; }
         model_converter const & get_model_converter() const { return m_mc; }
         void flush(model_converter& mc) override { mc.flush(m_mc); }
-        void set_model(model const& mdl, bool is_current);
+        void set_model(model const& mdl);
         char const* get_reason_unknown() const override { return m_reason_unknown.c_str(); }
         bool check_clauses(model const& m) const;
         bool is_assumption(bool_var v) const;
@@ -637,7 +612,6 @@ namespace sat {
         void pop_to_base_level() override;
         unsigned num_user_scopes() const override { return m_user_scope_literals.size(); }
         reslimit& rlimit() { return m_rlimit; }
-        params_ref const& params() { return m_params; }
         // -----------------------
         //
         // Simplification

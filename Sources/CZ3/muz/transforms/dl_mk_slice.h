@@ -35,10 +35,10 @@ namespace datalog {
         context&      m_ctx;
         ast_manager&  m;
         rule_manager& rm;
-        bool_vector   m_input;
-        bool_vector   m_output;
+        svector<bool>   m_input;
+        svector<bool>   m_output;
         expr_ref_vector m_solved_vars;
-        bool_vector   m_var_is_sliceable;
+        svector<bool>   m_var_is_sliceable;
         obj_map<func_decl, func_decl*>  m_predicates;        
         obj_map<func_decl, bit_vector> m_sliceable;
         ast_ref_vector  m_pinned;

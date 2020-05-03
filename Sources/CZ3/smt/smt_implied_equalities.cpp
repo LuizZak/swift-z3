@@ -30,7 +30,7 @@ Revision History:
 #include "model/model.h"
 #include "solver/solver.h"
 
-namespace {
+namespace smt {
 
     class get_implied_equalities_impl {
         
@@ -58,7 +58,7 @@ namespace {
         void partition_terms(unsigned num_terms, expr* const* terms, sort2term_ids& termids) {
             for (unsigned i = 0; i < num_terms; ++i) {
                 sort* s = m.get_sort(terms[i]);
-                term_ids& vec = termids.insert_if_not_there(s, term_ids());
+                term_ids& vec = termids.insert_if_not_there2(s, term_ids())->get_data().m_value;
                 vec.push_back(term_id(expr_ref(terms[i],m), i));
             }
         }
@@ -177,7 +177,7 @@ namespace {
 
             uint_set non_values;
             
-            if (!smt::is_value_sort(m, srt)) {
+            if (!is_value_sort(m, srt)) {
                 for (unsigned i = 0; i < terms.size(); ++i) {
                     non_values.insert(i);
                 }
@@ -208,7 +208,7 @@ namespace {
                     continue;
                 }
                 vals.push_back(vl);
-                unsigned_vector& vec = vals_map.insert_if_not_there(vl, unsigned_vector());
+                unsigned_vector& vec = vals_map.insert_if_not_there2(vl, unsigned_vector())->get_data().m_value;
                 bool found = false;
 
                 for (unsigned j = 0; !found && j < vec.size(); ++j) {
@@ -370,14 +370,12 @@ namespace {
 
     stopwatch get_implied_equalities_impl::s_timer;
     stopwatch get_implied_equalities_impl::s_stats_val_eq_timer;
-}
 
-namespace smt {
     lbool implied_equalities(ast_manager& m, solver& solver, unsigned num_terms, expr* const* terms, unsigned* class_ids) {        
         get_implied_equalities_impl gi(m, solver);
         return gi(num_terms, terms, class_ids);
     }
-}
+};
 
 
 

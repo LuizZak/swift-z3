@@ -33,9 +33,8 @@ namespace {
 class g_timeout_eh : public event_handler {
 public:
     void operator()(event_handler_caller_t caller_id) override {
-        m_caller_id = caller_id;
         std::cout << "timeout\n";
-        std::cout.flush();
+        m_caller_id = caller_id;
         if (g_on_timeout)
             g_on_timeout();
         throw z3_error(ERR_TIMEOUT);

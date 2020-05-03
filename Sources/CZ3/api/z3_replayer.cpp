@@ -90,14 +90,12 @@ struct z3_replayer::imp {
             uint64_t     m_uint;
             double       m_double;
             char const * m_str;
-            void const*  m_sym; // uint64_t
             void *       m_obj;
             float        m_float;
         };
         value():m_kind(OBJECT), m_int(0) {}
         value(void * obj):m_kind(OBJECT), m_obj(obj) {}
         value(value_kind k, char const * str):m_kind(k), m_str(str) {}
-        value(value_kind k, symbol const& s):m_kind(k), m_sym(s.c_api_symbol2ext()) {}
         value(value_kind k, uint64_t u):m_kind(k), m_uint(u) {}
         value(value_kind k, int64_t i):m_kind(k), m_int(i) {}
         value(value_kind k, double d):m_kind(k), m_double(d) {}
@@ -137,7 +135,7 @@ struct z3_replayer::imp {
             out << v.m_str;
             break;
         case SYMBOL:
-            out << symbol::c_api_ext2symbol(v.m_sym);
+            out << symbol::mk_symbol_from_c_ptr(v.m_str);
             break;
         case OBJECT:
             out << v.m_obj;
@@ -457,13 +455,13 @@ struct z3_replayer::imp {
                 // push null symbol
                 next();
                 TRACE("z3_replayer", tout << "[" << m_line << "] " << "N\n";);
-                m_args.push_back(value(SYMBOL, symbol::null));
+                m_args.push_back(value(SYMBOL, static_cast<char const *>(nullptr)));
                 break;
             case '$': {
                 // push symbol
                 next(); skip_blank(); read_quoted_symbol();
                 TRACE("z3_replayer", tout << "[" << m_line << "] " << "$ " << m_id << "\n";);
-                m_args.push_back(value(SYMBOL, m_id));
+                m_args.push_back(value(SYMBOL, m_id.bare_str()));
                 break;
             }
             case '#': {
@@ -471,7 +469,7 @@ struct z3_replayer::imp {
                 next(); skip_blank(); read_uint64();
                 TRACE("z3_replayer", tout << "[" << m_line << "] " << "# " << m_uint64 << "\n";);
                 symbol sym(static_cast<unsigned>(m_uint64));
-                m_args.push_back(value(SYMBOL, sym));
+                m_args.push_back(value(SYMBOL, static_cast<char const *>(sym.c_ptr())));
                 break;
             }
             case 'I':
@@ -617,7 +615,7 @@ struct z3_replayer::imp {
 
     Z3_symbol get_symbol(unsigned pos) const {
         check_arg(pos, SYMBOL);
-        return (Z3_symbol)m_args[pos].m_sym;
+        return reinterpret_cast<Z3_symbol>(const_cast<char*>(m_args[pos].m_str));
     }
 
     void * get_obj(unsigned pos) const {

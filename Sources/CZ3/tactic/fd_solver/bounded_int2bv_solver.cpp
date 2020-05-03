@@ -82,7 +82,6 @@ public:
         for (func_decl* f : m_bv_fns) result->m_bv_fns.push_back(tr(f));
         for (func_decl* f : m_int_fns) result->m_int_fns.push_back(tr(f));
         for (bound_manager* b : m_bounds) result->m_bounds.push_back(b->translate(dst_m));
-        result->m_flushed = true;
         model_converter_ref mc = external_model_converter();
         if (mc) {
             ast_translation tr(m, dst_m);
@@ -252,7 +251,7 @@ private:
             SASSERT(is_uninterp_const(e));
             func_decl* f = to_app(e)->get_decl();
 
-            if (bm.has_lower(e, lo, s1) && bm.has_upper(e, hi, s2) && lo <= hi && !s1 && !s2 && m_arith.is_int(e)) {
+            if (bm.has_lower(e, lo, s1) && bm.has_upper(e, hi, s2) && lo <= hi && !s1 && !s2) {
                 func_decl* fbv;
                 rational offset;
                 if (!m_int2bv.find(f, fbv)) {
@@ -329,7 +328,7 @@ private:
             for (expr* a : m_assertions) {
                 sub(a, fml1);
                 m_rewriter(fml1, fml2, proof);
-                if (!m.inc()) {
+                if (m.canceled()) {
                     m_rewriter.reset();
                     return;
                 }

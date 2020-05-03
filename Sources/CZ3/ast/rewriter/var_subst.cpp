@@ -41,7 +41,7 @@ expr_ref var_subst::operator()(expr * n, unsigned num_args, expr * const * args)
           tout << "m_std_order: " << m_std_order << "\n" << mk_ismt2_pp(n, m_reducer.m()) << "\nusing\n";
           for (unsigned i = 0; i < num_args; i++) tout << mk_ismt2_pp(args[i], m_reducer.m()) << "\n";
           tout << "\n------>\n";
-          tout << result << "\n";);
+          tout << mk_ismt2_pp(result, m_reducer.m()) << "\n";);
     return result;
 }
 
@@ -118,6 +118,7 @@ expr_ref unused_vars_eliminator::operator()(quantifier* q) {
         else
             var_mapping.push_back(nullptr);
     }
+
 
     // Remark:
     // (VAR 0) should be in the last position of var_mapping.
@@ -214,8 +215,10 @@ static void get_free_vars_offset(expr_sparse_mark& mark, ptr_vector<expr>& todo,
             break;
         }
         case AST_APP: {
-            for (expr* arg : *to_app(e))  
-                todo.push_back(arg);            
+            app* a = to_app(e);
+            for (unsigned i = 0; i < a->get_num_args(); ++i) {
+                todo.push_back(a->get_arg(i));
+            }
             break;
         }
         default:

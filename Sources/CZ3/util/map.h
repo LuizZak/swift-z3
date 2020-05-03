@@ -112,11 +112,11 @@ public:
         return m_table.insert_if_not_there_core(key_data(k,v), et);
     }
 
-    value & insert_if_not_there(key const & k, value const & v) {
-        return m_table.insert_if_not_there2(key_data(k, v))->get_data().m_value;
+    key_data const & insert_if_not_there(key const & k, value const & v) {
+        return m_table.insert_if_not_there(key_data(k, v));
     }
     
-    entry * insert_if_not_there3(key const & k, value const & v) {
+    entry * insert_if_not_there2(key const & k, value const & v) {
         return m_table.insert_if_not_there2(key_data(k, v));
     }
         
@@ -179,16 +179,6 @@ public:
 
     void swap(table2map & other) {
         m_table.swap(other.m_table);
-    }
-
-    bool operator==(table2map const& other) const {
-        if (size() != other.size()) return false;
-        for (auto const& kv : *this) {
-            auto* e = other.find_core(kv.m_key);
-            if (!e) return false;
-            if (e->get_data().m_value != kv.m_value) return false;
-        }
-        return true;
     }
     
 #ifdef Z3DEBUG
@@ -287,11 +277,6 @@ struct u_hash { unsigned operator()(unsigned u) const { return u; } };
 
 struct u_eq { bool operator()(unsigned u1, unsigned u2) const { return u1 == u2; } };
 
-
-struct u64_hash { unsigned operator()(uint64_t u) const { return mk_mix((unsigned)u, (unsigned)(u >> 32ull), 0); } };
-
-struct u64_eq { bool operator()(uint64_t u1, uint64_t u2) const { return u1 == u2; } };
-
 struct size_t_eq { bool operator()(size_t u1, size_t u2) const { return u1 == u2; } };
 
 struct int_eq { bool operator()(int u1, int u2) const { return u1 == u2; } };
@@ -301,8 +286,5 @@ class u_map : public map<unsigned, Value, u_hash, u_eq> {};
 
 template<typename Value>
 class size_t_map : public map<size_t, Value, size_t_hash, size_t_eq> {};
-
-template<typename Value> 
-class u64_map : public map<uint64_t, Value, u64_hash, u64_eq> {};
 
 #endif

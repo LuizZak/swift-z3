@@ -451,7 +451,7 @@ namespace smt {
     }
 
     theory * theory_pb::mk_fresh(context * new_ctx) { 
-        return alloc(theory_pb, new_ctx->get_manager(), new_ctx->get_fparams());
+        return alloc(theory_pb, new_ctx->get_manager(), m_params); 
     }
 
     bool theory_pb::internalize_atom(app * atom, bool gate_ctx) {
@@ -2172,7 +2172,6 @@ namespace smt {
         TRACE("pb", display(tout << "validate: ", c, true);
               tout << "sum: " << sum << " " << maxsum << " ";
               tout << ctx.get_assignment(c.lit()) << "\n";
-              ctx.display(tout);
               );
 
         SASSERT(sum <= maxsum);
@@ -2203,7 +2202,7 @@ namespace smt {
 
     app_ref theory_pb::literal2expr(literal lit) {
         ast_manager& m = get_manager();
-        app_ref arg(m.mk_const(symbol((unsigned)lit.var()), m.mk_bool_sort()), m);                
+        app_ref arg(m.mk_const(symbol(lit.var()), m.mk_bool_sort()), m);                
         return app_ref(lit.sign() ? m.mk_not(arg) : arg, m);
     }
 

@@ -26,7 +26,7 @@ Revision History:
 //
 // -----------------------------------
 
-namespace {
+namespace occurs_namespace {
     struct found {}; 
     
     struct proc {
@@ -49,26 +49,27 @@ namespace {
         void operator()(quantifier const * n) { }
     };
 
-}
+
+};
 
 // Return true if n1 occurs in n2
 bool occurs(expr * n1, expr * n2) {
-    proc p(n1);
+    occurs_namespace::proc p(n1);
     try {
         quick_for_each_expr(p, n2);
     }
-    catch (const found &) {
+    catch (const occurs_namespace::found &) {
         return true;
     }
     return false;
 }
 
 bool occurs(func_decl * d, expr * n) {
-    decl_proc p(d);
+    occurs_namespace::decl_proc p(d);
     try {
         quick_for_each_expr(p, n);
     }
-    catch (const found &) {
+    catch (const occurs_namespace::found &) {
         return true;
     }
     return false;

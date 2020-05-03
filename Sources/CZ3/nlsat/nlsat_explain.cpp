@@ -208,7 +208,7 @@ namespace nlsat {
            \brief evaluate the given polynomial in the current interpretation.
            max_var(p) must be assigned in the current interpretation.
         */
-        ::sign sign(polynomial_ref const & p) {
+        polynomial::sign sign(polynomial_ref const & p) {
             SASSERT(max_var(p) == null_var || m_assignment.is_assigned(max_var(p)));
             auto s = m_am.eval_sign_at(p, m_assignment);
             TRACE("nlsat_explain", tout << "p: " << p << " var: " << max_var(p) << " sign: " << s << "\n";);
@@ -258,7 +258,7 @@ namespace nlsat {
            \brief Add literal p != 0 into m_result.
         */
         ptr_vector<poly>  m_zero_fs;
-        bool_vector     m_is_even;
+        svector<bool>     m_is_even;
         void add_zero_assumption(polynomial_ref & p) {
             // If p is of the form p1^n1 * ... * pk^nk,
             // then only the factors that are zero in the current interpretation needed to be considered.
@@ -271,7 +271,7 @@ namespace nlsat {
             polynomial_ref f(m_pm);
             for (unsigned i = 0; i < num_factors; i++) {
                 f = m_factors.get(i);
-                if (is_zero(sign(f))) {
+                if (sign(f) == polynomial::sign_zero) {
                     m_zero_fs.push_back(m_factors.get(i));
                     m_is_even.push_back(false);
                 } 
@@ -338,7 +338,7 @@ namespace nlsat {
                 lc = m_pm.coeff(p, x, k, reduct);
                 TRACE("nlsat_explain", tout << "lc: " << lc << " reduct: " << reduct << "\n";);
                 if (!is_zero(lc)) {
-                    if (!::is_zero(sign(lc))) 
+                    if (sign(lc) != polynomial::sign_zero)
                         return;
                     // lc is not the zero polynomial, but it vanished in the current interpretation.
                     // so we keep searching...
@@ -653,7 +653,7 @@ namespace nlsat {
                     TRACE("nlsat_explain", tout << "done, psc is a constant\n";);
                     return;
                 }
-                if (is_zero(sign(s))) {
+                if (sign(s) == polynomial::sign_zero) {
                     TRACE("nlsat_explain", tout << "psc vanished, adding zero assumption\n";);
                     add_zero_assumption(s);
                     continue;
@@ -1137,8 +1137,8 @@ namespace nlsat {
                 }
                 if (is_const(new_factor)) {
                     TRACE("nlsat_simplify_core", tout << "new factor is const\n";);
-                    auto s = sign(new_factor); 
-                    if (is_zero(s)) {
+                    polynomial::sign s = sign(new_factor); 
+                    if (s == polynomial::sign_zero) {
                         bool atom_val = a->get_kind() == atom::EQ;
                         bool lit_val  = l.sign() ? !atom_val : atom_val;
                         new_lit = lit_val ? true_literal : false_literal;
@@ -1441,7 +1441,7 @@ namespace nlsat {
                     // literal l must be in the core
                     core.push_back(l);
                     new_todo.swap(todo);
-                    return !todo.empty();
+                    return true;
                 }
                 else {
                     new_todo.push_back(l);
@@ -1459,11 +1459,11 @@ namespace nlsat {
             todo.reset(); core.reset();
             todo.append(num, ls);
             while (true) {
-                TRACE("nlsat_minimize", tout << "core minimization:\n"; display(tout, todo); tout << "\nCORE:\n"; display(tout, core) << "\n";);
+                TRACE("nlsat_minimize", tout << "core minimization:\n"; display(tout, todo); tout << "\nCORE:\n"; display(tout, core););
                 if (!minimize_core(todo, core))
                     break;
                 std::reverse(todo.begin(), todo.end());
-                TRACE("nlsat_minimize", tout << "core minimization:\n"; display(tout, todo); tout << "\nCORE:\n"; display(tout, core) << "\n";);
+                TRACE("nlsat_minimize", tout << "core minimization:\n"; display(tout, todo); tout << "\nCORE:\n"; display(tout, core););
                 if (!minimize_core(todo, core))
                     break;
             }

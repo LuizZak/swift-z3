@@ -114,7 +114,7 @@ class symmetry_reduce_tactic::imp {
     ast_manager& m() const { return m_manager; }
 public:
     imp(ast_manager& m) : m_manager(m), m_rewriter(m) {
-        m_replace = mk_default_expr_replacer(m, false);
+        m_replace = mk_default_expr_replacer(m);
     }
 
     ~imp() {}
@@ -231,15 +231,16 @@ private:
     bool merge_colors(app_map const& colors1, app_map& colors2) {
         pair_map recolor;
         unsigned num_colors = 0, v1 = 0, v2 = 0, w = 0, old_max = 0;
-        for (auto & kv : colors2) {
-            app* a = kv.m_key;
-            v1 = kv.m_value;
+        app_map::iterator it = colors2.begin(), end = colors2.end();
+        for (; it != end; ++it) {
+            app* a = it->m_key;
+            v1 = it->m_value;
             VERIFY(colors1.find(a, v2));
             if (recolor.find(u_pair(v1, v2), w)) {
-                kv.m_value = w;
+                it->m_value = w;
             }
             else {
-                kv.m_value = num_colors;
+                it->m_value = num_colors;
                 recolor.insert(u_pair(v1, v2), num_colors++);
             }
             if (v1 > old_max) old_max = v1;
@@ -266,8 +267,7 @@ private:
             }
             m_app2sortid.insert(n, id);
         }
-        void operator()(quantifier * n) {
-        }
+        void operator()(quantifier * n) {}
         void operator()(var * n) {}
     };
 
@@ -278,11 +278,13 @@ private:
     }
 
     void compute_inv_app(app_map const& map, inv_app_map& inv_map) {
-        for (auto & kv : map) {
-            app* t = kv.m_key;
-            unsigned n = kv.m_value;
+        app_map::iterator it = map.begin(), end = map.end();
+        for (; it != end; ++it) {
+            app* t = it->m_key;
+            unsigned n = it->m_value;
             if (is_uninterpreted(t)) {
-                inv_map.insert_if_not_there(n, ptr_vector<app>()).push_back(t);
+                inv_app_map::entry* e = inv_map.insert_if_not_there2(n, ptr_vector<app>());
+                e->get_data().m_value.push_back(t);
             }
         }
     }
@@ -345,9 +347,9 @@ private:
             for (unsigned i = 0; i < sz; ++i) {
                 expr* e = n->get_arg(i);
                 if (is_app(e)) {
-                    auto& value = m_use_funs.insert_if_not_there(to_app(e), 0);
-                    if (!value) value = alloc(fun_set);
-                    value->insert(f); 
+                    app_parents::obj_map_entry* entry = m_use_funs.insert_if_not_there2(to_app(e), 0);
+                    if (!entry->get_data().m_value) entry->get_data().m_value = alloc(fun_set);
+                    entry->get_data().m_value->insert(f); 
                 }
             }
         }
@@ -372,14 +374,14 @@ private:
             for (unsigned i = 0; i < sz; ++i) {
                 expr* e = n->get_arg(i);
                 if (!is_app(e)) continue;
-                auto& value = m_sibs.insert_if_not_there(to_app(e), 0);
-                if (!value) value = alloc(uint_set);
+                app_siblings::obj_map_entry* entry = m_sibs.insert_if_not_there2(to_app(e), 0);
+                if (!entry->get_data().get_value()) entry->get_data().m_value = alloc(uint_set);
                 for (unsigned j = 0; j < sz; ++j) {
                     expr* f = n->get_arg(j);
                     if (is_app(f) && i != j) {
                         unsigned c1 = 0;
                         m_colors.find(to_app(f), c1);
-                        value->insert(c1);
+                        entry->get_data().m_value->insert(c1);
                     }
                 }
             }
@@ -515,12 +517,14 @@ private:
     public:
         num_occurrences(app_map& occs): m_occs(occs) {}
         void operator()(app* n) {
-            m_occs.insert_if_not_there(n, 0);
+            app_map::obj_map_entry* e;
+            m_occs.insert_if_not_there2(n, 0);
             unsigned sz = n->get_num_args();
             for (unsigned i = 0; i < sz; ++i) {
                 expr* arg = n->get_arg(i);
                 if (is_app(arg)) {
-                    m_occs.insert_if_not_there(to_app(arg), 0)++;
+                    e = m_occs.insert_if_not_there2(to_app(arg), 0);
+                    e->get_data().m_value++;
                 }
             }
         }
@@ -631,7 +635,6 @@ void symmetry_reduce_tactic::operator()(goal_ref const & g,
                                         goal_ref_buffer & result) {
     fail_if_proof_generation("symmetry_reduce", g);
     fail_if_unsat_core_generation("symmetry_reduce", g);
-    fail_if_has_quantifiers("symmetry_reduce", g);
     result.reset();
     (*m_imp)(*(g.get()));
     g->inc_depth();

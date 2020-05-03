@@ -324,7 +324,7 @@ bool cmd_context::macros_find(symbol const& s, unsigned n, expr*const* args, exp
         if (d.m_domain.size() != n) continue;
         bool eq = true;
         for (unsigned i = 0; eq && i < n; ++i) {
-            eq = d.m_domain[i] == m().get_sort(args[i]);
+            eq = m().compatible_sorts(d.m_domain[i], m().get_sort(args[i]));
         }
         if (eq) {
             t = d.m_body;
@@ -689,7 +689,7 @@ void cmd_context::init_manager_core(bool new_manager) {
         register_plugin(symbol("fpa"),      alloc(fpa_decl_plugin), logic_has_fpa());
         register_plugin(symbol("datalog_relation"), alloc(datalog::dl_decl_plugin), !has_logic());
         register_plugin(symbol("csp"),      alloc(csp_decl_plugin), smt_logics::logic_is_csp(m_logic));
-        register_plugin(symbol("specrels"), alloc(special_relations_decl_plugin), !has_logic());
+        register_plugin(symbol("special_relations"), alloc(special_relations_decl_plugin), !has_logic());
     }
     else {
         // the manager was created by an external module
@@ -793,7 +793,8 @@ void cmd_context::insert(symbol const & s, func_decl * f) {
         throw cmd_exception("invalid declaration, builtin symbol ", s);
     }
 #endif
-    func_decls & fs = m_func_decls.insert_if_not_there(s, func_decls());
+    dictionary<func_decls>::entry * e = m_func_decls.insert_if_not_there2(s, func_decls());
+    func_decls & fs = e->get_data().m_value;
     if (!fs.insert(m(), f)) {
         std::string msg = "invalid declaration, ";
         msg += f->get_arity() == 0 ? "constant" : "function";
@@ -876,7 +877,8 @@ void cmd_context::model_add(symbol const & s, unsigned arity, sort *const* domai
     if (!m_mc0.get()) m_mc0 = alloc(generic_model_converter, m(), "cmd_context");
     if (m_solver.get() && !m_solver->mc0()) m_solver->set_model_converter(m_mc0.get()); 
     func_decl_ref fn(m().mk_func_decl(s, arity, domain, m().get_sort(t)), m());
-    func_decls & fs = m_func_decls.insert_if_not_there(s, func_decls());
+    dictionary<func_decls>::entry * e = m_func_decls.insert_if_not_there2(s, func_decls());
+    func_decls & fs = e->get_data().m_value;
     fs.insert(m(), fn);
     VERIFY(fn->get_range() == m().get_sort(t));
     m_mc0->add(fn, t);
@@ -900,7 +902,37 @@ recfun::promise_def cmd_context::decl_rec_fun(const symbol &name, unsigned int a
     return get_recfun_plugin().mk_def(name, arity, domain, range);
 }
 
+// insert a recursive function as a regular quantified axiom
+void cmd_context::insert_rec_fun_as_axiom(func_decl *f, expr_ref_vector const& binding, svector<symbol> const &ids, expr* e) {
+    expr_ref eq(m());
+    app_ref lhs(m());
+    lhs = m().mk_app(f, binding.size(), binding.c_ptr());
+    eq  = m().mk_eq(lhs, e);
+    if (!ids.empty()) {
+        if (is_var(e)) {
+            ptr_vector<sort> domain;
+            for (expr* b : binding) domain.push_back(m().get_sort(b));
+            insert_macro(f->get_name(), domain.size(), domain.c_ptr(), e);
+            return;
+        }
+        if (!is_app(e)) {
+            throw cmd_exception("Z3 only supports recursive definitions that are proper terms (not binders or variables)");
+        }
+        expr* pats[2] = { m().mk_pattern(lhs), m().mk_pattern(to_app(e)) };
+        eq  = m().mk_forall(ids.size(), f->get_domain(), ids.c_ptr(), eq, 0, m().rec_fun_qid(), symbol::null, 2, pats);
+    }
+
+    assert_expr(eq);
+}
+
+
 void cmd_context::insert_rec_fun(func_decl* f, expr_ref_vector const& binding, svector<symbol> const& ids, expr* rhs) {
+
+    if (gparams::get_value("smt.recfun.native") != "true") {
+        // just use an axiom
+        insert_rec_fun_as_axiom(f, binding, ids, rhs);
+        return;
+    }
 
     TRACE("recfun", tout<< "define recfun " << f->get_name()  << " = " << mk_pp(rhs, m()) << "\n";);
 
@@ -1045,7 +1077,7 @@ void cmd_context::mk_app(symbol const & s, unsigned num_args, expr * const * arg
               tout << "args:\n"; for (unsigned i = 0; i < num_args; i++) tout << mk_ismt2_pp(args[i], m()) << "\n" << mk_pp(m().get_sort(args[i]), m()) << "\n";);
         var_subst subst(m());
         scoped_rlimit no_limit(m().limit(), 0);
-        result = subst(_t, num_args, args);        
+        result = subst(_t, num_args, args);
         if (well_sorted_check_enabled() && !is_well_sorted(m(), result))
             throw cmd_exception("invalid macro application, sort mismatch ", s);
         return;
@@ -1053,6 +1085,7 @@ void cmd_context::mk_app(symbol const & s, unsigned num_args, expr * const * arg
 
     func_decls fs;
     if (!m_func_decls.find(s, fs)) {
+
         builtin_decl d;
         if (m_builtin_decls.find(s, d)) {
             family_id fid = d.m_fid;
@@ -1350,24 +1383,11 @@ void cmd_context::push() {
     s.m_macros_stack_lim       = m_macros_stack.size();
     s.m_aux_pdecls_lim         = m_aux_pdecls.size();
     s.m_assertions_lim         = m_assertions.size();
-    unsigned timeout = m_params.m_timeout;
     m().limit().push(m_params.rlimit());
-    cancel_eh<reslimit> eh(m().limit());
-    scoped_ctrl_c ctrlc(eh);
-    scoped_timer timer(timeout, &eh);
-    scoped_rlimit _rlimit(m().limit(), m_params.rlimit());
-    try {
-        if (m_solver) 
-            m_solver->push();
-        if (m_opt)
-            m_opt->push();
-    }
-    catch (z3_error & ex) {
-        throw ex;
-    }
-    catch (z3_exception & ex) {
-        throw cmd_exception(ex.msg());
-    }
+    if (m_solver) 
+        m_solver->push();
+    if (m_opt)
+        m_opt->push();
 }
 
 void cmd_context::push(unsigned n) {
@@ -1490,8 +1510,8 @@ void cmd_context::check_sat(unsigned num_assumptions, expr * const * assumptions
     if (m_ignore_check)
         return;
     IF_VERBOSE(100, verbose_stream() << "(started \"check-sat\")" << std::endl;);
-    init_manager();
     TRACE("before_check_sat", dump_assertions(tout););
+    init_manager();
     unsigned timeout = m_params.m_timeout;
     unsigned rlimit  = m_params.rlimit();
     scoped_watch sw(*this);
@@ -1547,7 +1567,7 @@ void cmd_context::check_sat(unsigned num_assumptions, expr * const * assumptions
         scoped_rlimit _rlimit(m().limit(), rlimit);
         try {
             r = m_solver->check_sat(num_assumptions, assumptions);
-            if (r == l_undef && !m().inc()) {
+            if (r == l_undef && m().canceled()) {
                 m_solver->set_reason_unknown(eh);
             }
         }
@@ -1555,7 +1575,7 @@ void cmd_context::check_sat(unsigned num_assumptions, expr * const * assumptions
             throw ex;
         }
         catch (z3_exception & ex) {
-            if (!m().inc()) {
+            if (m().canceled()) {
                 m_solver->set_reason_unknown(eh);
             }
             else {
@@ -1611,6 +1631,10 @@ void cmd_context::get_consequences(expr_ref_vector const& assumptions, expr_ref_
 
 
 void cmd_context::reset_assertions() {
+    if (!m_global_decls) {
+        reset(false);
+        return;
+    }
 
     if (m_opt) {
         m_opt = nullptr;
@@ -1655,7 +1679,7 @@ void cmd_context::display_model(model_ref& mdl) {
         add_declared_functions(*mdl);
         if (p.v1() || p.v2()) {
             std::ostringstream buffer;
-            model_v2_pp(buffer, *mdl, false);
+            model_v2_pp(buffer, *mdl, p.partial());
             regular_stream() << "\"" << escaped(buffer.str().c_str(), true) << "\"" << std::endl;
         } else {
             regular_stream() << "(model " << std::endl;
@@ -1739,27 +1763,13 @@ struct contains_underspecified_op_proc {
     struct found {};
     family_id m_array_fid;
     datatype_util m_dt;
-    arith_util m_arith;
     seq_util m_seq;
     family_id m_seq_id;
     
-    contains_underspecified_op_proc(ast_manager & m):
-        m_array_fid(m.mk_family_id("array")), 
-        m_dt(m), 
-        m_arith(m),
-        m_seq(m), 
-        m_seq_id(m_seq.get_family_id()) {}
+    contains_underspecified_op_proc(ast_manager & m):m_array_fid(m.mk_family_id("array")), m_dt(m), m_seq(m), m_seq_id(m_seq.get_family_id()) {}
     void operator()(var * n)        {}
     void operator()(app * n)        {
         if (m_dt.is_accessor(n->get_decl())) 
-            throw found();
-        if (n->get_family_id() == m_seq_id && m_seq.is_re(n))
-            throw found();
-        if (m_arith.plugin().is_considered_uninterpreted(n->get_decl()))
-            throw found();
-        if (m_arith.is_non_algebraic(n))
-            throw found();
-        if (m_arith.is_irrational_algebraic_numeral(n))
             throw found();
         if (n->get_family_id() == m_array_fid) {
             decl_kind k = n->get_decl_kind();
@@ -1768,6 +1778,9 @@ struct contains_underspecified_op_proc {
                 k == OP_ARRAY_MAP ||
                 k == OP_CONST_ARRAY)
                 throw found();
+        }
+        if (n->get_family_id() == m_seq_id && m_seq.is_re(n)) {
+            throw found();
         }
     }
     void operator()(quantifier * n) {}
@@ -1867,9 +1880,12 @@ void cmd_context::validate_model() {
             if (is_ground(a)) {
                 r = nullptr;
                 evaluator(a, r);
-                TRACE("model_validate", tout << "checking\n" << mk_ismt2_pp(a, m()) << "\nresult: " << mk_ismt2_pp(r, m()) << "\n";);
+                TRACE("model_validate", tout << "checking\n" << mk_ismt2_pp(a, m()) << "\nresult:\n" << mk_ismt2_pp(r, m()) << "\n";);
                 if (m().is_true(r))
                     continue;
+
+                analyze_failure(evaluator, a, true);
+                IF_VERBOSE(11, model_smt2_pp(verbose_stream(), *this, *md, 0););                
 
                 // The evaluator for array expressions is not complete
                 // If r contains as_array/store/map/const expressions, then we do not generate the error.
@@ -1885,11 +1901,8 @@ void cmd_context::validate_model() {
                 catch (const contains_underspecified_op_proc::found &) {
                     continue;
                 }
-
-                analyze_failure(evaluator, a, true);
-                IF_VERBOSE(11, model_smt2_pp(verbose_stream(), *this, *md, 0););                
                 TRACE("model_validate", model_smt2_pp(tout, *this, *md, 0););
-                invalid_model |= m().is_false(r);
+                invalid_model = true;
             }
         }
         if (invalid_model) {
@@ -2016,29 +2029,6 @@ void cmd_context::display_statistics(bool show_total_time, double total_time) {
         m_opt->collect_statistics(st);
     }
     st.display_smt2(regular_stream());
-}
-
-
-expr_ref_vector cmd_context::tracked_assertions() {
-    expr_ref_vector result(m());
-    if (assertion_names().size() == assertions().size()) {
-        for (unsigned i = 0; i < assertions().size(); ++i) {
-            expr* an  = assertion_names()[i];
-            expr* asr = assertions()[i];
-            if (an) {
-                result.push_back(m().mk_implies(an, asr));
-            }
-            else {
-                result.push_back(asr);
-            }
-        }
-    }
-    else {
-        for (expr * e : assertions()) {
-            result.push_back(e);
-        }
-    }
-    return result;
 }
 
 

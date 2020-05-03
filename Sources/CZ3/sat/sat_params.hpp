@@ -29,8 +29,7 @@ struct sat_params {
     d.insert("restart.emaslowglue", CPK_DOUBLE, "ema alpha factor for slow moving average", "1e-05","sat");
     d.insert("variable_decay", CPK_UINT, "multiplier (divided by 100) for the VSIDS activity increment", "110","sat");
     d.insert("inprocess.max", CPK_UINT, "maximal number of inprocessing passes", "4294967295","sat");
-    d.insert("inprocess.out", CPK_SYMBOL, "file to dump result of the first inprocessing step and exit", "","sat");
-    d.insert("branching.heuristic", CPK_SYMBOL, "branching heuristic vsids, chb", "vsids","sat");
+    d.insert("branching.heuristic", CPK_SYMBOL, "branching heuristic vsids, lrb or chb", "vsids","sat");
     d.insert("branching.anti_exploration", CPK_BOOL, "apply anti-exploration heuristic for branch selection", "false","sat");
     d.insert("random_freq", CPK_DOUBLE, "frequency of random case splits", "0.01","sat");
     d.insert("random_seed", CPK_UINT, "random seed", "0","sat");
@@ -61,6 +60,7 @@ struct sat_params {
     d.insert("cardinality.solver", CPK_BOOL, "use cardinality solver", "true","sat");
     d.insert("pb.solver", CPK_SYMBOL, "method for handling Pseudo-Boolean constraints: circuit (arithmetical circuit), sorting (sorting circuit), totalizer (use totalizer encoding), binary_merge, segmented, solver (use native solver)", "solver","sat");
     d.insert("pb.min_arity", CPK_UINT, "minimal arity to compile pb/cardinality constraints to CNF", "9","sat");
+    d.insert("xor.solver", CPK_BOOL, "use xor solver", "false","sat");
     d.insert("cardinality.encoding", CPK_SYMBOL, "encoding used for at-most-k constraints: grouped, bimander, ordered, unate, circuit", "grouped","sat");
     d.insert("pb.resolve", CPK_SYMBOL, "resolution strategy for boolean algebra solver: cardinality, rounding", "cardinality","sat");
     d.insert("pb.lemma_format", CPK_SYMBOL, "generate either cardinality or pb lemmas", "cardinality","sat");
@@ -75,19 +75,9 @@ struct sat_params {
     d.insert("local_search_threads", CPK_UINT, "number of local search threads to find satisfiable solution", "0","sat");
     d.insert("local_search_mode", CPK_SYMBOL, "local search algorithm, either default wsat or qsat", "wsat","sat");
     d.insert("local_search_dbg_flips", CPK_BOOL, "write debug information for number of flips", "false","sat");
+    d.insert("unit_walk", CPK_BOOL, "use unit-walk search instead of CDCL", "false","sat");
+    d.insert("unit_walk_threads", CPK_UINT, "number of unit-walk search threads to find satisfiable solution", "0","sat");
     d.insert("binspr", CPK_BOOL, "enable SPR inferences of binary propagation redundant clauses. This inprocessing step eliminates models", "false","sat");
-    d.insert("anf", CPK_BOOL, "enable ANF based simplification in-processing", "false","sat");
-    d.insert("anf.delay", CPK_UINT, "delay ANF simplification by in-processing round", "2","sat");
-    d.insert("anf.exlin", CPK_BOOL, "enable extended linear simplification", "false","sat");
-    d.insert("cut", CPK_BOOL, "enable AIG based simplification in-processing", "false","sat");
-    d.insert("cut.delay", CPK_UINT, "delay cut simplification by in-processing round", "2","sat");
-    d.insert("cut.aig", CPK_BOOL, "extract aigs (and ites) from cluases for cut simplification", "false","sat");
-    d.insert("cut.lut", CPK_BOOL, "extract luts from clauses for cut simplification", "false","sat");
-    d.insert("cut.xor", CPK_BOOL, "extract xors from clauses for cut simplification", "false","sat");
-    d.insert("cut.npn3", CPK_BOOL, "extract 3 input functions from clauses for cut simplification", "false","sat");
-    d.insert("cut.dont_cares", CPK_BOOL, "integrate dont cares with cuts", "true","sat");
-    d.insert("cut.redundancies", CPK_BOOL, "integrate redundancy checking of cuts", "true","sat");
-    d.insert("cut.force", CPK_BOOL, "force redoing cut-enumeration until a fixed-point", "false","sat");
     d.insert("lookahead.cube.cutoff", CPK_SYMBOL, "cutoff type used to create lookahead cubes: depth, freevars, psat, adaptive_freevars, adaptive_psat", "depth","sat");
     d.insert("lookahead.cube.fraction", CPK_DOUBLE, "adaptive fraction to create lookahead cubes. Used when lookahead.cube.cutoff is adaptive_freevars or adaptive_psat", "0.4","sat");
     d.insert("lookahead.cube.depth", CPK_UINT, "cut-off depth to create cubes. Used when lookahead.cube.cutoff is depth.", "1","sat");
@@ -129,7 +119,6 @@ struct sat_params {
   double restart_emaslowglue() const { return p.get_double("restart.emaslowglue", g, 1e-05); }
   unsigned variable_decay() const { return p.get_uint("variable_decay", g, 110u); }
   unsigned inprocess_max() const { return p.get_uint("inprocess.max", g, 4294967295u); }
-  symbol inprocess_out() const { return p.get_sym("inprocess.out", g, symbol("")); }
   symbol branching_heuristic() const { return p.get_sym("branching.heuristic", g, symbol("vsids")); }
   bool branching_anti_exploration() const { return p.get_bool("branching.anti_exploration", g, false); }
   double random_freq() const { return p.get_double("random_freq", g, 0.01); }
@@ -161,6 +150,7 @@ struct sat_params {
   bool cardinality_solver() const { return p.get_bool("cardinality.solver", g, true); }
   symbol pb_solver() const { return p.get_sym("pb.solver", g, symbol("solver")); }
   unsigned pb_min_arity() const { return p.get_uint("pb.min_arity", g, 9u); }
+  bool xor_solver() const { return p.get_bool("xor.solver", g, false); }
   symbol cardinality_encoding() const { return p.get_sym("cardinality.encoding", g, symbol("grouped")); }
   symbol pb_resolve() const { return p.get_sym("pb.resolve", g, symbol("cardinality")); }
   symbol pb_lemma_format() const { return p.get_sym("pb.lemma_format", g, symbol("cardinality")); }
@@ -175,19 +165,9 @@ struct sat_params {
   unsigned local_search_threads() const { return p.get_uint("local_search_threads", g, 0u); }
   symbol local_search_mode() const { return p.get_sym("local_search_mode", g, symbol("wsat")); }
   bool local_search_dbg_flips() const { return p.get_bool("local_search_dbg_flips", g, false); }
+  bool unit_walk() const { return p.get_bool("unit_walk", g, false); }
+  unsigned unit_walk_threads() const { return p.get_uint("unit_walk_threads", g, 0u); }
   bool binspr() const { return p.get_bool("binspr", g, false); }
-  bool anf() const { return p.get_bool("anf", g, false); }
-  unsigned anf_delay() const { return p.get_uint("anf.delay", g, 2u); }
-  bool anf_exlin() const { return p.get_bool("anf.exlin", g, false); }
-  bool cut() const { return p.get_bool("cut", g, false); }
-  unsigned cut_delay() const { return p.get_uint("cut.delay", g, 2u); }
-  bool cut_aig() const { return p.get_bool("cut.aig", g, false); }
-  bool cut_lut() const { return p.get_bool("cut.lut", g, false); }
-  bool cut_xor() const { return p.get_bool("cut.xor", g, false); }
-  bool cut_npn3() const { return p.get_bool("cut.npn3", g, false); }
-  bool cut_dont_cares() const { return p.get_bool("cut.dont_cares", g, true); }
-  bool cut_redundancies() const { return p.get_bool("cut.redundancies", g, true); }
-  bool cut_force() const { return p.get_bool("cut.force", g, false); }
   symbol lookahead_cube_cutoff() const { return p.get_sym("lookahead.cube.cutoff", g, symbol("depth")); }
   double lookahead_cube_fraction() const { return p.get_double("lookahead.cube.fraction", g, 0.4); }
   unsigned lookahead_cube_depth() const { return p.get_uint("lookahead.cube.depth", g, 1u); }

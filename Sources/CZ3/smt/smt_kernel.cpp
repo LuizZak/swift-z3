@@ -132,7 +132,7 @@ namespace smt {
             return m_kernel.find_mutexes(vars, mutexes);
         }
         
-        void get_model(model_ref & m) {
+        void get_model(model_ref & m) const {
             m_kernel.get_model(m);
         }
 
@@ -315,7 +315,7 @@ namespace smt {
         return m_imp->find_mutexes(vars, mutexes);
     }
 
-    void kernel::get_model(model_ref & m) {
+    void kernel::get_model(model_ref & m) const {
         m_imp->get_model(m);
     }
 

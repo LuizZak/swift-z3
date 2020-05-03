@@ -37,8 +37,8 @@ extern "C" {
             c,
             is_forall,
             weight,
-            of_symbol(symbol::null),
-            of_symbol(symbol::null),
+            nullptr,
+            nullptr,
             num_patterns, patterns,
             0, nullptr,
             num_decls, sorts,
@@ -72,11 +72,14 @@ extern "C" {
         expr * const* ps = reinterpret_cast<expr * const*>(patterns);
         expr * const* no_ps = reinterpret_cast<expr * const*>(no_patterns);
         symbol qid = to_symbol(quantifier_id);
-        pattern_validator v(mk_c(c)->m());
-        for (unsigned i = 0; i < num_patterns; i++) {
-            if (!v(num_decls, ps[i], 0, 0)) {
-                SET_ERROR_CODE(Z3_INVALID_PATTERN, nullptr);
-                return nullptr;
+        bool is_rec = mk_c(c)->m().rec_fun_qid() == qid;
+        if (!is_rec) {
+            pattern_validator v(mk_c(c)->m());
+            for (unsigned i = 0; i < num_patterns; i++) {
+                if (!v(num_decls, ps[i], 0, 0)) {
+                    SET_ERROR_CODE(Z3_INVALID_PATTERN, nullptr);
+                    return nullptr;
+                }
             }
         }
         sort* const* ts = reinterpret_cast<sort * const*>(sorts);
@@ -287,7 +290,7 @@ extern "C" {
                                          unsigned num_patterns,
                                          Z3_pattern const patterns[],
                                          Z3_ast body) {
-        return Z3_mk_quantifier_const_ex(c, is_forall, weight, of_symbol(symbol::null), of_symbol(symbol::null),
+        return Z3_mk_quantifier_const_ex(c, is_forall, weight, nullptr, nullptr,
                                          num_bound, bound,
                                          num_patterns, patterns,
                                          0, nullptr,
@@ -453,9 +456,9 @@ extern "C" {
         }
         else {
             SET_ERROR_CODE(Z3_SORT_ERROR, nullptr);
-            return of_symbol(symbol::null);
+            return nullptr;
         }
-        Z3_CATCH_RETURN(of_symbol(symbol::null));
+        Z3_CATCH_RETURN(nullptr);
     }
 
     Z3_sort Z3_API Z3_get_quantifier_bound_sort(Z3_context c, Z3_ast a, unsigned i) {

@@ -18,8 +18,7 @@ Revision History:
 --*/
 
 #include <cmath>
-#include "ast/ast_pp.h"
-#include "ast/ast_ll_pp.h"
+#include "ast/ast_smt2_pp.h"
 #include "smt/smt_lookahead.h"
 #include "smt/smt_context.h"
 
@@ -79,13 +78,10 @@ namespace smt {
         compare comp(ctx);
         std::sort(vars.begin(), vars.end(), comp);
         
-        unsigned nf = 0, nc = 0, ns = 0, bound = 2000, n = 0;
+        unsigned nf = 0, nc = 0, ns = 0, bound = 2000;
         for (bool_var v : vars) {
             if (!ctx.bool_var2expr(v)) continue;
-            literal lit(v, false);
-            ctx.propagate();
-            if (ctx.inconsistent())
-                return expr_ref(m.mk_false(), m);
+            literal lit(v, false);			
             ctx.push_scope();
             ctx.assign(lit, b_justification::mk_axiom(), true);
             ctx.propagate();
@@ -99,9 +95,6 @@ namespace smt {
                 continue;
             }
 
-            ctx.propagate();
-            if (ctx.inconsistent())
-                return expr_ref(m.mk_false(), m);
             ctx.push_scope();
             ctx.assign(~lit, b_justification::mk_axiom(), true);
             ctx.propagate();
@@ -115,9 +108,7 @@ namespace smt {
                 continue;
             }
             double score = score1 + score2 + 1024*score1*score2;
-
-            if (score > best_score || (score == best_score && ctx.get_random_value() % (++n) == 0)) {
-                if (score > best_score) n = 0;
+            if (score > best_score) {
                 best_score = score;
                 best_v = v;
                 bound += ns;

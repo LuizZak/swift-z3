@@ -21,7 +21,6 @@ Notes:
 #include "ast/ast_lt.h"
 #include "ast/ast_util.h"
 #include "ast/ast_pp.h"
-#include "ast/ast_ll_pp.h"
 #include "ast/rewriter/var_subst.h"
 
 void array_rewriter::updt_params(params_ref const & _p) {
@@ -75,9 +74,9 @@ br_status array_rewriter::mk_app_core(func_decl * f, unsigned num_args, expr * c
     CTRACE("array_rewriter", st != BR_FAILED, 
            tout << mk_pp(f, m()) << "\n";
            for (unsigned i = 0; i < num_args; ++i) {
-               tout << mk_bounded_pp(args[i], m(), 2) << "\n";
+               tout << mk_pp(args[i], m()) << "\n";
            }
-           tout << "\n --> " << mk_bounded_pp(result, m(), 2) << "\n";);
+           tout << "\n --> " << result << "\n";);
     return st;
 }
 
@@ -179,7 +178,7 @@ br_status array_rewriter::mk_select_core(unsigned num_args, expr * const * args,
             return BR_REWRITE1;
         }
         default:
-            if (m_expand_select_store && to_app(args[0])->get_arg(0)->get_ref_count() == 1) {
+            if (m_expand_select_store) {
                 // select(store(a, I, v), J) --> ite(I=J, v, select(a, J))
                 ptr_buffer<expr> new_args;
                 new_args.push_back(to_app(args[0])->get_arg(0));
@@ -216,15 +215,7 @@ br_status array_rewriter::mk_select_core(unsigned num_args, expr * const * args,
         quantifier* q = to_quantifier(args[0]);
         SASSERT(q->get_num_decls() == num_args - 1);
         var_subst subst(m());
-        expr_ref_vector _args(m());
-        var_shifter sh(m());
-        for (unsigned i = 1; i < num_args; ++i) {
-            sh(args[i],  num_args-1, result);
-            _args.push_back(result);
-        }
-        result = subst(q->get_expr(), _args.size(), _args.c_ptr());
-        inv_var_shifter invsh(m());
-        invsh(result, _args.size(), result);
+        result = subst(q->get_expr(), num_args - 1, args + 1);
         return BR_REWRITE_FULL;
         
     }
@@ -247,7 +238,6 @@ br_status array_rewriter::mk_select_core(unsigned num_args, expr * const * args,
         // select(as-array[f], I) --> f(I)
         func_decl * f = m_util.get_as_array_func_decl(to_app(args[0]));
         result = m().mk_app(f, num_args - 1, args + 1);
-        TRACE("array", tout << mk_pp(args[0], m()) << " " << result << "\n";);
         return BR_REWRITE1;
     }
 
@@ -642,7 +632,7 @@ bool array_rewriter::add_store(expr_ref_vector& args, unsigned num_idxs, expr* e
 }
 
 bool array_rewriter::is_expandable_store(expr* s) {
-    unsigned count = 0;
+    unsigned count = s->get_ref_count();
     unsigned depth = 0;
     while (m_util.is_store(s)) {
         s = to_app(s)->get_arg(0);
@@ -653,11 +643,8 @@ bool array_rewriter::is_expandable_store(expr* s) {
 }
 
 expr_ref array_rewriter::expand_store(expr* s) {
-    sort* srt = m().get_sort(s);    
-    unsigned arity = get_array_arity(srt);
     ptr_vector<app> stores;
-    expr_ref result(m()), tmp(m());
-    var_shifter sh(m());
+    expr_ref result(m());
     while (m_util.is_store(s)) {
         stores.push_back(to_app(s));
         s = to_app(s)->get_arg(0);
@@ -666,9 +653,9 @@ expr_ref array_rewriter::expand_store(expr* s) {
     expr_ref_vector args(m()), eqs(m());
     ptr_vector<sort> sorts;
     svector<symbol> names;
-    sh(s, arity, tmp);
-    args.push_back(tmp);
-    for (unsigned i = arity; i-- > 0; ) {
+    sort* srt = m().get_sort(s);    
+    args.push_back(s);
+    for (unsigned i = get_array_arity(srt); i-- > 0; ) {
         args.push_back(m().mk_var(i, get_array_domain(srt, i)));
         sorts.push_back(get_array_domain(srt, i));
         names.push_back(symbol(i));
@@ -679,18 +666,16 @@ expr_ref array_rewriter::expand_store(expr* s) {
     for (app* st : stores) {
         eqs.reset();
         for (unsigned i = 1; i < args.size(); ++i) {
-            sh(st->get_arg(i), arity, tmp);
-            eqs.push_back(m().mk_eq(args.get(i), tmp));
+            eqs.push_back(m().mk_eq(args.get(i), st->get_arg(i)));
         }
-        sh(st->get_arg(args.size()), arity, tmp);
-        result = m().mk_ite(mk_and(eqs), tmp, result);
+        result = m().mk_ite(mk_and(eqs), st->get_arg(args.size()), result);
     }
     result = m().mk_lambda(sorts.size(), sorts.c_ptr(), names.c_ptr(), result);
     return result;
 }
 
 br_status array_rewriter::mk_eq_core(expr * lhs, expr * rhs, expr_ref & result) {
-    TRACE("array_rewriter", tout << mk_bounded_pp(lhs, m(), 2) << " " << mk_bounded_pp(rhs, m(), 2) << "\n";);
+    TRACE("array_rewriter", tout << mk_pp(lhs, m()) << " " << mk_pp(rhs, m()) << "\n";);
     expr* v = nullptr;
     if (m_util.is_const(rhs) && is_lambda(lhs)) {
         std::swap(lhs, rhs);

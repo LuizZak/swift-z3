@@ -133,7 +133,6 @@ std::ostream& operator<<(std::ostream& out, sort_ref const& e);
 
 std::ostream& operator<<(std::ostream& out, expr_ref_vector const& e);
 std::ostream& operator<<(std::ostream& out, app_ref_vector const& e);
-std::ostream& operator<<(std::ostream& out, var_ref_vector const& e);
 std::ostream& operator<<(std::ostream& out, func_decl_ref_vector const& e);
 std::ostream& operator<<(std::ostream& out, sort_ref_vector const& e);
 

@@ -84,8 +84,10 @@ bound_propagator::~bound_propagator() {
 }
 
 void bound_propagator::del_constraints_core() {
-    for (auto & c : m_constraints) {
-        del_constraint(c);
+    constraint_vector::iterator it  = m_constraints.begin();
+    constraint_vector::iterator end = m_constraints.end();
+    for (; it != end; ++it) {
+        del_constraint(*it);
     }
     m_constraints.reset();
 }
@@ -96,9 +98,10 @@ void bound_propagator::del_constraints() {
         return;
     del_constraints_core();
     m_constraints.finalize();
-    for (auto& wl : m_watches) {
-        wl.finalize();
-    }
+    vector<wlist>::iterator it  = m_watches.begin();
+    vector<wlist>::iterator end = m_watches.end();
+    for (; it != end; ++it)
+        it->finalize();
 }
 
 void bound_propagator::del_constraint(constraint & c) {
@@ -161,8 +164,10 @@ void bound_propagator::del_var(var x) {
     m_dead[x] = true;
     // mark constraints containing x as dead.
     wlist & wl = m_watches[x];
-    for (auto c : wl) {
-        m_constraints[c].m_dead = true;
+    wlist::iterator it  = wl.begin();
+    wlist::iterator end = wl.end();
+    for (; it != end; ++it) {
+        m_constraints[*it].m_dead = true;
     }
 }
 
@@ -468,7 +473,10 @@ void bound_propagator::propagate() {
         TRACE("bound_propagator_detail", tout << "propagating x" << x << "\n";);
         m_qhead++;
         wlist const & wl = m_watches[x];
-        for (unsigned c_idx : wl) {
+        wlist::const_iterator it  = wl.begin();
+        wlist::const_iterator end = wl.end();
+        for (; it != end; ++it) {
+            unsigned c_idx = *it;
             constraint & c = m_constraints[c_idx];
             // We don't need to visit c if it was already propagated using b.
             // Whenever we visit c we store in c.m_timestamp the current timestamp
@@ -482,8 +490,10 @@ void bound_propagator::propagate() {
         }
     }
 
-    for (unsigned c : m_to_reset_ts) 
-        m_constraints[c].m_timestamp = 0;
+    unsigned_vector::iterator it  =  m_to_reset_ts.begin();
+    unsigned_vector::iterator end =  m_to_reset_ts.end();
+    for (; it != end; ++it)
+        m_constraints[*it].m_timestamp = 0;
 }
 
 bool bound_propagator::propagate(unsigned c_idx) {
@@ -926,7 +936,10 @@ void bound_propagator::display_bounds(std::ostream & out, bool approx, bool prec
 }
 
 void bound_propagator::display_constraints(std::ostream & out) const {
-    for (constraint const& c : m_constraints) {
+    constraint_vector::const_iterator it  = m_constraints.begin();
+    constraint_vector::const_iterator end = m_constraints.end();
+    for (; it != end; ++it) {
+        constraint const & c = *it;
         if (c.m_kind == LINEAR) {
             m_eq_manager.display(out, *(c.m_eq));
             out << "\n";

@@ -89,7 +89,6 @@ br_status bool_rewriter::mk_nflat_and_core(unsigned num_args, expr * const * arg
     ptr_buffer<expr> buffer;
     expr_fast_mark1 neg_lits;
     expr_fast_mark2 pos_lits;
-    expr* atom = nullptr;
 
     for (unsigned i = 0; i < num_args; i++) {
         expr * arg  = args[i];
@@ -98,19 +97,16 @@ br_status bool_rewriter::mk_nflat_and_core(unsigned num_args, expr * const * arg
             continue;
         }
         if (m().is_false(arg)) {
-            neg_lits.reset();
-            pos_lits.reset();
             result = m().mk_false();
             return BR_DONE;
         }
-        if (m().is_not(arg, atom)) {
+        if (m().is_not(arg)) {
+            expr * atom = to_app(arg)->get_arg(0);
             if (neg_lits.is_marked(atom)) {
                 s = true;
                 continue;
             }
             if (pos_lits.is_marked(atom)) {
-                neg_lits.reset();
-                pos_lits.reset();
                 result = m().mk_false();
                 return BR_DONE;
             }
@@ -122,8 +118,6 @@ br_status bool_rewriter::mk_nflat_and_core(unsigned num_args, expr * const * arg
                 continue;
             }
             if (neg_lits.is_marked(arg)) {
-                neg_lits.reset();
-                pos_lits.reset();
                 result = m().mk_false();
                 return BR_DONE;
             }
@@ -131,8 +125,6 @@ br_status bool_rewriter::mk_nflat_and_core(unsigned num_args, expr * const * arg
         }
         buffer.push_back(arg);
     }
-    neg_lits.reset();
-    pos_lits.reset();
 
     unsigned sz = buffer.size();
 
@@ -190,8 +182,6 @@ br_status bool_rewriter::mk_nflat_or_core(unsigned num_args, expr * const * args
     for (unsigned i = 0; i < num_args; i++) {
         expr * arg  = args[i];
         if (m().is_true(arg)) {
-            neg_lits.reset();
-            pos_lits.reset();
             result = m().mk_true();
             return BR_DONE;
         }
@@ -206,8 +196,6 @@ br_status bool_rewriter::mk_nflat_or_core(unsigned num_args, expr * const * args
                 continue;
             }
             if (pos_lits.is_marked(atom)) {
-                neg_lits.reset();
-                pos_lits.reset();
                 result = m().mk_true();
                 return BR_DONE;
             }
@@ -219,8 +207,6 @@ br_status bool_rewriter::mk_nflat_or_core(unsigned num_args, expr * const * args
                 continue;
             }
             if (neg_lits.is_marked(arg)) {
-                neg_lits.reset();
-                pos_lits.reset();
                 result = m().mk_true();
                 return BR_DONE;
             }
@@ -230,10 +216,6 @@ br_status bool_rewriter::mk_nflat_or_core(unsigned num_args, expr * const * args
         s |= prev && lt(arg, prev);
         prev = arg;
     }
-
-    neg_lits.reset();
-    pos_lits.reset();
-
 
     unsigned sz = buffer.size();
 
@@ -246,6 +228,8 @@ br_status bool_rewriter::mk_nflat_or_core(unsigned num_args, expr * const * args
         return BR_DONE;
     default:
         if (m_local_ctx && m_local_ctx_cost <= m_local_ctx_limit) {
+            neg_lits.reset();
+            pos_lits.reset();
             if (local_ctx_simp(sz, buffer.c_ptr(), result))
                 return BR_DONE;
         }
@@ -646,13 +630,13 @@ br_status bool_rewriter::try_ite_value(app * ite, app * val, expr_ref & result) 
     }
 
     expr* cond2 = nullptr, *t2 = nullptr, *e2 = nullptr;
-    if (m().is_ite(t, cond2, t2, e2) && m().is_value(t2) && m().is_value(e2) &&
-        BR_FAILED != try_ite_value(to_app(t), val, result)) {
+    if (m().is_ite(t, cond2, t2, e2) && m().is_value(t2) && m().is_value(e2)) {
+        VERIFY(BR_FAILED != try_ite_value(to_app(t), val, result));
         result = m().mk_ite(cond, result, mk_eq(e, val));
         return BR_REWRITE2;
     }
-    if (m().is_ite(e, cond2, t2, e2) && m().is_value(t2) && m().is_value(e2) && 
-        BR_FAILED != try_ite_value(to_app(e), val, result)) {
+    if (m().is_ite(e, cond2, t2, e2) && m().is_value(t2) && m().is_value(e2)) {
+        VERIFY(BR_FAILED != try_ite_value(to_app(e), val, result));
         result = m().mk_ite(cond, mk_eq(t, val), result);
         return BR_REWRITE2;
     }
@@ -757,7 +741,7 @@ br_status bool_rewriter::mk_distinct_core(unsigned num_args, expr * const * args
     }
 
     expr_fast_mark1 visited;
-    bool all_value = true, all_diff = true;
+    bool all_value = true;
     for (unsigned i = 0; i < num_args; i++) {
         expr * arg = args[i];
         if (visited.is_marked(arg)) {
@@ -767,19 +751,8 @@ br_status bool_rewriter::mk_distinct_core(unsigned num_args, expr * const * args
         visited.mark(arg);
         if (!m().is_unique_value(arg))
             all_value = false;
-        if (!all_value && all_diff) {
-            for (unsigned j = 0; all_diff && j < i; ++j) {
-                all_diff = m().are_distinct(arg, args[j]);
-                if (!all_diff) { 
-                    if (m().are_equal(arg, args[j])) {
-                        result = m().mk_false();
-                        return BR_DONE;
-                    }
-                }
-            }
-        }
     }
-    if (all_diff) {
+    if (all_value) {
         result = m().mk_true();
         return BR_DONE;
     }
@@ -1030,23 +1003,5 @@ void bool_rewriter::mk_nor(expr * arg1, expr * arg2, expr_ref & result) {
     mk_or(arg1, arg2, tmp);
     mk_not(tmp, result);
 }
-
-
-void bool_rewriter::mk_ge2(expr* a, expr* b, expr* c, expr_ref& r) {
-    if (m().is_false(a)) mk_and(b, c, r);
-    else if (m().is_false(b)) mk_and(a, c, r);
-    else if (m().is_false(c)) mk_and(a, b, r);
-    else if (m().is_true(a)) mk_or(b, c, r);
-    else if (m().is_true(b)) mk_or(a, c, r);
-    else if (m().is_true(c)) mk_or(a, b, r);
-    else {
-        expr_ref i1(m()), i2(m()), i3(m());
-        mk_and(a, b, i1);
-        mk_and(a, c, i2);
-        mk_and(b, c, i3);
-        mk_or(i1, i2, i3, r);
-    }
-}
-
 
 template class rewriter_tpl<bool_rewriter_cfg>;
