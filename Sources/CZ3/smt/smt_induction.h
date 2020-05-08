@@ -48,7 +48,7 @@ namespace smt {
     /**
      * Synthesize induction lemmas from induction candidates
      */
-    class create_induction_lemmas {
+    class induction_lemmas {
         context&       ctx;
         ast_manager&   m;
         value_sweep&   vs;
@@ -58,46 +58,26 @@ namespace smt {
         unsigned       m_num_lemmas;
 
         typedef svector<std::pair<expr*,expr*>> expr_pair_vector;
-
-        struct abstraction {
-            expr_ref         m_term;
-            expr_pair_vector m_eqs;
-            abstraction(expr_ref& e): m_term(e) {}
-            abstraction(ast_manager& m, expr* e, expr* n1, expr* n2): m_term(e, m) {
-                if (n1 != n2) m_eqs.push_back(std::make_pair(n1, n2));
-            }
-            abstraction(ast_manager& m, expr* e, expr_pair_vector const& eqs): 
-                m_term(e, m), m_eqs(eqs) {
-            }            
-        };
-        typedef vector<abstraction> abstractions;
-        
-        struct abstraction_arg {
-            expr_ref_vector   m_terms;
-            expr_pair_vector m_eqs;
-            abstraction_arg(ast_manager& m): m_terms(m) {}
-            void push_back(abstraction& a) {
-                m_terms.push_back(a.m_term);
-                m_eqs.append(a.m_eqs);
-            }
-        };
-        typedef vector<abstraction_arg> abstraction_args;
+        typedef std::pair<expr_ref_vector, expr_ref> cond_subst_t;
+        typedef vector<cond_subst_t> cond_substs_t;
+        typedef std::pair<enode*, unsigned> induction_position_t;
+        typedef svector<induction_position_t> induction_positions_t;
 
         bool viable_induction_sort(sort* s);
         bool viable_induction_parent(enode* p, enode* n);
         bool viable_induction_children(enode* n);
         bool viable_induction_term(enode* p , enode* n);
         enode_vector induction_positions(enode* n);
-        void abstract(enode* n, enode* t, expr* x, abstractions& result);
-        void abstract1(enode* n, enode* t, expr* x, abstractions& result);
-        void filter_abstractions(bool sign, abstractions& abs);
-        void create_lemmas(expr* sk, abstraction& a, literal lit);
-        void create_hypotheses(unsigned depth, expr* sk0, expr_ref& alpha, expr* sk, literal_vector& lits);
+        induction_positions_t induction_positions2(enode* n);
+        void mk_hypothesis_substs(unsigned depth, expr* x, cond_substs_t& subst);
+        void mk_hypothesis_substs_rec(unsigned depth, sort* s, expr* y, expr_ref_vector& conds, cond_substs_t& subst);
+        void mk_hypothesis_lemma(expr_ref_vector const& conds, expr_pair_vector const& subst, literal alpha);
+        void create_hypotheses(unsigned depth, expr_ref_vector const& sks, literal alpha);
         literal mk_literal(expr* e);
         void add_th_lemma(literal_vector const& lits);
 
     public:
-        create_induction_lemmas(context& ctx, ast_manager& m, value_sweep& vs);
+        induction_lemmas(context& ctx, ast_manager& m, value_sweep& vs);
 
         bool operator()(literal lit);
     };
@@ -111,7 +91,7 @@ namespace smt {
         ast_manager& m;
         value_sweep  vs;
         collect_induction_literals m_collect_literals;
-        create_induction_lemmas m_create_lemmas;
+        induction_lemmas m_create_lemmas;
 
         void init_values();
 

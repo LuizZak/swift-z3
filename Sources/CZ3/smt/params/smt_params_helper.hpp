@@ -48,7 +48,7 @@ struct smt_params_helper {
     d.insert("bv.reflect", CPK_BOOL, "create enode for every bit-vector term", "true","smt");
     d.insert("bv.enable_int2bv", CPK_BOOL, "enable support for int2bv and bv2int operators", "true","smt");
     d.insert("arith.random_initial_value", CPK_BOOL, "use random initial values in the simplex-based procedure for linear arithmetic", "false","smt");
-    d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "6","smt");
+    d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "2","smt");
     d.insert("arith.nl", CPK_BOOL, "(incomplete) nonlinear arithmetic support based on Groebner basis and interval propagation, relevant only if smt.arith.solver=2", "true","smt");
     d.insert("arith.nl.gb", CPK_BOOL, "groebner Basis computation, this option is ignored when arith.nl=false, relevant only if smt.arith.solver=2", "true","smt");
     d.insert("arith.nl.branching", CPK_BOOL, "branching on integer variables in non linear clusters, relevant only if smt.arith.solver=2", "true","smt");
@@ -107,18 +107,13 @@ struct smt_params_helper {
     d.insert("str.fast_length_tester_cache", CPK_BOOL, "cache length tester constants instead of regenerating them", "false","smt");
     d.insert("str.fast_value_tester_cache", CPK_BOOL, "cache value tester constants instead of regenerating them", "true","smt");
     d.insert("str.string_constant_cache", CPK_BOOL, "cache all generated string constants generated from anywhere in theory_str", "true","smt");
-    d.insert("str.use_binary_search", CPK_BOOL, "use a binary search heuristic for finding concrete length values for free variables in theory_str (set to False to use linear search)", "false","smt");
-    d.insert("str.binary_search_start", CPK_UINT, "initial upper bound for theory_str binary search", "64","smt");
     d.insert("theory_aware_branching", CPK_BOOL, "Allow the context to use extra information from theory solvers regarding literal branching prioritization.", "false","smt");
-    d.insert("str.finite_overlap_models", CPK_BOOL, "attempt a finite model search for overlapping variables instead of completely giving up on the arrangement", "false","smt");
     d.insert("str.overlap_priority", CPK_DOUBLE, "theory-aware priority for overlapping variable cases; use smt.theory_aware_branching=true", "-0.1","smt");
-    d.insert("str.regex_automata", CPK_BOOL, "use automata-based reasoning for regular expressions (Z3str3 only)", "true","smt");
     d.insert("str.regex_automata_difficulty_threshold", CPK_UINT, "difficulty threshold for regex automata heuristics", "1000","smt");
     d.insert("str.regex_automata_intersection_difficulty_threshold", CPK_UINT, "difficulty threshold for regex intersection heuristics", "1000","smt");
     d.insert("str.regex_automata_failed_automaton_threshold", CPK_UINT, "number of failed automaton construction attempts after which a full automaton is automatically built", "10","smt");
     d.insert("str.regex_automata_failed_intersection_threshold", CPK_UINT, "number of failed automaton intersection attempts after which intersection is always computed", "10","smt");
     d.insert("str.regex_automata_length_attempt_threshold", CPK_UINT, "number of length/path constraint attempts before checking unsatisfiability of regex terms", "10","smt");
-    d.insert("str.fixed_length_models", CPK_BOOL, "use fixed-length equation solver to construct models (Z3str3 only)", "true","smt");
     d.insert("str.fixed_length_refinement", CPK_BOOL, "use abstraction refinement in fixed-length equation solver (Z3str3 only)", "false","smt");
     d.insert("str.fixed_length_naive_cex", CPK_BOOL, "construct naive counterexamples when fixed-length model construction fails for a given length assignment (Z3str3 only)", "true","smt");
     d.insert("core.minimize", CPK_BOOL, "minimize unsat core produced by SMT context", "false","smt");
@@ -171,7 +166,7 @@ struct smt_params_helper {
   bool bv_reflect() const { return p.get_bool("bv.reflect", g, true); }
   bool bv_enable_int2bv() const { return p.get_bool("bv.enable_int2bv", g, true); }
   bool arith_random_initial_value() const { return p.get_bool("arith.random_initial_value", g, false); }
-  unsigned arith_solver() const { return p.get_uint("arith.solver", g, 6u); }
+  unsigned arith_solver() const { return p.get_uint("arith.solver", g, 2u); }
   bool arith_nl() const { return p.get_bool("arith.nl", g, true); }
   bool arith_nl_gb() const { return p.get_bool("arith.nl.gb", g, true); }
   bool arith_nl_branching() const { return p.get_bool("arith.nl.branching", g, true); }
@@ -230,18 +225,13 @@ struct smt_params_helper {
   bool str_fast_length_tester_cache() const { return p.get_bool("str.fast_length_tester_cache", g, false); }
   bool str_fast_value_tester_cache() const { return p.get_bool("str.fast_value_tester_cache", g, true); }
   bool str_string_constant_cache() const { return p.get_bool("str.string_constant_cache", g, true); }
-  bool str_use_binary_search() const { return p.get_bool("str.use_binary_search", g, false); }
-  unsigned str_binary_search_start() const { return p.get_uint("str.binary_search_start", g, 64u); }
   bool theory_aware_branching() const { return p.get_bool("theory_aware_branching", g, false); }
-  bool str_finite_overlap_models() const { return p.get_bool("str.finite_overlap_models", g, false); }
   double str_overlap_priority() const { return p.get_double("str.overlap_priority", g, -0.1); }
-  bool str_regex_automata() const { return p.get_bool("str.regex_automata", g, true); }
   unsigned str_regex_automata_difficulty_threshold() const { return p.get_uint("str.regex_automata_difficulty_threshold", g, 1000u); }
   unsigned str_regex_automata_intersection_difficulty_threshold() const { return p.get_uint("str.regex_automata_intersection_difficulty_threshold", g, 1000u); }
   unsigned str_regex_automata_failed_automaton_threshold() const { return p.get_uint("str.regex_automata_failed_automaton_threshold", g, 10u); }
   unsigned str_regex_automata_failed_intersection_threshold() const { return p.get_uint("str.regex_automata_failed_intersection_threshold", g, 10u); }
   unsigned str_regex_automata_length_attempt_threshold() const { return p.get_uint("str.regex_automata_length_attempt_threshold", g, 10u); }
-  bool str_fixed_length_models() const { return p.get_bool("str.fixed_length_models", g, true); }
   bool str_fixed_length_refinement() const { return p.get_bool("str.fixed_length_refinement", g, false); }
   bool str_fixed_length_naive_cex() const { return p.get_bool("str.fixed_length_naive_cex", g, true); }
   bool core_minimize() const { return p.get_bool("core.minimize", g, false); }

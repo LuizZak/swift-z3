@@ -1601,7 +1601,7 @@ namespace smt {
             if (inconsistent())
                 return false;
         }
-#if 0
+#if 0 
         if (at_search_level() && induction::should_try(*this)) {
             get_induction()();
         }
@@ -3646,7 +3646,10 @@ namespace smt {
         if (status == l_true && m_qmanager->has_quantifiers()) {
             // possible outcomes   DONE l_true, DONE l_undef, CONTINUE
             mk_proto_model();
-            quantifier_manager::check_model_result cmr = m_qmanager->check_model(m_proto_model.get(), m_model_generator->get_root2value());
+            quantifier_manager::check_model_result cmr = quantifier_manager::UNKNOWN;
+            if (m_proto_model.get()) {
+                cmr = m_qmanager->check_model(m_proto_model.get(), m_model_generator->get_root2value());
+            }
             switch (cmr) {
             case quantifier_manager::SAT:
                 return false;

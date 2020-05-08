@@ -23,14 +23,12 @@ Notes:
 #include "ast/ast_pp.h"
 #include "ast/arith_decl_plugin.h"
 #include "ast/rewriter/rewriter_types.h"
-#include "util/ref_pair_vector.h"
 #include "util/params.h"
 #include "util/lbool.h"
 #include "util/sign.h"
 #include "math/automata/automaton.h"
 #include "math/automata/symbolic_automata.h"
 
-typedef ref_pair_vector<expr, ast_manager> expr_ref_pair_vector;
 
 inline std::ostream& operator<<(std::ostream& out, expr_ref_pair_vector const& es) {
     for (auto const& p : es) {
@@ -163,6 +161,7 @@ class seq_rewriter {
     br_status mk_re_opt(expr* a, expr_ref& result);
     br_status mk_re_loop(func_decl* f, unsigned num_args, expr* const* args, expr_ref& result);
     br_status mk_re_range(expr* lo, expr* hi, expr_ref& result);
+    br_status lift_ite(func_decl* f, unsigned n, expr* const* args, expr_ref& result);
 
     bool cannot_contain_prefix(expr* a, expr* b);
     bool cannot_contain_suffix(expr* a, expr* b);
