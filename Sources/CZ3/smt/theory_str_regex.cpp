@@ -48,6 +48,7 @@ namespace smt {
 
 
     void theory_str::solve_regex_automata() {
+        context & ctx = get_context();
         ast_manager & m = get_manager();
 
         // TODO since heuristics might fail, the "no progress" flag might need to be handled specially here
@@ -998,6 +999,7 @@ namespace smt {
      */
     expr_ref theory_str::infer_all_regex_lengths(expr * lenVar, expr * re, expr_ref_vector & freeVariables) {
         ENSURE(u.is_re(re));
+        context & ctx = get_context();
         ast_manager & m = get_manager();
         expr * sub1;
         expr * sub2;
@@ -1125,6 +1127,7 @@ namespace smt {
      */
     void theory_str::find_automaton_initial_bounds(expr * str_in_re, eautomaton * aut) {
         ENSURE(aut != nullptr);
+        context & ctx = get_context();
         ast_manager & m = get_manager();
 
         expr_ref_vector rhs(m);
@@ -1359,6 +1362,7 @@ namespace smt {
     }
 
     expr_ref theory_str::aut_path_rewrite_constraint(expr * cond, expr * ch_var) {
+        context & ctx = get_context();
         ast_manager & m = get_manager();
 
         expr_ref retval(m);
@@ -1415,6 +1419,7 @@ namespace smt {
      */
     expr_ref theory_str::generate_regex_path_constraints(expr * stringTerm, eautomaton * aut, rational lenVal, expr_ref & characterConstraints) {
         ENSURE(aut != nullptr);
+        context & ctx = get_context();
         ast_manager & m = get_manager();
 
         if (lenVal.is_zero()) {

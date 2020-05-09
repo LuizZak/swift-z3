@@ -30,16 +30,16 @@ namespace smt {
     class model_value_proc;
 
     class theory {
-    protected:
         theory_id       m_id;
-        context &       ctx;
-        ast_manager &   m;
+        context *       m_context;
+        ast_manager *   m_manager;
         enode_vector    m_var2enode;
         unsigned_vector m_var2enode_lim;
 
         friend class context;
         friend class arith_value;
     protected:
+        virtual void init(context * ctx);
 
         /* ---------------------------------------------------
         
@@ -351,12 +351,11 @@ namespace smt {
 
 
     public:
-        theory(context& ctx, family_id fid);
+        theory(family_id fid);
         virtual ~theory();
         
-        virtual void setup() {}
-
-        virtual void init() {}
+        virtual void setup() {
+        }
 
         theory_id get_id() const {
             return m_id;
@@ -367,14 +366,16 @@ namespace smt {
         }
 
         context & get_context() const {
-            return ctx;
-        }
-        
-        ast_manager & get_manager() const {
-            return m;
+            SASSERT(m_context);
+            return *m_context;
         }
 
-        smt_params const& get_fparams() const;
+        context & ctx() const { return get_context(); }
+        
+        ast_manager & get_manager() const {
+            SASSERT(m_manager);
+            return *m_manager;
+        }
 
         enode * get_enode(theory_var v) const {
             SASSERT(v < static_cast<int>(m_var2enode.size()));
@@ -452,7 +453,7 @@ namespace smt {
 
         void log_axiom_unit(app* r) {
             log_axiom_instantiation(r);
-            m.trace_stream() << "[end-of-instance]\n";
+            m_manager->trace_stream() << "[end-of-instance]\n";
         }
 
     public:

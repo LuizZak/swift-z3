@@ -26,6 +26,7 @@ Author:
 using namespace smt;
 
 bool theory_seq::solve_nqs(unsigned i) {
+    context & ctx = get_context();
     for (; !ctx.inconsistent() && i < m_nqs.size(); ++i) {
         if (solve_ne(i)) {
             m_nqs.erase_and_swap(i--);
@@ -47,6 +48,7 @@ bool theory_seq::solve_ne(unsigned idx) {
         
 bool theory_seq::check_ne_literals(unsigned idx, unsigned& num_undef_lits) {
     ne const& n = m_nqs[idx];
+    context& ctx = get_context();
     for (literal lit : n.lits()) {
         switch (ctx.get_assignment(lit)) {
         case l_false:
@@ -71,6 +73,7 @@ bool theory_seq::check_ne_literals(unsigned idx, unsigned& num_undef_lits) {
 
 bool theory_seq::propagate_ne2lit(unsigned idx) {
     ne const& n = m_nqs[idx];
+    context& ctx = get_context();
     if (!n.eqs().empty()) {
         return false;
     }
@@ -142,6 +145,7 @@ bool theory_seq::propagate_ne2eq(unsigned idx, expr_ref_vector const& es) {
  
 bool theory_seq::reduce_ne(unsigned idx) {
     ne const& n = m_nqs[idx];
+    context& ctx = get_context();
     bool updated = false;
     dependency* new_deps = n.dep();
     vector<decomposed_eq> new_eqs;
@@ -253,6 +257,7 @@ bool theory_seq::branch_nqs() {
 
 lbool theory_seq::branch_nq(ne const& n) {
 
+    context& ctx = get_context();
     literal eq_len = mk_eq(mk_len(n.l()), mk_len(n.r()), false);
     ctx.mark_as_relevant(eq_len);
     switch (ctx.get_assignment(eq_len)) {

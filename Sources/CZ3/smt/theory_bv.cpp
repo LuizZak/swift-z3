@@ -28,13 +28,17 @@ Revision History:
 
 namespace smt {
 
+    void theory_bv::init(context * ctx) {
+        theory::init(ctx);
+    }
+
     theory_var theory_bv::mk_var(enode * n) {
         theory_var r  = theory::mk_var(n);
         m_find.mk_var();
         m_bits.push_back(literal_vector());
         m_wpos.push_back(0);
         m_zero_one_bits.push_back(zero_one_bits());
-        ctx.attach_th_var(n, this, r);
+        get_context().attach_th_var(n, this, r);
         return r;
     }
 
@@ -48,6 +52,7 @@ namespace smt {
         enode * n             = get_enode(v);
         app * owner           = n->get_owner();
         unsigned bv_size      = get_bv_size(n);
+        context & ctx         = get_context();
         bool is_relevant      = ctx.is_relevant(n);
         literal_vector & bits = m_bits[v];
         TRACE("bv", tout << "v" << v << "\n";);
@@ -75,6 +80,7 @@ namespace smt {
     };
 
     void theory_bv::mk_bit2bool(app * n) {
+        context & ctx    = get_context();
         SASSERT(!ctx.b_internalized(n));
         
         TRACE("bv", tout << "bit2bool: " << mk_pp(n, ctx.get_manager()) << "\n";);
@@ -142,12 +148,14 @@ namespace smt {
     }
 
     void theory_bv::process_args(app * n) {
+        context & ctx     = get_context();
         for (expr* arg : *n) {
             ctx.internalize(arg, false);
         }
     }
 
     enode * theory_bv::mk_enode(app * n) {
+        context & ctx = get_context();
         enode * e;
         if (ctx.e_internalized(n)) {
             e = ctx.get_enode(n);
@@ -174,6 +182,7 @@ namespace smt {
             return n->get_arg(idx);
         }
         else {
+            context & ctx = get_context();
             app * arg     = to_app(n->get_owner()->get_arg(idx));
             SASSERT(ctx.e_internalized(arg));
             return ctx.get_enode(arg);
@@ -185,6 +194,7 @@ namespace smt {
     }
 
     void theory_bv::get_bits(theory_var v, expr_ref_vector & r) {
+        context & ctx         = get_context();
         literal_vector & bits = m_bits[v];
         for (literal lit : bits) {
             expr_ref l(get_manager());
@@ -202,6 +212,7 @@ namespace smt {
     }
 
     inline void theory_bv::get_arg_bits(app * n, unsigned idx, expr_ref_vector & r) {
+        context & ctx = get_context();
         app * arg     = to_app(n->get_arg(idx));
         SASSERT(ctx.e_internalized(arg));
         get_bits(ctx.get_enode(arg), r);
@@ -228,6 +239,8 @@ namespace smt {
         enode * e1       = get_enode(v1);
         enode * e2       = get_enode(v2);
         literal l        = ~(mk_eq(e1->get_owner(), e2->get_owner(), true));
+        context & ctx    = get_context();
+        ast_manager & m  = get_manager();
         expr * eq        = ctx.bool_var2expr(l.var());
         if (m.has_trace_stream()) {
             app_ref body(m);
@@ -269,6 +282,7 @@ namespace smt {
        \brief Add bit l to the given variable.
     */
     void theory_bv::add_bit(theory_var v, literal l) {
+        context & ctx         = get_context();
         literal_vector & bits = m_bits[v];
         unsigned idx          = bits.size();
         bits.push_back(l);
@@ -300,13 +314,15 @@ namespace smt {
 
     void theory_bv::simplify_bit(expr * s, expr_ref & r) {
         // proof_ref p(get_manager());
-        // if (ctx.at_base_level())
+        // if (get_context().at_base_level())
         //    ctx.get_rewriter()(s, r, p);
         // else
         r = s;
     }
 
     void theory_bv::init_bits(enode * n, expr_ref_vector const & bits) {
+        context & ctx           = get_context();
+        ast_manager & m         = get_manager();
         theory_var v            = n->get_th_var(get_id());
         SASSERT(v != null_theory_var);
         unsigned sz             = bits.size();
@@ -328,6 +344,7 @@ namespace smt {
        \brief Find an unassigned bit for m_wpos[v], if such bit cannot be found invoke fixed_var_eh
     */
     void theory_bv::find_wpos(theory_var v) {
+        context & ctx               = get_context();
         literal_vector const & bits = m_bits[v];
         unsigned sz                 = bits.size();
         unsigned & wpos             = m_wpos[v];
@@ -429,6 +446,8 @@ namespace smt {
             return;
         }
         ++m_stats.m_num_eq_dynamic;
+        ast_manager& m = get_manager();
+        context & ctx = get_context();
         app* o1 = get_enode(v1)->get_owner();
         app* o2 = get_enode(v2)->get_owner();
         literal oeq = mk_eq(o1, o2, true);
@@ -473,6 +492,7 @@ namespace smt {
                 get_bv_size(v2) == sz && get_fixed_value(v2, val2) && val == val2) {
                 if (get_enode(v)->get_root() != get_enode(v2)->get_root()) {
                     SASSERT(get_bv_size(v) == get_bv_size(v2));
+                    context & ctx      = get_context();
                     TRACE("fixed_var_eh", tout << "detected equality: v" << v << " = v" << v2 << "\n";
                           display_var(tout, v);
                           display_var(tout, v2););
@@ -495,6 +515,7 @@ namespace smt {
     }
 
     bool theory_bv::get_fixed_value(theory_var v, numeral & result)  const {
+        context & ctx                      = get_context();
         result.reset();
         literal_vector const & bits        = m_bits[v];
         literal_vector::const_iterator it  = bits.begin();
@@ -510,7 +531,8 @@ namespace smt {
     }
 
     bool theory_bv::get_fixed_value(app* x, numeral & result) const {
-        CTRACE("bv", !ctx.e_internalized(x), tout << "not internalized " << mk_pp(x, m) << "\n";);
+        context& ctx = get_context();
+        CTRACE("bv", !ctx.e_internalized(x), tout << "not internalized " << mk_pp(x, get_manager()) << "\n";);
         if (!ctx.e_internalized(x)) return false;
         enode * e    = ctx.get_enode(x);
         theory_var v = e->get_th_var(get_id());
@@ -519,7 +541,8 @@ namespace smt {
 
 
     void theory_bv::internalize_num(app * n) {
-        SASSERT(!ctx.e_internalized(n));
+        SASSERT(!get_context().e_internalized(n));
+        ast_manager & m = get_manager();
         numeral val;
         unsigned sz;
         m_util.is_numeral(n, val, sz);
@@ -546,6 +569,7 @@ namespace smt {
     }
 
     void theory_bv::internalize_mkbv(app* n) {
+        ast_manager& m = get_manager();
         expr_ref_vector bits(m);
         process_args(n);
         enode * e = mk_enode(n);
@@ -554,8 +578,9 @@ namespace smt {
     }
 
     void theory_bv::internalize_bv2int(app* n) {
-        SASSERT(!ctx.e_internalized(n));
-        TRACE("bv", tout << mk_bounded_pp(n, m) << "\n";);
+        SASSERT(!get_context().e_internalized(n));
+        context& ctx = get_context();
+        TRACE("bv", tout << mk_bounded_pp(n, get_manager()) << "\n";);
         process_args(n);
         mk_enode(n);
         if (!ctx.relevancy()) {
@@ -569,9 +594,11 @@ namespace smt {
         // create the axiom:
         // n = bv2int(k) = ite(bit2bool(k[sz-1],2^{sz-1},0) + ... + ite(bit2bool(k[0],1,0))
         // 
-        SASSERT(ctx.e_internalized(n));
+        SASSERT(get_context().e_internalized(n));
         SASSERT(m_util.is_bv2int(n));
+        ast_manager & m = get_manager();
         TRACE("bv2int_bug", tout << "bv2int:\n" << mk_pp(n, m) << "\n";);
+        context & ctx   = get_context();
         sort * int_sort = m.get_sort(n);
         app * k = to_app(n->get_arg(0));
         SASSERT(m_util.is_bv_sort(m.get_sort(k)));
@@ -621,8 +648,9 @@ namespace smt {
     }
 
     void theory_bv::internalize_int2bv(app* n) {    
-        SASSERT(!ctx.e_internalized(n));
+        SASSERT(!get_context().e_internalized(n));
         SASSERT(n->get_num_args() == 1);
+        context& ctx = get_context();
         process_args(n);
         mk_enode(n);
         theory_var v = ctx.get_enode(n)->get_th_var(get_id()); 
@@ -643,8 +671,10 @@ namespace smt {
         //   bit2bool(i,n) == ((e div 2^i) mod 2 != 0)
         // for i = 0,.., sz-1
         //
-        SASSERT(ctx.e_internalized(n));
+        SASSERT(get_context().e_internalized(n));
         SASSERT(m_util.is_int2bv(n));
+        ast_manager & m = get_manager();
+        context& ctx = get_context();
 
         parameter param(m_autil.mk_int());
         expr* n_expr = n;
@@ -690,9 +720,10 @@ namespace smt {
 
 #define MK_UNARY(NAME, BLAST_OP)                                        \
     void theory_bv::NAME(app * n) {                                     \
-        SASSERT(!ctx.e_internalized(n));                      \
+        SASSERT(!get_context().e_internalized(n));                      \
         SASSERT(n->get_num_args() == 1);                                \
         process_args(n);                                                \
+        ast_manager & m = get_manager();                                \
         enode * e       = mk_enode(n);                                  \
         expr_ref_vector arg1_bits(m), bits(m);                          \
         get_arg_bits(e, 0, arg1_bits);                                  \
@@ -702,9 +733,10 @@ namespace smt {
 
 #define MK_BINARY(NAME, BLAST_OP)                                                       \
     void theory_bv::NAME(app * n) {                                                     \
-        SASSERT(!ctx.e_internalized(n));                                      \
+        SASSERT(!get_context().e_internalized(n));                                      \
         SASSERT(n->get_num_args() == 2);                                                \
         process_args(n);                                                                \
+        ast_manager & m = get_manager();                                                \
         enode * e       = mk_enode(n);                                                  \
         expr_ref_vector arg1_bits(m), arg2_bits(m), bits(m);                            \
         get_arg_bits(e, 0, arg1_bits);                                                  \
@@ -717,9 +749,10 @@ namespace smt {
 
 #define MK_AC_BINARY(NAME, BLAST_OP)                                                            \
     void theory_bv::NAME(app * n) {                                                             \
-        SASSERT(!ctx.e_internalized(n));                                              \
+        SASSERT(!get_context().e_internalized(n));                                              \
         SASSERT(n->get_num_args() >= 2);                                                        \
         process_args(n);                                                                        \
+        ast_manager & m = get_manager();                                                        \
         enode * e       = mk_enode(n);                                                          \
         expr_ref_vector arg_bits(m);                                                            \
         expr_ref_vector bits(m);                                                                \
@@ -743,9 +776,11 @@ namespace smt {
 
 #define MK_BINARY_COND(NAME, BLAST_OP)                                                  \
     void theory_bv::NAME(app * n) {                                                     \
-        SASSERT(!ctx.e_internalized(n));                                      \
+        SASSERT(!get_context().e_internalized(n));                                      \
         SASSERT(n->get_num_args() == 2);                                                \
         process_args(n);                                                                \
+        ast_manager & m = get_manager();                                                \
+        context& ctx = get_context();                                   \
         enode * e       = mk_enode(n);                                                  \
         expr_ref_vector arg1_bits(m), arg2_bits(m), bits(m);                            \
         expr_ref        cond(m), s_cond(m);                                             \
@@ -759,13 +794,14 @@ namespace smt {
         literal l(ctx.get_literal(s_cond));                             \
         ctx.mark_as_relevant(l);                                        \
         ctx.mk_th_axiom(get_id(), 1, &l);                               \
-        TRACE("bv", tout << mk_pp(cond, m) << "\n"; tout << l << "\n";); \
+        TRACE("bv", tout << mk_pp(cond, get_manager()) << "\n"; tout << l << "\n";); \
     }
 
     void theory_bv::internalize_sub(app *n) {
-        SASSERT(!ctx.e_internalized(n));                      
+        SASSERT(!get_context().e_internalized(n));                      
         SASSERT(n->get_num_args() == 2);                                                
-        process_args(n);                                                               
+        process_args(n);                                                                
+        ast_manager & m = get_manager();                                                
         enode * e       = mk_enode(n);                                                  
         expr_ref_vector arg1_bits(m), arg2_bits(m), bits(m);                            
         get_arg_bits(e, 0, arg1_bits);                                                  
@@ -802,9 +838,10 @@ namespace smt {
 
 #define MK_PARAMETRIC_UNARY(NAME, BLAST_OP)                                     \
     void theory_bv::NAME(app * n) {                                             \
-        SASSERT(!ctx.e_internalized(n));                              \
+        SASSERT(!get_context().e_internalized(n));                              \
         SASSERT(n->get_num_args() == 1);                                        \
         process_args(n);                                                        \
+        ast_manager & m = get_manager();                                        \
         enode * e       = mk_enode(n);                                          \
         expr_ref_vector arg1_bits(m), bits(m);                                  \
         get_arg_bits(e, 0, arg1_bits);                                          \
@@ -853,7 +890,7 @@ namespace smt {
 
     bool theory_bv::internalize_term_core(app * term) {
         SASSERT(term->get_family_id() == get_family_id());
-        TRACE("bv", tout << "internalizing term: " << mk_bounded_pp(term, m) << "\n";);
+        TRACE("bv", tout << "internalizing term: " << mk_bounded_pp(term, get_manager()) << "\n";);
         if (approximate_term(term)) {
             return false;
         }
@@ -905,14 +942,14 @@ namespace smt {
             }
             return params().m_bv_enable_int2bv2int;
         default:
-            TRACE("bv_op", tout << "unsupported operator: " << mk_ll_pp(term, m) << "\n";);
+            TRACE("bv_op", tout << "unsupported operator: " << mk_ll_pp(term, get_manager()) << "\n";);
             UNREACHABLE();
             return false;
         }
     }
 
     bool theory_bv::internalize_term(app * term) {
-        scoped_suspend_rlimit _suspend_cancel(m.limit());
+        scoped_suspend_rlimit _suspend_cancel(get_manager().limit());
         try {
             return internalize_term_core(term);
         }
@@ -926,6 +963,8 @@ namespace smt {
     void theory_bv::NAME(app *n) {                                                                              \
         SASSERT(n->get_num_args() == 2);                                                                        \
         process_args(n);                                                                                        \
+        ast_manager & m = get_manager();                                                                        \
+        context & ctx   = get_context();                                                                        \
         expr_ref_vector arg1_bits(m), arg2_bits(m);                                                             \
         get_arg_bits(n, 0, arg1_bits);                                                                          \
         get_arg_bits(n, 1, arg2_bits);                                                                          \
@@ -959,6 +998,8 @@ namespace smt {
     void theory_bv::internalize_le(app * n) {
         SASSERT(n->get_num_args() == 2);                                                
         process_args(n);                          
+        ast_manager & m = get_manager();                                                
+        context & ctx   = get_context();
         expr_ref_vector arg1_bits(m), arg2_bits(m);
         get_arg_bits(n, 0, arg1_bits);                                                  
         get_arg_bits(n, 1, arg2_bits);                                                  
@@ -983,6 +1024,7 @@ namespace smt {
     }
 
     bool theory_bv::internalize_carry(app * n, bool gate_ctx) {
+        context & ctx = get_context();
         ctx.internalize(n->get_arg(0), true);
         ctx.internalize(n->get_arg(1), true);
         ctx.internalize(n->get_arg(2), true);
@@ -1016,6 +1058,7 @@ namespace smt {
     }
 
     bool theory_bv::internalize_xor3(app * n, bool gate_ctx) {
+        context & ctx = get_context();
         ctx.internalize(n->get_arg(0), true);
         ctx.internalize(n->get_arg(1), true);
         ctx.internalize(n->get_arg(2), true);
@@ -1051,7 +1094,7 @@ namespace smt {
     }
 
     bool theory_bv::internalize_atom(app * atom, bool gate_ctx) {
-        TRACE("bv", tout << "internalizing atom: " << mk_bounded_pp(atom, m) << "\n";);
+        TRACE("bv", tout << "internalizing atom: " << mk_bounded_pp(atom, get_manager()) << "\n";);
         SASSERT(atom->get_family_id() == get_family_id());
         if (approximate_term(atom)) {
             return false;
@@ -1082,11 +1125,11 @@ namespace smt {
         unsigned num_args = n->get_num_args();
         for (unsigned i = 0; i <= num_args; i++) {
             expr* arg = (i == num_args)?n:n->get_arg(i);
-            sort* s = m.get_sort(arg);
+            sort* s = get_manager().get_sort(arg);
             if (m_util.is_bv_sort(s) && m_util.get_bv_size(arg) > params().m_bv_blast_max_size) {                
                 if (!m_approximates_large_bvs) {
-                    TRACE("bv", tout << "found large size bit-vector:\n" << mk_pp(n, m) << "\n";);
-                    ctx.push_trail(value_trail<context, bool>(m_approximates_large_bvs));
+                    TRACE("bv", tout << "found large size bit-vector:\n" << mk_pp(n, get_manager()) << "\n";);
+                    get_context().push_trail(value_trail<context, bool>(m_approximates_large_bvs));
                     m_approximates_large_bvs = true;
                 }
                 return true;
@@ -1098,17 +1141,17 @@ namespace smt {
     void theory_bv::apply_sort_cnstr(enode * n, sort * s) {
         if (!is_attached_to_var(n) && !approximate_term(n->get_owner())) {
             mk_bits(mk_var(n));
-            if (ctx.is_relevant(n)) {
+            if (get_context().is_relevant(n)) {
                 relevant_eh(n->get_owner());
             }
         }
     }
     
     void theory_bv::new_eq_eh(theory_var v1, theory_var v2) {
-        TRACE("bv_eq", tout << "new_eq: " << mk_pp(get_enode(v1)->get_owner(), m) << " = " << mk_pp(get_enode(v2)->get_owner(), m) << "\n";);
-        TRACE("bv", tout << "new_eq_eh v" << v1 << " = v" << v2 << " @ " << ctx.get_scope_level() << 
-              " relevant1: " << ctx.is_relevant(get_enode(v1)) << 
-              " relevant2: " << ctx.is_relevant(get_enode(v2)) << "\n";);
+        TRACE("bv_eq", tout << "new_eq: " << mk_pp(get_enode(v1)->get_owner(), get_manager()) << " = " << mk_pp(get_enode(v2)->get_owner(), get_manager()) << "\n";);
+        TRACE("bv", tout << "new_eq_eh v" << v1 << " = v" << v2 << " @ " << get_context().get_scope_level() << 
+              " relevant1: " << get_context().is_relevant(get_enode(v1)) << 
+              " relevant2: " << get_context().is_relevant(get_enode(v2)) << "\n";);
         m_find.merge(v1, v2);
     }
 
@@ -1121,6 +1164,8 @@ namespace smt {
 
     void theory_bv::expand_diseq(theory_var v1, theory_var v2) {
         SASSERT(get_bv_size(v1) == get_bv_size(v2));
+        context & ctx         = get_context();
+        ast_manager & m       = get_manager();
         if (v1 > v2) {
             std::swap(v1, v2);
         }
@@ -1197,7 +1242,7 @@ namespace smt {
 
     void theory_bv::assign_eh(bool_var v, bool is_true) {
         atom * a      = get_bv2a(v);
-        TRACE("bv", tout << "assert: p" << v << " #" << ctx.bool_var2expr(v)->get_id() << " is_true: " << is_true << "\n";);
+        TRACE("bv", tout << "assert: p" << v << " #" << get_context().bool_var2expr(v)->get_id() << " is_true: " << is_true << "\n";);
         if (a->is_bit()) {
             // The following optimization is not correct.
             // Boolean variables created for performing bit-blasting are reused.
@@ -1217,7 +1262,7 @@ namespace smt {
             propagate_bits();
 
 #if WATCH_DISEQ
-            if (!ctx.inconsistent() && m_diseq_watch.size() > static_cast<unsigned>(v)) {
+            if (!get_context().inconsistent() && m_diseq_watch.size() > static_cast<unsigned>(v)) {
                 unsigned sz = m_diseq_watch[v].size();
                 for (unsigned i = 0; i < sz; ++i) {
                     auto const & p = m_diseq_watch[v][i];
@@ -1230,6 +1275,7 @@ namespace smt {
     }
     
     void theory_bv::propagate_bits() {
+        context & ctx = get_context();
         for (unsigned i = 0; i < m_prop_queue.size(); i++) {
             var_pos const & entry = m_prop_queue[i];
             theory_var v          = entry.first;
@@ -1281,6 +1327,8 @@ namespace smt {
     void theory_bv::assign_bit(literal consequent, theory_var v1, theory_var v2, unsigned idx, literal antecedent, bool propagate_eqc) {
 
         m_stats.m_num_bit2core++;
+        context & ctx = get_context();
+        ast_manager & m = get_manager();
         SASSERT(ctx.get_assignment(antecedent) == l_true);
         SASSERT(m_bits[v2][idx].var() == consequent.var());
         SASSERT(consequent.var() != antecedent.var());
@@ -1341,6 +1389,8 @@ namespace smt {
     }
 
     void theory_bv::relevant_eh(app * n) {
+        ast_manager & m = get_manager();
+        context & ctx   = get_context();
         TRACE("bv", tout << "relevant: " << ctx.e_internalized(n) << ": " << mk_pp(n, m) << "\n";);
         if (m.is_bool(n)) {
             bool_var v = ctx.get_bool_var(n);
@@ -1400,8 +1450,8 @@ namespace smt {
         m_diseq_watch_lim.shrink(m_diseq_watch_lim.size()-num_scopes);
 #endif
         theory::pop_scope_eh(num_scopes);
-        TRACE("bv_verbose", m_find.display(tout << ctx.get_scope_level() << " - " 
-                                   << num_scopes << " = " << (ctx.get_scope_level() - num_scopes) << "\n"););
+        TRACE("bv_verbose", m_find.display(tout << get_context().get_scope_level() << " - " 
+                                   << num_scopes << " = " << (get_context().get_scope_level() - num_scopes) << "\n"););
     }
 
     final_check_status theory_bv::final_check_eh() {
@@ -1435,14 +1485,14 @@ namespace smt {
     }
 
     smt_params const& theory_bv::params() const { 
-        return ctx.get_fparams(); 
+        return get_context().get_fparams(); 
     }
 
-    theory_bv::theory_bv(context& ctx):
-        theory(ctx, ctx.get_manager().mk_family_id("bv")),
-        m_util(ctx.get_manager()),
-        m_autil(ctx.get_manager()),
-        m_bb(ctx.get_manager(), ctx.get_fparams()),
+    theory_bv::theory_bv(ast_manager & m, bit_blaster_params const & bb_params):
+        theory(m.mk_family_id("bv")),
+        m_util(m),
+        m_autil(m),
+        m_bb(m, bb_params),
         m_trail_stack(*this),
         m_find(*this),
         m_approximates_large_bvs(false) {
@@ -1454,7 +1504,7 @@ namespace smt {
     }
 
     theory* theory_bv::mk_fresh(context* new_ctx) {
-        return alloc(theory_bv, *new_ctx);
+        return alloc(theory_bv, new_ctx->get_manager(), new_ctx->get_fparams()); 
     }
 
     
@@ -1466,6 +1516,7 @@ namespace smt {
             return; // conflict was detected
         }
         m_prop_queue.reset();
+        context & ctx                 = get_context();
         literal_vector & bits1        = m_bits[v1];
         literal_vector & bits2        = m_bits[v2];
         SASSERT(bits1.size() == bits2.size());
@@ -1629,7 +1680,7 @@ namespace smt {
     };
 
     inline justification * theory_bv::mk_bit_eq_justification(theory_var v1, theory_var v2, literal consequent, literal antecedent) {
-        return ctx.mk_justification(bit_eq_justification(get_id(), get_enode(v1), get_enode(v2), consequent, antecedent));
+        return get_context().mk_justification(bit_eq_justification(get_id(), get_enode(v1), get_enode(v2), consequent, antecedent));
     }
 
     void theory_bv::unmerge_eh(theory_var v1, theory_var v2) {
@@ -1666,9 +1717,9 @@ namespace smt {
         // SASSERT(check_zero_one_bits(v2));
     }
 
-    void theory_bv::init_model(model_generator & mg) {
-        m_factory = alloc(bv_factory, m);
-        mg.register_factory(m_factory);
+    void theory_bv::init_model(model_generator & m) {
+        m_factory = alloc(bv_factory, get_manager());
+        m.register_factory(m_factory);
     }
 
     model_value_proc * theory_bv::mk_value(enode * n, model_generator & mg) {
@@ -1693,6 +1744,7 @@ namespace smt {
         out.width(4);
         out << get_enode(find(v))->get_owner_id();
         out << std::right << ", bits:";
+        context & ctx = get_context();
         literal_vector const & bits = m_bits[v];
         for (literal lit : bits) {
             out << " " << lit << ":";
@@ -1705,6 +1757,7 @@ namespace smt {
     }
 
     void theory_bv::display_bit_atom(std::ostream & out, bool_var v, bit_atom const * a) const {
+        context & ctx = get_context();
         out << "#" << ctx.bool_var2expr(v)->get_id() << " ->";
         var_pos_occ * curr = a->m_occs;
         while (curr) {
@@ -1716,6 +1769,7 @@ namespace smt {
 
     void theory_bv::display_atoms(std::ostream & out) const {
         out << "atoms:\n";
+        context & ctx = get_context();
         unsigned num  = ctx.get_num_bool_vars();
         for (unsigned v = 0; v < num; v++) {
             atom * a = get_bv2a(v);
@@ -1744,6 +1798,7 @@ namespace smt {
     }
 
     bool theory_bv::check_assignment(theory_var v) {
+        context & ctx   = get_context();
         if (!is_root(v))
             return true;
         if (!ctx.is_relevant(get_enode(v))) {
@@ -1788,7 +1843,7 @@ namespace smt {
        \remark The method does nothing if v is not the root of the equivalence class.
     */
     bool theory_bv::check_zero_one_bits(theory_var v) {
-        if (ctx.inconsistent())
+        if (get_context().inconsistent())
             return true; // property is only valid if the context is not in a conflict.
         if (is_root(v) && is_bv(v)) {
             bool_vector bits[2];
@@ -1832,9 +1887,9 @@ namespace smt {
     }
 
     bool theory_bv::check_invariant() {
-        if (m.limit().get_cancel_flag())
+        if (get_manager().limit().get_cancel_flag())
             return true;
-        if (ctx.inconsistent())
+        if (get_context().inconsistent())
             return true;
         unsigned num = get_num_vars();
         for (unsigned v = 0; v < num; v++) {

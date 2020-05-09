@@ -88,6 +88,7 @@ namespace smt {
 
     bool theory_str::fixed_length_reduce_suffix(smt::kernel & subsolver, expr_ref f, expr_ref & cex) {
         ast_manager & m = get_manager();
+        context & ctx = get_context();
 
         ast_manager & sub_m = subsolver.m();
         context & sub_ctx = subsolver.get_context();
@@ -150,6 +151,7 @@ namespace smt {
 
     bool theory_str::fixed_length_reduce_negative_suffix(smt::kernel & subsolver, expr_ref f, expr_ref & cex) {
         ast_manager & m = get_manager();
+        context & ctx = get_context();
 
         ast_manager & sub_m = subsolver.m();
         context & sub_ctx = subsolver.get_context();
@@ -204,6 +206,7 @@ namespace smt {
 
     bool theory_str::fixed_length_reduce_prefix(smt::kernel & subsolver, expr_ref f, expr_ref & cex) {
         ast_manager & m = get_manager();
+        context & ctx = get_context();
 
         ast_manager & sub_m = subsolver.m();
         context & sub_ctx = subsolver.get_context();
@@ -266,6 +269,7 @@ namespace smt {
 
     bool theory_str::fixed_length_reduce_negative_prefix(smt::kernel & subsolver, expr_ref f, expr_ref & cex) {
         ast_manager & m = get_manager();
+        context & ctx = get_context();
 
         ast_manager & sub_m = subsolver.m();
         context & sub_ctx = subsolver.get_context();
@@ -319,6 +323,7 @@ namespace smt {
 
     bool theory_str::fixed_length_reduce_contains(smt::kernel & subsolver, expr_ref f, expr_ref & cex) {
         ast_manager & m = get_manager();
+        context & ctx = get_context();
 
         ast_manager & sub_m = subsolver.m();
         context & sub_ctx = subsolver.get_context();
@@ -386,6 +391,7 @@ namespace smt {
 
     bool theory_str::fixed_length_reduce_negative_contains(smt::kernel & subsolver, expr_ref f, expr_ref & cex) {
         ast_manager & m = get_manager();
+        context & ctx = get_context();
 
         ast_manager & sub_m = subsolver.m();
         context & sub_ctx = subsolver.get_context();
@@ -457,6 +463,7 @@ namespace smt {
 
     bool theory_str::fixed_length_reduce_regex_membership(smt::kernel & subsolver, expr_ref f, expr_ref & cex, bool polarity) {
         ast_manager & m = get_manager();
+        context & ctx = get_context();
 
         ast_manager & sub_m = subsolver.m();
         context & sub_ctx = subsolver.get_context();
@@ -769,6 +776,7 @@ namespace smt {
 
     bool theory_str::fixed_length_reduce_eq(smt::kernel & subsolver, expr_ref lhs, expr_ref rhs, expr_ref & cex) {
         ast_manager & m = get_manager();
+        context & ctx = get_context();
 
         ast_manager & sub_m = subsolver.m();
         context & sub_ctx = subsolver.get_context();
@@ -865,6 +873,7 @@ namespace smt {
 
         TRACE("str",
             ast_manager & m = get_manager();
+            context & ctx = get_context();
             tout << "dumping all formulas:" << std::endl;
             for (expr_ref_vector::iterator i = formulas.begin(); i != formulas.end(); ++i) {
                 expr * ex = *i;
@@ -1145,6 +1154,7 @@ namespace smt {
                         if (m.is_true(f_new)) {
                             // do nothing
                         } else if (m.is_false(f_new)) {
+                            context & ctx = get_context();
                             expr * needle = nullptr, *haystack = nullptr;
                             if (u.str.is_contains(f, haystack, needle)) {
                                 expr_ref haystack_assignment(m);
