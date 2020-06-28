@@ -6,8 +6,8 @@ Module Name:
     nla_core.cpp
 
 Author:
-    Nikolaj Bjorner (nbjorner)
     Lev Nachmanson (levnach)
+    Nikolaj Bjorner (nbjorner)
 
 --*/
 #include "math/lp/nla_core.h"
@@ -18,6 +18,8 @@ Author:
 #include "math/dd/pdd_eval.h"
 namespace nla {
 
+typedef lp::lar_term term;
+
 core::core(lp::lar_solver& s, reslimit & lim) :
     m_evars(),
     m_lar_solver(s),
@@ -26,11 +28,14 @@ core::core(lp::lar_solver& s, reslimit & lim) :
     m_order(this),
     m_monotone(this),
     m_intervals(this, lim),
+    m_monomial_bounds(this),
     m_horner(this),
     m_pdd_manager(s.number_of_vars()),
     m_pdd_grobner(lim, m_pdd_manager),
     m_emons(m_evars),
-    m_reslim(lim)
+    m_reslim(lim),
+    m_use_nra_model(false),
+    m_nra(s, lim, *this)
 {}
     
 bool core::compare_holds(const rational& ls, llc cmp, const rational& rs) const {
@@ -133,13 +138,13 @@ void core::add_monic(lpvar v, unsigned sz, lpvar const* vs) {
 }
     
 void core::push() {
-    TRACE("nla_solver",);
+    TRACE("nla_solver_verbose", tout << "\n";);
     m_emons.push();
 }
 
      
 void core::pop(unsigned n) {
-    TRACE("nla_solver", tout << "n = " << n << "\n";);
+    TRACE("nla_solver_verbose", tout << "n = " << n << "\n";);
     m_emons.pop(n);
     SASSERT(elists_are_consistent(false));
 }
@@ -160,32 +165,16 @@ bool core::check_monic(const monic& m) const {
     return ret;
 }
     
-void core::explain(const monic& m, lp::explanation& exp) const {       
-    for (lpvar j : m.vars())
-        explain(j, exp);
-}
-
-void core::explain(const factor& f, lp::explanation& exp) const {
-    if (f.type() == factor_type::VAR) {
-        explain(f.var(), exp);
-    } else {
-        explain(m_emons[f.var()], exp);
-    }
-}
-
-void core::explain(lpvar j, lp::explanation& exp) const {
-    m_evars.explain(j, exp);
-}
 
 template <typename T>
 std::ostream& core::print_product(const T & m, std::ostream& out) const {
     bool first = true;
     for (lpvar v : m) {
         if (!first) out << "*"; else first = false;
-        if (lp_settings().m_print_external_var_name)
+        if (lp_settings().print_external_var_name())
             out << "(" << m_lar_solver.get_variable_name(v) << "=" << val(v) << ")";
         else
-            out << "(j" << v << " =" << val(v) << ")";
+            out << "(j" << v << " = " << val(v) << ")";
             
     }
     return out;
@@ -208,8 +197,7 @@ std::ostream & core::print_factor(const factor& f, std::ostream& out) const {
     if (f.sign())
         out << "- ";
     if (f.is_var()) {
-        out << "VAR,  ";
-        print_var(f.var(), out);
+        out << "VAR,  " << pp(f.var());
     } else {
         out << "MON, v" << m_emons[f.var()] << " = ";
         print_product(m_emons[f.var()].rvars(), out);
@@ -220,7 +208,7 @@ std::ostream & core::print_factor(const factor& f, std::ostream& out) const {
 
 std::ostream & core::print_factor_with_vars(const factor& f, std::ostream& out) const {
     if (f.is_var()) {
-        print_var(f.var(), out);
+        out << pp(f.var());
     } 
     else {
         out << " MON = " << pp_mon_with_vars(*this, m_emons[f.var()]);
@@ -229,7 +217,7 @@ std::ostream & core::print_factor_with_vars(const factor& f, std::ostream& out) 
 }
 
 std::ostream& core::print_monic(const monic& m, std::ostream& out) const {
-    if (lp_settings().m_print_external_var_name)
+    if (lp_settings().print_external_var_name())
         out << "([" << m.var() << "] = " << m_lar_solver.get_variable_name(m.var()) << " = " << val(m.var()) << " = ";
     else 
         out << "(j" << m.var() << " = " << val(m.var()) << " = ";
@@ -240,10 +228,7 @@ std::ostream& core::print_monic(const monic& m, std::ostream& out) const {
 
 std::ostream& core::print_bfc(const factorization& m, std::ostream& out) const {
     SASSERT(m.size() == 2);
-    out << "( x = ";
-    print_factor(m[0], out);
-    out <<  "* y = ";
-    print_factor(m[1], out); out <<  ")";
+    out << "( x = " << pp(m[0]) << "* y = " << pp(m[1]) << ")";
     return out;
 }
 
@@ -260,7 +245,7 @@ std::ostream& core::print_product_with_vars(const T& m, std::ostream& out) const
 }
 
 std::ostream& core::print_monic_with_vars(const monic& m, std::ostream& out) const {
-    out << "["; print_var(m.var(), out) << "]\n";
+    out << "[" << pp(m.var()) << "]\n";
     out << "vars:"; print_product_with_vars(m.vars(), out) << "\n";
     if (m.vars() == m.rvars())
         out << "same rvars, and m.rsign = " << m.rsign() << " of course\n";
@@ -274,9 +259,9 @@ std::ostream& core::print_monic_with_vars(const monic& m, std::ostream& out) con
 std::ostream& core::print_explanation(const lp::explanation& exp, std::ostream& out) const {
     out << "expl: ";
     unsigned i = 0;
-    for (auto &p : exp) {
-        out << "(" << p.second << ")";
-        m_lar_solver.constraints().display(out, [this](lpvar j) { return var_str(j);}, p.second);
+    for (auto p : exp) {
+        out << "(" << p.ci() << ")";
+        m_lar_solver.constraints().display(out, [this](lpvar j) { return var_str(j);}, p.ci());
         if (++i < exp.size())
             out << "      ";
     }
@@ -318,7 +303,7 @@ bool core::explain_lower_bound(const lp::lar_term& t, const rational& rs, lp::ex
     return true;
 }
 
-bool core:: explain_coeff_lower_bound(const lp::lar_term::ival& p, rational& bound, lp::explanation& e) const {
+bool core::explain_coeff_lower_bound(const lp::lar_term::ival& p, rational& bound, lp::explanation& e) const {
     const rational& a = p.coeff();
     SASSERT(!a.is_zero());
     unsigned c; // the index for the lower or the upper bound
@@ -327,7 +312,7 @@ bool core:: explain_coeff_lower_bound(const lp::lar_term::ival& p, rational& bou
         if (c + 1 == 0)
             return false;
         bound = a * m_lar_solver.get_lower_bound(p.column()).x;
-        e.add(c);
+        e.push_back(c);
         return true;
     }
     // a.is_neg()
@@ -335,7 +320,7 @@ bool core:: explain_coeff_lower_bound(const lp::lar_term::ival& p, rational& bou
     if (c + 1 == 0)
         return false;
     bound = a * m_lar_solver.get_upper_bound(p.column()).x;
-    e.add(c);
+    e.push_back(c);
     return true;
 }
 
@@ -349,7 +334,7 @@ bool core::explain_coeff_upper_bound(const lp::lar_term::ival& p, rational& boun
         if (c + 1 == 0)
             return false;
         bound = a * m_lar_solver.get_lower_bound(j).x;
-        e.add(c);
+        e.push_back(c);
         return true;
     }
     // a.is_pos()
@@ -357,12 +342,12 @@ bool core::explain_coeff_upper_bound(const lp::lar_term::ival& p, rational& boun
     if (c + 1 == 0)
         return false;
     bound = a * m_lar_solver.get_upper_bound(j).x;
-    e.add(c);
+    e.push_back(c);
     return true;
 }
     
 // return true iff the negation of the ineq can be derived from the constraints
-bool core:: explain_ineq(const lp::lar_term& t, llc cmp, const rational& rs) {
+bool core::explain_ineq(new_lemma& lemma, const lp::lar_term& t, llc cmp, const rational& rs) {
     // check that we have something like 0 < 0, which is always false and can be safely
     // removed from the lemma
         
@@ -370,7 +355,7 @@ bool core:: explain_ineq(const lp::lar_term& t, llc cmp, const rational& rs) {
         (cmp == llc::LT || cmp == llc::GT || cmp == llc::NE)) return true;
     lp::explanation exp;
     bool r;
-    switch(negate(cmp)) {
+    switch (negate(cmp)) {
     case llc::LE:
         r = explain_upper_bound(t, rs, exp);
         break;
@@ -397,7 +382,7 @@ bool core:: explain_ineq(const lp::lar_term& t, llc cmp, const rational& rs) {
         return false;
     }
     if (r) {
-        current_expl().add(exp);
+        lemma &= exp;
         return true;
     }
         
@@ -409,7 +394,7 @@ bool core:: explain_ineq(const lp::lar_term& t, llc cmp, const rational& rs) {
  if t is an octagon term -+x -+ y try to explain why the term always is
  equal zero
 */
-bool core:: explain_by_equiv(const lp::lar_term& t, lp::explanation& e) const {
+bool core::explain_by_equiv(const lp::lar_term& t, lp::explanation& e) const {
     lpvar i,j;
     bool sign;
     if (!is_octagon_term(t, sign, i, j))
@@ -419,61 +404,14 @@ bool core:: explain_by_equiv(const lp::lar_term& t, lp::explanation& e) const {
             
     m_evars.explain(signed_var(i, false), signed_var(j, sign), e);
     TRACE("nla_solver", tout << "explained :"; m_lar_solver.print_term_as_indices(t, tout););
-    return true;
-            
-}
-    
-void core::mk_ineq(lp::lar_term& t, llc cmp, const rational& rs) {
-    TRACE("nla_solver_details", m_lar_solver.print_term_as_indices(t, tout << "t = "););
-    if (!explain_ineq(t, cmp, rs)) {
-        current_lemma().push_back(ineq(cmp, t, rs));
-        CTRACE("nla_solver", ineq_holds(ineq(cmp, t, rs)), print_ineq(ineq(cmp, t, rs), tout) << "\n";);
-        SASSERT(!ineq_holds(ineq(cmp, t, rs)));
-    }
+    return true;            
 }
 
-void core::mk_ineq_no_expl_check(lp::lar_term& t, llc cmp, const rational& rs) {
+void core::mk_ineq_no_expl_check(new_lemma& lemma, lp::lar_term& t, llc cmp, const rational& rs) {
     TRACE("nla_solver_details", m_lar_solver.print_term_as_indices(t, tout << "t = "););
-    current_lemma().push_back(ineq(cmp, t, rs));
+    lemma |= ineq(cmp, t, rs);
     CTRACE("nla_solver", ineq_holds(ineq(cmp, t, rs)), print_ineq(ineq(cmp, t, rs), tout) << "\n";);
     SASSERT(!ineq_holds(ineq(cmp, t, rs)));
-}
-
-void core::mk_ineq(const rational& a, lpvar j, const rational& b, lpvar k, llc cmp, const rational& rs) {
-    lp::lar_term t;
-    t.add_monomial(a, j);
-    t.add_monomial(b, k);
-    mk_ineq(t, cmp, rs);
-}
-
-void core:: mk_ineq(lpvar j, const rational& b, lpvar k, llc cmp, const rational& rs) {
-    mk_ineq(rational(1), j, b, k, cmp, rs);
-}
-
-void core:: mk_ineq(lpvar j, const rational& b, lpvar k, llc cmp) {
-    mk_ineq(j, b, k, cmp, rational::zero());
-}
-
-void core:: mk_ineq(const rational& a, lpvar j, const rational& b, lpvar k, llc cmp) {
-    mk_ineq(a, j, b, k, cmp, rational::zero());
-}
-
-void core:: mk_ineq(const rational& a ,lpvar j, lpvar k, llc cmp, const rational& rs) {
-    mk_ineq(a, j, rational(1), k, cmp, rs);
-}
-
-void core:: mk_ineq(lpvar j, lpvar k, llc cmp, const rational& rs) {
-    mk_ineq(j, rational(1), k, cmp, rs);
-}
-
-void core:: mk_ineq(lpvar j, llc cmp, const rational& rs) {
-    mk_ineq(rational(1), j, cmp, rs);
-}
-
-void core:: mk_ineq(const rational& a, lpvar j, llc cmp, const rational& rs) {
-    lp::lar_term t;        
-    t.add_monomial(a, j);
-    mk_ineq(t, cmp, rs);
 }
 
 llc apply_minus(llc cmp) {
@@ -485,33 +423,16 @@ llc apply_minus(llc cmp) {
     default: break;
     }
     return cmp;
-}
-    
-void core:: mk_ineq(const rational& a, lpvar j, llc cmp) {
-    mk_ineq(a, j, cmp, rational::zero());
-}
-
-void core:: mk_ineq(lpvar j, lpvar k, llc cmp, lemma& l) {
-    mk_ineq(rational(1), j, rational(1), k, cmp, rational::zero());
-}
-
-void core:: mk_ineq(lpvar j, llc cmp) {
-    mk_ineq(j, cmp, rational::zero());
-}
+}   
     
 // the monics should be equal by modulo sign but this is not so in the model
-void core:: fill_explanation_and_lemma_sign(const monic& a, const monic & b, rational const& sign) {
+void core::fill_explanation_and_lemma_sign(new_lemma& lemma, const monic& a, const monic & b, rational const& sign) {
     SASSERT(sign == 1 || sign == -1);
-    explain(a, current_expl());
-    explain(b, current_expl());
-    TRACE("nla_solver",
-          tout << "used constraints: ";
-          for (auto &p :  current_expl())
-              m_lar_solver.constraints().display(tout, p.second); tout << "\n";
-                                                 );
-    SASSERT(current_ineqs().size() == 0);
-    mk_ineq(rational(1), a.var(), -sign, b.var(), llc::EQ, rational::zero());
-    TRACE("nla_solver", print_lemma(tout););
+    lemma &= a;
+    lemma &= b;
+    TRACE("nla_solver", tout << "used constraints: " << lemma;);
+    SASSERT(lemma.num_ineqs() == 0);
+    lemma |= ineq(term(rational(1), a.var(), -sign, b.var()), llc::EQ, 0);
 }
 
 // Replaces each variable index by the root in the tree and flips the sign if the var comes with a minus.
@@ -524,9 +445,7 @@ svector<lpvar> core::reduce_monic_to_rooted(const svector<lpvar> & vars, rationa
         auto root = m_evars.find(v);
         s ^= root.sign();
         TRACE("nla_solver_eq",
-              print_var(v,tout);
-              tout << " mapped to ";
-              print_var(root.var(), tout););
+              tout << pp(v) << " mapped to " << pp(root.var()) << "\n";);
         ret.push_back(root.var());
     }
     sign = rational(s? -1: 1);
@@ -545,13 +464,6 @@ monic_coeff core::canonize_monic(monic const& m) const {
     return monic_coeff(vars, sign);
 }
 
-lemma& core::current_lemma() { return m_lemma_vec->back(); }
-const lemma& core::current_lemma() const { return m_lemma_vec->back(); }
-vector<ineq>& core::current_ineqs() { return current_lemma().ineqs(); }
-lp::explanation& core::current_expl() { return current_lemma().expl(); }
-const lp::explanation& core::current_expl() const { return current_lemma().expl(); }
-
-
 int core::vars_sign(const svector<lpvar>& v) {
     int sign = 1;
     for (lpvar j : v) {
@@ -561,14 +473,12 @@ int core::vars_sign(const svector<lpvar>& v) {
     }
     return sign;
 }
-
-    
-
-bool core:: has_upper_bound(lpvar j) const {
+   
+bool core::has_upper_bound(lpvar j) const {
     return m_lar_solver.column_has_upper_bound(j);
 } 
 
-bool core:: has_lower_bound(lpvar j) const {
+bool core::has_lower_bound(lpvar j) const {
     return m_lar_solver.column_has_lower_bound(j);
 } 
 const rational& core::get_upper_bound(unsigned j) const {
@@ -577,8 +487,7 @@ const rational& core::get_upper_bound(unsigned j) const {
 
 const rational& core::get_lower_bound(unsigned j) const {
     return m_lar_solver.get_lower_bound(j).x;
-}
-    
+}    
     
 bool core::zero_is_an_inner_point_of_bounds(lpvar j) const {
     if (has_upper_bound(j) && get_upper_bound(j) <= rational(0))            
@@ -612,36 +521,35 @@ bool core::sign_contradiction(const monic& m) const {
 
 /*
   unsigned_vector eq_vars(lpvar j) const {
-  TRACE("nla_solver_eq", tout << "j = "; print_var(j, tout); tout << "eqs = ";
-  for(auto jj : m_evars.eq_vars(j)) {
-  print_var(jj, tout);
+  TRACE("nla_solver_eq", tout << "j = " << pp(j) << "eqs = ";
+  for(auto jj : m_evars.eq_vars(j)) tout << pp(jj) << " ";
   });
   return m_evars.eq_vars(j);
   }
 */
 
-bool core:: var_is_fixed_to_zero(lpvar j) const {
+bool core::var_is_fixed_to_zero(lpvar j) const {
     return 
         m_lar_solver.column_is_fixed(j) &&
         m_lar_solver.get_lower_bound(j) == lp::zero_of_type<lp::impq>();
 }
-bool core:: var_is_fixed_to_val(lpvar j, const rational& v) const {
+bool core::var_is_fixed_to_val(lpvar j, const rational& v) const {
     return 
         m_lar_solver.column_is_fixed(j) &&
         m_lar_solver.get_lower_bound(j) == lp::impq(v);
 }
 
-bool core:: var_is_fixed(lpvar j) const {
+bool core::var_is_fixed(lpvar j) const {
     return m_lar_solver.column_is_fixed(j);
 }
 
-bool core:: var_is_free(lpvar j) const {
+bool core::var_is_free(lpvar j) const {
     return m_lar_solver.column_is_free(j);
 }
     
 std::ostream & core::print_ineq(const ineq & in, std::ostream & out) const {
-    m_lar_solver.print_term_as_indices(in.m_term, out);
-    out << " " << lconstraint_kind_string(in.m_cmp) << " " << in.m_rs;
+    m_lar_solver.print_term_as_indices(in.term(), out);
+    out << " " << lconstraint_kind_string(in.cmp()) << " " << in.rs();
     return out;
 }
 
@@ -678,7 +586,7 @@ std::ostream & core::print_ineqs(const lemma& l, std::ostream & out) const {
             auto & in = l.ineqs()[i]; 
             print_ineq(in, out);
             if (i + 1 < l.ineqs().size()) out << " or ";
-            for (const auto & p: in.m_term)
+            for (const auto & p: in.term())
                 vars.insert(p.column());
         }
         out << std::endl;
@@ -696,8 +604,7 @@ std::ostream & core::print_factorization(const factorization& f, std::ostream& o
     } 
     else {
         for (unsigned k = 0; k < f.size(); k++ ) {
-            out << "(";
-            print_factor(f[k], out) << ")";
+            out << "(" << pp(f[k]) << ")";
             if (k < f.size() - 1)
                 out << "*";
         }
@@ -715,57 +622,24 @@ bool core::is_canonical_monic(lpvar j) const {
 }
 
 
-void core::explain_existing_lower_bound(lpvar j) {
-    SASSERT(has_lower_bound(j));
-    current_expl().add(m_lar_solver.get_column_lower_bound_witness(j));
-}
-
-void core::explain_existing_upper_bound(lpvar j) {
-    SASSERT(has_upper_bound(j));
-    current_expl().add(m_lar_solver.get_column_upper_bound_witness(j));
-}
-    
-void core::explain_separation_from_zero(lpvar j) {
-    SASSERT(!val(j).is_zero());
-    if (val(j).is_pos())
-        explain_existing_lower_bound(j);
-    else
-        explain_existing_upper_bound(j);
-}
-
 void core::trace_print_monic_and_factorization(const monic& rm, const factorization& f, std::ostream& out) const {
     out << "rooted vars: ";
-    print_product(rm.rvars(), out);
-    out << "\n";
-        
-    out << "mon:  " << pp_mon(*this, rm.var()) << "\n";
+    print_product(rm.rvars(), out) << "\n";
+    out << "mon:   " << pp_mon(*this, rm.var()) << "\n";
     out << "value: " << var_val(rm) << "\n";
     print_factorization(f, out << "fact: ") << "\n";
 }
 
-void core::explain_var_separated_from_zero(lpvar j) {
-    SASSERT(var_is_separated_from_zero(j));
-    if (m_lar_solver.column_has_upper_bound(j) && (m_lar_solver.get_upper_bound(j)< lp::zero_of_type<lp::impq>())) 
-        current_expl().add(m_lar_solver.get_column_upper_bound_witness(j));
-    else 
-        current_expl().add(m_lar_solver.get_column_lower_bound_witness(j));
-}
 
-void core::explain_fixed_var(lpvar j) {
-    SASSERT(var_is_fixed(j));
-    current_expl().add(m_lar_solver.get_column_upper_bound_witness(j));
-    current_expl().add(m_lar_solver.get_column_lower_bound_witness(j));
-}
-
-bool core:: var_has_positive_lower_bound(lpvar j) const {
+bool core::var_has_positive_lower_bound(lpvar j) const {
     return m_lar_solver.column_has_lower_bound(j) && m_lar_solver.get_lower_bound(j) > lp::zero_of_type<lp::impq>();
 }
 
-bool core:: var_has_negative_upper_bound(lpvar j) const {
+bool core::var_has_negative_upper_bound(lpvar j) const {
     return m_lar_solver.column_has_upper_bound(j) && m_lar_solver.get_upper_bound(j) < lp::zero_of_type<lp::impq>();
 }
     
-bool core:: var_is_separated_from_zero(lpvar j) const {
+bool core::var_is_separated_from_zero(lpvar j) const {
     return
         var_has_negative_upper_bound(j) ||
         var_has_positive_lower_bound(j);
@@ -776,26 +650,7 @@ bool core::vars_are_equiv(lpvar a, lpvar b) const {
     SASSERT(abs(val(a)) == abs(val(b)));
     return m_evars.vars_are_equiv(a, b);
 }
-
     
-void core::explain_equiv_vars(lpvar a, lpvar b) {
-    SASSERT(abs(val(a)) == abs(val(b)));
-    if (m_evars.vars_are_equiv(a, b)) {
-        explain(a, current_expl());
-        explain(b, current_expl());
-    } else {
-        explain_fixed_var(a);
-        explain_fixed_var(b);
-    }
-}
-
-void core::explain(const factorization& f, lp::explanation& exp) {
-    SASSERT(!f.is_mon());
-    for (const auto& fc : f) {
-        explain(fc, exp);
-    }
-}
-
 bool core::has_zero_factor(const factorization& factorization) const {
     for (factor f : factorization) {
         if (val(f).is_zero())
@@ -806,7 +661,7 @@ bool core::has_zero_factor(const factorization& factorization) const {
 
 
 template <typename T>
-bool core:: mon_has_zero(const T& product) const {
+bool core::mon_has_zero(const T& product) const {
     for (lpvar j: product) {
         if (val(j).is_zero())
             return true;
@@ -846,12 +701,12 @@ void core::collect_equivs() {
 
 // returns true iff the term is in a form +-x-+y.
 // the sign is true iff the term is x+y, -x-y.
-bool core:: is_octagon_term(const lp::lar_term& t, bool & sign, lpvar& i, lpvar &j) const {
+bool core::is_octagon_term(const lp::lar_term& t, bool & sign, lpvar& i, lpvar &j) const {
     if (t.size() != 2)
         return false;
     bool seen_minus = false;
     bool seen_plus = false;
-    i = -1;
+    i = null_lpvar;
     for(const auto & p : t) {
         const auto & c = p.coeff();
         if (c == 1) {
@@ -861,12 +716,12 @@ bool core:: is_octagon_term(const lp::lar_term& t, bool & sign, lpvar& i, lpvar 
         } else {
             return false;
         }
-        if (i == static_cast<lpvar>(-1))
+        if (i == null_lpvar)
             i = p.column();
         else
             j = p.column();
     }
-    SASSERT(j != static_cast<unsigned>(-1));
+    SASSERT(j != null_lpvar);
     sign = (seen_minus && seen_plus)? false : true;
     return true;
 }
@@ -898,14 +753,14 @@ bool core::rm_table_is_ok() const {
     return true;
 }
     
-bool core:: tables_are_ok() const {
+bool core::tables_are_ok() const {
     return vars_table_is_ok() && rm_table_is_ok();
 }
     
-bool core:: var_is_a_root(lpvar j) const { return m_evars.is_root(j); }
+bool core::var_is_a_root(lpvar j) const { return m_evars.is_root(j); }
 
 template <typename T>
-bool core:: vars_are_roots(const T& v) const {
+bool core::vars_are_roots(const T& v) const {
     for (lpvar j: v) {
         if (!var_is_a_root(j))
             return false;
@@ -994,13 +849,13 @@ std::unordered_set<lpvar> core::collect_vars(const lemma& l) const {
         }
     };
     
-    for (const auto& i : current_lemma().ineqs()) {
+    for (const auto& i : l.ineqs()) {
         for (const auto& p : i.term()) {                
             insert_j(p.column());
         }
     }
-    for (const auto& p : current_expl()) {
-        const auto& c = m_lar_solver.constraints()[p.second];
+    for (const auto& p : l.expl()) {
+        const auto& c = m_lar_solver.constraints()[p.ci()];
         for (const auto& r : c.coeffs()) {
             insert_j(r.second);
         }
@@ -1033,20 +888,12 @@ bool core::divide(const monic& bc, const factor& c, factor & b) const {
     // Dividing by bc.rvars() we get canonize_sign(bc) = canonize_sign(b)*canonize_sign(c)
     // Currently, canonize_sign(b) is 1, we might need to adjust it
     b.sign() = canonize_sign(b) ^ canonize_sign(c) ^ canonize_sign(bc); 
-    TRACE("nla_solver", tout << "success div:"; print_factor(b, tout););
+    TRACE("nla_solver", tout << "success div:" << pp(b) << "\n";);
     return true;
 }
 
-void core::negate_var_relation_strictly(lpvar a, lpvar b) {
-    SASSERT(val(a) != val(b));
-    if (val(a) < val(b)) {
-        mk_ineq(a, -rational(1), b, llc::GT);
-    } else {
-        mk_ineq(a, -rational(1), b, llc::LT);        
-    }
-}
 
-void core::negate_factor_equality(const factor& c,
+void core::negate_factor_equality(new_lemma& lemma, const factor& c,
                                   const factor& d) {
     if (c == d)
         return;
@@ -1054,35 +901,25 @@ void core::negate_factor_equality(const factor& c,
     lpvar j = var(d);
     auto iv = val(i), jv = val(j);
     SASSERT(abs(iv) == abs(jv));
-    if (iv == jv) {
-        mk_ineq(i, -rational(1), j, llc::NE);
-    } else { // iv == -jv
-        mk_ineq(i, j, llc::NE, current_lemma());                
-    }
+    lemma |= ineq(term(i, rational(iv == jv ? -1 : 1), j), llc::NE, 0);    
 }
     
-void core::negate_factor_relation(const rational& a_sign, const factor& a, const rational& b_sign, const factor& b) {
+void core::negate_factor_relation(new_lemma& lemma, const rational& a_sign, const factor& a, const rational& b_sign, const factor& b) {
     rational a_fs = sign_to_rat(canonize_sign(a));
     rational b_fs = sign_to_rat(canonize_sign(b));
     llc cmp = a_sign*val(a) < b_sign*val(b)? llc::GE : llc::LE;
-    mk_ineq(a_fs*a_sign, var(a), - b_fs*b_sign, var(b), cmp);
+    lemma |= ineq(term(a_fs*a_sign, var(a), - b_fs*b_sign, var(b)), cmp, 0);
 }
 
-std::ostream& core::print_lemma(std::ostream& out) const {
-    print_specific_lemma(current_lemma(), out);
-    return out;
-}
-
-void core::print_specific_lemma(const lemma& l, std::ostream& out) const {
+std::ostream& core::print_lemma(const lemma& l, std::ostream& out) const {
     static int n = 0;
-    out << "lemma:" << ++n << " ";
+    out << "lemma:" << ++n << " ";    
     print_ineqs(l, out);
-    print_explanation(l.expl(), out);
-    std::unordered_set<lpvar> vars = collect_vars(current_lemma());
-        
-    for (lpvar j : vars) {
+    print_explanation(l.expl(), out);        
+    for (lpvar j : collect_vars(l)) {
         print_var(j, out);
     }
+    return out;
 }
     
 
@@ -1140,57 +977,6 @@ bool core::rm_check(const monic& rm) const {
     return check_monic(m_emons[rm.var()]);
 }
 
-/**
-   \brief Add |v| ~ |bound|
-   where ~ is <, <=, >, >=, 
-   and bound = val(v)
-
-   |v| > |bound| 
-   <=> 
-   (v < 0 or v > |bound|) & (v > 0 or -v > |bound|)        
-   => Let s be the sign of val(v)
-   (s*v < 0 or s*v > |bound|)         
-
-   |v| < |bound|
-   <=>
-   v < |bound| & -v < |bound| 
-   => Let s be the sign of val(v)
-   s*v < |bound|
-
-*/
-
-void core::add_abs_bound(lpvar v, llc cmp) {
-    add_abs_bound(v, cmp, val(v));
-}
-
-void core::add_abs_bound(lpvar v, llc cmp, rational const& bound) {
-    SASSERT(!val(v).is_zero());
-    lp::lar_term t;  // t = abs(v)
-    t.add_monomial(rrat_sign(val(v)), v);
-
-    switch (cmp) {
-    case llc::GT:
-    case llc::GE:  // negate abs(v) >= 0
-        mk_ineq(t, llc::LT, rational(0));
-        break;
-    case llc::LT:
-    case llc::LE:
-        break;
-    default:
-        UNREACHABLE();
-        break;
-    }
-    mk_ineq(t, cmp, abs(bound));
-}
-
-// NB - move this comment to monotonicity or appropriate.
-/** \brief enforce the inequality |m| <= product |m[i]| .
-    by enforcing lemma:
-    /\_i |m[i]| <= |val(m[i])| => |m| <= |product_i val(m[i])|
-    <=>
-    \/_i |m[i]| > |val(m[i])} or |m| <= |product_i val(m[i])|
-*/
-
     
 bool core::find_bfc_to_refine_on_monic(const monic& m, factorization & bf) {
     for (auto f : factorization_factory_imp(m, *this)) {
@@ -1218,6 +1004,8 @@ bool core::find_bfc_to_refine(const monic* & m, factorization & bf){
         lpvar i = m_to_refine[(k + r) % sz];
         m = &m_emons[i];
         SASSERT (!check_monic(*m));
+        if (has_real(m))
+            continue;
         if (m->size() == 2) {
             bf.set_mon(m);
             bf.push_back(factor(m->vars()[0], factor_type::VAR));
@@ -1243,18 +1031,138 @@ rational core::val(const factorization& f) const {
     return r;
 }
 
-void core::add_lemma() {
-    m_lemma_vec->push_back(lemma()); 
+new_lemma::new_lemma(core& c, char const* name):name(name), c(c) {
+    c.m_lemma_vec->push_back(lemma());
+}
+
+new_lemma& new_lemma::operator|=(ineq const& ineq) {
+    if (!c.explain_ineq(*this, ineq.term(), ineq.cmp(), ineq.rs())) {
+        CTRACE("nla_solver", c.ineq_holds(ineq), c.print_ineq(ineq, tout) << "\n";);
+        SASSERT(!c.ineq_holds(ineq));
+        current().push_back(ineq);
+    }
+    return *this;
 }
     
-void core::negate_relation(unsigned j, const rational& a) {
-    SASSERT(val(j) != a);
-    if (val(j) < a) {
-        mk_ineq(j, llc::GE, a);
+
+new_lemma::~new_lemma() {
+    static int i = 0;
+    (void)i;
+    // code for checking lemma can be added here
+    TRACE("nla_solver", tout << name << " " << (++i) << "\n" << *this; );
+}
+
+lemma& new_lemma::current() const {
+    return c.m_lemma_vec->back();
+}
+
+new_lemma& new_lemma::operator&=(lp::explanation const& e) {
+    expl().add_expl(e);
+    return *this;
+}
+
+new_lemma& new_lemma::operator&=(const monic& m) {
+    for (lpvar j : m.vars())
+        *this &= j;
+    return *this;
+}
+
+new_lemma& new_lemma::operator&=(const factor& f) {
+    if (f.type() == factor_type::VAR) 
+        *this &= f.var();
+    else 
+        *this &= c.m_emons[f.var()];
+    return *this;
+}
+
+new_lemma& new_lemma::operator&=(const factorization& f) {
+    if (f.is_mon())
+        return *this;
+    for (const auto& fc : f) {
+        *this &= fc;
+    }
+    return *this;
+}
+
+new_lemma& new_lemma::operator&=(lpvar j) {
+    c.m_evars.explain(j, expl());
+    return *this;
+}
+
+new_lemma& new_lemma::explain_fixed(lpvar j) {
+    SASSERT(c.var_is_fixed(j));
+    explain_existing_lower_bound(j);
+    explain_existing_upper_bound(j);
+    return *this;
+}
+
+new_lemma& new_lemma::explain_equiv(lpvar a, lpvar b) {
+    SASSERT(abs(c.val(a)) == abs(c.val(b)));
+    if (c.vars_are_equiv(a, b)) {
+        *this &= a;
+        *this &= b;
+    } else {
+        explain_fixed(a);
+        explain_fixed(b);
+    }
+    return *this;
+}
+
+new_lemma& new_lemma::explain_var_separated_from_zero(lpvar j) {
+    SASSERT(c.var_is_separated_from_zero(j));
+    if (c.m_lar_solver.column_has_upper_bound(j) && 
+        (c.m_lar_solver.get_upper_bound(j)< lp::zero_of_type<lp::impq>())) 
+        explain_existing_upper_bound(j);
+    else 
+        explain_existing_lower_bound(j);
+    return *this;
+}
+
+new_lemma& new_lemma::explain_existing_lower_bound(lpvar j) {
+    SASSERT(c.has_lower_bound(j));
+    lp::explanation ex;
+    ex.push_back(c.m_lar_solver.get_column_lower_bound_witness(j));
+    *this &= ex;
+    TRACE("nla_solver", tout << j << ": " << *this << "\n";);
+    return *this;
+}
+
+new_lemma& new_lemma::explain_existing_upper_bound(lpvar j) {
+    SASSERT(c.has_upper_bound(j));
+    lp::explanation ex;
+    ex.push_back(c.m_lar_solver.get_column_upper_bound_witness(j));
+    *this &= ex;
+    return *this;
+}
+    
+std::ostream& new_lemma::display(std::ostream & out) const {
+    auto const& lemma = current();
+
+    for (auto p : lemma.expl()) {
+        out << "(" << p.ci() << ") ";
+        c.m_lar_solver.constraints().display(out, [this](lpvar j) { return c.var_str(j);}, p.ci());
+    }
+    out << " ==> ";
+    if (lemma.ineqs().empty()) {
+        out << "false";
     }
     else {
-        mk_ineq(j, llc::LE, a);
+        bool first = true;
+        for (auto & in : lemma.ineqs()) {
+            if (first) first = false; else out << " or ";
+            c.print_ineq(in, out);
+        }
     }
+    out << "\n";
+    for (lpvar j : c.collect_vars(lemma)) {
+        c.print_var(j, out);
+    }
+    return out;
+}
+    
+void core::negate_relation(new_lemma& lemma, unsigned j, const rational& a) {
+    SASSERT(val(j) != a);
+    lemma |= ineq(j, val(j) < a ? llc::GE : llc::LE, a);   
 }
 
 bool core::conflict_found() const {
@@ -1269,46 +1177,6 @@ bool core::done() const {
     return m_lemma_vec->size() >= 10 || 
         conflict_found() || 
         lp_settings().get_cancel_flag();
-}
-
-lbool core::incremental_linearization(bool constraint_derived) {
-    TRACE("nla_solver_details", print_terms(tout); tout << m_lar_solver.constraints(););
-    for (int search_level = 0; search_level < 3 && !done(); search_level++) {
-        TRACE("nla_solver", tout << "constraint_derived = " << constraint_derived << ", search_level = " << search_level << "\n";);
-        if (search_level == 0) {
-            m_basics.basic_lemma(constraint_derived);
-            if (!m_lemma_vec->empty())
-                return l_false;
-        }
-        if (constraint_derived) continue;
-        TRACE("nla_solver", tout << "passed constraint_derived and basic lemmas\n";);
-        SASSERT(elists_are_consistent(true));
-        if (search_level == 1) {
-            m_order.order_lemma();
-        } else if (search_level == 2) {
-            m_monotone. monotonicity_lemma();
-            m_tangents.tangent_lemma();
-        }
-    }
-    return m_lemma_vec->empty()? l_undef : l_false;
-}
-// constraint_derived is set to true when we do not use the model values to
-// obtain the lemmas
-lbool core::inner_check(bool constraint_derived) {
-    if (constraint_derived) {
-        if (need_to_call_algebraic_methods())
-            if (!m_horner.horner_lemmas()) {
-                clear_and_resize_active_var_set();
-                if (m_nla_settings.run_grobner()) {
-                    find_nl_cluster();
-                    run_grobner();
-                }
-            }
-        if (done()) {
-            return l_false;
-        }
-    }
-    return incremental_linearization(constraint_derived);
 }
 
 bool core::elist_is_consistent(const std::unordered_set<lpvar> & list) const {
@@ -1339,17 +1207,34 @@ bool core::elists_are_consistent(bool check_in_model) const {
     return true;
 }
 
-bool core::var_is_used_in_a_correct_monic(lpvar j) const {
-    if (emons().is_monic_var(j)) {
-        if (!m_to_refine.contains(j))
-            return true;
-    }
-    for (const monic & m : emons().get_use_list(j)) {
-        if (!m_to_refine.contains(m.var())) {
-            TRACE("nla_solver", tout << "j" << j << " is used in a correct monic \n";);
-            return true;
+bool core::var_breaks_correct_monic_as_factor(lpvar j, const monic& m) const {
+    if (!val(var(m)).is_zero())
+        return true;
+    
+    if (!val(j).is_zero()) // j was not zero: the new value does not matter - m must have another zero factor
+        return false;
+    // do we have another zero in m?       
+    for (lpvar k : m) {
+        if (k != j && val(k).is_zero()) {
+            return false; // not breaking
         }
     }
+    // j was the only zero in m
+    return true;
+}
+
+bool core::var_breaks_correct_monic(lpvar j) const {
+    if (emons().is_monic_var(j) && !m_to_refine.contains(j)) {
+        TRACE("nla_solver", tout << "j = " << j << ", m  = "; print_monic(emons()[j], tout) << "\n";);
+        return true; // changing the value of a correct monic
+    }
+    
+    for (const monic & m : emons().get_use_list(j)) {
+        if (m_to_refine.contains(m.var()))
+            continue;
+        if (var_breaks_correct_monic_as_factor(j, m))
+            return true;
+    }            
 
     return false;
 }
@@ -1371,9 +1256,7 @@ void core::update_to_refine_of_var(lpvar j) {
 }
 
 bool core::var_is_big(lpvar j) const {
-    if (var_is_int(j))
-        return false;
-    return val(j).is_big();
+    return !var_is_int(j) && val(j).is_big();
 }
 
 bool core::has_big_num(const monic& m) const {
@@ -1385,28 +1268,58 @@ bool core::has_big_num(const monic& m) const {
     return false;
 }
 
-bool core::patch_blocker(lpvar u, const monic& m) const {
-    SASSERT(m_to_refine.contains(m.var()));
-    if (var_is_used_in_a_correct_monic(u)) {
+bool core::has_real(const factorization& f) const {
+    for (const factor& fc: f) {
+        lpvar j = var(fc);
+        if (!var_is_int(j))
+            return true;
+    }
+    return false;
+}
+
+bool core::has_real(const monic& m) const {
+    for (lpvar j : m.vars())
+        if (!var_is_int(j))
+            return true;
+    return false;
+}
+
+// returns true if the patching is blocking
+bool core::is_patch_blocked(lpvar u, const lp::impq& ival) const {
+    TRACE("nla_solver", tout << "u = " << u << '\n';);
+    if (m_cautious_patching &&
+        (!m_lar_solver.inside_bounds(u, ival) || (var_is_int(u) && ival.is_int() == false))) {
+        TRACE("nla_solver", tout << "u = " << u << " blocked, for feas or integr\n";);
+        return true; // block
+    }
+
+    if (u == m_patched_var) {
+        TRACE("nla_solver", tout << "u == m_patched_var, no block\n";);
+        
+        return false; // do not block
+    }
+    // we can change only one variable in variables of m_patched_var
+    if (m_patched_monic->contains_var(u) || u == var(*m_patched_monic)) {
+        TRACE("nla_solver", tout << "u = " << u << " blocked as contained\n";);
+        return true; // block
+    }
+    
+    if (var_breaks_correct_monic(u)) {
         TRACE("nla_solver", tout << "u = " << u << " blocked as used in a correct monomial\n";);
         return true;
     }
     
-    bool ret = u == m.var() || m.contains_var(u);
+    TRACE("nla_solver", tout << "u = " << u << ", m_patched_m  = "; print_monic(*m_patched_monic, tout) <<
+          ", not blocked\n";);
     
-    TRACE("nla_solver", tout << "u = " << u << ", m  = "; print_monic(m, tout) <<
-          "ret = " << ret << "\n";);
-    
-    return ret;
+    return false;
 }
 
-bool core::try_to_patch(lpvar k, const rational& v, const monic & m) {
-    return m_lar_solver.try_to_patch(k, v,
-                                     [this, k, m](lpvar u) {
-                                         if (u == k)
-                                             return false; // ok to patch
-                                         return patch_blocker(u, m); },
-                                     [this](lpvar u) { update_to_refine_of_var(u); });
+// it tries to patch m_patched_var
+bool core::try_to_patch(const rational& v) {
+    auto is_blocked = [this](lpvar u, const lp::impq& iv)  { return is_patch_blocked(u, iv); };
+    auto change_report = [this](lpvar u) { update_to_refine_of_var(u); };
+    return m_lar_solver.try_to_patch(m_patched_var, v, is_blocked, change_report);
 }
 
 bool in_power(const svector<lpvar>& vs, unsigned l) {
@@ -1429,110 +1342,191 @@ bool core::to_refine_is_correct() const {
     return true;
 }
 
-// looking for any real var to patch
-void core::patch_monomial_with_real_var(lpvar j) {    
-    const monic& m = emons()[j];
-    TRACE("nla_solver", tout << "m = "; print_monic(m, tout) << "\n";);
-    rational v = mul_val(m);
-    SASSERT(j == var(m));
-    if (var_val(m) == v) {
+void core::patch_monomial(lpvar j) {    
+    m_patched_monic =& (emons()[j]);
+    m_patched_var = j;
+    TRACE("nla_solver", tout << "m = "; print_monic(*m_patched_monic, tout) << "\n";);
+    rational v = mul_val(*m_patched_monic);
+    if (val(j) == v) {
         erase_from_to_refine(j);
         return;
     }
-    if (val(j).is_zero() || v.is_zero()) // a lemma will catch it
-        return;
-
-    if (!var_is_int(j) && !var_is_used_in_a_correct_monic(j) && try_to_patch(j, v, m)) {
+    if (!var_breaks_correct_monic(j) && try_to_patch(v)) {
         SASSERT(to_refine_is_correct());        
         return;
     }
-
+  
+    // We could not patch j, now we try patching the factor variables.
+    TRACE("nla_solver", tout << " trying squares\n";);
     // handle perfect squares
-    if (m.vars().size() == 2 && m.vars()[0] == m.vars()[1]) {        
+    if ((*m_patched_monic).vars().size() == 2 && (*m_patched_monic).vars()[0] == (*m_patched_monic).vars()[1]) {        
         rational root;
         if (v.is_perfect_square(root)) {
-            lpvar k = m.vars()[0];
-            if (!var_is_int(k) && 
-                !var_is_used_in_a_correct_monic(k) &&
-                (try_to_patch(k, root, m) || try_to_patch(k, -root, m))
-                ) { 
+            m_patched_var = (*m_patched_monic).vars()[0];
+            if (!var_breaks_correct_monic(m_patched_var) && (try_to_patch(root) || try_to_patch(-root))) { 
+                TRACE("nla_solver", tout << "patched square\n";);
+                return;
             }
         }
+        TRACE("nla_solver", tout << " cannot patch\n";);
         return;
     }
-    // We have v != abc. Let us suppose we patch b. Then b should
-    // be equal to v/ac = v/(abc/b) = b(v/abc)
-    rational r = val(j) / v;
-    SASSERT(m.is_sorted());
-    for (unsigned l = 0; l < m.size(); l++) {
-        lpvar k = m.vars()[l];
-        if (!in_power(m.vars(), l) &&
-            !var_is_int(k) && 
-            !var_is_used_in_a_correct_monic(k) &&
-            try_to_patch(k, r * val(k), m)) { // r * val(k) gives the right value of k
-            SASSERT(mul_val(m) == var_val(m));
-            erase_from_to_refine(j);
-            break;
+
+    // We have v != abc, but we need to have v = abc.
+    // If we patch b then b should be equal to v/ac = v/(abc/b) = b(v/abc)
+    if (!v.is_zero()) {
+        rational r = val(j) / v;
+        SASSERT((*m_patched_monic).is_sorted());
+        TRACE("nla_solver", tout << "r = " << r << ", v = " << v << "\n";);
+        for (unsigned l = 0; l < (*m_patched_monic).size(); l++) {
+            m_patched_var = (*m_patched_monic).vars()[l];
+            if (!in_power((*m_patched_monic).vars(), l) &&
+                !var_breaks_correct_monic(m_patched_var) &&
+                try_to_patch(r * val(m_patched_var))) { // r * val(k) gives the right value of k
+                TRACE("nla_solver", tout << "patched  " << m_patched_var << "\n";);
+                SASSERT(mul_val((*m_patched_monic)) == val(j));
+                erase_from_to_refine(j);
+                break;
+            }
         }
     }
-                              
 }
 
-void core::patch_monomials_with_real_vars() {
+void core::patch_monomials_on_to_refine() {
     auto to_refine = m_to_refine.index();
     // the rest of the function might change m_to_refine, so have to copy
     unsigned sz = to_refine.size();
-    TRACE("nla_solver", tout << "sz = " << sz << "\n";);
+
     unsigned start = random();
     for (unsigned i = 0; i < sz; i++) {
-        patch_monomial_with_real_var(to_refine[(start + i) % sz]);
+        patch_monomial(to_refine[(start + i) % sz]);
         if (m_to_refine.size() == 0)
             break;
     }
-    TRACE("nla_solver", tout << "sz = " << m_to_refine.size() << "\n";);
+    TRACE("nla_solver", tout << "sz = " << sz << ", m_to_refine = " << m_to_refine.size() <<
+          (sz > m_to_refine.size()? " less" : "same" ) << "\n";);
+}
+
+void core::patch_monomials() {
+    m_cautious_patching = true;
+    patch_monomials_on_to_refine();
+    if (m_to_refine.size() == 0 || !m_nla_settings.expensive_patching()) {
+        return;
+    }
+    NOT_IMPLEMENTED_YET();
+    m_cautious_patching = false; 
+    patch_monomials_on_to_refine();
+    m_lar_solver.push();
+    save_tableau();
+    constrain_nl_in_tableau();
+    if (solve_tableau() && integrality_holds()) {
+        m_lar_solver.pop(1);
+    } else {
+        m_lar_solver.pop();
+        restore_tableau();
+        m_lar_solver.clear_inf_set();
+    }
     SASSERT(m_lar_solver.ax_is_correct());
 }
+
+void core::constrain_nl_in_tableau() {
+    NOT_IMPLEMENTED_YET();
+}
+
+bool core::solve_tableau() {
+    NOT_IMPLEMENTED_YET();
+    return false;
+}
+
+void core::restore_tableau() {
+    NOT_IMPLEMENTED_YET();
+}
+
+void core::save_tableau() {
+    NOT_IMPLEMENTED_YET();
+}
+
+bool core::integrality_holds() {
+    NOT_IMPLEMENTED_YET();
+    return false;
+}
+
 
 lbool core::check(vector<lemma>& l_vec) {
     lp_settings().stats().m_nla_calls++;
     TRACE("nla_solver", tout << "calls = " << lp_settings().stats().m_nla_calls << "\n";);
     m_lar_solver.get_rid_of_inf_eps();
     m_lemma_vec =  &l_vec;
-    if (!(m_lar_solver.get_status() == lp::lp_status::OPTIMAL || m_lar_solver.get_status() == lp::lp_status::FEASIBLE )) {
+    if (!(m_lar_solver.get_status() == lp::lp_status::OPTIMAL || 
+          m_lar_solver.get_status() == lp::lp_status::FEASIBLE)) {
         TRACE("nla_solver", tout << "unknown because of the m_lar_solver.m_status = " << m_lar_solver.get_status() << "\n";);
         return l_undef;
     }
 
     init_to_refine();
-    patch_monomials_with_real_vars();
-    if (m_to_refine.is_empty()) {
-        return l_true;
+    patch_monomials();
+    set_use_nra_model(false);    
+    if (m_to_refine.is_empty()) { return l_true; }   
+    init_search();
+
+    lbool ret = l_undef;
+
+    if (l_vec.empty() && !done()) 
+        m_monomial_bounds();
+    
+    if (l_vec.empty() && !done() && need_run_horner()) 
+        m_horner.horner_lemmas();
+
+    if (l_vec.empty() && !done() && need_run_grobner()) {
+        run_grobner();                
+    }
+
+    if (l_vec.empty() && !done()) 
+        m_basics.basic_lemma(true);    
+
+    if (l_vec.empty() && !done()) 
+        m_basics.basic_lemma(false);
+    
+    if (l_vec.empty() && !done()) 
+        m_order.order_lemma();    
+
+    if (l_vec.empty() && !done()) {
+        if (!done())
+            m_monotone.monotonicity_lemma();
+        if (!done())
+            m_tangents.tangent_lemma();
+    }
+
+    if (l_vec.empty() && !done() && m_nla_settings.run_nra()) {
+        ret = m_nra.check();
+        m_stats.m_nra_calls ++;
     }
     
-    init_search();
-    
-    lbool ret = inner_check(true);
-    if (ret == l_undef)
-        ret = inner_check(false);
+    if (ret == l_undef && !l_vec.empty() && m_reslim.inc()) 
+        ret = l_false;
 
-    TRACE("nla_solver", tout << "ret = " << ret << ", lemmas count = " << m_lemma_vec->size() << "\n";);
+    m_stats.m_nla_lemmas += l_vec.size();
+    for (const auto& l : l_vec)
+        m_stats.m_nla_explanations += static_cast<unsigned>(l.expl().size());
+
+    
+    TRACE("nla_solver", tout << "ret = " << ret << ", lemmas count = " << l_vec.size() << "\n";);
     IF_VERBOSE(2, if(ret == l_undef) {verbose_stream() << "Monomials\n"; print_monics(verbose_stream());});
     CTRACE("nla_solver", ret == l_undef, tout << "Monomials\n"; print_monics(tout););
     return ret;
 }
 
-bool core:: no_lemmas_hold() const {
+bool core::no_lemmas_hold() const {
     for (auto & l : * m_lemma_vec) {
         if (lemma_holds(l)) {
-            TRACE("nla_solver", print_specific_lemma(l, tout););
+            TRACE("nla_solver", print_lemma(l, tout););
             return false;
         }
     }
     return true;
 }
     
-lbool core::test_check(
-    vector<lemma>& l) {
+lbool core::test_check(vector<lemma>& l) {
     m_lar_solver.set_status(lp::lp_status::OPTIMAL);
     return check(l);
 }
@@ -1571,6 +1565,9 @@ void core::run_grobner() {
     if (quota == 1) {
         return;
     }
+    clear_and_resize_active_var_set(); 
+    find_nl_cluster();
+
     lp_settings().stats().m_grobner_calls++;
     configure_grobner();
     m_pdd_grobner.saturate();
@@ -1671,8 +1668,8 @@ bool core::check_pdd_eq(const dd::solver::equation* e) {
         return false;
     eval.get_interval<dd::w_dep::with_deps>(e->poly(), i_wd);  
     std::function<void (const lp::explanation&)> f = [this](const lp::explanation& e) {
-        add_lemma();
-        current_expl().add(e);
+        new_lemma lemma(*this, "pdd");
+        lemma &= e;
     };
     if (di.check_interval_for_conflict_on_zero(i_wd, e->dep(), f)) {
         lp_settings().stats().m_grobner_conflicts++;
@@ -1685,7 +1682,7 @@ bool core::check_pdd_eq(const dd::solver::equation* e) {
 
 void core::add_var_and_its_factors_to_q_and_collect_new_rows(lpvar j, svector<lpvar> & q) {
     if (active_var_set_contains(j) || var_is_fixed(j)) return;
-    TRACE("grobner", tout << "j = " << j << ", "; print_var(j, tout) << "\n";);
+    TRACE("grobner", tout << "j = " << j << ", " << pp(j););
     const auto& matrix = m_lar_solver.A_r();
     insert_to_active_var_set(j);
     for (auto & s : matrix.m_columns[j]) {
@@ -1880,14 +1877,9 @@ unsigned core::get_var_weight(lpvar j) const {
     return k;
 }
 
-
 bool core::is_nl_var(lpvar j) const {
-    if (is_monic_var(j))
-        return true;
-    return m_emons.is_used_in_monic(j);
+    return is_monic_var(j) || m_emons.is_used_in_monic(j);
 }
-
-
 
 bool core::influences_nl_var(lpvar j) const {
     if (lp::tv::is_term(j))
@@ -1901,5 +1893,12 @@ bool core::influences_nl_var(lpvar j) const {
     }
     return false;
 }
+
+void core::collect_statistics(::statistics & st) {
+    st.update("arith-nla-explanations", m_stats.m_nla_explanations);
+    st.update("arith-nla-lemmas", m_stats.m_nla_lemmas);
+    st.update("arith-nra-calls", m_stats.m_nra_calls);    
+}
+
 
 } // end of nla

@@ -23,6 +23,7 @@ Notes:
 #include "ast/ast_pp.h"
 #include "ast/arith_decl_plugin.h"
 #include "ast/rewriter/rewriter_types.h"
+#include "ast/rewriter/bool_rewriter.h"
 #include "util/params.h"
 #include "util/lbool.h"
 #include "util/sign.h"
@@ -114,11 +115,48 @@ public:
    \brief Cheap rewrite rules for seq constraints
 */
 class seq_rewriter {
+
+    class op_cache {
+        struct op_entry {
+            decl_kind k;
+            expr* a, *b, *r;
+            op_entry(decl_kind k, expr* a, expr* b, expr* r): k(k), a(a), b(b), r(r) {}
+            op_entry():k(0), a(nullptr), b(nullptr), r(nullptr) {}
+        };
+
+        struct hash_entry {
+            unsigned operator()(op_entry const& e) const { 
+                return mk_mix(e.k, e.a ? e.a->get_id() : 0, e.b ? e.b->get_id() : 0);
+            }
+        };
+
+        struct eq_entry {
+            bool operator()(op_entry const& a, op_entry const& b) const { 
+                return a.k == b.k && a.a == b.a && a.b == b.b;
+            }
+        };
+
+        typedef hashtable<op_entry, hash_entry, eq_entry> op_table;
+
+        ast_manager&    m;
+        unsigned        m_max_cache_size { 10000 };
+        expr_ref_vector m_trail;
+        op_table        m_table;
+        void cleanup();
+
+    public:
+        op_cache(ast_manager& m);
+        expr* find(decl_kind op, expr* a, expr* b);
+        void insert(decl_kind op, expr* a, expr* b, expr* r);
+    };
+
     seq_util       m_util;
     arith_util     m_autil;
+    bool_rewriter  m_br;
     re2automaton   m_re2aut;
+    op_cache       m_op_cache;
     expr_ref_vector m_es, m_lhs, m_rhs;
-    bool           m_coalesce_chars;
+    bool           m_coalesce_chars;    
 
     enum length_comparison {
         shorter_c, 
@@ -127,10 +165,37 @@ class seq_rewriter {
         unknown_c
     };
 
+
+
     length_comparison compare_lengths(expr_ref_vector const& as, expr_ref_vector const& bs) {
         return compare_lengths(as.size(), as.c_ptr(), bs.size(), bs.c_ptr());
     }
     length_comparison compare_lengths(unsigned sza, expr* const* as, unsigned szb, expr* const* bs);
+
+
+    bool get_head_tail(expr* e, expr_ref& head, expr_ref& tail);
+    bool get_head_tail_reversed(expr* e, expr_ref& head, expr_ref& tail);
+    bool get_re_head_tail(expr* e, expr_ref& head, expr_ref& tail);
+    bool get_re_head_tail_reversed(expr* e, expr_ref& head, expr_ref& tail);
+
+    expr_ref re_and(expr* cond, expr* r);
+    expr_ref re_predicate(expr* cond, sort* seq_sort);
+
+    expr_ref mk_seq_concat(expr* a, expr* b);    
+
+    // Calculate derivative, memoized and enforcing a normal form
+    expr_ref mk_derivative(expr* ele, expr* r);
+    expr_ref mk_derivative_rec(expr* ele, expr* r);
+    expr_ref mk_der_op(decl_kind k, expr* a, expr* b);
+    expr_ref mk_der_op_rec(decl_kind k, expr* a, expr* b);
+    expr_ref mk_der_concat(expr* a, expr* b);
+    expr_ref mk_der_union(expr* a, expr* b);
+    expr_ref mk_der_inter(expr* a, expr* b);
+    expr_ref mk_der_compl(expr* a);
+    expr_ref mk_der_reverse(expr* a);
+
+    bool are_complements(expr* r1, expr* r2) const;
+    bool is_subset(expr* r1, expr* r2) const;
 
     br_status mk_seq_unit(expr* e, expr_ref& result);
     br_status mk_seq_concat(expr* a, expr* b, expr_ref& result);
@@ -143,6 +208,9 @@ class seq_rewriter {
     br_status mk_seq_index(expr* a, expr* b, expr* c, expr_ref& result);
     br_status mk_seq_last_index(expr* a, expr* b, expr_ref& result);
     br_status mk_seq_replace(expr* a, expr* b, expr* c, expr_ref& result);
+    br_status mk_seq_replace_all(expr* a, expr* b, expr* c, expr_ref& result);
+    br_status mk_seq_replace_re_all(expr* a, expr* b, expr* c, expr_ref& result);
+    br_status mk_seq_replace_re(expr* a, expr* b, expr* c, expr_ref& result);
     br_status mk_seq_prefix(expr* a, expr* b, expr_ref& result);
     br_status mk_seq_suffix(expr* a, expr* b, expr_ref& result);
     br_status mk_str_units(func_decl* f, expr_ref& result);
@@ -152,16 +220,36 @@ class seq_rewriter {
     br_status mk_str_to_regexp(expr* a, expr_ref& result);
     br_status mk_str_le(expr* a, expr* b, expr_ref& result);
     br_status mk_str_lt(expr* a, expr* b, expr_ref& result);
+    br_status mk_str_from_code(expr* a, expr_ref& result);
+    br_status mk_str_to_code(expr* a, expr_ref& result);
+    br_status mk_str_is_digit(expr* a, expr_ref& result);
     br_status mk_re_concat(expr* a, expr* b, expr_ref& result);
     br_status mk_re_union(expr* a, expr* b, expr_ref& result);
     br_status mk_re_inter(expr* a, expr* b, expr_ref& result);
+    br_status mk_re_union0(expr* a, expr* b, expr_ref& result);
+    br_status mk_re_inter0(expr* a, expr* b, expr_ref& result);
     br_status mk_re_complement(expr* a, expr_ref& result);
     br_status mk_re_star(expr* a, expr_ref& result);
+    br_status mk_re_diff(expr* a, expr* b, expr_ref& result);
     br_status mk_re_plus(expr* a, expr_ref& result);
     br_status mk_re_opt(expr* a, expr_ref& result);
+    br_status mk_re_power(func_decl* f, expr* a, expr_ref& result);
     br_status mk_re_loop(func_decl* f, unsigned num_args, expr* const* args, expr_ref& result);
     br_status mk_re_range(expr* lo, expr* hi, expr_ref& result);
-    br_status lift_ite(func_decl* f, unsigned n, expr* const* args, expr_ref& result);
+    br_status mk_re_reverse(expr* r, expr_ref& result);
+    br_status mk_re_derivative(expr* ele, expr* r, expr_ref& result);
+
+    br_status lift_ites_throttled(func_decl* f, unsigned n, expr* const* args, expr_ref& result);
+
+    br_status reduce_re_eq(expr* a, expr* b, expr_ref& result);
+    br_status reduce_re_is_empty(expr* r, expr_ref& result);
+
+    bool non_overlap(expr_ref_vector const& p1, expr_ref_vector const& p2) const;
+    bool non_overlap(zstring const& p1, zstring const& p2) const;
+    bool rewrite_contains_pattern(expr* a, expr* b, expr_ref& result);
+
+    br_status mk_bool_app_helper(bool is_and, unsigned n, expr* const* args, expr_ref& result);
+    br_status mk_eq_helper(expr* a, expr* b, expr_ref& result);
 
     bool cannot_contain_prefix(expr* a, expr* b);
     bool cannot_contain_suffix(expr* a, expr* b);
@@ -173,6 +261,7 @@ class seq_rewriter {
     bool sign_is_determined(expr* len, sign& s);
 
     bool set_empty(unsigned sz, expr* const* es, bool all, expr_ref_pair_vector& eqs);
+    bool reduce_non_overlap(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
     bool reduce_subsequence(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
     bool reduce_by_length(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
     bool reduce_itos(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
@@ -191,12 +280,23 @@ class seq_rewriter {
     void remove_empty_and_concats(expr_ref_vector& es);
     void remove_leading(unsigned n, expr_ref_vector& es);
 
-public:    
+    class seq_util::re& re() { return u().re; }
+    class seq_util::re const& re() const { return u().re; }
+    class seq_util::str& str() { return u().str; }
+    class seq_util::str const& str() const { return u().str; }
+
+    expr_ref is_nullable_rec(expr* r);
+    void intersect(unsigned lo, unsigned hi, svector<std::pair<unsigned, unsigned>>& ranges);
+
+public:
     seq_rewriter(ast_manager & m, params_ref const & p = params_ref()):
-        m_util(m), m_autil(m), m_re2aut(m), m_es(m), m_lhs(m), m_rhs(m), m_coalesce_chars(true) {
+        m_util(m), m_autil(m), m_br(m), m_re2aut(m), m_op_cache(m), m_es(m), 
+        m_lhs(m), m_rhs(m), m_coalesce_chars(true) {
     }
     ast_manager & m() const { return m_util.get_manager(); }
     family_id get_fid() const { return m_util.get_family_id(); }
+    seq_util const& u() const { return m_util; }
+    seq_util& u() { return m_util; }
 
     void updt_params(params_ref const & p);
     static void get_param_descrs(param_descrs & r);
@@ -204,10 +304,26 @@ public:
     void set_solver(expr_solver* solver) { m_re2aut.set_solver(solver); }
     bool has_solver() { return m_re2aut.has_solver(); }
 
+    bool coalesce_chars() const { return m_coalesce_chars; }
 
     br_status mk_app_core(func_decl * f, unsigned num_args, expr * const * args, expr_ref & result);
     br_status mk_eq_core(expr * lhs, expr * rhs, expr_ref & result);
+    br_status mk_bool_app(func_decl* f, unsigned n, expr* const* args, expr_ref& result);
 
+    expr_ref mk_app(func_decl* f, expr_ref_vector const& args) { return mk_app(f, args.size(), args.c_ptr()); }
+    expr_ref mk_app(func_decl* f, unsigned n, expr* const* args) { 
+        expr_ref result(m());
+        if (f->get_family_id() != u().get_family_id() || 
+            BR_FAILED == mk_app_core(f, n, args, result))
+            result = m().mk_app(f, n, args);
+        return result;
+    }
+
+    /**
+     * check if regular expression is of the form all ++ s ++ all ++ t + u ++ all, where, s, t, u are sequences
+     */
+    bool is_re_contains_pattern(expr* r, vector<expr_ref_vector>& patterns);
+        
     bool reduce_eq(expr* l, expr* r, expr_ref_pair_vector& new_eqs, bool& change);
 
     bool reduce_eq(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& new_eqs, bool& change);
@@ -216,6 +332,12 @@ public:
 
     void add_seqs(expr_ref_vector const& ls, expr_ref_vector const& rs, expr_ref_pair_vector& new_eqs);
 
+    // Check for acceptance of the empty string
+    expr_ref is_nullable(expr* r);
+
+    // heuristic elimination of element from condition that comes form a derivative.
+    // special case optimization for conjunctions of equalities, disequalities and ranges.
+    void elim_condition(expr* elem, expr_ref& cond);
 
 };
 

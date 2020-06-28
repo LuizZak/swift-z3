@@ -19,7 +19,9 @@ Revision History:
 
 
 #include <cmath>
+#ifndef SINGLE_THREAD
 #include <thread>
+#endif
 #include "util/luby.h"
 #include "util/trace.h"
 #include "util/max_cliques.h"
@@ -427,21 +429,13 @@ namespace sat {
 
     bool solver::propagate_bin_clause(literal l1, literal l2) {
         if (value(l2) == l_false) {
-            if (value(l1) == l_false) {
-                TRACE("sat", tout << "conflict " << l1 << " " << l2 << "\n";);
-                set_conflict(justification(std::max(lvl(l1), lvl(l2)), l1, l2));
-            }
-            else {
-                m_stats.m_bin_propagate++;
-                //TRACE("sat", tout << "propagate " << l1 << " <- " << ~l2 << "\n";);
-                assign(l1, justification(lvl(l2), l2));
-            }
+            m_stats.m_bin_propagate++;
+            assign(l1, justification(lvl(l2), l2));            
             return true;
         }
-        else if (value(l1) == l_false) {
+        if (value(l1) == l_false) {
             m_stats.m_bin_propagate++;
-            //TRACE("sat", tout << "propagate " << l2 << " <- " << ~l1 << "\n";);
-            assign(l2, justification(lvl(l1), l1) );
+            assign(l2, justification(lvl(l1), l1));
             return true;
         }
         return false;
@@ -1198,6 +1192,7 @@ namespace sat {
             return check_par(num_lits, lits);
         }
         flet<bool> _searching(m_searching, true);
+        m_clone = nullptr;
         if (m_mc.empty() && gparams::get_ref().get_bool("model_validate", false)) {
             m_clone = alloc(solver, m_params, m_rlimit);
             m_clone->copy(*this);
@@ -1217,6 +1212,16 @@ namespace sat {
                 // force gc
                 m_conflicts_since_gc = m_gc_threshold + 1;
                 do_gc();
+            }
+
+            if (m_config.m_enable_pre_simplify) {
+                do_simplify();
+                if (check_inconsistent()) return l_false;
+            }
+
+            if (m_config.m_max_conflicts == 0) {
+                IF_VERBOSE(SAT_VB_LVL, verbose_stream() << "(sat \"abort: max-conflicts = 0\")\n";);
+                return l_undef;
             }
 
             if (m_config.m_max_conflicts > 0 && m_config.m_burst_search > 0) {
@@ -1321,6 +1326,11 @@ namespace sat {
         return invoke_local_search(num_lits, lits);
     }
 
+#ifdef SINGLE_THREAD
+    lbool solver::check_par(unsigned num_lits, literal const* lits) {
+        return l_undef;
+    }
+#else
     lbool solver::check_par(unsigned num_lits, literal const* lits) {
         if (!rlimit().inc()) {
             return l_undef;
@@ -1467,6 +1477,7 @@ namespace sat {
         return result;
 
     }
+#endif
 
     /*
       \brief import lemmas/units from parallel sat solvers.

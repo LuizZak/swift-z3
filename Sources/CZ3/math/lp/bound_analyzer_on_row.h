@@ -13,9 +13,8 @@ Abstract:
     In the same loop trying to pin variables by pushing the partial sum up, denoting the variable related to it by _l
 
 Author:
-
-    Lev Nachmanson (levnach)
-
+    Lev Nachmanson  (levnach)
+    Nikolaj Bjorner (nbjorner)
 Revision History:
 
 
@@ -24,15 +23,14 @@ Revision History:
 
 #include "util/vector.h"
 #include "math/lp/implied_bound.h"
-#include "math/lp/lp_bound_propagator.h"
 #include "math/lp/test_bound_analyzer.h"
 
 namespace lp {
-template <typename C> // C plays a role of a container
+template <typename C, typename B> // C plays a role of a container, B - lp_bound_propagator
 class bound_analyzer_on_row {
     const C&                           m_row;
-    lp_bound_propagator &              m_bp;
-    unsigned                           m_row_or_term_index;
+    B &                                m_bp;
+    unsigned                           m_row_index;
     int                                m_column_of_u; // index of an unlimited from above monoid
     // -1 means that such a value is not found, -2 means that at least two of such monoids were found
     int                                m_column_of_l; // index of an unlimited from below monoid
@@ -45,16 +43,27 @@ public :
         unsigned  bj, // basis column for the row
         const numeric_pair<mpq>& rs,
         unsigned row_or_term_index,
-        lp_bound_propagator & bp)
+        B & bp)
         :
         m_row(it),
         m_bp(bp),
-        m_row_or_term_index(row_or_term_index),
+        m_row_index(row_or_term_index),
         m_column_of_u(-1),
         m_column_of_l(-1),
         m_rs(rs)
     {}
 
+    
+    static void analyze_row(const C & row,
+                            unsigned bj, // basis column for the row
+                            const numeric_pair<mpq>& rs,
+                            unsigned row_or_term_index,
+                            B & bp) {
+        bound_analyzer_on_row a(row, bj, rs, row_or_term_index, bp);
+        a.analyze();
+    }
+
+private:
 
     void analyze() {
         for (const auto & c : m_row) {
@@ -285,7 +294,7 @@ public :
     // }
 
     void limit_j(unsigned j, const mpq& u, bool coeff_before_j_is_pos, bool is_lower_bound, bool strict){
-        m_bp.try_add_bound(u, j, is_lower_bound, coeff_before_j_is_pos, m_row_or_term_index, strict);
+        m_bp.try_add_bound(u, j, is_lower_bound, coeff_before_j_is_pos, m_row_index, strict);
     }
     
     void advance_u(unsigned j) {
@@ -317,17 +326,7 @@ public :
         default:
             break;
         }
-    }
-
-    static void analyze_row(const C & row,
-                            unsigned bj, // basis column for the row
-                            const numeric_pair<mpq>& rs,
-                            unsigned row_or_term_index,
-                            lp_bound_propagator & bp) {
-        bound_analyzer_on_row a(row, bj, rs, row_or_term_index, bp);
-        a.analyze();
-    }
-
+    }   
 };
 }
 

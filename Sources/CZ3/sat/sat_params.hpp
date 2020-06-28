@@ -35,6 +35,7 @@ struct sat_params {
     d.insert("random_freq", CPK_DOUBLE, "frequency of random case splits", "0.01","sat");
     d.insert("random_seed", CPK_UINT, "random seed", "0","sat");
     d.insert("burst_search", CPK_UINT, "number of conflicts before first global simplification", "100","sat");
+    d.insert("enable_pre_simplify", CPK_BOOL, "enable pre simplifications before the bounded search", "false","sat");
     d.insert("max_conflicts", CPK_UINT, "maximum number of conflicts", "4294967295","sat");
     d.insert("gc", CPK_SYMBOL, "garbage collection strategy: psm, glue, glue_psm, dyn_psm", "glue_psm","sat");
     d.insert("gc.initial", CPK_UINT, "learned clauses garbage collection frequency", "20000","sat");
@@ -135,6 +136,7 @@ struct sat_params {
   double random_freq() const { return p.get_double("random_freq", g, 0.01); }
   unsigned random_seed() const { return p.get_uint("random_seed", g, 0u); }
   unsigned burst_search() const { return p.get_uint("burst_search", g, 100u); }
+  bool enable_pre_simplify() const { return p.get_bool("enable_pre_simplify", g, false); }
   unsigned max_conflicts() const { return p.get_uint("max_conflicts", g, 4294967295u); }
   symbol gc() const { return p.get_sym("gc", g, symbol("glue_psm")); }
   unsigned gc_initial() const { return p.get_uint("gc.initial", g, 20000u); }

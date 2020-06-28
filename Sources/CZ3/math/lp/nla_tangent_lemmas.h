@@ -1,21 +1,9 @@
 /*++
   Copyright (c) 2017 Microsoft Corporation
 
-  Module Name:
-
-  <name>
-
-  Abstract:
-
-  <abstract>
-
   Author:
-  Nikolaj Bjorner (nbjorner)
-  Lev Nachmanson (levnach)
-
-  Revision History:
-
-
+    Lev Nachmanson (levnach)
+    Nikolaj Bjorner (nbjorner)
   --*/
 #pragma once
 #include "util/rational.h"
@@ -55,6 +43,5 @@ inline std::ostream& operator<<(std::ostream& out, point const& a) { return out 
 struct tangents : common {
     tangents(core *core);
     void tangent_lemma();    
-    void generate_explanations_of_tang_lemma(const monic& rm, const factorization& bf, lp::explanation& exp); 
 }; // end of tangents
 } // end of namespace

@@ -6,8 +6,8 @@
   nla_core.h
 
   Author:
-  Nikolaj Bjorner (nbjorner)
-  Lev Nachmanson (levnach)
+    Lev Nachmanson (levnach)
+    Nikolaj Bjorner (nbjorner)
 
 --*/
 #pragma once
@@ -22,8 +22,10 @@
 #include "math/lp/nla_settings.h"
 #include "math/lp/nex.h"
 #include "math/lp/horner.h"
+#include "math/lp/monomial_bounds.h"
 #include "math/lp/nla_intervals.h"
 #include "math/grobner/pdd_solver.h"
+#include "nlsat/nlsat_solver.h"
 
 
 namespace nla {
@@ -46,13 +48,18 @@ const lpvar null_lpvar = UINT_MAX;
 
 inline int rat_sign(const rational& r) { return r.is_pos()? 1 : ( r.is_neg()? -1 : 0); }
 inline rational rrat_sign(const rational& r) { return rational(rat_sign(r)); }
-inline bool is_set(unsigned j) {  return static_cast<int>(j) != -1; } 
-inline bool is_even(unsigned k) { return (k >> 1) << 1 == k; }
-struct ineq {
+inline bool is_set(unsigned j) {  return j != null_lpvar; } 
+inline bool is_even(unsigned k) { return (k & 1) == 0; }
+class ineq {
     lp::lconstraint_kind m_cmp;
     lp::lar_term         m_term;
     rational             m_rs;
+public:
     ineq(lp::lconstraint_kind cmp, const lp::lar_term& term, const rational& rs) : m_cmp(cmp), m_term(term), m_rs(rs) {}
+    ineq(const lp::lar_term& term, lp::lconstraint_kind cmp, int i) : m_cmp(cmp), m_term(term), m_rs(rational(i)) {}
+    ineq(const lp::lar_term& term, lp::lconstraint_kind cmp, const rational& rs) : m_cmp(cmp), m_term(term), m_rs(rs) {}
+    ineq(lpvar v, lp::lconstraint_kind cmp, int i): m_cmp(cmp), m_term(v), m_rs(rational(i)) {}
+    ineq(lpvar v, lp::lconstraint_kind cmp, rational const& r): m_cmp(cmp), m_term(v), m_rs(r) {}
     bool operator==(const ineq& a) const {
         return m_cmp == a.m_cmp && m_term == a.m_term && m_rs == a.m_rs;
     }
@@ -74,7 +81,75 @@ public:
     bool is_conflict() const { return m_ineqs.empty() && !m_expl.empty(); }
 };
 
+class core;
+//
+// lemmas are created in a scope.
+// when the destructor of new_lemma is invoked
+// all constraints are assumed added to the lemma
+// correctness of the lemma can be checked at this point.
+//
+class new_lemma {
+    char const* name;
+    core& c;
+    lemma& current() const;
+
+public:
+    new_lemma(core& c, char const* name);
+    ~new_lemma();
+    lemma& operator()() { return current(); }
+    std::ostream& display(std::ostream& out) const;
+    new_lemma& operator&=(lp::explanation const& e);
+    new_lemma& operator&=(const monic& m);
+    new_lemma& operator&=(const factor& f);
+    new_lemma& operator&=(const factorization& f);
+    new_lemma& operator&=(lpvar j);
+    new_lemma& operator|=(ineq const& i);
+    new_lemma& explain_fixed(lpvar j);
+    new_lemma& explain_equiv(lpvar u, lpvar v);
+    new_lemma& explain_var_separated_from_zero(lpvar j);
+    new_lemma& explain_existing_lower_bound(lpvar j);
+    new_lemma& explain_existing_upper_bound(lpvar j);    
+
+    lp::explanation& expl() { return current().expl(); }
+
+    unsigned num_ineqs() const { return current().ineqs().size(); }
+};
+
+
+inline std::ostream& operator<<(std::ostream& out, new_lemma const& l) {
+    return l.display(out);
+}
+
+struct pp_fac {
+    core const& c;
+    factor const& f;
+    pp_fac(core const& c, factor const& f): c(c), f(f) {}
+};
+
+struct pp_var {
+    core const& c;
+    lpvar v;
+    pp_var(core const& c, lpvar v): c(c), v(v) {}
+};
+
+struct pp_factorization {
+    core const& c;
+    factorization const& f;
+    pp_factorization(core const& c, factorization const& f): c(c), f(f) {}
+};
+
 class core {
+    struct stats {
+        unsigned m_nla_explanations;
+        unsigned m_nla_lemmas;
+        unsigned m_nra_calls;
+        stats() { reset(); }
+        void reset() {
+            memset(this, 0, sizeof(*this));
+        }
+    };
+    stats                    m_stats;
+    friend class new_lemma;
 public:
     var_eqs<emonics>         m_evars;
     lp::lar_solver&          m_lar_solver;
@@ -84,7 +159,8 @@ public:
     basics                   m_basics;
     order                    m_order;
     monotone                 m_monotone;
-    intervals                m_intervals;                
+    intervals                m_intervals; 
+    monomial_bounds          m_monomial_bounds;
     horner                   m_horner;
     nla_settings             m_nla_settings;    
     dd::pdd_manager          m_pdd_manager;
@@ -92,11 +168,17 @@ public:
 private:
     emonics                  m_emons;
     svector<lpvar>           m_add_buffer;
-    mutable lp::u_set      m_active_var_set;
-    lp::u_set              m_rows;
+    mutable lp::u_set        m_active_var_set;
+    lp::u_set                m_rows;
 public:
-    reslimit                 m_reslim;
-
+    reslimit&                m_reslim;
+    bool                     m_use_nra_model;
+    nra::solver              m_nra;
+private:
+    bool                     m_cautious_patching;
+    lpvar                    m_patched_var;
+    monic const*             m_patched_monic;      
+public:    
     void insert_to_refine(lpvar j);
     void erase_from_to_refine(lpvar j);
     
@@ -151,17 +233,20 @@ public:
     lpvar var(const factor& f) const { return f.var(); }
 
     // returns true if the combination of the Horner's schema and Grobner Basis should be called
-    bool need_to_call_algebraic_methods() const { 
-	return
-            lp_settings().stats().m_nla_calls % m_nla_settings.horner_frequency() == 0; 
+    bool need_run_horner() const { 
+        return m_nla_settings.run_horner() && lp_settings().stats().m_nla_calls % m_nla_settings.horner_frequency() == 0; 
+    }
+
+    bool need_run_grobner() const { 
+        return m_nla_settings.run_grobner() && lp_settings().stats().m_nla_calls % m_nla_settings.grobner_frequency() == 0; 
     }
     
-    lbool incremental_linearization(bool);
+    void incremental_linearization(bool);
     
     svector<lpvar> sorted_rvars(const factor& f) const;
     bool done() const;
 
-    void add_lemma();
+    
     // the value of the factor is equal to the value of the variable multiplied
     // by the canonize_sign
     bool canonize_sign(const factor& f) const;
@@ -187,15 +272,7 @@ public:
     
     // return true iff the monic value is equal to the product of the values of the factors
     bool check_monic(const monic& m) const;
-    
-    void explain(const monic& m, lp::explanation& exp) const;
-    void explain(const factor& f, lp::explanation& exp) const;
-    void explain(lpvar j, lp::explanation& exp) const;
-    void explain_existing_lower_bound(lpvar j);
-    void explain_existing_upper_bound(lpvar j);    
-    void explain_separation_from_zero(lpvar j);
-    void explain_var_separated_from_zero(lpvar j);
-    void explain_fixed_var(lpvar j);
+   
 
     std::ostream & print_ineq(const ineq & in, std::ostream & out) const;
     std::ostream & print_var(lpvar j, std::ostream & out) const;
@@ -223,9 +300,12 @@ public:
     void trace_print_monic_and_factorization(const monic& rm, const factorization& f, std::ostream& out) const;
     void print_monic_stats(const monic& m, std::ostream& out);    
     void print_stats(std::ostream& out);
-    std::ostream& print_lemma(std::ostream& out) const;
-  
-    void print_specific_lemma(const lemma& l, std::ostream& out) const;
+ 
+    pp_var pp(lpvar j) const { return pp_var(*this, j); }
+    pp_fac pp(factor const& f) const { return pp_fac(*this, f); }
+    pp_factorization pp(factorization const& f) const { return pp_factorization(*this, f); }
+ 
+    std::ostream& print_lemma(const lemma& l, std::ostream& out) const;
     
 
     void trace_print_ol(const monic& ac,
@@ -236,23 +316,7 @@ public:
                         std::ostream& out);
 
         
-    
-    void mk_ineq(lp::lar_term& t, llc cmp, const rational& rs);
-    void mk_ineq_no_expl_check(lp::lar_term& t, llc cmp, const rational& rs);
-    void mk_ineq(const rational& a, lpvar j, const rational& b, lpvar k, llc cmp, const rational& rs);
-    void mk_ineq(bool a, lpvar j, bool b, lpvar k, llc cmp, const rational& rs);
-    void mk_ineq(bool a, lpvar j, bool b, lpvar k, llc cmp);
-    void mk_ineq(lpvar j, const rational& b, lpvar k, llc cmp, const rational& rs);
-    void mk_ineq(lpvar j, const rational& b, lpvar k, llc cmp);
-    void mk_ineq(const rational& a, lpvar j, const rational& b, lpvar k, llc cmp);
-    void mk_ineq(const rational& a ,lpvar j, lpvar k, llc cmp, const rational& rs);
-    void mk_ineq(lpvar j, lpvar k, llc cmp, const rational& rs);
-    void mk_ineq(lpvar j, llc cmp, const rational& rs);
-    void mk_ineq(const rational& a, lpvar j, llc cmp, const rational& rs);
-    void mk_ineq(const rational& a, lpvar j, llc cmp);
-    void mk_ineq(lpvar j, lpvar k, llc cmp, lemma& l);
-    void mk_ineq(lpvar j, llc cmp);
-    
+    void mk_ineq_no_expl_check(new_lemma& lemma, lp::lar_term& t, llc cmp, const rational& rs);
     
     void maybe_add_a_factor(lpvar i,
                             const factor& c,
@@ -262,17 +326,11 @@ public:
 
     llc apply_minus(llc cmp);
     
-    void fill_explanation_and_lemma_sign(const monic& a, const monic & b, rational const& sign);
+    void fill_explanation_and_lemma_sign(new_lemma& lemma, const monic& a, const monic & b, rational const& sign);
 
     svector<lpvar> reduce_monic_to_rooted(const svector<lpvar> & vars, rational & sign) const;
 
     monic_coeff canonize_monic(monic const& m) const;
-
-    lemma& current_lemma();
-    const lemma& current_lemma() const;
-    vector<ineq>& current_ineqs();
-    lp::explanation& current_expl();
-    const lp::explanation& current_expl() const;
 
     int vars_sign(const svector<lpvar>& v);
     bool has_upper_bound(lpvar j) const; 
@@ -282,6 +340,13 @@ public:
     }
     const rational& get_upper_bound(unsigned j) const;
     const rational& get_lower_bound(unsigned j) const;    
+    bool has_lower_bound(lp::var_index var, lp::constraint_index& ci, lp::mpq& value, bool& is_strict) const { 
+        return m_lar_solver.has_lower_bound(var, ci, value, is_strict); 
+    }
+    bool has_upper_bound(lp::var_index var, lp::constraint_index& ci, lp::mpq& value, bool& is_strict) const {
+        return m_lar_solver.has_upper_bound(var, ci, value, is_strict);
+    }
+
     
     bool zero_is_an_inner_point_of_bounds(lpvar j) const;    
     bool var_is_int(lpvar j) const { return m_lar_solver.column_is_int(j); }
@@ -307,20 +372,12 @@ public:
     bool var_is_separated_from_zero(lpvar j) const;
 
     bool vars_are_equiv(lpvar a, lpvar b) const;    
-    void explain_equiv_vars(lpvar a, lpvar b);
-    void explain(const factorization& f, lp::explanation& exp);
+    bool explain_ineq(new_lemma& lemma, const lp::lar_term& t, llc cmp, const rational& rs);
     bool explain_upper_bound(const lp::lar_term& t, const rational& rs, lp::explanation& e) const;
-
     bool explain_lower_bound(const lp::lar_term& t, const rational& rs, lp::explanation& e) const;
-
     bool explain_coeff_lower_bound(const lp::lar_term::ival& p, rational& bound, lp::explanation& e) const;
-
     bool explain_coeff_upper_bound(const lp::lar_term::ival& p, rational& bound, lp::explanation& e) const;
-    
-    bool explain_ineq(const lp::lar_term& t, llc cmp, const rational& rs);
-
     bool explain_by_equiv(const lp::lar_term& t, lp::explanation& e) const;
-
     bool has_zero_factor(const factorization& factorization) const;
 
     template <typename T>
@@ -360,28 +417,21 @@ public:
     void init_to_refine();
 
     bool divide(const monic& bc, const factor& c, factor & b) const;
-
-    void negate_factor_equality(const factor& c, const factor& d);
-    
-    void negate_factor_relation(const rational& a_sign, const factor& a, const rational& b_sign, const factor& b);
-
-    void negate_var_relation_strictly(lpvar a, lpvar b);
     
     std::unordered_set<lpvar> collect_vars(const lemma& l) const;
 
     bool rm_check(const monic&) const;
     std::unordered_map<unsigned, unsigned_vector> get_rm_by_arity();
 
-    void add_abs_bound(lpvar v, llc cmp);
-    void add_abs_bound(lpvar v, llc cmp, rational const& bound);
+    void negate_relation(new_lemma& lemma, unsigned j, const rational& a);
+    void negate_factor_equality(new_lemma& lemma, const factor& c, const factor& d);    
+    void negate_factor_relation(new_lemma& lemma, const rational& a_sign, const factor& a, const rational& b_sign, const factor& b);
 
     bool  find_bfc_to_refine_on_monic(const monic&, factorization & bf);
     
     bool  find_bfc_to_refine(const monic* & m, factorization& bf);
 
-    void negate_relation(unsigned j, const rational& a);
     bool  conflict_found() const;
-    lbool  inner_check(bool derived);
     
     lbool  check(vector<lemma>& l_vec);
 
@@ -417,15 +467,29 @@ public:
     bool influences_nl_var(lpvar) const;
     bool is_nl_var(lpvar) const;
     bool is_used_in_monic(lpvar) const;
-    void patch_monomials_with_real_vars();
-    void patch_monomial_with_real_var(lpvar);
-    bool var_is_used_in_a_correct_monic(lpvar) const;
+    void patch_monomials();
+    void patch_monomials_on_to_refine();
+    void patch_monomial(lpvar);
+    bool var_breaks_correct_monic(lpvar) const;
+    bool var_breaks_correct_monic_as_factor(lpvar, const monic&) const;
     void update_to_refine_of_var(lpvar j);
-    bool try_to_patch(lpvar, const rational&, const monic&);
+    bool try_to_patch(const rational&);
     bool to_refine_is_correct() const;
-    bool patch_blocker(lpvar u, const monic& m) const;
+    bool is_patch_blocked(lpvar u, const lp::impq&) const;
     bool has_big_num(const monic&) const;
     bool var_is_big(lpvar) const;
+    bool has_real(const factorization&) const;
+    bool has_real(const monic& m) const;
+    void set_use_nra_model(bool m) { m_use_nra_model = m; }
+    bool use_nra_model() const { return m_use_nra_model; }
+    void collect_statistics(::statistics&);
+private:
+    void restore_patched_values();
+    void constrain_nl_in_tableau();
+    bool solve_tableau();
+    void restore_tableau();
+    void save_tableau();
+    bool integrality_holds();
 };  // end of core
 
 struct pp_mon {
@@ -440,23 +504,11 @@ struct pp_mon_with_vars {
     pp_mon_with_vars(core const& c, monic const& m): c(c), m(m) {}
     pp_mon_with_vars(core const& c, lpvar v): c(c), m(c.emons()[v]) {}
 };
+
 inline std::ostream& operator<<(std::ostream& out, pp_mon const& p) { return p.c.print_monic(p.m, out); }
 inline std::ostream& operator<<(std::ostream& out, pp_mon_with_vars const& p) { return p.c.print_monic_with_vars(p.m, out); }
-
-struct pp_fac {
-    core const& c;
-    factor const& f;
-    pp_fac(core const& c, factor const& f): c(c), f(f) {}
-};
-
 inline std::ostream& operator<<(std::ostream& out, pp_fac const& f) { return f.c.print_factor(f.f, out); }
-
-struct pp_var {
-    core const& c;
-    lpvar v;
-    pp_var(core const& c, lpvar v): c(c), v(v) {}
-};
-
+inline std::ostream& operator<<(std::ostream& out, pp_factorization const& f) { return f.c.print_factorization(f.f, out); }
 inline std::ostream& operator<<(std::ostream& out, pp_var const& v) { return v.c.print_var(v.v, out); }
 
 } // end of namespace nla

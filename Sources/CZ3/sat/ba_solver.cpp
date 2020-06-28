@@ -330,7 +330,7 @@ namespace sat {
         m_stats.m_num_conflicts++;
         TRACE("ba", display(tout, c, true); );
         if (!validate_conflict(c)) {
-            display(std::cout, c, true);
+            IF_VERBOSE(0, display(verbose_stream(), c, true));
             UNREACHABLE();
         }
         SASSERT(validate_conflict(c));
@@ -1177,6 +1177,7 @@ namespace sat {
 
         do {
 
+
             if (m_overflow || offset > (1 << 12)) {
                 IF_VERBOSE(20, verbose_stream() << "offset: " << offset << "\n";
                            DEBUG_CODE(active2pb(m_A); display(verbose_stream(), m_A);););
@@ -1214,7 +1215,7 @@ namespace sat {
             case justification::TERNARY:
                 inc_bound(offset); 
                 SASSERT (consequent != null_literal);
-                inc_coeff(consequent, offset);
+                inc_coeff(consequent, offset);				
                 process_antecedent(js.get_literal1(), offset);
                 process_antecedent(js.get_literal2(), offset);
                 break;
@@ -2941,6 +2942,8 @@ namespace sat {
 
     void ba_solver::pre_simplify() {
         VERIFY(s().at_base_lvl());
+        if (s().inconsistent())
+            return;
         m_constraint_removed = false;
         xor_finder xf(s());
         for (unsigned sz = m_constraints.size(), i = 0; i < sz; ++i) pre_simplify(xf, *m_constraints[i]);
@@ -2983,6 +2986,8 @@ namespace sat {
 
     void ba_solver::simplify() {        
         if (!s().at_base_lvl()) s().pop_to_base_level();
+        if (s().inconsistent())
+            return;
         unsigned trail_sz, count = 0;
         do {
             trail_sz = s().init_trail_size();

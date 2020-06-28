@@ -196,7 +196,6 @@ private:
         case OP_BSHL:
         case OP_BASHR:
         case OP_BLSHR:
-        case OP_BOR:
             model = rational::zero();
             return true;
 
@@ -205,15 +204,15 @@ private:
             return true;
 
         case OP_BMUL:
+            model = rational::one();
+            return true;
+
         case OP_BSDIV:
         case OP_BSDIV0:
         case OP_BSDIV_I:
         case OP_BUDIV:
         case OP_BUDIV0:
         case OP_BUDIV_I:
-            model = rational::one();
-            return true;
-
         default:
             return false;
         }

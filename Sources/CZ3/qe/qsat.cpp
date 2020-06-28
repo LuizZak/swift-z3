@@ -166,7 +166,9 @@ namespace qe {
         expr_ref val(m);
         for (unsigned j = 0; j < m_preds[level - 1].size(); ++j) {
             app* p = m_preds[level - 1][j].get();            
-            eval(p, val);            
+            eval(p, val); 
+            if (!m.inc())
+                return;
             if (m.is_false(val)) {
                 m_asms.push_back(m.mk_not(p));
             }
@@ -179,6 +181,8 @@ namespace qe {
         
         for (unsigned i = level + 1; i < m_preds.size(); i += 2) {
             for (unsigned j = 0; j < m_preds[i].size(); ++j) {
+                if (!m.inc())
+                    return;
                 app* p = m_preds[i][j].get();
                 max_level lvl = m_elevel.find(p);
                 bool use = 
@@ -563,7 +567,11 @@ namespace qe {
                 m_solver->collect_statistics(st);
         }
         void reset_statistics() {
-            init();
+            clear();
+        }
+        void collect_statistics(statistics& st) {
+            if (m_solver)
+                m_solver->collect_statistics(st);
         }
         
         void clear() {
@@ -639,8 +647,10 @@ namespace qe {
                 switch (res) {
                 case l_true:
                     s.get_model(m_model);
+                    if (!m_model)
+                        return l_undef;
                     SASSERT(validate_defs("check_sat"));
-                    SASSERT(validate_assumptions(*m_model.get(), asms));
+                    SASSERT(!m_model.get() || validate_assumptions(*m_model.get(), asms));
                     SASSERT(validate_model(asms));
                     TRACE("qe", s.display(tout); display(tout << "\n", *m_model.get()); display(tout, asms); );
                     if (m_level == 0) {
@@ -735,6 +745,7 @@ namespace qe {
             m_fa.init();
             m_ex.init();                
         }    
+
         
         /**
            \brief create a quantifier prefix formula.
@@ -1334,8 +1345,8 @@ namespace qe {
         
         void collect_statistics(statistics & st) const override {
             st.copy(m_st);
-            m_fa.s().collect_statistics(st);
-            m_ex.s().collect_statistics(st);        
+            m_fa.collect_statistics(st);
+            m_ex.collect_statistics(st);        
             m_pred_abs.collect_statistics(st);
             st.update("qsat num rounds", m_stats.m_num_rounds); 
             m_pred_abs.collect_statistics(st);
@@ -1348,7 +1359,7 @@ namespace qe {
         }
         
         void cleanup() override {
-            reset();
+            clear();
         }
         
         void set_logic(symbol const & l) override {

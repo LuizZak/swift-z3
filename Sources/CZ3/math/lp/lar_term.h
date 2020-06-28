@@ -22,9 +22,8 @@
 #include "util/map.h"
 
 namespace lp {
-
+// represents a linear expressieon
 class lar_term {
-    // the term evaluates to sum of m_coeffs 
     typedef unsigned lpvar;
     u_map<mpq> m_coeffs;
 public:
@@ -62,6 +61,24 @@ public:
         for (const auto & p : coeffs) {
             add_monomial(p.first, p.second);
         }
+    }
+    lar_term(lpvar v1, lpvar v2) {
+        add_monomial(rational::one(), v1);
+        add_monomial(rational::one(), v2);
+    }
+    lar_term(lpvar v1) {
+        add_monomial(rational::one(), v1);
+    }
+    lar_term(rational const& a, lpvar v1) {
+        add_monomial(a, v1);
+    }
+    lar_term(lpvar v1, rational const& b, lpvar v2) {
+        add_monomial(rational::one(), v1);
+        add_monomial(b, v2);
+    }
+    lar_term(rational const& a, lpvar v1, rational const& b, lpvar v2) {
+        add_monomial(a, v1);
+        add_monomial(b, v2);
     }
     bool operator==(const lar_term & a) const {  return false; } // take care not to create identical terms
     bool operator!=(const lar_term & a) const {  return ! (*this == a);}

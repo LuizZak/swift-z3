@@ -89,22 +89,28 @@ bool dep_intervals::separated_from_zero_on_upper(const interval& i) const {
 std::ostream& dep_intervals::display(std::ostream& out, const interval& i) const {
     if (m_imanager.lower_is_inf(i)) {
         out << "(-oo";
-    } else {
+    } 
+    else {
         out << (m_imanager.lower_is_open(i)? "(":"[") << rational(m_imanager.lower(i));        
     }
     out << ",";
     if (m_imanager.upper_is_inf(i)) {
         out << "oo)";
-    } else {
+    } 
+    else {
         out << rational(m_imanager.upper(i)) << (m_imanager.upper_is_open(i)? ")":"]");         
     }
     if (i.m_lower_dep) {
-        out << "\nlower deps\n";
-        // TBD: print_dependencies(i.m_lower_dep, out);
+        vector<unsigned, false> ex;
+        linearize(i.m_lower_dep, ex);
+        out << " ld";
+        for (unsigned d : ex) out << " " << d;
     }
     if (i.m_upper_dep) {
-        out << "\nupper deps\n";
-        // TBD: print_dependencies(i.m_upper_dep, out);   
+        vector<unsigned, false> ex;
+        linearize(i.m_upper_dep, ex);
+        out << " ud";
+        for (unsigned d : ex) out << " " << d;
     }
     return out;
 }
@@ -121,5 +127,26 @@ bool dep_intervals::is_empty(interval const& a) const {
         return true;
     return false;
 }
+
+bool dep_intervals::is_above(const interval& i, const rational& r) const {
+    if (lower_is_inf(i))
+        return false;
+    if (m_num_manager.lt(r.to_mpq(), lower(i)))
+        return true;
+    if (m_num_manager.eq(lower(i), r.to_mpq()) && m_config.lower_is_open(i))
+        return true;
+    return false;
+}
+
+bool dep_intervals::is_below(const interval& i, const rational& r) const {
+    if (upper_is_inf(i))
+        return false;
+    if (m_num_manager.lt(upper(i), r.to_mpq()))
+        return true;
+    if (m_num_manager.eq(upper(i), r.to_mpq()) && m_config.upper_is_open(i))
+        return true;
+    return false;
+}
+
 
 template class interval_manager<dep_intervals::im_config>;

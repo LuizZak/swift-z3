@@ -731,15 +731,22 @@ namespace smt {
 
         typedef std::pair<expr *, bool> expr_bool_pair;
 
-        void ts_visit_child(expr * n, bool gate_ctx, svector<int> & tcolors, svector<int> & fcolors, svector<expr_bool_pair> & todo, bool & visited);
+        void ts_visit_child(expr * n, bool gate_ctx, svector<expr_bool_pair> & todo, bool & visited);
 
-        bool ts_visit_children(expr * n, bool gate_ctx, svector<int> & tcolors, svector<int> & fcolors, svector<expr_bool_pair> & todo);
+        bool ts_visit_children(expr * n, bool gate_ctx, svector<expr_bool_pair> & todo);
 
         svector<expr_bool_pair> ts_todo;
-        svector<int>      tcolors;
-        svector<int>      fcolors;
+        char_vector       tcolors;
+        char_vector       fcolors;
 
-        void top_sort_expr(expr * n, svector<expr_bool_pair> & sorted_exprs);
+        bool should_internalize_rec(expr* e) const;
+
+        void top_sort_expr(expr* const* exprs, unsigned num_exprs, svector<expr_bool_pair> & sorted_exprs);
+
+        void internalize_rec(expr * n, bool gate_ctx);
+
+        void internalize_deep(expr * n);
+        void internalize_deep(expr* const* n, unsigned num_exprs);
 
         void assert_default(expr * n, proof * pr);
 
@@ -848,7 +855,7 @@ namespace smt {
 
         void mk_or_cnstr(app * n);
 
-        void mk_iff_cnstr(app * n);
+        void mk_iff_cnstr(app * n, bool sign);
 
         void mk_ite_cnstr(app * n);
 
@@ -866,6 +873,7 @@ namespace smt {
         void ensure_internalized(expr* e);
 
         void internalize(expr * n, bool gate_ctx);
+        void internalize(expr* const* exprs, unsigned num_exprs, bool gate_ctx);
 
         void internalize(expr * n, bool gate_ctx, unsigned generation);
 
@@ -903,10 +911,6 @@ namespace smt {
         void add_theory_aware_branching_info(bool_var v, double priority, lbool phase);
 
     public:
-
-        void internalize_rec(expr * n, bool gate_ctx);
-
-        void internalize_deep(expr * n);
 
         // helper function for trail
         void undo_th_case_split(literal l);
@@ -1498,7 +1502,7 @@ namespace smt {
         //typedef uint_set index_set;
         u_map<index_set> m_antecedents;
         obj_map<expr, expr*> m_var2orig;
-        obj_map<expr, expr*> m_assumption2orig;
+        u_map<expr*> m_assumption2orig;
         obj_map<expr, expr*> m_var2val;
         void extract_fixed_consequences(literal lit, index_set const& assumptions, expr_ref_vector& conseq);
         void extract_fixed_consequences(unsigned& idx, index_set const& assumptions, expr_ref_vector& conseq);

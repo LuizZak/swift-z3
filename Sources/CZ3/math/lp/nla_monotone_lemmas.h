@@ -1,21 +1,9 @@
 /*++
   Copyright (c) 2017 Microsoft Corporation
 
-  Module Name:
-
-  <name>
-
-  Abstract:
-
-  <abstract>
-
   Author:
-  Nikolaj Bjorner (nbjorner)
-  Lev Nachmanson (levnach)
-
-  Revision History:
-
-
+   Lev Nachmanson (levnach)
+   Nikolaj Bjorner (nbjorner)
   --*/
 #pragma once
 namespace nla {
@@ -26,8 +14,8 @@ public:
     void monotonicity_lemma();
 private:
     void monotonicity_lemma(monic const& m);
-    void monotonicity_lemma_gt(const monic& m, const rational& prod_val);    
-    void monotonicity_lemma_lt(const monic& m, const rational& prod_val);    
+    void monotonicity_lemma_gt(const monic& m);    
+    void monotonicity_lemma_lt(const monic& m);
     std::vector<rational> get_sorted_key(const monic& rm) const;
     vector<std::pair<rational, lpvar>> get_sorted_key_with_rvars(const monic& a) const;
 };

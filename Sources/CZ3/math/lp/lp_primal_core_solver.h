@@ -180,19 +180,19 @@ public:
         case column_type::fixed:
             return false;
         case column_type::lower_bound:
-            if (is_pos(rc.get_val())) {
+            if (is_pos(rc.coeff())) {
                 return this->x_above_lower_bound(j);
             }
 
             return true;
         case column_type::upper_bound:
-            if (is_pos(rc.get_val())) {
+            if (is_pos(rc.coeff())) {
                 return true;
             }
 
             return this->x_below_upper_bound(j);
         case column_type::boxed:
-            if (is_pos(rc.get_val())) {
+            if (is_pos(rc.coeff())) {
                 return this->x_above_lower_bound(j);
             }
 
@@ -213,19 +213,19 @@ public:
         case column_type::fixed:
             return false;
         case column_type::lower_bound:
-            if (is_neg(rc.get_val())) {
+            if (is_neg(rc.coeff())) {
                 return this->x_above_lower_bound(j);
             }
 
             return true;
         case column_type::upper_bound:
-            if (is_neg(rc.get_val())) {
+            if (is_neg(rc.coeff())) {
                 return true;
             }
 
             return this->x_below_upper_bound(j);
         case column_type::boxed:
-            if (is_neg(rc.get_val())) {
+            if (is_neg(rc.coeff())) {
                 return this->x_above_lower_bound(j);
             }
 
@@ -484,7 +484,7 @@ public:
 
     int find_smallest_inf_column() {
         int j = -1;
-        for (unsigned k : this->m_inf_set) {            
+        for (unsigned k : this->inf_set()) {            
             if (k < static_cast<unsigned>(j)) {
                 j = k;
             }
@@ -821,12 +821,12 @@ public:
         if (this->using_infeas_costs()) {
             init_infeasibility_costs_for_changed_basis_only();
             this->m_costs[leaving] = zero_of_type<T>();
-            this->m_inf_set.erase(leaving);
+            this->remove_column_from_inf_set(leaving);
         } 
     }
     
     void init_inf_set() {
-        this->m_inf_set.clear();
+        this->clear_inf_set();
         for (unsigned j = 0; j < this->m_n(); j++) {
             if (this->m_basis_heading[j] < 0)
                 continue;
@@ -923,7 +923,7 @@ public:
             unsigned k = rc.var();
             if (k == j)
                 continue;
-            this->m_d[k] += delta * rc.get_val();
+            this->m_d[k] += delta * rc.coeff();
         }
     }
     

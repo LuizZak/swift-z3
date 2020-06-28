@@ -380,7 +380,7 @@ namespace smt {
 
         for (expr* arg : m_converter.m_extra_assertions) {
             ctx.get_rewriter()(arg, t, t_pr);
-            fmls.push_back(t);
+            fmls.push_back(std::move(t));
         }
         m_converter.m_extra_assertions.reset();
         res = m.mk_and(fmls);
@@ -415,9 +415,7 @@ namespace smt {
         if (ctx.b_internalized(atom))
             return true;
 
-        unsigned num_args = atom->get_num_args();
-        for (unsigned i = 0; i < num_args; i++)
-            ctx.internalize(atom->get_arg(i), false);
+        ctx.internalize(atom->get_args(), atom->get_num_args(), false);
 
         literal l(ctx.mk_bool_var(atom));
         ctx.set_var_theory(l.var(), get_id());
@@ -436,9 +434,7 @@ namespace smt {
         SASSERT(term->get_family_id() == get_family_id());
         SASSERT(!ctx.e_internalized(term));
 
-        unsigned num_args = term->get_num_args();
-        for (unsigned i = 0; i < num_args; i++)
-            ctx.internalize(term->get_arg(i), false);
+        ctx.internalize(term->get_args(), term->get_num_args(), false);
 
         enode * e = (ctx.e_internalized(term)) ? ctx.get_enode(term) :
                                                  ctx.mk_enode(term, false, false, true);
@@ -457,8 +453,7 @@ namespace smt {
             case OP_FPA_TO_SBV:
             case OP_FPA_TO_REAL:
             case OP_FPA_TO_IEEE_BV: {
-                expr_ref conv(m);
-                conv = convert(term);
+                expr_ref conv = convert(term);
                 expr_ref eq(m.mk_eq(term, conv), m);
                 assert_cnstr(eq);
                 assert_cnstr(mk_side_conditions());
@@ -478,7 +473,7 @@ namespace smt {
         SASSERT(m_fpa_util.is_float(n->get_owner()) || m_fpa_util.is_rm(n->get_owner()));
         SASSERT(n->get_owner()->get_decl()->get_range() == s);
 
-        app_ref owner(n->get_owner(), m);
+        app * owner = n->get_owner();
 
         if (!is_attached_to_var(n)) {
             attach_new_th_var(n);
@@ -509,16 +504,14 @@ namespace smt {
 
         fpa_util & fu = m_fpa_util;
 
-        expr_ref xe(m), ye(m);
-        xe = e_x->get_owner();
-        ye = e_y->get_owner();
+        expr * xe = e_x->get_owner();
+        expr * ye = e_y->get_owner();
 
         if (m_fpa_util.is_bvwrap(xe) || m_fpa_util.is_bvwrap(ye))
             return;
 
-        expr_ref xc(m), yc(m);
-        xc = convert(xe);
-        yc = convert(ye);
+        expr_ref xc = convert(xe);
+        expr_ref yc = convert(ye);
 
         TRACE("t_fpa_detail", tout << "xc = " << mk_ismt2_pp(xc, m) << std::endl <<
                                       "yc = " << mk_ismt2_pp(yc, m) << std::endl;);
@@ -552,16 +545,14 @@ namespace smt {
 
         fpa_util & fu = m_fpa_util;
 
-        expr_ref xe(m), ye(m);
-        xe = e_x->get_owner();
-        ye = e_y->get_owner();
+        expr * xe = e_x->get_owner();
+        expr * ye = e_y->get_owner();
 
         if (m_fpa_util.is_bvwrap(xe) || m_fpa_util.is_bvwrap(ye))
             return;
 
-        expr_ref xc(m), yc(m);
-        xc = convert(xe);
-        yc = convert(ye);
+        expr_ref xc = convert(xe);
+        expr_ref yc = convert(ye);
 
         expr_ref c(m);
 
@@ -699,9 +690,7 @@ namespace smt {
     }
 
     enode* theory_fpa::ensure_enode(expr* e) {
-        if (!ctx.e_internalized(e)) {
-            ctx.internalize(e, false);
-        }
+        ctx.ensure_internalized(e);
         enode* n = ctx.get_enode(e);
         ctx.mark_as_relevant(n);
         return n;

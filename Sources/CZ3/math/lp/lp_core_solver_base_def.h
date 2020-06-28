@@ -95,7 +95,7 @@ pivot_to_reduced_costs_tableau(unsigned i, unsigned j) {
         return;
     for (const row_cell<T> & r: m_A.m_rows[i]){
         if (r.var() != j)
-            m_d[r.var()] -= a * r.get_val();
+            m_d[r.var()] -= a * r.coeff();
     }
     a = zero_of_type<T>(); // zero the pivot column's m_d finally
 }
@@ -304,7 +304,7 @@ calculate_pivot_row_when_pivot_row_of_B1_is_ready(unsigned pivot_row) {
         for (auto & c : m_A.m_rows[i]) {
             unsigned j = c.var();
             if (m_basis_heading[j] < 0) {
-                m_pivot_row.add_value_at_index_with_drop_tolerance(j, c.get_val() * pi_1);
+                m_pivot_row.add_value_at_index_with_drop_tolerance(j, c.coeff() * pi_1);
             }
         }
     }
@@ -444,7 +444,7 @@ rs_minus_Anx(vector<X> & rs) {
         for (auto & it : m_A.m_rows[row]) {
             unsigned j = it.var();
             if (m_basis_heading[j] < 0) {
-                rsv -= m_x[j] * it.get_val();
+                rsv -= m_x[j] * it.coeff();
             }
         }
     }
@@ -630,8 +630,8 @@ pivot_column_tableau(unsigned j, unsigned piv_row_index) {
         column[0]  = column[pivot_col_cell_index];
         column[pivot_col_cell_index] = c;
 
-        m_A.m_rows[piv_row_index][column[0].m_offset].m_offset = 0;
-        m_A.m_rows[c.var()][c.m_offset].m_offset = pivot_col_cell_index;
+        m_A.m_rows[piv_row_index][column[0].offset()].offset() = 0;
+        m_A.m_rows[c.var()][c.offset()].offset() = pivot_col_cell_index;
     }
     while (column.size() > 1) {
         auto & c = column.back();
@@ -761,7 +761,7 @@ fill_reduced_costs_from_m_y_by_rows() {
         for (row_cell<T> & c : m_A.m_rows[i]) {
             j = c.var();
             if (m_basis_heading[j] < 0) {
-                m_d[j] -= y * c.get_val();
+                m_d[j] -= y * c.coeff();
             }
         }
     }
@@ -804,7 +804,7 @@ find_error_in_BxB(vector<X>& rs){
         for (auto & it : m_A.m_rows[row]) {
             unsigned j = it.var();
             if (m_basis_heading[j] >= 0) {
-                rsv -= m_x[j] * it.get_val();
+                rsv -= m_x[j] * it.coeff();
             }
         }
     }
@@ -981,6 +981,18 @@ template <typename T, typename X> bool lp_core_solver_base<T, X>::remove_from_ba
     return false;
 }
 
+template <typename T, typename X> bool lp_core_solver_base<T, X>::remove_from_basis(unsigned basic_j, const impq& val) {
+    indexed_vector<T> w(m_basis.size()); // the buffer
+    unsigned i = m_basis_heading[basic_j];
+    for (auto &c : m_A.m_rows[i]) {
+        if (c.var() == basic_j)
+            continue;
+        if (pivot_column_general(c.var(), basic_j, w))
+            return true;
+    }
+    return false;
+}
+
 
 template <typename T, typename X> bool 
 lp_core_solver_base<T, X>::infeasibility_costs_are_correct() const {
@@ -1046,7 +1058,7 @@ void lp_core_solver_base<T, X>::calculate_pivot_row(unsigned i) {
         unsigned basic_j = m_basis[i];
         for (auto & c : m_A.m_rows[i]) {
             if (c.var() != basic_j)
-                m_pivot_row.set_value(c.get_val(), c.var());
+                m_pivot_row.set_value(c.coeff(), c.var());
         }
         return;
     }

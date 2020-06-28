@@ -1,20 +1,9 @@
 /*++
 Copyright (c) 2017 Microsoft Corporation
 
-Module Name:
-
-    <name>
-
-Abstract:
-
-    <abstract>
-
 Author:
 
     Lev Nachmanson (levnach)
-
-Revision History:
-
 
 --*/
 
@@ -39,6 +28,10 @@ class nla_settings {
     unsigned m_grobner_max_simplified;
     unsigned m_grobner_number_of_conflicts_to_report;
     unsigned m_grobner_quota;
+    unsigned m_grobner_frequency;
+    bool     m_run_nra;
+    // expensive patching
+    bool     m_expensive_patching;
 public:
     nla_settings() : m_run_order(true),
                      m_run_tangents(true),
@@ -49,7 +42,10 @@ public:
                      m_run_grobner(true),
                      m_grobner_row_length_limit(50),
                      m_grobner_subs_fixed(false),
-                     m_grobner_quota(0)
+                     m_grobner_quota(0),
+                     m_grobner_frequency(4),
+                     m_run_nra(false),
+                     m_expensive_patching(false)
     {}
     unsigned grobner_eqs_growth() const { return m_grobner_eqs_growth;}
     unsigned& grobner_eqs_growth() { return m_grobner_eqs_growth;}
@@ -58,6 +54,9 @@ public:
 
     bool run_tangents() const { return m_run_tangents; }
     bool& run_tangents() { return m_run_tangents; }    
+
+    bool expensive_patching() const { return m_expensive_patching; }
+    bool& expensive_patching() { return m_expensive_patching; }    
 
     bool run_horner() const { return m_run_horner; }
     bool& run_horner() { return m_run_horner; }    
@@ -71,6 +70,11 @@ public:
 
     bool run_grobner() const { return m_run_grobner; }
     bool& run_grobner() { return m_run_grobner; }
+    unsigned grobner_frequency() const { return m_grobner_frequency; }
+    unsigned& grobner_frequency() { return m_grobner_frequency; }
+
+    bool run_nra() const { return m_run_nra; }
+    bool& run_nra() { return m_run_nra; }    
 
     unsigned grobner_row_length_limit() const { return m_grobner_row_length_limit; }
     unsigned& grobner_row_length_limit() { return m_grobner_row_length_limit; }

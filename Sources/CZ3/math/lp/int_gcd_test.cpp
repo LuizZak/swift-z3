@@ -26,7 +26,7 @@ namespace lp {
 
     bool int_gcd_test::should_apply() {
 
-        if (!lia.settings().m_int_run_gcd_test)
+        if (!lia.settings().int_run_gcd_test())
             return false;
 #if 1
         return true;
@@ -210,8 +210,8 @@ namespace lp {
     void int_gcd_test::add_to_explanation_from_fixed_or_boxed_column(unsigned j) {
         constraint_index lc, uc;
         lra.get_bound_constraint_witnesses_for_column(j, lc, uc);
-        lia.m_ex->push_justification(lc);
-        lia.m_ex->push_justification(uc);
+        lia.m_ex->push_back(lc);
+        lia.m_ex->push_back(uc);
     }
 
 }

@@ -84,9 +84,9 @@ bool intervals::check_nex(const nex* n, u_dependency* initial_deps) {
     m_core->lp_settings().stats().m_cross_nested_forms++;
     scoped_dep_interval i(get_dep_intervals());
     std::function<void (const lp::explanation&)> f = [this](const lp::explanation& e) {
-                                                         m_core->add_lemma();
-                                                         m_core->current_expl().add(e);
-                                                     };
+        new_lemma lemma(*m_core, "check_nex");
+        lemma &= e;
+    };
     if (!interval_of_expr<e_with_deps::without_deps>(n, 1, i, f)) {
         // found a conflict during the interval calculation
         return true;
@@ -214,9 +214,9 @@ u_dependency *intervals::mk_dep(const lp::explanation& expl) {
     u_dependency * r = nullptr;
     for (auto p : expl) {
         if (r == nullptr) {
-            r = m_dep_intervals.mk_leaf(p.second);
+            r = m_dep_intervals.mk_leaf(p.ci());
         } else {
-            r = m_dep_intervals.mk_join(r, m_dep_intervals.mk_leaf(p.second));
+            r = m_dep_intervals.mk_join(r, m_dep_intervals.mk_leaf(p.ci()));
         }
     }
     return r;
@@ -282,10 +282,10 @@ bool intervals::interval_from_term(const nex& e, scoped_dep_interval& i) {
     lp::lar_term norm_t = expression_to_normalized_term(&e.to_sum(), a, b);
     lp::explanation exp;
     if (m_core->explain_by_equiv(norm_t, exp)) {
-        set_zero_interval(i);
+        m_dep_intervals.set_interval_for_scalar(i, b);
         if (wd == e_with_deps::with_deps) {
             for (auto p : exp) {
-                i.get().m_lower_dep = mk_join(i.get().m_lower_dep, mk_leaf(p.second));
+                i.get().m_lower_dep = mk_join(i.get().m_lower_dep, mk_leaf(p.ci()));
             }
             i.get().m_upper_dep = i.get().m_lower_dep;
         }
@@ -327,14 +327,7 @@ bool intervals::interval_of_sum_no_term(const nex_sum& e, scoped_dep_interval & 
         scoped_dep_interval  c(get_dep_intervals());
 
         TRACE("nla_intervals_details", tout << "sdi = "; display(tout, sdi) << "\nb = "; display(tout, b) << "\n";);
-        if (wd == e_with_deps::with_deps) {
-            interval_deps_combine_rule combine_rule;
-            m_dep_intervals.add(sdi, b, c, combine_rule);
-            m_dep_intervals.combine_deps(sdi, b, combine_rule, c);
-        }
-        else {
-            m_dep_intervals.add(sdi, b, c);
-        }
+        m_dep_intervals.add<wd>(sdi, b, c);        
         m_dep_intervals.set<wd>(sdi, c);
         TRACE("nla_intervals_details", tout << *e[k] << ", ";
               display(tout, sdi); tout << "\n";);
@@ -426,14 +419,7 @@ bool intervals::interval_of_mul(const nex_mul& e, scoped_dep_interval& a, const 
             return false;
         TRACE("nla_intervals_details", tout << "ep = " << ep << ", "; display(tout, b); );
         scoped_dep_interval c(get_dep_intervals());
-        if (wd == e_with_deps::with_deps) {
-            interval_deps_combine_rule comb_rule;
-            m_dep_intervals.mul(a, b, c, comb_rule);
-            TRACE("nla_intervals_details", tout << "c before combine_deps() "; display(tout, c););
-            m_dep_intervals.combine_deps(a, b, comb_rule, c);
-        } else {
-            m_dep_intervals.mul(a, b, c);
-        }
+        m_dep_intervals.mul<wd>(a, b, c);
         TRACE("nla_intervals_details", tout << "a "; display(tout, a););
         TRACE("nla_intervals_details", tout << "c "; display(tout, c););
         m_dep_intervals.set<wd>(a, c);

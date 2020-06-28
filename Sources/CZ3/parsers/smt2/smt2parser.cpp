@@ -87,7 +87,6 @@ namespace smt2 {
         symbol               m_weight;
         symbol               m_qid;
         symbol               m_skid;
-        symbol               m_ex_act;
         symbol               m_pattern;
         symbol               m_nopattern;
         symbol               m_lblneg;
@@ -408,6 +407,7 @@ namespace smt2 {
         bool curr_is_rparen() const { return curr() == scanner::RIGHT_PAREN; }
         bool curr_is_int() const { return curr() == scanner::INT_TOKEN; }
         bool curr_is_float() const { return curr() == scanner::FLOAT_TOKEN; }
+        bool curr_is_bv() const { return curr() == scanner::BV_TOKEN; }
 
         bool curr_id_is_underscore() const { SASSERT(curr_is_identifier()); return curr_id() == m_underscore; }
         bool curr_id_is_as() const { SASSERT(curr_is_identifier()); return curr_id() == m_as; }
@@ -1512,12 +1512,11 @@ namespace smt2 {
                 f = m_ctx.find_func_decl(C, 0, nullptr, vars.size(), nullptr, srt);
             }
             catch (cmd_exception &) {
-                if (!args.empty()) {
+                if (!vars.empty()) {
                     throw;
                 }
-            }
-            
-            if (!f && !args.empty()) {
+            }            
+            if (!f && !vars.empty()) {
                 throw parser_exception("expecting a constructor that has been declared");
             }
             if (!f) {
@@ -1552,7 +1551,7 @@ namespace smt2 {
             symbol r = curr_id();
             next();
             while (!curr_is_rparen()) {
-                if (curr_is_int()) {
+                if (curr_is_int() || curr_is_bv()) {
                     if (!curr_numeral().is_unsigned()) {
                         m_param_stack.push_back(parameter(curr_numeral()));                       
                     }
@@ -2677,8 +2676,8 @@ namespace smt2 {
             SASSERT(curr_id() == m_reset);
             next();
             check_rparen("invalid reset command, ')' expected");
+			reset();
             m_ctx.reset();
-            reset();
             m_ctx.print_success();
             next();
         }
@@ -3021,7 +3020,6 @@ namespace smt2 {
             m_weight(":weight"),
             m_qid(":qid"),
             m_skid(":skolemid"),
-            m_ex_act(":ex-act"),
             m_pattern(":pattern"),
             m_nopattern(":no-pattern"),
             m_lblneg(":lblneg"),
@@ -3077,17 +3075,18 @@ namespace smt2 {
             m_pattern_stack   = nullptr;
             m_nopattern_stack = nullptr;
             m_sexpr_stack     = nullptr;
+			m_bv_util = nullptr;
+			m_arith_util = nullptr;
+			m_seq_util = nullptr;
+			m_pattern_validator = nullptr;
+			m_var_shifter = nullptr;
             m_symbol_stack      .reset();
             m_param_stack       .reset();
             m_env               .reset();
             m_sort_id2param_idx .reset();
             m_dt_name2idx       .reset();
 
-            m_bv_util           = nullptr;
-            m_arith_util        = nullptr;
-            m_seq_util          = nullptr;
-            m_pattern_validator = nullptr;
-            m_var_shifter       = nullptr;
+
         }
 
         sexpr_ref parse_sexpr_ref() {

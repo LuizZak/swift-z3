@@ -34,7 +34,7 @@ lia_move int_branch::create_branch_on_column(int j) {
     TRACE("check_main_int", tout << "branching" << std::endl;);
     lp_assert(lia.m_t.is_empty());
     lp_assert(j != -1);
-    lia.m_t.add_monomial(mpq(1), lra.adjust_column_index_to_term_index(j));
+    lia.m_t.add_monomial(mpq(1), lra.column_to_reported_index(j));
     if (lia.is_free(j)) {
         lia.m_upper = lia.random() % 2;
         lia.m_k = mpq(0);
@@ -51,7 +51,6 @@ lia_move int_branch::create_branch_on_column(int j) {
 }
 
 
-    
 int int_branch::find_inf_int_base_column() {
     int result = -1;
     mpq range;
@@ -59,7 +58,7 @@ int int_branch::find_inf_int_base_column() {
     mpq small_range_thresold(1024);
     unsigned n = 0;
     lar_core_solver & lcs = lra.m_mpq_lar_core_solver;
-    unsigned prev_usage;
+    unsigned prev_usage = 0; // to quiet down the compile
     unsigned k = 0;
     unsigned usage;
     unsigned j;
@@ -103,5 +102,5 @@ int int_branch::find_inf_int_base_column() {
     }
     return result;    
 }
-    
+   
 }

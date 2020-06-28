@@ -25,21 +25,16 @@ namespace nra {
 
     public:
 
-        solver(lp::lar_solver& s, reslimit& lim, params_ref const& p = params_ref());
+        solver(lp::lar_solver& s, reslimit& lim, nla::core & nla_core, params_ref const& p = params_ref());
         
         ~solver();
 
-        /*
-          \brief Add a definition v = vs[0]*vs[1]*...*vs[sz-1]
-          The variable v is equal to the product of variables vs.
-        */
-        void add_monic(lp::var_index v, unsigned sz, lp::var_index const* vs);
 
         /*
           \brief Check feasiblity of linear constraints augmented by polynomial definitions
           that are added.
          */
-        lbool check(lp::explanation& ex);
+        lbool check();
 
         /*
           \brief determine whether nra check is needed.
@@ -53,13 +48,6 @@ namespace nra {
 
         nlsat::anum_manager& am();        
 
-        /*
-          \brief push and pop scope. 
-          Monomial definitions are retraced when popping scope.
-        */
-        void push();
-        
-        void pop(unsigned n);
 
         /*
           \brief display state

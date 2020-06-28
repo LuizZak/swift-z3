@@ -311,6 +311,7 @@ namespace dd {
             unsigned v = m_level2var[m_levelp1-1];
             equation* eq = nullptr;
             for (equation* curr : m_to_simplify) {
+                SASSERT(curr->idx() != UINT_MAX);
                 pdd const& p = curr->poly();
                 if (curr->state() == to_simplify && p.var() == v) {
                     if (!eq || is_simpler(*curr, *eq))
@@ -362,7 +363,7 @@ namespace dd {
     }   
     
     bool solver::canceled() {
-        return m_limit.get_cancel_flag();
+        return m_limit.is_canceled();
     }
     
     bool solver::done() {
@@ -388,6 +389,16 @@ namespace dd {
         pop_equation(eq);
         retire(eq);
     }
+
+    void solver::retire(equation* eq) { 
+#if 0
+        // way to check if retired equations are ever accessed.
+        eq->set_index(UINT_MAX);
+#else
+        dealloc(eq); 
+#endif
+    }
+
 
     void solver::pop_equation(equation& eq) {
         equation_vector& v = get_queue(eq);

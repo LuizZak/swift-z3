@@ -131,8 +131,6 @@ namespace recfun {
             path(nullptr), to_split(nullptr), to_unfold(to_unfold) {}
         branch(choice_lst const * path, ite_lst const * to_split, unfold_lst const * to_unfold) : 
             path(path), to_split(to_split), to_unfold(to_unfold) {}
-        branch(branch const & from) : 
-            path(from.path), to_split(from.to_split), to_unfold(from.to_unfold) {}
     };
 
     // state for computing cases from the RHS of a functions' definition
@@ -355,11 +353,7 @@ namespace recfun {
                 util & u;
                 find(util & u) : u(u) {}
                 bool operator()(expr * e) override {
-                    //return is_app(e) ? u.owns_app(to_app(e)) : false;
-                    if (! is_app(e)) return false;
-
-                    app * a = to_app(e);
-                    return u.is_defined(a);
+                    return is_app(e) && u.is_defined(to_app(e));
                 }
             };
             find f(u);
@@ -467,6 +461,8 @@ namespace recfun {
             scores.insert(e, 0);
             // walk deepest terms first.
             for (unsigned i = max_depth; i > 0; --i) {
+                if (!by_depth.contains(i))
+                    continue;
                 for (expr* t : by_depth[i]) {
                     unsigned score = 0;
                     for (expr* parent : parents[t]) {

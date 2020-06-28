@@ -86,6 +86,7 @@ namespace smt {
         cacheMissCount(0),
         m_fresh_id(0),
         m_trail_stack(*this),
+        m_library_aware_trail_stack(*this),
         m_find(*this),
         fixed_length_subterm_trail(m),
         fixed_length_assumptions(m),
@@ -915,7 +916,12 @@ namespace smt {
                     break;
                 }
             }
-            m_library_aware_axiom_todo.reset();
+            //m_library_aware_axiom_todo.reset();
+            unsigned nScopes = m_library_aware_trail_stack.get_num_scopes();
+            m_library_aware_trail_stack.reset();
+            for (unsigned i = 0; i < nScopes; ++i) {
+                m_library_aware_trail_stack.push_scope();
+            }
 
             for (auto el : m_delayed_axiom_setup_terms) {
                 // I think this is okay
@@ -994,12 +1000,12 @@ namespace smt {
      * Length(Concat(x, y)) = Length(x) + Length(y)
      */
     void theory_str::instantiate_concat_axiom(enode * cat) {
-        app * a_cat = cat->get_owner();
-        SASSERT(u.str.is_concat(a_cat));
-
         ast_manager & m = get_manager();
-
+        app * a_cat = cat->get_owner();
         TRACE("str", tout << "instantiating concat axiom for " << mk_ismt2_pp(a_cat, m) << std::endl;);
+        if (!u.str.is_concat(a_cat)) {
+            return;
+        }
 
         // build LHS
         expr_ref len_xy(m);
@@ -1794,35 +1800,40 @@ namespace smt {
 
         // let expr = (str.to-int S)
         // axiom 1: expr >= -1
-        // axiom 2: expr = 0 <==> S = "0"
-        // axiom 3: expr >= 1 ==> len(S) > 0 AND S[0] != "0"
+        // axiom 2: expr = 0 <==> S in "0+"
+        // axiom 3: expr >= 1 ==> S in "0*[1-9][0-9]*"
 
-        expr * S = ex->get_arg(0);
+        // expr * S = ex->get_arg(0);
         {
             expr_ref axiom1(m_autil.mk_ge(ex, m_autil.mk_numeral(rational::minus_one(), true)), m);
             SASSERT(axiom1);
-            assert_axiom(axiom1);
+            assert_axiom_rw(axiom1);
         }
-
+# if 0
         {
             expr_ref lhs(ctx.mk_eq_atom(ex, m_autil.mk_numeral(rational::zero(), true)), m);
-            expr_ref rhs(ctx.mk_eq_atom(S, mk_string("0")), m);
+            expr_ref re_zeroes(u.re.mk_plus(u.re.mk_to_re(mk_string("0"))), m);
+            expr_ref rhs(mk_RegexIn(S, re_zeroes), m);
             expr_ref axiom2(ctx.mk_eq_atom(lhs, rhs), m);
             SASSERT(axiom2);
-            assert_axiom(axiom2);
+            assert_axiom_rw(axiom2);
         }
 
         {
             expr_ref premise(m_autil.mk_ge(ex, m_autil.mk_numeral(rational::one(), true)), m);
-            // S >= 1 --> S in [1-9][0-9]*
-            expr_ref re_positiveInteger(u.re.mk_concat(
-                    u.re.mk_range(mk_string("1"), mk_string("9")),
-                    u.re.mk_star(u.re.mk_range(mk_string("0"), mk_string("9")))), m);
-            expr_ref conclusion(mk_RegexIn(S, re_positiveInteger), m);
+            //expr_ref re_positiveInteger(u.re.mk_concat(
+            //        u.re.mk_range(mk_string("1"), mk_string("9")),
+            //        u.re.mk_star(u.re.mk_range(mk_string("0"), mk_string("9")))), m);
+            expr_ref re_subterm(u.re.mk_concat(u.re.mk_range(mk_string("1"), mk_string("9")),
+                u.re.mk_star(u.re.mk_range(mk_string("0"), mk_string("9")))), m);
+            expr_ref re_integer(u.re.mk_concat(u.re.mk_star(mk_string("0")), re_subterm), m);
+            expr_ref conclusion(mk_RegexIn(S, re_integer), m);
             SASSERT(premise);
             SASSERT(conclusion);
-            assert_implication(premise, conclusion);
+            //assert_implication(premise, conclusion);
+            assert_axiom_rw(rewrite_implication(premise, conclusion));
         }
+#endif
     }
 
     void theory_str::instantiate_axiom_int_to_str(enode * e) {
@@ -1898,6 +1909,7 @@ namespace smt {
     void theory_str::reset_eh() {
         TRACE("str", tout << "resetting" << std::endl;);
         m_trail_stack.reset();
+        m_library_aware_trail_stack.reset();
 
         candidate_model.reset();
         m_basicstr_axiom_todo.reset();
@@ -2103,12 +2115,11 @@ namespace smt {
             // and the parent_it iterator becomes invalidated, because we indirectly modified the container that we're iterating over.
 
             enode_vector current_parents;
-            for (enode_vector::const_iterator parent_it = n_eq_enode->begin_parents(); parent_it != n_eq_enode->end_parents(); parent_it++) {
-                current_parents.insert(*parent_it);
+            for (auto &parent: n_eq_enode->get_parents()) {
+                current_parents.insert(parent);
             }
 
-            for (enode_vector::iterator parent_it = current_parents.begin(); parent_it != current_parents.end(); ++parent_it) {
-                enode * e_parent = *parent_it;
+            for (auto &e_parent : current_parents) {
                 SASSERT(e_parent != nullptr);
 
                 app * a_parent = e_parent->get_owner();
@@ -2314,10 +2325,12 @@ namespace smt {
                     //-------------------------------------------------
                     // Case (3-1) begin: (Concat (Concat var n_eqNode) str )
                     if (arg1 == n_eqNode) {
-                        for (enode_vector::iterator concat_parent_it = e_parent->begin_parents();
-                             concat_parent_it != e_parent->end_parents(); concat_parent_it++) {
-                            enode * e_concat_parent = *concat_parent_it;
-                            app * concat_parent = e_concat_parent->get_owner();
+                        expr_ref_vector concat_parents(m);
+                        for (auto& e_concat_parent : e_parent->get_parents()) {
+                            concat_parents.push_back(e_concat_parent->get_owner());
+                        }
+                        for (auto& _concat_parent : concat_parents) {
+                            app* concat_parent = to_app(_concat_parent);
                             if (u.str.is_concat(concat_parent)) {
                                 expr * concat_parent_arg0 = concat_parent->get_arg(0);
                                 expr * concat_parent_arg1 = concat_parent->get_arg(1);
@@ -2340,10 +2353,12 @@ namespace smt {
                     // Case (3-1) end: (Concat (Concat var n_eqNode) str )
                     // Case (3-2) begin: (Concat str (Concat n_eqNode var) )
                     if (arg0 == n_eqNode) {
-                        for (enode_vector::iterator concat_parent_it = e_parent->begin_parents();
-                             concat_parent_it != e_parent->end_parents(); concat_parent_it++) {
-                            enode * e_concat_parent = *concat_parent_it;
-                            app * concat_parent = e_concat_parent->get_owner();
+                        expr_ref_vector concat_parents(m);
+                        for (auto& e_concat_parent : e_parent->get_parents()) {
+                            concat_parents.push_back(e_concat_parent->get_owner());
+                        }
+                        for (auto& _concat_parent : concat_parents) {
+                            app* concat_parent = to_app(_concat_parent);
                             if (u.str.is_concat(concat_parent)) {
                                 expr * concat_parent_arg0 = concat_parent->get_arg(0);
                                 expr * concat_parent_arg1 = concat_parent->get_arg(1);
@@ -4512,6 +4527,15 @@ namespace smt {
         generate_mutual_exclusion(arrangement_disjunction);
     }
 
+    bool theory_str::get_string_constant_eqc(expr * e, zstring & stringVal) {
+        bool exists;
+        expr * strExpr = get_eqc_value(e, exists);
+        if (!exists) {
+            return false;}
+        u.str.is_string(strExpr, stringVal);
+        return true;
+    }
+    
     /*
      * Look through the equivalence class of n to find a string constant.
      * Return that constant if it is found, and set hasEqcValue to true.
@@ -6841,10 +6865,12 @@ namespace smt {
                     m_concat_eval_todo.push_back(n);
                 } else if (u.str.is_at(ap) || u.str.is_extract(ap) || u.str.is_replace(ap)) {
                     m_library_aware_axiom_todo.push_back(n);
+                    m_library_aware_trail_stack.push(push_back_trail<theory_str, enode*, false>(m_library_aware_axiom_todo));
                 } else if (u.str.is_itos(ap)) {
                     TRACE("str", tout << "found string-integer conversion term: " << mk_pp(ex, get_manager()) << std::endl;);
                     string_int_conversion_terms.push_back(ap);
                     m_library_aware_axiom_todo.push_back(n);
+                    m_library_aware_trail_stack.push(push_back_trail<theory_str, enode*, false>(m_library_aware_axiom_todo));
                 } else if (is_var(ex)) {
                     // if ex is a variable, add it to our list of variables
                     TRACE("str", tout << "tracking variable " << mk_ismt2_pp(ap, get_manager()) << std::endl;);
@@ -6870,6 +6896,7 @@ namespace smt {
                     app * ap = to_app(ex);
                     if (u.str.is_prefix(ap) || u.str.is_suffix(ap) || u.str.is_contains(ap) || u.str.is_in_re(ap)) {
                         m_library_aware_axiom_todo.push_back(n);
+                        m_library_aware_trail_stack.push(push_back_trail<theory_str, enode*, false>(m_library_aware_axiom_todo));
                     }
                 }
             } else {
@@ -6889,10 +6916,12 @@ namespace smt {
                 app * ap = to_app(ex);
                 if (u.str.is_index(ap)) {
                     m_library_aware_axiom_todo.push_back(n);
+                    m_library_aware_trail_stack.push(push_back_trail<theory_str, enode*, false>(m_library_aware_axiom_todo));
                 } else if (u.str.is_stoi(ap)) {
                     TRACE("str", tout << "found string-integer conversion term: " << mk_pp(ex, get_manager()) << std::endl;);
                     string_int_conversion_terms.push_back(ap);
                     m_library_aware_axiom_todo.push_back(n);
+                    m_library_aware_trail_stack.push(push_back_trail<theory_str, enode*, false>(m_library_aware_axiom_todo));
                 }
             }
         } else {
@@ -7019,11 +7048,105 @@ namespace smt {
             set_up_axioms(e);
             propagate();
         }
+
+        // heuristics
+        
+        if (u.str.is_prefix(e)) {
+            check_consistency_prefix(e, is_true);
+        } else if (u.str.is_suffix(e)) {
+            check_consistency_suffix(e, is_true);
+        } else if (u.str.is_contains(e)) {
+            check_consistency_contains(e, is_true);
+        }
+    }
+
+    // terms like int.to.str cannot start with / end with / contain non-digit characters
+    // in the future this could be expanded to regex checks as well
+    void theory_str::check_consistency_prefix(expr * e, bool is_true) {
+        context & ctx = get_context();
+        ast_manager & m = get_manager();
+        expr * needle = nullptr;
+        expr * haystack = nullptr;
+
+        VERIFY(u.str.is_prefix(e, needle, haystack));
+        TRACE("str", tout << "check consistency of prefix predicate: " << mk_pp(needle, m) << " prefixof " << mk_pp(haystack, m) << std::endl;);
+        
+        zstring needleStringConstant;
+        if (get_string_constant_eqc(needle, needleStringConstant)) {
+            if (u.str.is_itos(haystack) && is_true) {
+                // needle cannot contain non-digit characters
+                for (unsigned i = 0; i < needleStringConstant.length(); ++i) {
+                    if (! ('0' <= needleStringConstant[i] && needleStringConstant[i] <= '9')) {
+                        TRACE("str", tout << "conflict: needle = \"" << needleStringConstant << "\" contains non-digit character, but is a prefix of int-to-string term" << std::endl;);
+                        expr_ref premise(ctx.mk_eq_atom(needle, mk_string(needleStringConstant)), m);
+                        expr_ref conclusion(m.mk_not(e), m);
+                        expr_ref conflict(rewrite_implication(premise, conclusion), m);
+                        assert_axiom_rw(conflict);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    void theory_str::check_consistency_suffix(expr * e, bool is_true) {
+        context & ctx = get_context();
+        ast_manager & m = get_manager();
+        expr * needle = nullptr;
+        expr * haystack = nullptr;
+
+        VERIFY(u.str.is_suffix(e, needle, haystack));
+        TRACE("str", tout << "check consistency of suffix predicate: " << mk_pp(needle, m) << " suffixof " << mk_pp(haystack, m) << std::endl;);
+        
+        zstring needleStringConstant;
+        if (get_string_constant_eqc(needle, needleStringConstant)) {
+            if (u.str.is_itos(haystack) && is_true) {
+                // needle cannot contain non-digit characters
+                for (unsigned i = 0; i < needleStringConstant.length(); ++i) {
+                    if (! ('0' <= needleStringConstant[i] && needleStringConstant[i] <= '9')) {
+                        TRACE("str", tout << "conflict: needle = \"" << needleStringConstant << "\" contains non-digit character, but is a suffix of int-to-string term" << std::endl;);
+                        expr_ref premise(ctx.mk_eq_atom(needle, mk_string(needleStringConstant)), m);
+                        expr_ref conclusion(m.mk_not(e), m);
+                        expr_ref conflict(rewrite_implication(premise, conclusion), m);
+                        assert_axiom_rw(conflict);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    void theory_str::check_consistency_contains(expr * e, bool is_true) {
+        context & ctx = get_context();
+        ast_manager & m = get_manager();
+        expr * needle = nullptr;
+        expr * haystack = nullptr;
+
+        VERIFY(u.str.is_contains(e, haystack, needle)); // first string contains second one
+        TRACE("str", tout << "check consistency of contains predicate: " << mk_pp(haystack, m) << " contains " << mk_pp(needle, m) << std::endl;);
+        
+        zstring needleStringConstant;
+        if (get_string_constant_eqc(needle, needleStringConstant)) {
+            if (u.str.is_itos(haystack) && is_true) {
+                // needle cannot contain non-digit characters
+                for (unsigned i = 0; i < needleStringConstant.length(); ++i) {
+                    if (! ('0' <= needleStringConstant[i] && needleStringConstant[i] <= '9')) {
+                        TRACE("str", tout << "conflict: needle = \"" << needleStringConstant << "\" contains non-digit character, but int-to-string term contains it" << std::endl;);
+                        expr_ref premise(ctx.mk_eq_atom(needle, mk_string(needleStringConstant)), m);
+                        expr_ref conclusion(m.mk_not(e), m);
+                        expr_ref conflict(rewrite_implication(premise, conclusion), m);
+                        assert_axiom_rw(conflict);
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     void theory_str::push_scope_eh() {
         theory::push_scope_eh();
         m_trail_stack.push_scope();
+        m_library_aware_trail_stack.push_scope();
 
         sLevel += 1;
         TRACE("str", tout << "push to " << sLevel << std::endl;);
@@ -7091,6 +7214,13 @@ namespace smt {
         TRACE("str", tout << "pop " << num_scopes << " to " << sLevel << std::endl;);
         candidate_model.reset();
 
+        m_basicstr_axiom_todo.reset();
+        m_concat_axiom_todo.reset();
+        m_concat_eval_todo.reset();
+        m_library_aware_axiom_todo.reset();
+        m_delayed_axiom_setup_terms.reset();
+        m_delayed_assertions_todo.reset();
+        
         TRACE_CODE(if (is_trace_enabled("t_str_dump_assign_on_scope_change")) { dump_assignments(); });
 
         // list of expr* to remove from cut_var_map
@@ -7140,6 +7270,7 @@ namespace smt {
         }
 
         m_trail_stack.pop_scope(num_scopes);
+        m_library_aware_trail_stack.pop_scope(num_scopes);
         theory::pop_scope_eh(num_scopes);
 
         //check_variable_scope();
@@ -7626,9 +7757,11 @@ namespace smt {
                                    var_eq_concat_map, var_eq_unroll_map,
                                    concat_eq_constStr_map, concat_eq_concat_map, unrollGroupMap););
 
+        /*
         if (!contain_pair_bool_map.empty()) {
             compute_contains(aliasIndexMap, concats_eq_index_map, var_eq_constStr_map, concat_eq_constStr_map, var_eq_concat_map);
         }
+        */
 
         // step 4: dependence analysis
 
@@ -8015,17 +8148,32 @@ namespace smt {
         bool Ival_exists = get_arith_value(a, Ival);
         if (Ival_exists) {
             TRACE("str", tout << "integer theory assigns " << mk_pp(a, m) << " = " << Ival.to_string() << std::endl;);
-            // if that value is not -1, we can assert (str.to.int S) = Ival --> S = "Ival"
+            // if that value is not -1, and we know the length of S, we can assert (str.to.int S) = Ival --> S = "0...(len(S)-len(Ival))...0" ++ "Ival"
             if (!Ival.is_minus_one()) {
-                zstring Ival_str(Ival.to_string().c_str());
-                expr_ref premise(ctx.mk_eq_atom(a, m_autil.mk_numeral(Ival, true)), m);
-                expr_ref conclusion(ctx.mk_eq_atom(S, mk_string(Ival_str)), m);
-                expr_ref axiom(rewrite_implication(premise, conclusion), m);
-                if (!string_int_axioms.contains(axiom)) {
-                    string_int_axioms.insert(axiom);
-                    assert_axiom(axiom);
-                    m_trail_stack.push(insert_obj_trail<theory_str, expr>(string_int_axioms, axiom));
-                    axiomAdd = true;
+                rational Slen;
+                if (get_len_value(S, Slen)) {
+                    zstring Ival_str(Ival.to_string().c_str());
+                    if (rational(Ival_str.length()) <= Slen) {
+                        zstring padding;
+                        for (rational i = rational::zero(); i < Slen - rational(Ival_str.length()); ++i) {
+                            padding = padding + zstring("0");
+                        }
+                        expr_ref premise(ctx.mk_eq_atom(a, m_autil.mk_numeral(Ival, true)), m);
+                        expr_ref conclusion(ctx.mk_eq_atom(S, mk_string(padding + Ival_str)), m);
+                        expr_ref axiom(rewrite_implication(premise, conclusion), m);
+                        if (!string_int_axioms.contains(axiom)) {
+                            string_int_axioms.insert(axiom);
+                            assert_axiom(axiom);
+                            m_trail_stack.push(insert_obj_trail<theory_str, expr>(string_int_axioms, axiom));
+                            axiomAdd = true;
+                        }
+                    } else {
+                        // assigned length is too short for the string value
+                        expr_ref premise(ctx.mk_eq_atom(a, mk_int(Ival)), m);
+                        expr_ref conclusion(m_autil.mk_ge(mk_strlen(S), mk_int(Slen)), m);
+                        assert_axiom_rw(rewrite_implication(premise, conclusion));
+                        axiomAdd = true;
+                    }
                 }
             }
         } else {
@@ -8034,7 +8182,6 @@ namespace smt {
             /* literal is_zero_l = */ mk_literal(is_zero);
             axiomAdd = true;
             TRACE("str", ctx.display(tout););
-            // NOT_IMPLEMENTED_YET();
         }
 
         bool S_hasEqcValue;
@@ -8089,6 +8236,7 @@ namespace smt {
     }
 
     bool theory_str::finalcheck_int2str(app * a) {
+        SASSERT(u.str.is_itos(a));
         bool axiomAdd = false;
         ast_manager & m = get_manager();
 
@@ -8108,7 +8256,7 @@ namespace smt {
                 // check for leading zeroes. if the first character is '0', the entire string must be "0"
                 char firstChar = (int)Sval[0];
                 if (firstChar == '0' && !(Sval == zstring("0"))) {
-                    TRACE("str", tout << "str.to-int argument " << Sval << " contains leading zeroes" << std::endl;);
+                    TRACE("str", tout << "str.from-int argument " << Sval << " contains leading zeroes" << std::endl;);
                     expr_ref axiom(m.mk_not(ctx.mk_eq_atom(a, mk_string(Sval))), m);
                     assert_axiom(axiom);
                     return true;
@@ -8125,7 +8273,7 @@ namespace smt {
                         convertedRepresentation = (ten * convertedRepresentation) + rational(val);
                     } else {
                         // not a digit, invalid
-                        TRACE("str", tout << "str.to-int argument contains non-digit character '" << digit << "'" << std::endl;);
+                        TRACE("str", tout << "str.from-int argument contains non-digit character '" << digit << "'" << std::endl;);
                         conversionOK = false;
                         break;
                     }
@@ -8149,7 +8297,31 @@ namespace smt {
             }
         } else {
             TRACE("str", tout << "string theory has no assignment for " << mk_pp(a, m) << std::endl;);
-            NOT_IMPLEMENTED_YET();
+            // see if the integer theory has assigned N yet
+            arith_value v(m);
+            v.init(&ctx);
+            rational Nval;
+            if (v.get_value(N, Nval)) {
+                expr_ref premise(ctx.mk_eq_atom(N, mk_int(Nval)), m);
+                expr_ref conclusion(m);
+                if (Nval.is_neg()) {
+                    // negative argument -> ""
+                    conclusion = expr_ref(ctx.mk_eq_atom(a, mk_string("")), m);
+                } else {
+                    // non-negative argument -> convert to string of digits
+                    zstring Nval_str(Nval.to_string().c_str());
+                    conclusion = expr_ref(ctx.mk_eq_atom(a, mk_string(Nval_str)), m);
+                }
+                expr_ref axiom(rewrite_implication(premise, conclusion), m);
+                assert_axiom(axiom);
+                axiomAdd = true;
+            } else {
+                TRACE("str", tout << "integer theory has no assignment for " << mk_pp(N, m) << std::endl;);
+                expr_ref is_zero(ctx.mk_eq_atom(N, m_autil.mk_int(0)), m);
+                /* literal is_zero_l = */ mk_literal(is_zero);
+                axiomAdd = true;
+                TRACE("str", ctx.display(tout););
+            }
         }
         return axiomAdd;
     }
@@ -8446,7 +8618,10 @@ namespace smt {
             }
         }
 
-        solve_regex_automata();
+        if (!solve_regex_automata()) {
+            TRACE("str", tout << "regex engine requested to give up!" << std::endl;);
+            return FC_GIVEUP;
+        }
 
         bool needToAssignFreeVars = false;
         expr_ref_vector free_variables(m);
@@ -8477,7 +8652,7 @@ namespace smt {
                 }
             }
         }
-
+        
         if (!needToAssignFreeVars) {
 
             // check string-int terms
@@ -8505,37 +8680,63 @@ namespace smt {
 
             // We must be be 100% certain that if there are any regex constraints,
             // the string assignment for each variable is consistent with the automaton.
-            // The (probably) easiest way to do this is to ensure
-            // that we have path constraints set up for every assigned regex term.
+            bool regexOK = true;
             if (!regex_terms.empty()) {
-                for (obj_hashtable<expr>::iterator it = regex_terms.begin(); it != regex_terms.end(); ++it) {
-                    expr * str_in_re = *it;
-                    expr * str;
-                    expr * re;
-                    u.str.is_in_re(str_in_re, str, re);
+                for (auto& str_in_re : regex_terms) {
+                    expr * str = nullptr;
+                    expr * re = nullptr;
+                    VERIFY(u.str.is_in_re(str_in_re, str, re));
                     lbool current_assignment = ctx.get_assignment(str_in_re);
                     if (current_assignment == l_undef) {
                         continue;
                     }
-                    if (!regex_terms_with_path_constraints.contains(str_in_re)) {
-                        TRACE("str", tout << "assigned regex term " << mk_pp(str_in_re, m) << " has no path constraints -- continuing search" << std::endl;);
-                        return FC_CONTINUE;
+                    zstring strValue;
+                    if (get_string_constant_eqc(str, strValue)) {
+                        // try substituting the current assignment and solving the regex
+                        expr_ref valueInRe(u.re.mk_in_re(mk_string(strValue), re), m);
+                        ctx.get_rewriter()(valueInRe);
+                        if (m.is_true(valueInRe)) {
+                            if (current_assignment == l_false) {
+                                TRACE("str", tout << "regex conflict: " << mk_pp(str, m) << " = \"" << strValue << "\" but must not be in the language " << mk_pp(re, m) << std::endl;);
+                                expr_ref conflictClause(m.mk_or(m.mk_not(ctx.mk_eq_atom(str, mk_string(strValue))), str_in_re), m);
+                                assert_axiom(conflictClause);
+                                add_persisted_axiom(conflictClause);
+                                return FC_CONTINUE;
+                            }
+                        } else if (m.is_false(valueInRe)) {
+                            if (current_assignment == l_true) {
+                                TRACE("str", tout << "regex conflict: " << mk_pp(str, m) << " = \"" << strValue << "\" but must be in the language " << mk_pp(re, m) << std::endl;);
+                                expr_ref conflictClause(m.mk_or(m.mk_not(ctx.mk_eq_atom(str, mk_string(strValue))), m.mk_not(str_in_re)), m);
+                                assert_axiom(conflictClause);
+                                add_persisted_axiom(conflictClause);
+                                return FC_CONTINUE;
+                            }
+                        } else {
+                            // try to keep going, but don't assume the current assignment is right or wrong
+                            regexOK = false;
+                            break;
+                        }
+                    } else {
+                        regexOK = false;
+                        break;
                     }
                 } // foreach (str.in.re in regex_terms)
             }
-
-            if (unused_internal_variables.empty()) {
-                TRACE("str", tout << "All variables are assigned. Done!" << std::endl;);
-                m_stats.m_solved_by = 2;
-                return FC_DONE;
-            } else {
-                TRACE("str", tout << "Assigning decoy values to free internal variables." << std::endl;);
-                for (std::set<expr*>::iterator it = unused_internal_variables.begin(); it != unused_internal_variables.end(); ++it) {
-                    expr * var = *it;
-                    expr_ref assignment(m.mk_eq(var, mk_string("**unused**")), m);
-                    assert_axiom(assignment);
+            // we're not done if some variable in a regex membership predicate was unassigned
+            if (regexOK) {
+                if (unused_internal_variables.empty()) {
+                    TRACE("str", tout << "All variables are assigned. Done!" << std::endl;);
+                    m_stats.m_solved_by = 2;
+                    return FC_DONE;
+                } else {
+                    TRACE("str", tout << "Assigning decoy values to free internal variables." << std::endl;);
+                    for (std::set<expr*>::iterator it = unused_internal_variables.begin(); it != unused_internal_variables.end(); ++it) {
+                        expr * var = *it;
+                        expr_ref assignment(m.mk_eq(var, mk_string("**unused**")), m);
+                        assert_axiom(assignment);
+                    }
+                    return FC_CONTINUE;
                 }
-                return FC_CONTINUE;
             }
         }
 
@@ -8833,7 +9034,7 @@ namespace smt {
         out << "TODO: theory_str display" << std::endl;
     }
 
-    unsigned theory_str::get_refine_length(expr* ex, expr_ref_vector& extra_deps){
+    rational theory_str::get_refine_length(expr* ex, expr_ref_vector& extra_deps){
         ast_manager & m = get_manager();
 
         TRACE("str_fl", tout << "finding length for " << mk_ismt2_pp(ex, m) << std::endl;);
@@ -8843,7 +9044,7 @@ namespace smt {
             SASSERT(str_exists);
             zstring str_const;
             u.str.is_string(str, str_const);
-            return str_const.length();
+            return rational(str_const.length());
         } else if (u.str.is_itos(ex)) {
             expr* fromInt = nullptr;
             u.str.is_itos(ex, fromInt);
@@ -8855,7 +9056,7 @@ namespace smt {
 
             std::string s = std::to_string(val.get_int32());
             extra_deps.push_back(ctx.mk_eq_atom(fromInt, mk_int(val)));
-            return static_cast<unsigned>(s.length());
+            return rational((unsigned)s.length());
 
         } else if (u.str.is_at(ex)) {
             expr* substrBase = nullptr;
@@ -8867,7 +9068,7 @@ namespace smt {
             VERIFY(v.get_value(substrPos, pos));
 
             extra_deps.push_back(ctx.mk_eq_atom(substrPos, mk_int(pos)));
-            return 1;
+            return rational::one();
 
         } else if (u.str.is_extract(ex)) {
             expr* substrBase = nullptr;
@@ -8881,7 +9082,7 @@ namespace smt {
             VERIFY(v.get_value(substrPos, pos));
 
             extra_deps.push_back(ctx.mk_eq_atom(substrPos, mk_int(pos)));
-            return len.get_unsigned();
+            return len;
 
         } else if (u.str.is_replace(ex)) {
             TRACE("str_fl", tout << "replace is like contains---not in conjunctive fragment!" << std::endl;);
@@ -8898,16 +9099,16 @@ namespace smt {
             return refine_eq(lhs, rhs, offset.get_unsigned());
         }
         // Let's just giveup if we find ourselves in the disjunctive fragment.
-        if (offset == rational(-1)) { // negative equation
+        if (offset == NEQ) { // negative equation
             ++m_stats.m_refine_neq;
             return refine_dis(lhs, rhs);
         }
-        if (offset == rational(-2)) { // function like contains, prefix,...
+        if (offset == PFUN) { // function like contains, prefix,...
             SASSERT(rhs == lhs);
             ++m_stats.m_refine_f;
             return refine_function(lhs);
         }
-        if (offset == rational(-3)) { // negated function
+        if (offset == NFUN) { // negated function
             SASSERT(rhs == lhs);
             ++m_stats.m_refine_nf;
             ast_manager & m = get_manager();
@@ -8917,8 +9118,8 @@ namespace smt {
         return nullptr;
     }
 
-    expr* theory_str::refine_eq(expr* lhs, expr* rhs, unsigned offset) {
-        TRACE("str_fl", tout << "refine eq " << offset << std::endl;);
+    expr* theory_str::refine_eq(expr* lhs, expr* rhs, unsigned _offset) {
+        TRACE("str_fl", tout << "refine eq " << _offset << std::endl;);
         ast_manager & m = get_manager();
 
         expr_ref_vector Gamma(m);
@@ -8929,9 +9130,11 @@ namespace smt {
         }
 
         expr_ref_vector extra_deps(m);
+        rational offset(_offset);
 
         // find len(Gamma[:i])
-        unsigned left_count = 0, left_length = 0, last_length = 0;
+        unsigned left_count = 0;
+        rational left_length(0), last_length(0);
         while(left_count < Gamma.size() && left_length <= offset) {
             last_length = get_refine_length(Gamma.get(left_count), extra_deps);
             left_length += last_length;
@@ -8947,7 +9150,8 @@ namespace smt {
             if (!u.str.is_string(to_app(Gamma.get(i)))) {
                 len =  u.str.mk_length(Gamma.get(i));
             } else {
-                len = mk_int(offset - left_length);
+                rational lenDiff = offset - left_length;
+                len = mk_int(lenDiff);
             }
             if (left_sublen == nullptr) {
                 left_sublen = len;
@@ -8956,19 +9160,22 @@ namespace smt {
             }
         }
         if (offset - left_length != 0) {
+            rational lenDiff = offset - left_length;
             if (left_sublen == nullptr) {
-                left_sublen =  mk_int(offset - left_length);
+                left_sublen =  mk_int(lenDiff);
             } else {
-                left_sublen = m_autil.mk_add(left_sublen, mk_int(offset - left_length));
+                left_sublen = m_autil.mk_add(left_sublen, mk_int(lenDiff));
             }
         }
         expr* extra_left_cond = nullptr;
         if (!u.str.is_string(to_app(Gamma.get(left_count)))) {
-            extra_left_cond = m_autil.mk_ge(u.str.mk_length(Gamma.get(left_count)), mk_int(offset - left_length + 1));
+            rational offsetLen = offset - left_length + 1;
+            extra_left_cond = m_autil.mk_ge(u.str.mk_length(Gamma.get(left_count)), mk_int(offsetLen));
         } 
 
         // find len(Delta[:j])
-        unsigned right_count = 0, right_length = 0;
+        unsigned right_count = 0;
+        rational right_length(0);
         last_length = 0;
         while(right_count < Delta.size() && right_length <= offset) {
             last_length = get_refine_length(Delta.get(right_count), extra_deps);
@@ -8985,7 +9192,8 @@ namespace smt {
             if (!u.str.is_string(to_app(Delta.get(i)))) {
                 len =  u.str.mk_length(Delta.get(i));
             } else {
-                len = mk_int(offset - right_length);
+                rational offsetLen = offset - right_length;
+                len = mk_int(offsetLen);
             }
             if (right_sublen == nullptr) {
                 right_sublen = len;
@@ -8994,15 +9202,17 @@ namespace smt {
             }
         }
         if (offset - right_length != 0) {
+            rational offsetLen = offset - right_length;
             if (right_sublen == nullptr) {
-                right_sublen =  mk_int(offset - right_length);
+                right_sublen =  mk_int(offsetLen);
             } else {
-                right_sublen = m_autil.mk_add(right_sublen, mk_int(offset - right_length));
+                right_sublen = m_autil.mk_add(right_sublen, mk_int(offsetLen));
             }
         }
         expr* extra_right_cond = nullptr;
         if (!u.str.is_string(to_app(Delta.get(right_count)))) {
-            extra_right_cond = m_autil.mk_ge(u.str.mk_length(Delta.get(right_count)), mk_int(offset - right_length + 1));
+            rational offsetLen = offset - right_length + 1;
+            extra_right_cond = m_autil.mk_ge(u.str.mk_length(Delta.get(right_count)), mk_int(offsetLen));
         }
 
         // Offset tells us that Gamma[i+1:]) != Delta[j+1:]
@@ -9042,7 +9252,7 @@ namespace smt {
         ast_manager & m = get_manager();
         
         expr_ref lesson(m);
-        lesson = m.mk_not(ctx.mk_eq_atom(lhs, rhs));
+        lesson = m.mk_not(m.mk_eq(lhs, rhs));
         TRACE("str", tout << "learning not " << mk_pp(lesson, m) << std::endl;);
         return lesson;
     }

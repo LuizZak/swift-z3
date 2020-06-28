@@ -24,7 +24,9 @@ Revision History:
 
 namespace smt {
     class theory_lra : public theory, public theory_opt {
+    public:
         class imp;
+    private:
         imp* m_imp;
 
     public:
@@ -92,6 +94,12 @@ namespace smt {
         void display(std::ostream & out) const override;
         
         void collect_statistics(::statistics & st) const override;
+
+        void setup() override;
+
+        void add_theory_assumptions(expr_ref_vector& assumptions) override;
+
+        bool should_research(expr_ref_vector& unsat_core) override;
 
         // optimization
         expr_ref mk_ge(generic_model_converter& fm, theory_var v, inf_rational const& val);

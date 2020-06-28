@@ -144,11 +144,11 @@ struct numeric_pair {
     explicit numeric_pair(const X & n) : x(n), y(0) {
     }
 
-    numeric_pair(const numeric_pair<T> & n) : x(n.x), y(n.y) {}
-
     template <typename X, typename Y>
     numeric_pair(X xp, Y yp) : x(convert_struct<T, X>::convert(xp)), y(convert_struct<T, Y>::convert(yp)) {}
 
+    unsigned hash() const { return combine_hash(x.hash(), y.hash()); }
+    
     bool operator<(const T& a) const {
         return x < a || (x == a && y < 0);
     }
@@ -259,6 +259,8 @@ struct numeric_pair {
 
     bool is_neg() const { return x.is_neg() || (x.is_zero() && y.is_neg());}
 
+    void neg() { x.neg(); y.neg(); }
+    
     std::string to_string() const {
         return std::string("(") + T_to_string(x) + ", "  + T_to_string(y) + ")";
     }

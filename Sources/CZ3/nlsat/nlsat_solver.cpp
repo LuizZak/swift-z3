@@ -1759,7 +1759,7 @@ namespace nlsat {
             if (assigned_value(antecedent) == l_undef) {
                 checkpoint();
                 // antecedent must be false in the current arith interpretation
-                SASSERT(value(antecedent) == l_false || m_rlimit.get_cancel_flag());
+                SASSERT(value(antecedent) == l_false || m_rlimit.is_canceled());
                 if (!is_marked(b)) {
                     SASSERT(is_arith_atom(b) && max_var(b) < m_xk); // must be in a previous stage
                     TRACE("nlsat_resolve", tout << "literal is unassigned, but it is false in arithmetic interpretation, adding it to lemma\n";); 
@@ -1837,10 +1837,10 @@ namespace nlsat {
                 for (unsigned i = 0; i < sz; i++) {
                     literal l = m_lazy_clause[i];
                     if (l.var() != b) {
-                        SASSERT(value(l) == l_false || m_rlimit.get_cancel_flag());
+                        SASSERT(value(l) == l_false || m_rlimit.is_canceled());
                     }
                     else {
-                        SASSERT(value(l) == l_true || m_rlimit.get_cancel_flag());
+                        SASSERT(value(l) == l_true || m_rlimit.is_canceled());
                         SASSERT(!l.sign() || m_bvalues[b] == l_false);
                         SASSERT(l.sign()  || m_bvalues[b] == l_true);
                     }
@@ -1961,6 +1961,13 @@ namespace nlsat {
             return new_lvl;
         }
 
+        struct scoped_reset_marks {
+            imp& i;
+            scoped_reset_marks(imp& i):i(i) {}
+            ~scoped_reset_marks() { if (i.m_num_marks > 0) { i.m_num_marks = 0; for (char& m : i.m_marks) m = 0; } }
+        };
+
+
         /**
            \brief Return true if the conflict was solved.
         */
@@ -1980,7 +1987,7 @@ namespace nlsat {
             m_num_marks = 0;
             m_lemma.reset();
             m_lemma_assumptions = nullptr;
-
+            scoped_reset_marks _sr(*this);
             resolve_clause(null_bool_var, *conflict_clause);
 
             unsigned top = m_trail.size();

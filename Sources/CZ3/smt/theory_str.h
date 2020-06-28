@@ -535,6 +535,7 @@ protected:
     obj_map<expr, app*> length_ast_map;
 
     th_trail_stack m_trail_stack;
+    th_trail_stack m_library_aware_trail_stack;
     th_union_find m_find;
     theory_var get_var(expr * n) const;
     expr * get_eqc_next(expr * n);
@@ -543,7 +544,7 @@ protected:
     // fixed length model construction
     expr_ref_vector fixed_length_subterm_trail; // trail for subterms generated *in the subsolver*
     expr_ref_vector fixed_length_assumptions; // cache of boolean terms to assert *into the subsolver*, unsat core is a subset of these
-    obj_map<expr, unsigned> fixed_length_used_len_terms; // constraints used in generating fixed length model
+    obj_map<expr, rational> fixed_length_used_len_terms; // constraints used in generating fixed length model
     obj_map<expr, ptr_vector<expr> > var_to_char_subterm_map; // maps a var to a list of character terms *in the subsolver*
     obj_map<expr, ptr_vector<expr> > uninterpreted_to_char_subterm_map; // maps an "uninterpreted" string term to a list of character terms *in the subsolver*
     obj_map<expr, std::tuple<rational, expr*, expr*>> fixed_length_lesson; //keep track of information for the lesson
@@ -603,7 +604,7 @@ protected:
     expr* refine_dis(expr* lhs, expr* rhs);
     expr* refine_function(expr* f);
     bool flatten(expr* ex, expr_ref_vector & flat);
-    unsigned get_refine_length(expr* ex, expr_ref_vector& extra_deps);
+    rational get_refine_length(expr* ex, expr_ref_vector& extra_deps);
 
     void instantiate_axiom_CharAt(enode * e);
     void instantiate_axiom_prefixof(enode * e);
@@ -623,7 +624,7 @@ protected:
     void instantiate_axiom_RegexIn(enode * e);
 
     // regex automata and length-aware regex
-    void solve_regex_automata();
+    bool solve_regex_automata();
     unsigned estimate_regex_complexity(expr * re);
     unsigned estimate_regex_complexity_under_complement(expr * re);
     unsigned estimate_automata_intersection_difficulty(eautomaton * aut1, eautomaton * aut2);
@@ -645,6 +646,7 @@ protected:
 
     app * mk_value_helper(app * n);
     expr * get_eqc_value(expr * n, bool & hasEqcValue);
+    bool get_string_constant_eqc(expr * n, zstring & stringVal);
     expr * z3str2_get_eqc_value(expr * n , bool & hasEqcValue);
     bool in_same_eqc(expr * n1, expr * n2);
     expr * collect_eq_nodes(expr * n, expr_ref_vector & eqcSet);
@@ -720,6 +722,10 @@ protected:
     bool new_eq_check(expr * lhs, expr * rhs);
     void group_terms_by_eqc(expr * n, std::set<expr*> & concats, std::set<expr*> & vars, std::set<expr*> & consts);
 
+    void check_consistency_prefix(expr * e, bool is_true);
+    void check_consistency_suffix(expr * e, bool is_true);
+    void check_consistency_contains(expr * e, bool is_true);
+
     int ctx_dep_analysis(std::map<expr*, int> & strVarMap, std::map<expr*, int> & freeVarMap,
             std::map<expr*, std::set<expr*> > & unrollGroupMap, std::map<expr*, std::map<expr*, int> > & var_eq_concat_map);
     void trace_ctx_dep(std::ofstream & tout,
@@ -773,6 +779,11 @@ protected:
     bool propagate_length(std::set<expr*> & varSet, std::set<expr*> & concatSet, std::map<expr*, int> & exprLenMap);
     void get_unique_non_concat_nodes(expr * node, std::set<expr*> & argSet);
     bool propagate_length_within_eqc(expr * var);
+
+
+    const rational NEQ = rational(-1); // negative word equation lesson
+    const rational PFUN = rational(-2); // positive function lesson
+    const rational NFUN = rational(-3); // negative function lesson
 
     // TESTING
     void refresh_theory_var(expr * e);

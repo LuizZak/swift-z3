@@ -23,14 +23,13 @@ Revision History:
 
 
 --*/
-#ifndef VECTOR_H_
-#define VECTOR_H_
+#pragma once
 
 #include "util/debug.h"
-#include<algorithm>
-#include<type_traits>
-#include<memory.h>
-#include<functional>
+#include <algorithm>
+#include <functional>
+#include <memory>
+#include <type_traits>
 #include "util/memory_manager.h"
 #include "util/hash.h"
 #include "util/z3_exception.h"
@@ -70,6 +69,7 @@ class vector {
             m_data            = reinterpret_cast<T *>(mem);
         }
         else {
+            //static_assert(std::is_nothrow_move_constructible<T>::value, "");
             SASSERT(capacity() > 0);
             SZ old_capacity = reinterpret_cast<SZ *>(m_data)[CAPACITY_IDX];
             SZ old_capacity_T = sizeof(T) * old_capacity + sizeof(SZ) * 2;
@@ -110,14 +110,8 @@ class vector {
         mem++;
         *mem = size; 
         mem++;
-        m_data             = reinterpret_cast<T *>(mem);
-        const_iterator it  = source.begin();
-        iterator it2       = begin();
-        SASSERT(it2 == m_data);
-        const_iterator e   = source.end();
-        for (; it != e; ++it, ++it2) {
-            new (it2) T(*it); 
-        }
+        m_data = reinterpret_cast<T *>(mem);
+        std::uninitialized_copy(source.begin(), source.end(), begin());
     }
 
     void destroy() {
@@ -170,7 +164,7 @@ public:
         SASSERT(size() == source.size());
     }
 
-    vector(vector&& other) : m_data(nullptr) {
+    vector(vector&& other) noexcept : m_data(nullptr) {
         std::swap(m_data, other.m_data);
     }
 
@@ -449,7 +443,7 @@ public:
         ++pos;
         iterator e    = end();
         for(; pos != e; ++pos, ++prev) {
-            *prev = *pos;
+            *prev = std::move(*pos);
         }
         reinterpret_cast<SZ *>(m_data)[SIZE_IDX]--;
     }
@@ -593,13 +587,7 @@ public:
     ptr_vector():vector<T *, false>() {}
     ptr_vector(unsigned s):vector<T *, false>(s) {}
     ptr_vector(unsigned s, T * elem):vector<T *, false>(s, elem) {}
-    ptr_vector(ptr_vector const & source):vector<T *, false>(source) {}
-    ptr_vector(ptr_vector && other) : vector<T*, false>(std::move(other)) {}
     ptr_vector(unsigned s, T * const * data):vector<T *, false>(s, const_cast<T**>(data)) {}
-    ptr_vector & operator=(ptr_vector const & source) {
-        vector<T *, false>::operator=(source);
-        return *this;
-    }
 };
 
 template<typename T, typename SZ = unsigned>
@@ -608,13 +596,7 @@ public:
     svector():vector<T, false, SZ>() {}
     svector(SZ s):vector<T, false, SZ>(s) {}
     svector(SZ s, T const & elem):vector<T, false, SZ>(s, elem) {}
-    svector(svector const & source):vector<T, false, SZ>(source) {}
-    svector(svector && other) : vector<T, false, SZ>(std::move(other)) {}
     svector(SZ s, T const * data):vector<T, false, SZ>(s, data) {}
-    svector & operator=(svector const & source) {
-        vector<T, false, SZ>::operator=(source);
-        return *this;
-    }
 };
 
 
@@ -655,5 +637,3 @@ struct vector_hash : public vector_hash_tpl<Hash, vector<typename Hash::data> > 
 
 template<typename Hash>
 struct svector_hash : public vector_hash_tpl<Hash, svector<typename Hash::data> > {};
-
-#endif /* VECTOR_H_ */

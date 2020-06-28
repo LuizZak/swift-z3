@@ -124,13 +124,13 @@ namespace spacer {
         out << "(define-fun mbp_benchmark_fml () Bool\n  ";
         out << mk_pp(fml, m) << ")\n\n";
 
-        out << "(push)\n"
+        out << "(push 1)\n"
             << "(assert mbp_benchmark_fml)\n"
             << "(check-sat)\n"
             << "(mbp mbp_benchmark_fml (";
         for (auto v : vars) {out << mk_pp(v, m) << " ";}
         out << "))\n"
-            << "(pop)\n"
+            << "(pop 1)\n"
             << "(exit)\n";
     }
 
@@ -383,7 +383,7 @@ namespace {
             expr_ref res(m), v(m);
             v = m_model(e);
             // the literal must have a value
-            SASSERT(m.is_true(v) || m.is_false(v));
+            SASSERT(m.limit().is_canceled() || m.is_true(v) || m.is_false(v));
 
             res = m.is_false(v) ? m.mk_not(e) : e;
 
@@ -980,7 +980,13 @@ namespace {
         for_each_expr(cd, fml);
     }
 
-}
-
+    // set the value of a boolean function to true in model
+    void set_true_in_mdl(model &model, func_decl *f) {
+        SASSERT(f->get_arity() == 0);
+        model.unregister_decl(f);
+        model.register_decl(f, model.get_manager().mk_true());
+        model.reset_eval_cache();
+    }
+} // namespace spacer
 template class rewriter_tpl<spacer::adhoc_rewriter_cfg>;
 template class rewriter_tpl<spacer::adhoc_rewriter_rpp>;

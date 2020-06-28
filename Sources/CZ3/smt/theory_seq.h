@@ -33,11 +33,15 @@ Revision History:
 #include "smt/theory_seq_empty.h"
 #include "smt/seq_skolem.h"
 #include "smt/seq_axioms.h"
+#include "smt/seq_unicode.h"
+#include "smt/seq_regex.h"
 #include "smt/seq_offset_eq.h"
 
 namespace smt {
 
     class theory_seq : public theory {
+        friend class seq_regex;
+
         struct assumption {
             enode* n1, *n2;
             literal lit;
@@ -378,8 +382,8 @@ namespace smt {
         th_union_find              m_find;
         seq_offset_eq              m_offset_eq;
 
-        obj_ref_map<ast_manager, expr, unsigned_vector>    m_overlap;
-        obj_ref_map<ast_manager, expr, unsigned_vector>    m_overlap2;
+        obj_ref_map<ast_manager, expr, bool>    m_overlap_lhs;
+        obj_ref_map<ast_manager, expr, bool>    m_overlap_rhs;
 
 
         seq_factory*               m_factory;    // value factory
@@ -402,13 +406,14 @@ namespace smt {
         arith_util       m_autil;
         seq_skolem       m_sk;
         seq_axioms       m_ax;
+        seq_unicode      m_unicode;
+        seq_regex        m_regex;
         arith_value      m_arith_value;
         th_trail_stack   m_trail_stack;
         stats            m_stats;
         ptr_vector<expr> m_todo, m_concat;
         expr_ref_vector  m_ls, m_rs, m_lhs, m_rhs;
         expr_ref_pair_vector m_new_eqs;
-        bool             m_has_seq;
 
         // maintain automata with regular expressions.
         scoped_ptr_vector<eautomaton>  m_automata;
@@ -418,6 +423,8 @@ namespace smt {
         literal                        m_max_unfolding_lit;
         vector<s_in_re>                m_s_in_re;
 
+        expr*                          m_unhandled_expr;
+        bool                           m_has_seq;
         bool                           m_new_solution;     // new solution added
         bool                           m_new_propagation;  // new propagation to core
         re2automaton                   m_mk_aut;
@@ -469,8 +476,7 @@ namespace smt {
         bool branch_unit_variable();     // branch on XYZ = abcdef
         bool branch_binary_variable();   // branch on abcX = Ydefg 
         bool branch_variable();          // branch on 
-        bool branch_ternary_variable1(); // branch on XabcY = Zdefg 
-        bool branch_ternary_variable2(); // branch on XabcY = defgZ 
+        bool branch_ternary_variable(); // branch on XabcY = Zdefg 
         bool branch_quat_variable();     // branch on XabcY = ZdefgT
         bool len_based_split();          // split based on len offset
         bool branch_variable_mb();       // branch on a variable, model based on length
@@ -485,14 +491,11 @@ namespace smt {
         bool branch_variable_eq(eq const& e);
         bool branch_binary_variable(eq const& e);
         bool eq_unit(expr* l, expr* r) const;       
-        unsigned_vector overlap(expr_ref_vector const& ls, expr_ref_vector const& rs);
-        unsigned_vector overlap2(expr_ref_vector const& ls, expr_ref_vector const& rs);
-        bool branch_ternary_variable_base(dependency* dep, unsigned_vector const & indexes, expr * x, 
-                                          expr_ref_vector const& xs, expr * y1, expr_ref_vector const& ys, expr * y2);
-        bool branch_ternary_variable_base2(dependency* dep, unsigned_vector const& indexes, expr_ref_vector const& xs, 
-                                           expr * x, expr * y1, expr_ref_vector const& ys, expr * y2);
-        bool branch_ternary_variable(eq const& e, bool flag1 = false);
-        bool branch_ternary_variable2(eq const& e, bool flag1 = false);
+        bool can_align_from_lhs(expr_ref_vector const& ls, expr_ref_vector const& rs);
+        bool can_align_from_rhs(expr_ref_vector const& ls, expr_ref_vector const& rs);
+        bool branch_ternary_variable_rhs(eq const& e);
+        bool branch_ternary_variable_lhs(eq const& e);
+        literal mk_alignment(expr* e1, expr* e2);
         bool branch_quat_variable(eq const& e);
         bool len_based_split(eq const& e);
         bool is_unit_eq(expr_ref_vector const& ls, expr_ref_vector const& rs);
@@ -503,6 +506,7 @@ namespace smt {
         bool set_empty(expr* x);
         bool is_complex(eq const& e);
         lbool regex_are_equal(expr* r1, expr* r2);
+        void add_unhandled_expr(expr* e);
 
         bool check_extensionality();
         bool check_contains();
@@ -519,8 +523,9 @@ namespace smt {
         bool solve_itos(expr* n, expr_ref_vector const& rs, dependency* dep);
         bool is_binary_eq(expr_ref_vector const& l, expr_ref_vector const& r, expr_ref& x, ptr_vector<expr>& xunits, ptr_vector<expr>& yunits, expr_ref& y);
         bool is_quat_eq(expr_ref_vector const& ls, expr_ref_vector const& rs, expr_ref& x1, expr_ref_vector& xs, expr_ref& x2, expr_ref& y1, expr_ref_vector& ys, expr_ref& y2);
-        bool is_ternary_eq(expr_ref_vector const& ls, expr_ref_vector const& rs, expr_ref& x, expr_ref_vector& xs, expr_ref& y1, expr_ref_vector& ys, expr_ref& y2, bool flag1);
-        bool is_ternary_eq2(expr_ref_vector const& ls, expr_ref_vector const& rs, expr_ref_vector& xs, expr_ref& x, expr_ref& y1, expr_ref_vector& ys, expr_ref& y2, bool flag1);
+        bool is_ternary_eq_rhs(expr_ref_vector const& ls, expr_ref_vector const& rs, expr_ref& x, expr_ref_vector& xs, expr_ref& y1, expr_ref_vector& ys, expr_ref& y2);
+        bool is_ternary_eq_lhs(expr_ref_vector const& ls, expr_ref_vector const& rs, expr_ref_vector& xs, expr_ref& x, expr_ref& y1, expr_ref_vector& ys, expr_ref& y2);
+
         bool solve_binary_eq(expr_ref_vector const& l, expr_ref_vector const& r, dependency* dep);
         bool propagate_max_length(expr* l, expr* r, dependency* dep);
 
@@ -610,6 +615,7 @@ namespace smt {
         void enque_axiom(expr* e);
         void deque_axiom(expr* e);
         void add_axiom(literal l1, literal l2 = null_literal, literal l3 = null_literal, literal l4 = null_literal, literal l5 = null_literal);        
+        void add_axiom(literal_vector& lits);
         
         bool has_length(expr *e) const { return m_has_length.contains(e); }
         void add_length(expr* e, expr* l);

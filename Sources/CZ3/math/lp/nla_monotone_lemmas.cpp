@@ -1,21 +1,9 @@
 /*++
   Copyright (c) 2017 Microsoft Corporation
 
-  Module Name:
-
-  <name>
-
-  Abstract:
-
-  <abstract>
-
   Author:
-  Nikolaj Bjorner (nbjorner)
-  Lev Nachmanson (levnach)
-
-  Revision History:
-
-
+    Lev Nachmanson (levnach)
+    Nikolaj Bjorner (nbjorner)
   --*/
 #include "math/lp/nla_basics_lemmas.h"
 #include "math/lp/nla_core.h"
@@ -27,7 +15,7 @@ monotone::monotone(core * c) : common(c) {}
 void monotone::monotonicity_lemma() {
     unsigned shift = random();
     unsigned size = c().m_to_refine.size();
-    for(unsigned i = 0; i < size && !done(); i++) { 
+    for (unsigned i = 0; i < size && !done(); i++) { 
         lpvar v = c().m_to_refine[(i + shift) % size];
         monotonicity_lemma(c().emons()[v]);
     }
@@ -42,37 +30,60 @@ void monotone::monotonicity_lemma(monic const& m) {
     const rational prod_val = abs(c().product_value(m));
     const rational m_val = abs(var_val(m));
     if (m_val < prod_val)
-        monotonicity_lemma_lt(m, prod_val);
+        monotonicity_lemma_lt(m);
     else if (m_val > prod_val)
-        monotonicity_lemma_gt(m, prod_val);
+        monotonicity_lemma_gt(m);
 }
 
-void monotone::monotonicity_lemma_gt(const monic& m, const rational& prod_val) {
-    TRACE("nla_solver", tout << "prod_val = " << prod_val << "\n";
-          tout << "m = "; c().print_monic_with_vars(m, tout););
-    add_lemma();
+/** \brief enforce the inequality |m| <= product |m[i]| .
+
+    /\_i |m[i]| <= |val(m[i])| => |m| <= |product_i val(m[i])|
+    <=>
+    \/_i |m[i]| > |val(m[i])| or |m| <= |product_i val(m[i])|
+
+    implied by 
+       m[i] > val(m[i])     for val(m[i]) > 0
+       m[i] < val(m[i])     for val(m[i]) < 0
+       m >= product m[i]    for product m[i] < 0
+       m <= product m[i]    for product m[i] > 0
+
+    Example:
+
+    0 >= x >= -2 & 0 <= y <= 3 => x*y >= -6
+    0 >= x >= -2 & 0 <= y <= 3 => x*x*y <= 12
+    
+*/
+void monotone::monotonicity_lemma_gt(const monic& m) {
+    new_lemma lemma(c(), "monotonicity > ");
+    rational product(1);
     for (lpvar j : m.vars()) {
-        c().add_abs_bound(j, llc::GT);
+        auto v = c().val(j);
+        lemma |= ineq(j, v.is_neg() ? llc::LT : llc::GT, v);
+        lemma |= ineq(j, v.is_neg() ? llc::GT : llc::LT, 0);
+        product *= v;
     }
-    lpvar m_j = m.var();
-    c().add_abs_bound(m_j, llc::LE, prod_val);
-    TRACE("nla_solver", print_lemma(tout););
+    lemma |= ineq(m.var(), product.is_neg() ? llc::GE : llc::LE, product);
 }
     
 /** \brief enforce the inequality |m| >= product |m[i]| .
 
     /\_i |m[i]| >= |val(m[i])| => |m| >= |product_i val(m[i])|
     <=>
-    \/_i |m[i]| < |val(m[i])} or |m| >= |product_i val(m[i])|
+    \/_i |m[i]| < |val(m[i])| or |m| >= |product_i val(m[i])|
+
+    Example:
+
+    x <= -2 & y >= 3 => x*y <= -6
 */
-void monotone::monotonicity_lemma_lt(const monic& m, const rational& prod_val) {
-    add_lemma();
+void monotone::monotonicity_lemma_lt(const monic& m) {
+    new_lemma lemma(c(), "monotonicity <");
+    rational product(1);
     for (lpvar j : m.vars()) {
-        c().add_abs_bound(j, llc::LT);
+        auto v = c().val(j);
+        lemma |= ineq(j, v.is_neg() ? llc::GT : llc::LT, v);
+        product *= v;
     }
-    lpvar m_j = m.var();
-    c().add_abs_bound(m_j, llc::GE, prod_val);
-    TRACE("nla_solver", print_lemma(tout););
+    lemma |= ineq(m.var(), product.is_neg() ? llc::LE : llc::GE, product);
 }
    
 

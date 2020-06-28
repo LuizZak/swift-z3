@@ -1,20 +1,9 @@
 /*++
   Copyright (c) 2017 Microsoft Corporation
 
-  Module Name:
-
-  <name>
-
-  Abstract:
-
-  <abstract>
-
   Author:
-  Nikolaj Bjorner (nbjorner)
-  Lev Nachmanson (levnach)
-
-  Revision History:
-
+    Lev Nachmanson (levnach)
+    Nikolaj Bjorner (nbjorner)
 
   --*/
 #include "math/lp/nla_tangent_lemmas.h"
@@ -22,61 +11,68 @@
 
 namespace nla {
 
-struct imp {
-    point m_a;
-    point m_b;
-    point m_xy;
-    rational m_correct_v;
+class tangent_imp {
+    point         m_a;
+    point         m_b;
+    point         m_xy;
+    rational      m_correct_v;
     // "below" means that the incorrect value is less than the correct one, that is m_v < m_correct_v
-    bool  m_below;
-    rational m_v; // the monomial value 
-    lpvar    m_j; // the monic variable
-    const monic& m_m;
+    bool          m_below;
+    rational      m_v; // the monomial value 
+    lpvar         m_j; // the monic variable
+    const monic&  m_m;
     const factor& m_x;
     const factor& m_y;
-    lpvar m_jx;
-    lpvar m_jy;
-    tangents& m_tang;
-    imp(point xy,        
+    lpvar         m_jx;
+    lpvar         m_jy;
+    tangents&     m_tang;
+    bool          m_is_mon;
+
+public:
+    tangent_imp(point xy,        
         const rational& v,
-        lpvar j, // the monic variable
         const monic& m,
-        const factor& x,
-        const factor& y,
+        const factorization& f,
         tangents& tang) : m_xy(xy),
                           m_correct_v(xy.x * xy.y),
                           m_below(v < m_correct_v),
                           m_v(v),
-                          m_j(tang.var(m)),
+                          m_j(m.var()),
                           m_m(m),
-                          m_x(x),
-                          m_y(y),
-                          m_jx(tang.var(x)),
-                          m_jy(tang.var(y)),
-                          m_tang(tang) {}
+                          m_x(f[0]),
+                          m_y(f[1]),
+                          m_jx(m_x.var()),
+                          m_jy(m_y.var()),
+                          m_tang(tang),
+                          m_is_mon(f.is_mon()) {
+        SASSERT(f.size() == 2);
+    }
+       
+    void operator()() {    
+        get_points();
+        TRACE("nla_solver", print_tangent_domain(tout << "tang domain = ") << std::endl;);
+        generate_line1();
+        generate_line2();
+        generate_plane(m_a);
+        generate_plane(m_b);
+    }
 
-    
+private:
+
     core & c() { return m_tang.c(); }
-    
-    void generate_explanations_of_tang_lemma(lp::explanation& exp) {    
-    // here we repeat the same explanation for each lemma
-        c().explain(m_m, exp);
-        c().explain(m_x, exp);
-        c().explain(m_y, exp);
-    }
-    void tangent_lemma_on_bf() {    
-        get_tang_points();
-        TRACE("nla_solver", tout << "tang domain = "; print_tangent_domain(tout) << std::endl;);
-        generate_two_tang_lines();
-        generate_tang_plane(m_a);
-        generate_tang_plane(m_b);
+
+    void explain(new_lemma& lemma) {
+        if (!m_is_mon) {
+            lemma &= m_m;
+            lemma &= m_x;
+            lemma &= m_y;
+        }
     }
 
-
-    void generate_tang_plane(const point & pl) {
-        c().add_lemma();
-        c().negate_relation(m_jx, m_x.rat_sign()*pl.x);
-        c().negate_relation(m_jy, m_y.rat_sign()*pl.y);
+    void generate_plane(const point & pl) {
+        new_lemma lemma(c(), "generate tangent plane");
+        c().negate_relation(lemma, m_jx, m_x.rat_sign()*pl.x);
+        c().negate_relation(lemma, m_jy, m_y.rat_sign()*pl.y);
 #if Z3DEBUG
         SASSERT(c().val(m_x) == m_xy.x && c().val(m_y) == m_xy.y);
         int mult_sign = nla::rat_sign(pl.x - m_xy.x)*nla::rat_sign(pl.y - m_xy.y);
@@ -90,21 +86,27 @@ struct imp {
         t.add_monomial(- m_y.rat_sign()*pl.x, m_jy);
         t.add_monomial(- m_x.rat_sign()*pl.y, m_jx);
         t.add_var(m_j);
-        c().mk_ineq(t, m_below? llc::GT : llc::LT, - pl.x*pl.y);            
+        lemma |= ineq(t, m_below? llc::GT : llc::LT, - pl.x*pl.y);
+        explain(lemma);
     }
-    
-    void generate_two_tang_lines() {
-        m_tang.add_lemma();
+
+    void generate_line1() {
+        new_lemma lemma(c(), "tangent line 1");
         // Should be  v = val(m_x)*val(m_y), and val(factor) = factor.rat_sign()*var(factor.var())
-        c().mk_ineq(m_jx, llc::NE, c().val(m_jx));
-        c().mk_ineq(m_j,  - m_y.rat_sign() * m_xy.x,  m_jy, llc::EQ);
-        
-        m_tang.add_lemma();
-        c().mk_ineq(m_jy, llc::NE, c().val(m_jy));
-        c().mk_ineq(m_j, - m_x.rat_sign() * m_xy.y, m_jx, llc::EQ);
+        lemma |= ineq(m_jx, llc::NE, c().val(m_jx));
+        lemma |= ineq(lp::lar_term(m_j,  - m_y.rat_sign() * m_xy.x,  m_jy), llc::EQ, 0);
+        explain(lemma);
     }
+
+    void generate_line2() {            
+        new_lemma lemma(c(), "tangent line 2");
+        lemma |= ineq(m_jy, llc::NE, c().val(m_jy));
+        lemma |= ineq(lp::lar_term(m_j, - m_x.rat_sign() * m_xy.y, m_jx), llc::EQ, 0);
+        explain(lemma);
+    }
+
     // Get two planes tangent to surface z = xy, one at point a,  and another at point b, creating a cut
-    void get_initial_tang_points() {
+    void get_initial_points() {
         const rational& x = m_xy.x;
         const rational& y = m_xy.y;
         bool all_ints = m_v.is_int() && x.is_int() && y.is_int();
@@ -131,7 +133,7 @@ struct imp {
         }
     }
 
-    void push_tang_point(point & a) {
+    void push_point(point & a) {
         SASSERT(plane_is_correct_cut(a));
         int steps = 10;
         point del = a - m_xy;
@@ -140,7 +142,7 @@ struct imp {
             point na = m_xy + del;
             TRACE("nla_solver_tp", tout << "del = " << del << std::endl;);
             if (!plane_is_correct_cut(na)) {
-                TRACE("nla_solver_tp", tout << "exit";tout << std::endl;);
+                TRACE("nla_solver_tp", tout << "exit\n";);
                 return;
             }
             a = na;
@@ -148,25 +150,24 @@ struct imp {
     }
 
     rational tang_plane(const point& a) const {
-        return  a.x * m_xy.y + a.y * m_xy.x - a.x * a.y;
+        return a.x * m_xy.y + a.y * m_xy.x - a.x * a.y;
     }
 
-    void get_tang_points() {
-        get_initial_tang_points();
+    void get_points() {
+        get_initial_points();
         TRACE("nla_solver", tout << "xy = " << m_xy << ", correct val = " << m_correct_v;
-              tout << "\ntang points:"; print_tangent_domain(tout);tout << std::endl;);
-        push_tang_point(m_a);
-        TRACE("nla_solver", tout << "pushed a = " << m_a << std::endl;);
-        
-        push_tang_point(m_b);
-        TRACE("nla_solver", tout << "pushed b = " << m_b << std::endl;);
+              print_tangent_domain(tout << "\ntang points:") << std::endl;);
+        push_point(m_a);        
+        push_point(m_b);
         TRACE("nla_solver",
-              tout << "tang_plane(a) = " << tang_plane(m_a) << " , val = " << m_v <<  ", tang_plane(b) = " << tang_plane(m_b) << " , val = " << std::endl;);
+              tout << "pushed a = " << m_a << std::endl 
+              << "pushed b = " << m_b << std::endl
+              << "tang_plane(a) = " << tang_plane(m_a) << " , val = " << m_a << ", "
+              << "tang_plane(b) = " << tang_plane(m_b) << " , val = " << m_b << std::endl;);
     }
 
     std::ostream& print_tangent_domain(std::ostream& out) {
-        out << "(" << m_a <<  ", " << m_b << ")";
-        return out;
+        return out << "(" << m_a <<  ", " << m_b << ")";
     }
 
     bool plane_is_correct_cut(const point& plane) const {
@@ -174,7 +175,7 @@ struct imp {
               tout << "tang_plane() = " << tang_plane(plane) << ", v = " << m_v << ", correct_v = " << m_correct_v << "\n";);
         SASSERT((m_below && m_v < m_correct_v) ||
                 ((!m_below) && m_v > m_correct_v));
-        rational sign = m_below? rational(1) : rational(-1);
+        rational sign = rational(m_below ? 1 : -1);
         rational px = tang_plane(plane);
         return ((m_correct_v - px)*sign).is_pos() && !((px - m_v)*sign).is_neg();        
     }    
@@ -183,43 +184,14 @@ struct imp {
 tangents::tangents(core * c) : common(c) {}
     
 void tangents::tangent_lemma() {
-    if (!c().m_nla_settings.run_tangents()) {
-        TRACE("nla_solver", tout << "not generating tangent lemmas\n";);
-        return;
-    }
     factorization bf(nullptr);
-    const monic* m;
-    if (c().find_bfc_to_refine(m, bf)) {
-        unsigned lemmas_size_was = c().m_lemma_vec->size();
-        unsigned j = m->var();
-        imp i(point(val(bf[0]), val(bf[1])),
-              c().val(j),
-              j,
-              *m,
-              bf[0],
-              bf[1],
-              *this);
-        i.tangent_lemma_on_bf();
-        if (!bf.is_mon()) { 
-            lp::explanation expl;
-            generate_explanations_of_tang_lemma(*m, bf, expl);
-            for (unsigned i = lemmas_size_was; i < c().m_lemma_vec->size(); i++) {
-                auto &l = ((*c().m_lemma_vec)[i]);
-                l.expl().add(expl);
-            }
-        }
-        TRACE("nla_solver",
-              for (unsigned i = lemmas_size_was; i < c().m_lemma_vec->size(); i++) 
-                  c().print_specific_lemma((*c().m_lemma_vec)[i], tout); );
-
+    const monic* m = nullptr;
+    if (c().m_nla_settings.run_tangents() && c().find_bfc_to_refine(m, bf)) {
+        lpvar j = m->var();
+        tangent_imp tangent(point(val(bf[0]), val(bf[1])), c().val(j), *m, bf, *this);
+        tangent();
     }
 }
 
-void tangents::generate_explanations_of_tang_lemma(const monic& rm, const factorization& bf, lp::explanation& exp) {
-    // here we repeat the same explanation for each lemma
-    c().explain(rm, exp);
-    c().explain(bf[0], exp);
-    c().explain(bf[1], exp);
-}
 
 }

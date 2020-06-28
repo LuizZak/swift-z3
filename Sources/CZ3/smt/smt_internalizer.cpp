@@ -29,7 +29,7 @@ namespace smt {
     /**
        \brief Return true if the expression is viewed as a logical gate.
     */
-    inline bool is_gate(ast_manager const & m, expr * n) {
+    static bool is_gate(ast_manager const & m, expr * n) {
         if (is_app(n) && to_app(n)->get_family_id() == m.get_basic_family_id()) {
             switch (to_app(n)->get_decl_kind()) {
             case OP_AND:
@@ -45,19 +45,19 @@ namespace smt {
         return false;
     }
 
-#define White 0 
+#define White 0
 #define Grey  1
 #define Black 2
 
-    static int get_color(svector<int> & tcolors, svector<int> & fcolors, expr * n, bool gate_ctx) {
-        svector<int> & colors = gate_ctx ? tcolors : fcolors;
-        if (colors.size() > n->get_id()) 
+    static char get_color(char_vector & tcolors, char_vector & fcolors, expr * n, bool gate_ctx) {
+        char_vector & colors = gate_ctx ? tcolors : fcolors;
+        if (colors.size() > n->get_id())
             return colors[n->get_id()];
         return White;
     }
 
-    static void set_color(svector<int> & tcolors, svector<int> & fcolors, expr * n, bool gate_ctx, int color) {
-       svector<int> & colors = gate_ctx ? tcolors : fcolors;
+    static void set_color(char_vector & tcolors, char_vector & fcolors, expr * n, bool gate_ctx, char color) {
+       char_vector & colors = gate_ctx ? tcolors : fcolors;
        if (colors.size() <= n->get_id()) {
            colors.resize(n->get_id()+1, White);
        }
@@ -99,15 +99,17 @@ namespace smt {
         }
     }
 
-    void context::ts_visit_child(expr * n, bool gate_ctx, svector<int> & tcolors, svector< int> & fcolors, svector<expr_bool_pair> & todo, bool & visited) {
+    void context::ts_visit_child(expr * n, bool gate_ctx, svector<expr_bool_pair> & todo, bool & visited) {
         if (get_color(tcolors, fcolors, n, gate_ctx) == White) {
             todo.push_back(expr_bool_pair(n, gate_ctx));
             visited = false;
         }
     }
 
-    bool context::ts_visit_children(expr * n, bool gate_ctx, svector<int> & tcolors, svector<int> & fcolors, svector<expr_bool_pair> & todo) {
+    bool context::ts_visit_children(expr * n, bool gate_ctx, svector<expr_bool_pair> & todo) {
         if (is_quantifier(n))
+            return true;
+        if (!should_internalize_rec(n))
             return true;
         SASSERT(is_app(n));
         if (m.is_bool(n)) {
@@ -127,7 +129,7 @@ namespace smt {
             ptr_buffer<expr> descendants;
             get_foreign_descendants(to_app(n), fid, descendants);
             for (expr * arg : descendants) {
-                ts_visit_child(arg, false, tcolors, fcolors, todo, visited);
+                ts_visit_child(arg, false, todo, visited);
             }
             return visited;
         }
@@ -135,9 +137,9 @@ namespace smt {
         SASSERT(def_int);
 
         if (m.is_term_ite(n)) {
-            ts_visit_child(to_app(n)->get_arg(0), true, tcolors, fcolors, todo, visited);
-            ts_visit_child(to_app(n)->get_arg(1), false, tcolors, fcolors, todo, visited);
-            ts_visit_child(to_app(n)->get_arg(2), false, tcolors, fcolors, todo, visited);
+            ts_visit_child(to_app(n)->get_arg(0), true, todo, visited);
+            ts_visit_child(to_app(n)->get_arg(1), false, todo, visited);
+            ts_visit_child(to_app(n)->get_arg(2), false, todo, visited);
             return visited;
         }
         bool new_gate_ctx = m.is_bool(n) && (is_gate(m, n) || m.is_not(n));
@@ -145,16 +147,14 @@ namespace smt {
         while (j > 0) {
             --j;
             expr * arg = to_app(n)->get_arg(j);
-            ts_visit_child(arg, new_gate_ctx, tcolors, fcolors, todo, visited);
+            ts_visit_child(arg, new_gate_ctx, todo, visited);
         }
         return visited;
     }
 
-    void context::top_sort_expr(expr * n, svector<expr_bool_pair> & sorted_exprs) {
-        ts_todo.reset();
+    void context::top_sort_expr(expr* const* exprs, unsigned num_exprs, svector<expr_bool_pair> & sorted_exprs) {
         tcolors.reset();
         fcolors.reset();
-        ts_todo.push_back(expr_bool_pair(n, true));
         while (!ts_todo.empty()) {
             expr_bool_pair & p = ts_todo.back();
             expr * curr        = p.first;
@@ -162,14 +162,16 @@ namespace smt {
             switch (get_color(tcolors, fcolors, curr, gate_ctx)) {
             case White:
                 set_color(tcolors, fcolors, curr, gate_ctx, Grey);
-                ts_visit_children(curr, gate_ctx, tcolors, fcolors, ts_todo);
+                ts_visit_children(curr, gate_ctx, ts_todo);
                 break;
-            case Grey:
-                SASSERT(ts_visit_children(curr, gate_ctx, tcolors, fcolors, ts_todo));
+            case Grey: {
+                SASSERT(ts_visit_children(curr, gate_ctx, ts_todo));
                 set_color(tcolors, fcolors, curr, gate_ctx, Black);
-                if (n != curr && !m.is_not(curr))
+                auto end = exprs + num_exprs;
+                if (std::find(exprs, end, curr) == end && !m.is_not(curr) && should_internalize_rec(curr))
                     sorted_exprs.push_back(expr_bool_pair(curr, gate_ctx));
                 break;
+            }
             case Black:
                 ts_todo.pop_back();
                 break;
@@ -181,25 +183,39 @@ namespace smt {
 
 #define DEEP_EXPR_THRESHOLD 1024
 
-    void context::internalize_deep(expr* n) {
-        if (!e_internalized(n) && ::get_depth(n) > DEEP_EXPR_THRESHOLD) {
-            // if the expression is deep, then execute topological sort to avoid
-            // stack overflow.
-            // a caveat is that theory internalizers do rely on recursive descent so
-            // internalization over these follows top-down
-            TRACE("deep_internalize", tout << "expression is deep: #" << n->get_id() << "\n" << mk_ll_pp(n, m););
-            svector<expr_bool_pair> sorted_exprs;
-            top_sort_expr(n, sorted_exprs);
-            TRACE("deep_internalize", for (auto & kv : sorted_exprs) tout << "#" << kv.first->get_id() << " " << kv.second << "\n"; );
-            for (auto & kv : sorted_exprs) {
-                expr* e = kv.first;
-                if (!is_app(e) || 
-                    !m.is_bool(e) ||
-                    to_app(e)->get_family_id() == null_family_id || 
-                    to_app(e)->get_family_id() == m.get_basic_family_id()) 
-                    internalize_rec(e, kv.second);
+    bool context::should_internalize_rec(expr* e) const {
+        return !is_app(e) || 
+            !m.is_bool(e) ||
+            to_app(e)->get_family_id() == null_family_id || 
+            to_app(e)->get_family_id() == m.get_basic_family_id();
+    }
+
+    void context::internalize_deep(expr* const* exprs, unsigned num_exprs) {
+        ts_todo.reset();
+        for (unsigned i = 0; i < num_exprs; ++i) {
+            expr * n = exprs[i];
+            if (!e_internalized(n) && ::get_depth(n) > DEEP_EXPR_THRESHOLD && should_internalize_rec(n)) {
+                // if the expression is deep, then execute topological sort to avoid
+                // stack overflow.
+                // a caveat is that theory internalizers do rely on recursive descent so
+                // internalization over these follows top-down
+                TRACE("deep_internalize", tout << "expression is deep: #" << n->get_id() << "\n" << mk_ll_pp(n, m););
+                ts_todo.push_back(expr_bool_pair(n, true));
             }
         }
+
+        svector<expr_bool_pair> sorted_exprs;
+        top_sort_expr(exprs, num_exprs, sorted_exprs);
+        TRACE("deep_internalize", for (auto & kv : sorted_exprs) tout << "#" << kv.first->get_id() << " " << kv.second << "\n"; );
+        for (auto & kv : sorted_exprs) {
+            expr* e = kv.first;
+            SASSERT(should_internalize_rec(e));
+            internalize_rec(e, kv.second);
+        }
+    }
+    void context::internalize_deep(expr* n) {
+        expr * v[1] = { n };
+        internalize_deep(v, 1);
     }
  
     /**
@@ -335,6 +351,13 @@ namespace smt {
     void context::internalize(expr * n, bool gate_ctx) {
         internalize_deep(n);
         internalize_rec(n, gate_ctx);
+    }
+
+    void context::internalize(expr* const* exprs, unsigned num_exprs, bool gate_ctx) {
+        internalize_deep(exprs, num_exprs);
+        for (unsigned i = 0; i < num_exprs; ++i) {
+            internalize_rec(exprs[i], gate_ctx);
+        }
     }
 
     void context::internalize_rec(expr * n, bool gate_ctx) {
@@ -538,6 +561,8 @@ namespace smt {
         CTRACE("internalize_quantifier_zero", q->get_weight() == 0, tout << mk_pp(q, m) << "\n";);
         SASSERT(gate_ctx); // limitation of the current implementation
         SASSERT(!b_internalized(q));
+        if (!is_forall(q))
+            throw default_exception("internalization of exists is not supported");
         SASSERT(is_forall(q));
         SASSERT(check_patterns(q));
         bool_var v             = mk_bool_var(q);
@@ -648,7 +673,7 @@ namespace smt {
                 break;
             case OP_EQ:
                 if (m.is_iff(n))
-                    mk_iff_cnstr(to_app(n));
+                    mk_iff_cnstr(to_app(n), false);
                 break;
             case OP_ITE:
                 mk_ite_cnstr(to_app(n));
@@ -657,9 +682,11 @@ namespace smt {
             case OP_TRUE:
             case OP_FALSE:
                 break;
+            case OP_XOR:
+                mk_iff_cnstr(to_app(n), true);
+                break;
             case OP_DISTINCT:
             case OP_IMPLIES:
-            case OP_XOR:
                 throw default_exception("formula has not been simplified");
             case OP_OEQ:
                 UNREACHABLE();
@@ -1624,10 +1651,13 @@ namespace smt {
         mk_gate_clause(buffer.size(), buffer.c_ptr());
     }
 
-    void context::mk_iff_cnstr(app * n) {
+    void context::mk_iff_cnstr(app * n, bool sign) {
+        if (n->get_num_args() != 2) 
+            throw default_exception("formula has not been simplified");
         literal l  = get_literal(n);
         literal l1 = get_literal(n->get_arg(0));
         literal l2 = get_literal(n->get_arg(1));
+        if (sign) l.neg();
         TRACE("mk_iff_cnstr", tout << "l: " << l << ", l1: " << l1 << ", l2: " << l2 << "\n";);
         mk_gate_clause(~l,  l1, ~l2);
         mk_gate_clause(~l, ~l1 , l2);

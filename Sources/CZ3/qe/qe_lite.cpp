@@ -2238,11 +2238,16 @@ class qe_lite::impl {
             if (is_forall(q)) {
                 result = push_not(result);
             }
-            result = m.update_quantifier(
+            expr_ref tmp(m);
+            tmp = m.update_quantifier(
                 q,
                 q->get_num_patterns(), new_patterns,
                 q->get_num_no_patterns(), new_no_patterns, result);
-            m_imp.m_rewriter(result, result, result_pr);
+            m_imp.m_rewriter(tmp, result, result_pr);
+            if (m.proofs_enabled()) {
+                result_pr = m.mk_transitivity(m.mk_rewrite(q, tmp), result_pr);
+            }
+
             return true;
         }
     };
@@ -2331,11 +2336,12 @@ public:
     }
 
     void operator()(expr_ref& fml, proof_ref& pr) {
-        if (!m.proofs_enabled()) {
-            expr_ref tmp(m);
-            m_elim_star(fml, tmp, pr);
-            fml = std::move(tmp);
+        expr_ref tmp(m);
+        m_elim_star(fml, tmp, pr);
+        if (m.proofs_enabled()) {
+            pr = m.mk_rewrite(fml, tmp);
         }
+        fml = std::move(tmp);
     }
 
     void operator()(uint_set const& index_set, bool index_of_bound, expr_ref& fml) {

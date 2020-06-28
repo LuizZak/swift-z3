@@ -466,7 +466,7 @@ namespace datalog {
         expr_ref_vector conjs = get_tail_conjs(r);
         for (expr * e : conjs) {
             expr_ref r(m);
-            unsigned v;
+            unsigned v = 0;
             if (is_eq(e, v, r) && is_output(v) && m_var_is_sliceable[v]) {
                 TRACE("dl", tout << "is_eq: " << mk_pp(e, m) << " " << (m_solved_vars[v].get()?"solved":"new") << "\n";);
                 add_var(v);
@@ -841,11 +841,10 @@ namespace datalog {
         m_mc = smc.get();
         reset();
         saturate(src);
-        rule_set* result = alloc(rule_set, m_ctx);
+        scoped_ptr<rule_set> result = alloc(rule_set, m_ctx);
         declare_predicates(src, *result);
         if (m_predicates.empty()) {
             // nothing could be sliced.
-            dealloc(result);
             return nullptr;
         }
         TRACE("dl", display(tout););        
@@ -859,7 +858,7 @@ namespace datalog {
         }
         m_ctx.add_proof_converter(spc.get());
         m_ctx.add_model_converter(smc.get());
-        return result;
+        return result.detach();
     }    
 
 };
