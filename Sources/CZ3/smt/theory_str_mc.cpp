@@ -32,19 +32,6 @@
 
 namespace smt {
 
-    inline zstring int_to_string(int i) {
-        std::stringstream ss;
-        ss << i;
-        std::string str = ss.str();
-        return zstring(str.c_str());
-    }
-
-    inline std::string longlong_to_string(long long i) {
-        std::stringstream ss;
-        ss << i;
-        return ss.str();
-    }
-
     /*
      * Use the current model in the arithmetic solver to get the length of a term.
      * Returns true if this could be done, placing result in 'termLen', or false otherwise.
@@ -780,7 +767,7 @@ namespace smt {
                     return false;
                 }
                 // convert iValue to a constant
-                zstring iValue_str = zstring(iValue.to_string().c_str());
+                zstring iValue_str(iValue.to_string());
                 for (unsigned idx = 0; idx < iValue_str.length(); ++idx) {
                     expr_ref chTerm(bitvector_character_constants.get(iValue_str[idx]), sub_m);
                     eqc_chars.push_back(chTerm);
@@ -1111,6 +1098,106 @@ namespace smt {
             }
         }
 
+        // Check consistency of all string-integer conversion terms wrt. integer theory before we solve,
+        // possibly generating additional constraints for the bit-vector solver.
+        {
+            arith_value v(get_manager());
+            v.init(&get_context());
+            for (auto e : string_int_conversion_terms) {
+                TRACE("str_fl", tout << "pre-run check str-int term " << mk_pp(e, get_manager()) << std::endl;);
+                expr* _arg;
+                if (u.str.is_stoi(e, _arg)) {
+                    expr_ref arg(_arg, m);
+                    rational slen;
+                    if (!fixed_length_get_len_value(arg, slen)) {
+                        expr_ref stoi_cex(m_autil.mk_ge(mk_strlen(arg), mk_int(0)), m);
+                        assert_axiom(stoi_cex);
+                        add_persisted_axiom(stoi_cex);
+                        return l_undef;
+                    }
+                    TRACE("str_fl", tout << "length of term is " << slen << std::endl;);
+
+                    rational ival;
+                    if (v.get_value(e, ival)) {
+                        TRACE("str_fl", tout << "integer theory assigns " << ival << " to " << mk_pp(e, get_manager()) << std::endl;);
+                        // if ival is non-negative, because we know the length of arg, we can add a character constraint for arg
+                        if (ival.is_nonneg()) {
+                            zstring ival_str(ival.to_string());
+                            zstring padding;
+                            for (rational i = rational::zero(); i < slen - rational(ival_str.length()); ++i) {
+                                padding = padding + zstring("0");
+                            }
+                            zstring arg_val = padding + ival_str;
+                            expr_ref stoi_cex(m);
+                            expr_ref arg_char_expr(mk_string(arg_val), m);
+                            
+                            // Add (e == ival) as a precondition.
+                            precondition.push_back(m.mk_eq(e, mk_int(ival)));
+                            // Assert (arg == arg_chars) in the subsolver.
+                            if (!fixed_length_reduce_eq(subsolver, arg, arg_char_expr, stoi_cex)) {
+                                // Counterexample: (str.to_int S) == ival AND len(S) == slen cannot both be true.
+                                stoi_cex = expr_ref(m.mk_not(m.mk_and(
+                                    m.mk_eq(e, mk_int(ival)), 
+                                    m.mk_eq(mk_strlen(arg), mk_int(slen))
+                                )), m);
+                                assert_axiom(stoi_cex);
+                                add_persisted_axiom(stoi_cex);
+
+                                return l_undef;
+                            }
+
+                            fixed_length_reduced_boolean_formulas.push_back(m.mk_eq(e, mk_int(ival)));
+                        }
+                    } else {
+                        TRACE("str_fl", tout << "integer theory has no assignment for " << mk_pp(e, get_manager()) << std::endl;);
+                        // consistency needs to be checked after the string is assigned
+                    }
+                } else if (u.str.is_itos(e, _arg)) {
+                    expr_ref arg(_arg, m);
+                    rational slen;
+                    if (!fixed_length_get_len_value(e, slen)) {
+                        expr_ref stoi_cex(m_autil.mk_ge(mk_strlen(e), mk_int(0)), m);
+                        assert_axiom(stoi_cex);
+                        add_persisted_axiom(stoi_cex);
+                        return l_undef;
+                    }
+                    TRACE("str_fl", tout << "length of term is " << slen << std::endl;);
+                    rational ival;
+                    if (v.get_value(arg, ival)) {
+                        TRACE("str_fl", tout << "integer theory assigns " << ival << " to " << mk_pp(arg, get_manager()) << std::endl;);
+                        zstring ival_str;
+                        if (ival.is_neg()) {
+                            // e must be the empty string, i.e. have length 0
+                            ival_str = zstring("");
+                        } else {
+                            // e must be equal to the string representation of ival
+                            ival_str = zstring(ival.to_string());
+                        }
+                        // Add (arg == ival) as a precondition.
+                        precondition.push_back(m.mk_eq(arg, mk_int(ival)));
+                        // Assert (e == ival_str) in the subsolver.
+                        expr_ref itos_cex(m);
+                        expr_ref _e(e, m);
+                        expr_ref arg_char_expr(mk_string(ival_str), m);
+                        if (!fixed_length_reduce_eq(subsolver, _e, arg_char_expr, itos_cex)) {
+                            // Counterexample: N in (str.from_int N) == ival AND len(str.from_int N) == slen cannot both be true.
+                            itos_cex = expr_ref(m.mk_not(m.mk_and(
+                                m.mk_eq(arg, mk_int(ival)), 
+                                m.mk_eq(mk_strlen(e), mk_int(slen))
+                            )), m);
+                            assert_axiom(itos_cex);
+                            add_persisted_axiom(itos_cex);
+                            return l_undef;
+                        }
+                        fixed_length_reduced_boolean_formulas.push_back(m.mk_eq(arg, mk_int(ival)));
+                    } else {
+                        TRACE("str_fl", tout << "integer theory has no assignment for " << mk_pp(arg, get_manager()) << std::endl;);
+                        // consistency needs to be checked after the string is assigned
+                    }
+                }
+            }
+        }
+
         for (auto e : fixed_length_used_len_terms) {
             expr * var = &e.get_key();
             rational val = e.get_value();
@@ -1188,6 +1275,91 @@ namespace smt {
                 model.insert(var, strValue);
                 subst.insert(var, mk_string(strValue));
             }
+
+            // Check consistency of string-integer conversion terms after the search.
+            {
+                scoped_ptr<expr_replacer> replacer = mk_default_expr_replacer(m, false);
+                replacer->set_substitution(&subst);
+                th_rewriter rw(m);
+                arith_value v(get_manager());
+                v.init(&get_context());
+                for (auto e : string_int_conversion_terms) {
+                    TRACE("str_fl", tout << "post-run check str-int term " << mk_pp(e, get_manager()) << std::endl;);
+                    expr* _arg;
+                    if (u.str.is_stoi(e, _arg)) {
+                        expr_ref arg(_arg, m);
+                        rational ival;
+                        if (v.get_value(e, ival)) {
+                            expr_ref arg_subst(arg, m);
+                            (*replacer)(arg, arg_subst);
+                            rw(arg_subst);
+                            TRACE("str_fl", tout << "ival = " << ival << ", string arg evaluates to " << mk_pp(arg_subst, m) << std::endl;);
+
+                            symbol arg_str;
+                            if (u.str.is_string(arg_subst, arg_str)) {
+                                zstring arg_zstr(arg_str.bare_str());
+                                rational arg_value;
+                                if (string_integer_conversion_valid(arg_zstr, arg_value)) {
+                                    if (ival != arg_value) {
+                                        // contradiction
+                                        expr_ref cex(m.mk_not(m.mk_and(ctx.mk_eq_atom(arg, mk_string(arg_zstr)), ctx.mk_eq_atom(e, mk_int(ival)))), m);
+                                        assert_axiom(cex);
+                                        return l_undef;
+                                    }
+                                } else {
+                                    if (!ival.is_minus_one()) {
+                                        expr_ref cex(m.mk_not(m.mk_and(ctx.mk_eq_atom(arg, mk_string(arg_zstr)), ctx.mk_eq_atom(e, mk_int(ival)))), m);
+                                        assert_axiom(cex);
+                                        return l_undef;
+                                    }
+                                }
+                            }
+                        }
+                    } else if (u.str.is_itos(e, _arg)) {
+                        expr_ref arg(_arg, m);
+                        rational ival;
+                        if (v.get_value(arg, ival)) {
+                            expr_ref e_subst(e, m);
+                            (*replacer)(e, e_subst);
+                            rw(e_subst);
+                            TRACE("str_fl", tout << "ival = " << ival << ", string arg evaluates to " << mk_pp(e_subst, m) << std::endl;);
+
+                            symbol e_str;
+                            if (u.str.is_string(e_subst, e_str)) {
+                                zstring e_zstr(e_str.bare_str());
+                                // if arg is negative, e must be empty
+                                // if arg is non-negative, e must be valid AND cannot contain leading zeroes
+
+                                if (ival.is_neg()) {
+                                    if (!e_zstr.empty()) {
+                                        // contradiction
+                                        expr_ref cex(ctx.mk_eq_atom(m_autil.mk_le(arg, mk_int(-1)), ctx.mk_eq_atom(e, mk_string(""))), m);
+                                        assert_axiom(cex);
+                                        return l_undef;
+                                    }
+                                } else {
+                                    rational e_value;
+                                    if (string_integer_conversion_valid(e_zstr, e_value)) {
+                                        // e contains leading zeroes if its first character is 0 but converted to something other than 0
+                                        if (e_zstr[0] == '0' && !e_value.is_zero()) {
+                                            // contradiction
+                                            expr_ref cex(m.mk_not(m.mk_and(ctx.mk_eq_atom(arg, mk_int(ival)), ctx.mk_eq_atom(e, mk_string(e_zstr)))), m);
+                                            assert_axiom(cex);
+                                            return l_undef;
+                                        }
+                                    } else {
+                                        // contradiction
+                                        expr_ref cex(m.mk_not(m.mk_and(ctx.mk_eq_atom(arg, mk_int(ival)), ctx.mk_eq_atom(e, mk_string(e_zstr)))), m);
+                                        assert_axiom(cex);
+                                        return l_undef;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // TODO insert length values into substitution table as well?
             if (m_params.m_FixedLengthRefinement) {
                 scoped_ptr<expr_replacer> replacer = mk_default_expr_replacer(m, false);

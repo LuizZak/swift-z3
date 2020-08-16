@@ -127,6 +127,18 @@ public:
         return m_base->get_trail();
     }
 
+    expr_ref get_implied_value(expr* e) override {
+        return expr_ref(e, m);
+    }
+
+    expr_ref get_implied_lower_bound(expr* e) override {
+        return expr_ref(e, m);
+    }
+
+    expr_ref get_implied_upper_bound(expr* e) override {
+        return expr_ref(e, m);
+    }
+
     lbool check_sat_core2(unsigned num_assumptions, expr * const * assumptions) override {
         SASSERT(!m_pushed || get_scope_level() > 0);
         m_proof.reset();
@@ -395,7 +407,7 @@ solver* solver_pool::mk_solver() {
     }
     std::stringstream name;
     name << "vsolver#" << m_solvers.size();
-    app_ref pred(m.mk_const(symbol(name.str().c_str()), m.mk_bool_sort()), m);
+    app_ref pred(m.mk_const(symbol(name.str()), m.mk_bool_sort()), m);
     pool_solver* solver = alloc(pool_solver, base_solver.get(), *this, pred);
     m_solvers.push_back(solver);
     return solver;

@@ -16,8 +16,7 @@ Author:
 Notes:
 
 --*/
-#ifndef SEQ_REWRITER_H_
-#define SEQ_REWRITER_H_
+#pragma once
 
 #include "ast/seq_decl_plugin.h"
 #include "ast/ast_pp.h"
@@ -138,7 +137,6 @@ class seq_rewriter {
 
         typedef hashtable<op_entry, hash_entry, eq_entry> op_table;
 
-        ast_manager&    m;
         unsigned        m_max_cache_size { 10000 };
         expr_ref_vector m_trail;
         op_table        m_table;
@@ -184,7 +182,7 @@ class seq_rewriter {
     expr_ref mk_seq_concat(expr* a, expr* b);    
 
     // Calculate derivative, memoized and enforcing a normal form
-    expr_ref mk_derivative(expr* ele, expr* r);
+    expr_ref is_nullable_rec(expr* r);
     expr_ref mk_derivative_rec(expr* ele, expr* r);
     expr_ref mk_der_op(decl_kind k, expr* a, expr* b);
     expr_ref mk_der_op_rec(decl_kind k, expr* a, expr* b);
@@ -192,8 +190,17 @@ class seq_rewriter {
     expr_ref mk_der_union(expr* a, expr* b);
     expr_ref mk_der_inter(expr* a, expr* b);
     expr_ref mk_der_compl(expr* a);
-    expr_ref mk_der_reverse(expr* a);
+    expr_ref mk_der_cond(expr* cond, expr* ele, sort* seq_sort);
+    expr_ref mk_der_antimorov_union(expr* r1, expr* r2);
+    bool ite_bdds_compatabile(expr* a, expr* b);
+    #ifdef Z3DEBUG
+    bool check_deriv_normal_form(expr* r, int level = 3);
+    #endif
 
+    bool lt_char(expr* ch1, expr* ch2);
+    bool eq_char(expr* ch1, expr* ch2);
+    bool le_char(expr* ch1, expr* ch2);
+    bool pred_implies(expr* a, expr* b);
     bool are_complements(expr* r1, expr* r2) const;
     bool is_subset(expr* r1, expr* r2) const;
 
@@ -247,6 +254,7 @@ class seq_rewriter {
     bool non_overlap(expr_ref_vector const& p1, expr_ref_vector const& p2) const;
     bool non_overlap(zstring const& p1, zstring const& p2) const;
     bool rewrite_contains_pattern(expr* a, expr* b, expr_ref& result);
+    bool has_fixed_length_constraint(expr* a, unsigned& len);
 
     br_status mk_bool_app_helper(bool is_and, unsigned n, expr* const* args, expr_ref& result);
     br_status mk_eq_helper(expr* a, expr* b, expr_ref& result);
@@ -265,6 +273,7 @@ class seq_rewriter {
     bool reduce_subsequence(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
     bool reduce_by_length(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
     bool reduce_itos(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
+    bool reduce_eq_empty(expr* l, expr* r, expr_ref& result);
     bool min_length(expr_ref_vector const& es, unsigned& len);
     expr* concat_non_empty(expr_ref_vector& es);
 
@@ -273,7 +282,6 @@ class seq_rewriter {
     void add_next(u_map<expr*>& next, expr_ref_vector& trail, unsigned idx, expr* cond);
     bool is_sequence(expr* e, expr_ref_vector& seq);
     bool is_sequence(eautomaton& aut, expr_ref_vector& seq);
-    bool is_epsilon(expr* e) const;
     bool get_lengths(expr* e, expr_ref_vector& lens, rational& pos);
     bool reduce_back(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& new_eqs);
     bool reduce_front(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& new_eqs);
@@ -285,7 +293,6 @@ class seq_rewriter {
     class seq_util::str& str() { return u().str; }
     class seq_util::str const& str() const { return u().str; }
 
-    expr_ref is_nullable_rec(expr* r);
     void intersect(unsigned lo, unsigned hi, svector<std::pair<unsigned, unsigned>>& ranges);
 
 public:
@@ -332,13 +339,12 @@ public:
 
     void add_seqs(expr_ref_vector const& ls, expr_ref_vector const& rs, expr_ref_pair_vector& new_eqs);
 
-    // Check for acceptance of the empty string
+    // Expose derivative and nullability check
     expr_ref is_nullable(expr* r);
+    expr_ref mk_derivative(expr* ele, expr* r);
 
     // heuristic elimination of element from condition that comes form a derivative.
     // special case optimization for conjunctions of equalities, disequalities and ranges.
     void elim_condition(expr* elem, expr_ref& cond);
-
 };
 
-#endif

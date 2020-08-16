@@ -1443,11 +1443,9 @@ namespace smt {
             return; // conflict was detected
         }
         m_prop_queue.reset();
-        literal_vector & bits1        = m_bits[v1];
-        literal_vector & bits2        = m_bits[v2];
-        SASSERT(bits1.size() == bits2.size());
-        unsigned sz                   = bits1.size();
-        bool changed;
+        SASSERT(m_bits[v1].size() == m_bits[v2].size());
+        unsigned sz  = m_bits[v1].size();
+        bool changed = true;
         TRACE("bv", tout << "bits size: " << sz << "\n";);
         do {
             // This outerloop is necessary to avoid missing propagation steps.
@@ -1465,8 +1463,8 @@ namespace smt {
             // then it is not notified to the bv theory.
             changed                   = false;
             for (unsigned idx = 0; idx < sz; idx++) {
-                literal bit1  = bits1[idx];
-                literal bit2  = bits2[idx];
+                literal bit1  = m_bits[v1][idx];
+                literal bit2  = m_bits[v2][idx];
                 CTRACE("bv_bug", bit1 == ~bit2, display_var(tout, v1); display_var(tout, v2); tout << "idx: " << idx << "\n";);
                 SASSERT(bit1 != ~bit2);
                 lbool val1    = ctx.get_assignment(bit1);
@@ -1641,6 +1639,51 @@ namespace smt {
         bits.shrink(0);
         // SASSERT(check_zero_one_bits(v1));
         // SASSERT(check_zero_one_bits(v2));
+    }
+
+    bool theory_bv::get_lower(enode* n, rational& value) {
+        theory_var v = n->get_th_var(get_id());
+        if (v != null_theory_var && is_bv(v)) {
+            value = 0;
+            rational p(1);
+            for (literal bit : m_bits[v]) {
+                switch (ctx.get_assignment(bit)) {
+                case l_true:
+                    value += p;
+                    break;
+                default:
+                    break;
+                }
+                p *= 2;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    bool theory_bv::get_upper(enode* n, rational& value) {
+        theory_var v = n->get_th_var(get_id());
+        if (v != null_theory_var && is_bv(v)) {
+            literal_vector const & bits = m_bits[v];
+            rational p = rational::power_of_two(bits.size());
+            value = p - 1;
+            p /= 2;
+            for (unsigned i = bits.size(); i-- > 0; ) {
+                switch (ctx.get_assignment(bits[i])) {
+                case l_false:
+                    value -= p;
+                    break;
+                case l_true:
+                    break;
+                default: {                 
+                    break;
+                }
+                }
+                p /= 2;
+            }
+            return true;
+        }
+        return false;
     }
 
     void theory_bv::init_model(model_generator & mg) {

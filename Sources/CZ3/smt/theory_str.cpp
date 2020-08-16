@@ -988,7 +988,7 @@ namespace smt {
             }
         }
         if (constOK) {
-            TRACE("str", tout << "flattened to \"" << flattenedString.encode().c_str() << "\"" << std::endl;);
+            TRACE("str", tout << "flattened to \"" << flattenedString.encode() << '"' << std::endl;);
             expr_ref constStr(mk_string(flattenedString), m);
             expr_ref axiom(ctx.mk_eq_atom(a_cat, constStr), m);
             assert_axiom(axiom);
@@ -1073,7 +1073,7 @@ namespace smt {
 
             zstring strconst;
             u.str.is_string(str->get_owner(), strconst);
-            TRACE("str", tout << "instantiating constant string axioms for \"" << strconst.encode().c_str() << "\"" << std::endl;);
+            TRACE("str", tout << "instantiating constant string axioms for \"" << strconst.encode() << '"' << std::endl;);
             unsigned int l = strconst.length();
             expr_ref len(m_autil.mk_numeral(rational(l), true), m);
 
@@ -1719,6 +1719,31 @@ namespace smt {
             expr_ref case3_rw(case3, m);
             rw(case3_rw);
             assert_axiom(case3_rw);
+        }
+
+        // Auxiliary axioms
+        {
+            // base = "" --> (str.substr base pos len) = ""
+            {
+                expr_ref premise(ctx.mk_eq_atom(substrBase, mk_string("")), m);
+                expr_ref conclusion(ctx.mk_eq_atom(expr, mk_string("")), m);
+                expr_ref axiom(m.mk_implies(premise, conclusion), m);
+                assert_axiom_rw(axiom);
+            }
+
+            // len( (str.substr base pos len) ) <= len(base)
+            {
+                expr_ref axiom(m_autil.mk_le(mk_strlen(expr), mk_strlen(substrBase)), m);
+                assert_axiom_rw(axiom);
+            }
+
+            // len >= 0 --> len( (str.substr base pos len) ) <= len
+            {
+                expr_ref premise(m_autil.mk_ge(substrLen, mk_int(0)), m);
+                expr_ref conclusion(m_autil.mk_le(mk_strlen(expr), substrLen), m);
+                expr_ref axiom(m.mk_implies(premise, conclusion), m);
+                assert_axiom_rw(axiom);
+            }
         }
     }
 
@@ -8134,6 +8159,31 @@ namespace smt {
         return 0;
     }
 
+    // Attempts to convert a string to a non-negative integer.
+    // Returns true if this can be done in a valid way, placing the converted value in the argument.
+    // Otherwise, returns false, if str is empty or contains non-digit characters.
+    bool theory_str::string_integer_conversion_valid(zstring str, rational& converted) const {
+        // bool valid = true;
+        converted = rational::zero();
+        rational ten(10);
+        if (str.length() == 0) {
+            return false;
+        } else {
+            for (unsigned i = 0; i < str.length(); ++i) {
+                if (!('0' <= str[i] && str[i] <= '9')) {
+                    return false;
+                } else {
+                    // accumulate
+                    char digit = (int)str[i];
+                    std::string sDigit(1, digit);
+                    int val = atoi(sDigit.c_str());
+                    converted = (ten * converted) + rational(val);
+                }
+            }
+            return true;
+        }
+    }
+
     // Check agreement between integer and string theories for the term a = (str.to-int S).
     // Returns true if axioms were added, and false otherwise.
     bool theory_str::finalcheck_str2int(app * a) {
@@ -8152,7 +8202,7 @@ namespace smt {
             if (!Ival.is_minus_one()) {
                 rational Slen;
                 if (get_len_value(S, Slen)) {
-                    zstring Ival_str(Ival.to_string().c_str());
+                    zstring Ival_str(Ival.to_string());
                     if (rational(Ival_str.length()) <= Slen) {
                         zstring padding;
                         for (rational i = rational::zero(); i < Slen - rational(Ival_str.length()); ++i) {
@@ -8189,27 +8239,9 @@ namespace smt {
         if (S_hasEqcValue) {
             zstring str;
             u.str.is_string(S_str, str);
-            bool valid = true;
             rational convertedRepresentation(0);
-            rational ten(10);
-            if (str.length() == 0) {
-                valid = false;
-            } else {
-                for (unsigned i = 0; i < str.length(); ++i) {
-                    if (!('0' <= str[i] && str[i] <= '9')) {
-                        valid = false;
-                        break;
-                    } else {
-                        // accumulate
-                        char digit = (int)str[i];
-                        std::string sDigit(1, digit);
-                        int val = atoi(sDigit.c_str());
-                        convertedRepresentation = (ten * convertedRepresentation) + rational(val);
-                    }
-                }
-            }
             // TODO this duplicates code a bit, we can simplify the branch on "conclusion" only
-            if (valid) {
+            if (string_integer_conversion_valid(str, convertedRepresentation)) {
                 expr_ref premise(ctx.mk_eq_atom(S, mk_string(str)), m);
                 expr_ref conclusion(ctx.mk_eq_atom(a, m_autil.mk_numeral(convertedRepresentation, true)), m);
                 expr_ref axiom(rewrite_implication(premise, conclusion), m);
@@ -8263,22 +8295,7 @@ namespace smt {
                 }
                 // nonempty string --> convert to correct integer value, or disallow it
                 rational convertedRepresentation(0);
-                rational ten(10);
-                bool conversionOK = true;
-                for (unsigned i = 0; i < Sval.length(); ++i) {
-                    char digit = (int)Sval[i];
-                    if (isdigit((int)digit)) {
-                        std::string sDigit(1, digit);
-                        int val = atoi(sDigit.c_str());
-                        convertedRepresentation = (ten * convertedRepresentation) + rational(val);
-                    } else {
-                        // not a digit, invalid
-                        TRACE("str", tout << "str.from-int argument contains non-digit character '" << digit << "'" << std::endl;);
-                        conversionOK = false;
-                        break;
-                    }
-                }
-                if (conversionOK) {
+                if (string_integer_conversion_valid(Sval, convertedRepresentation)) {
                     expr_ref premise(ctx.mk_eq_atom(a, mk_string(Sval)), m);
                     expr_ref conclusion(ctx.mk_eq_atom(N, m_autil.mk_numeral(convertedRepresentation, true)), m);
                     expr_ref axiom(rewrite_implication(premise, conclusion), m);
@@ -8309,7 +8326,7 @@ namespace smt {
                     conclusion = expr_ref(ctx.mk_eq_atom(a, mk_string("")), m);
                 } else {
                     // non-negative argument -> convert to string of digits
-                    zstring Nval_str(Nval.to_string().c_str());
+                    zstring Nval_str(Nval.to_string());
                     conclusion = expr_ref(ctx.mk_eq_atom(a, mk_string(Nval_str)), m);
                 }
                 expr_ref axiom(rewrite_implication(premise, conclusion), m);
@@ -8893,19 +8910,6 @@ namespace smt {
         return FC_CONTINUE; // since by this point we've added axioms
     }
 
-    inline zstring int_to_string(int i) {
-        std::stringstream ss;
-        ss << i;
-        std::string str = ss.str();
-        return zstring(str.c_str());
-    }
-
-    inline std::string longlong_to_string(long long i) {
-        std::stringstream ss;
-        ss << i;
-        return ss.str();
-    }
-
     void theory_str::get_concats_in_eqc(expr * n, std::set<expr*> & concats) {
 
         expr * eqcNode = n;
@@ -9024,7 +9028,7 @@ namespace smt {
             TRACE("str", tout << "WARNING: failed to find a concrete value, falling back" << std::endl;);
             std::ostringstream unused;
             unused << "**UNUSED**" << (m_unused_id++);
-            return alloc(expr_wrapper_proc, to_app(mk_string(unused.str().c_str())));
+            return alloc(expr_wrapper_proc, to_app(mk_string(unused.str())));
         }
     }
 

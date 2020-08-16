@@ -394,7 +394,7 @@ void rewriter_tpl<Config>::process_app(app * t, frame & fr) {
             SASSERT(!f->is_associative() || !flat_assoc(f));
             SASSERT(new_num_args == t->get_num_args());
             SASSERT(m().get_sort(def) == m().get_sort(t));
-            if (is_ground(def)) {
+            if (is_ground(def) && !m_cfg.reduce_macro()) {
                 m_r = def;
                 if (ProofGen) {
                     m_pr = m().mk_transitivity(m_pr, def_pr);
@@ -654,10 +654,9 @@ void rewriter_tpl<Config>::cleanup() {
 
 template<typename Config>
 void rewriter_tpl<Config>::display_bindings(std::ostream& out) {
-    out << "bindings:\n";
     for (unsigned i = 0; i < m_bindings.size(); i++) {
         if (m_bindings[i])
-            out << i << ": " << mk_ismt2_pp(m_bindings[i], m()) << "\n";
+            out << i << ": " << mk_ismt2_pp(m_bindings[i], m()) << ";\n";
     }
 }
 
@@ -674,6 +673,7 @@ void rewriter_tpl<Config>::set_bindings(unsigned num_bindings, expr * const * bi
         m_shifts.push_back(num_bindings);
     }
     TRACE("rewriter", display_bindings(tout););
+    SCTRACE("bindings", is_trace_enabled("coming_from_quant"), display_bindings(tout););
 }
 
 template<typename Config>
@@ -687,6 +687,7 @@ void rewriter_tpl<Config>::set_inv_bindings(unsigned num_bindings, expr * const 
         m_shifts.push_back(num_bindings);
     }
     TRACE("rewriter", display_bindings(tout););
+    SCTRACE("bindings", is_trace_enabled("coming_from_quant"), display_bindings(tout););
 }
 
 template<typename Config>

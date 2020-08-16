@@ -16,8 +16,7 @@ Author:
 Revision History:
 
 --*/
-#ifndef SMT_CONTEXT_H_
-#define SMT_CONTEXT_H_
+#pragma once
 
 #include "smt/smt_clause.h"
 #include "smt/smt_setup.h"
@@ -377,6 +376,10 @@ namespace smt {
             return m_assigned_literals;
         }
 
+        watch_list const& get_watch(literal l) const {
+            return m_watches[l.index()];
+        }
+
         lbool get_assignment(expr * n) const;
 
         // Similar to get_assignment, but returns l_undef if n is not internalized.
@@ -580,6 +583,13 @@ namespace smt {
         theory_id get_var_theory(bool_var v) const {
             return get_bdata(v).get_theory();
         }
+
+        expr_ref get_implied_value(expr* e);
+
+        expr_ref get_implied_lower_bound(expr* e);
+
+        expr_ref get_implied_upper_bound(expr* e);
+
 
         friend class set_var_theory_trail;
         void set_var_theory(bool_var v, theory_id tid);
@@ -1407,6 +1417,8 @@ namespace smt {
 
         std::ostream& display(std::ostream& out, b_justification j) const;
 
+        std::ostream& display_compact_j(std::ostream& out, b_justification j) const;
+
         // -----------------------------------
         //
         // Debugging support
@@ -1711,5 +1723,4 @@ namespace smt {
 
 };
 
-#endif /* SMT_CONTEXT_H_ */
 

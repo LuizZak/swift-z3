@@ -2,8 +2,7 @@
     Copyright (c) 2015 Microsoft Corporation
 --*/
 
-#ifndef Z3_API_H_
-#define Z3_API_H_
+#pragma once
 
 DEFINE_TYPE(Z3_symbol);
 DEFINE_TYPE(Z3_literals);
@@ -4678,13 +4677,23 @@ extern "C" {
     Z3_func_decl Z3_API Z3_to_func_decl(Z3_context c, Z3_ast a);
 
     /**
-       \brief Return numeral value, as a string of a numeric constant term
+       \brief Return numeral value, as a decimal string of a numeric constant term
 
        \pre Z3_get_ast_kind(c, a) == Z3_NUMERAL_AST
 
        def_API('Z3_get_numeral_string', STRING, (_in(CONTEXT), _in(AST)))
     */
     Z3_string Z3_API Z3_get_numeral_string(Z3_context c, Z3_ast a);
+
+    /**
+       \brief Return numeral value, as a binary string of a numeric constant term
+
+       \pre Z3_get_ast_kind(c, a) == Z3_NUMERAL_AST
+       \pre a represents a non-negative integer
+
+       def_API('Z3_get_numeral_binary_string', STRING, (_in(CONTEXT), _in(AST)))
+    */
+    Z3_string Z3_API Z3_get_numeral_binary_string(Z3_context c, Z3_ast a);
 
     /**
        \brief Return numeral as a string in decimal notation.
@@ -5558,7 +5567,7 @@ extern "C" {
     */
 
     Z3_string Z3_API Z3_eval_smtlib2_string(Z3_context, Z3_string str);
-    
+
     /*@}*/
 
     /** @name Error Handling */
@@ -6478,6 +6487,34 @@ extern "C" {
     void Z3_API Z3_solver_get_levels(Z3_context c, Z3_solver s, Z3_ast_vector literals, unsigned sz,  unsigned levels[]);
 
     /**
+       \brief retrieve implied value for expression, if any is implied by solver at search level.
+       The method works for expressions that are known to the solver state, such as Boolean and
+       arithmetical variables.
+       
+       def_API('Z3_solver_get_implied_value', AST, (_in(CONTEXT), _in(SOLVER), _in(AST)))
+    */
+    Z3_ast Z3_API Z3_solver_get_implied_value(Z3_context c, Z3_solver s, Z3_ast e);
+
+    /**
+       \brief retrieve implied lower bound value for arithmetic expression.
+       If a lower bound is implied at search level, the arithmetic expression returned
+       is a constant representing the bound.
+       
+       def_API('Z3_solver_get_implied_lower', AST, (_in(CONTEXT), _in(SOLVER), _in(AST)))
+    */
+    Z3_ast Z3_API Z3_solver_get_implied_lower(Z3_context c, Z3_solver s, Z3_ast e);
+
+    /**
+       \brief retrieve implied upper bound value for arithmetic expression.
+       If an upper bound is implied at search level, the arithmetic expression returned
+       is a constant representing the bound.
+       
+       def_API('Z3_solver_get_implied_upper', AST, (_in(CONTEXT), _in(SOLVER), _in(AST)))
+    */
+
+    Z3_ast Z3_API Z3_solver_get_implied_upper(Z3_context c, Z3_solver s, Z3_ast e);
+
+    /**
        \brief Check whether the assertions in a given solver are consistent or not.
 
        The function #Z3_solver_get_model retrieves a model if the
@@ -6730,4 +6767,3 @@ extern "C" {
 
 /*@}*/
 
-#endif

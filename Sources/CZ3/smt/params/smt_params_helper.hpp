@@ -48,7 +48,7 @@ struct smt_params_helper {
     d.insert("bv.reflect", CPK_BOOL, "create enode for every bit-vector term", "true","smt");
     d.insert("bv.enable_int2bv", CPK_BOOL, "enable support for int2bv and bv2int operators", "true","smt");
     d.insert("arith.random_initial_value", CPK_BOOL, "use random initial values in the simplex-based procedure for linear arithmetic", "false","smt");
-    d.insert("arith.cheap_eqs", CPK_UINT, "0 - do not run, 1 - use tree, 2 - use table", "1","smt");
+    d.insert("arith.cheap_eqs", CPK_BOOL, "false - do not run, true - run cheap equality heuristic", "true","smt");
     d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "6","smt");
     d.insert("arith.nl", CPK_BOOL, "(incomplete) nonlinear arithmetic support based on Groebner basis and interval propagation, relevant only if smt.arith.solver=2", "true","smt");
     d.insert("arith.nl.nra", CPK_BOOL, "call nra_solver when incremental lianirization does not produce a lemma, this option is ignored when arith.nl=false, relevant only if smt.arith.solver=6", "true","smt");
@@ -71,7 +71,7 @@ struct smt_params_helper {
     d.insert("arith.nl.gr_q", CPK_UINT, "grobner's quota", "10","smt");
     d.insert("arith.nl.grobner_subs_fixed", CPK_UINT, "0 - no subs, 1 - substitute, 2 - substitute fixed zeros only", "2","smt");
     d.insert("arith.propagate_eqs", CPK_BOOL, "propagate (cheap) equalities", "true","smt");
-    d.insert("arith.propagation_mode", CPK_UINT, "0 - no propagation, 1 - propagate existing literals, 2 - refine bounds", "2","smt");
+    d.insert("arith.propagation_mode", CPK_UINT, "0 - no propagation, 1 - propagate existing literals, 2 - refine finite bounds", "1","smt");
     d.insert("arith.reflect", CPK_BOOL, "reflect arithmetical operators to the congruence closure", "true","smt");
     d.insert("arith.branch_cut_ratio", CPK_UINT, "branch/cut ratio for linear integer arithmetic", "2","smt");
     d.insert("arith.int_eq_branch", CPK_BOOL, "branching using derived integer equations", "false","smt");
@@ -104,7 +104,6 @@ struct smt_params_helper {
     d.insert("core.validate", CPK_BOOL, "[internal] validate unsat core produced by SMT context. This option is intended for debugging", "false","smt");
     d.insert("seq.split_w_len", CPK_BOOL, "enable splitting guided by length constraints", "true","smt");
     d.insert("seq.validate", CPK_BOOL, "enable self-validation of theory axioms created by seq theory", "false","smt");
-    d.insert("seq.use_derivatives", CPK_BOOL, "dev flag (not for users) enable derivative based unfolding of regex", "false","smt");
     d.insert("seq.use_unicode", CPK_BOOL, "dev flag (not for users) enable unicode semantics", "false","smt");
     d.insert("str.strong_arrangements", CPK_BOOL, "assert equivalences instead of implications when generating string arrangement axioms", "true","smt");
     d.insert("str.aggressive_length_testing", CPK_BOOL, "prioritize testing concrete length values over generating more options", "false","smt");
@@ -172,7 +171,7 @@ struct smt_params_helper {
   bool bv_reflect() const { return p.get_bool("bv.reflect", g, true); }
   bool bv_enable_int2bv() const { return p.get_bool("bv.enable_int2bv", g, true); }
   bool arith_random_initial_value() const { return p.get_bool("arith.random_initial_value", g, false); }
-  unsigned arith_cheap_eqs() const { return p.get_uint("arith.cheap_eqs", g, 1u); }
+  bool arith_cheap_eqs() const { return p.get_bool("arith.cheap_eqs", g, true); }
   unsigned arith_solver() const { return p.get_uint("arith.solver", g, 6u); }
   bool arith_nl() const { return p.get_bool("arith.nl", g, true); }
   bool arith_nl_nra() const { return p.get_bool("arith.nl.nra", g, true); }
@@ -195,7 +194,7 @@ struct smt_params_helper {
   unsigned arith_nl_gr_q() const { return p.get_uint("arith.nl.gr_q", g, 10u); }
   unsigned arith_nl_grobner_subs_fixed() const { return p.get_uint("arith.nl.grobner_subs_fixed", g, 2u); }
   bool arith_propagate_eqs() const { return p.get_bool("arith.propagate_eqs", g, true); }
-  unsigned arith_propagation_mode() const { return p.get_uint("arith.propagation_mode", g, 2u); }
+  unsigned arith_propagation_mode() const { return p.get_uint("arith.propagation_mode", g, 1u); }
   bool arith_reflect() const { return p.get_bool("arith.reflect", g, true); }
   unsigned arith_branch_cut_ratio() const { return p.get_uint("arith.branch_cut_ratio", g, 2u); }
   bool arith_int_eq_branch() const { return p.get_bool("arith.int_eq_branch", g, false); }
@@ -228,7 +227,6 @@ struct smt_params_helper {
   bool core_validate() const { return p.get_bool("core.validate", g, false); }
   bool seq_split_w_len() const { return p.get_bool("seq.split_w_len", g, true); }
   bool seq_validate() const { return p.get_bool("seq.validate", g, false); }
-  bool seq_use_derivatives() const { return p.get_bool("seq.use_derivatives", g, false); }
   bool seq_use_unicode() const { return p.get_bool("seq.use_unicode", g, false); }
   bool str_strong_arrangements() const { return p.get_bool("str.strong_arrangements", g, true); }
   bool str_aggressive_length_testing() const { return p.get_bool("str.aggressive_length_testing", g, false); }

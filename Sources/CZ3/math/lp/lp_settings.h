@@ -39,6 +39,16 @@ enum class column_type  {
     fixed = 4
 };
 
+inline std::ostream& operator<<(std::ostream& out, column_type const& t) {
+    switch (t) {
+    case column_type::free_column: return out << "free";
+    case column_type::lower_bound: return out << "lower";
+    case column_type::upper_bound: return out << "upper";
+    case column_type::boxed: return out << "boxed";
+    case column_type::fixed: return out << "fixed";
+    }
+}
+
 enum class simplex_strategy_enum {
     undecided = 3,
     tableau_rows = 0,
@@ -206,12 +216,12 @@ public:
 private:
     bool             m_enable_hnf;
     bool             m_print_external_var_name;
-    unsigned         m_cheap_eqs;
+    bool             m_cheap_eqs;
 public:
     bool print_external_var_name() const { return m_print_external_var_name; }
     bool& print_external_var_name() { return m_print_external_var_name; }
-    unsigned cheap_eqs() const { return m_cheap_eqs;}
-    unsigned& cheap_eqs() { return m_cheap_eqs;}
+    bool cheap_eqs() const { return m_cheap_eqs;}
+    bool& cheap_eqs() { return m_cheap_eqs;}
     unsigned hnf_cut_period() const { return m_hnf_cut_period; }
     void set_hnf_cut_period(unsigned period) { m_hnf_cut_period = period;  }
     unsigned random_next() { return m_rand(); }

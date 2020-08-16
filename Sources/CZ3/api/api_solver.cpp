@@ -79,6 +79,10 @@ extern "C" {
     }
 
     void solver2smt2_pp::check(unsigned n, expr* const* asms) {
+        for (unsigned i = 0; i < n; ++i) {
+            m_pp_util.collect(asms[i]);
+        }
+        m_pp_util.display_decls(m_out);
         m_out << "(check-sat";        
         for (unsigned i = 0; i < n; ++i) {
             m_pp_util.display_expr(m_out << "\n", asms[i]);            
@@ -105,10 +109,10 @@ extern "C" {
         m_out.flush();
     }
 
-    solver2smt2_pp::solver2smt2_pp(ast_manager& m, char const* file): 
+    solver2smt2_pp::solver2smt2_pp(ast_manager& m, const std::string& file):
         m_pp_util(m), m_out(file), m_tracked(m) {
         if (!m_out) {
-            throw default_exception("could not open " + std::string(file) + " for output");
+            throw default_exception("could not open " + file + " for output");
         }
     }
 
@@ -155,7 +159,7 @@ extern "C" {
         solver_params sp(to_solver(s)->m_params);
         symbol smt2log = sp.smtlib2_log();
         if (smt2log.is_non_empty_string() && !to_solver(s)->m_pp) {
-            to_solver(s)->m_pp = alloc(solver2smt2_pp, mk_c(c)->m(), smt2log.str().c_str());
+            to_solver(s)->m_pp = alloc(solver2smt2_pp, mk_c(c)->m(), smt2log.str());
         }
     }
 
@@ -247,7 +251,7 @@ extern "C" {
 
         if (!parse_smt2_commands(*ctx.get(), is)) {
             ctx = nullptr;
-            SET_ERROR_CODE(Z3_PARSER_ERROR, errstrm.str().c_str());
+            SET_ERROR_CODE(Z3_PARSER_ERROR, errstrm.str());
             return;
         }
 
@@ -266,7 +270,7 @@ extern "C" {
         std::stringstream err;
         sat::solver solver(to_solver_ref(s)->get_params(), m.limit());
         if (!parse_dimacs(is, err, solver)) {
-            SET_ERROR_CODE(Z3_PARSER_ERROR, err.str().c_str());
+            SET_ERROR_CODE(Z3_PARSER_ERROR, err.str());
             return;
         }
         sat2goal s2g;
@@ -551,6 +555,39 @@ extern "C" {
             v->m_ast_vector.push_back(f);
         }
         RETURN_Z3(of_ast_vector(v));
+        Z3_CATCH_RETURN(nullptr);
+    }
+
+    Z3_ast Z3_API Z3_solver_get_implied_value(Z3_context c, Z3_solver s, Z3_ast e) {
+        Z3_TRY;
+        LOG_Z3_solver_get_implied_value(c, s, e);
+        RESET_ERROR_CODE();
+        init_solver(c, s);
+        expr_ref v = to_solver_ref(s)->get_implied_value(to_expr(e));
+        mk_c(c)->save_ast_trail(v);
+        RETURN_Z3(of_ast(v));
+        Z3_CATCH_RETURN(nullptr);
+    }
+
+    Z3_ast Z3_API Z3_solver_get_implied_lower(Z3_context c, Z3_solver s, Z3_ast e) {
+        Z3_TRY;
+        LOG_Z3_solver_get_implied_lower(c, s, e);
+        RESET_ERROR_CODE();
+        init_solver(c, s);
+        expr_ref v = to_solver_ref(s)->get_implied_lower_bound(to_expr(e));
+        mk_c(c)->save_ast_trail(v);
+        RETURN_Z3(of_ast(v));
+        Z3_CATCH_RETURN(nullptr);
+    }
+
+    Z3_ast Z3_API Z3_solver_get_implied_upper(Z3_context c, Z3_solver s, Z3_ast e) {
+        Z3_TRY;
+        LOG_Z3_solver_get_implied_upper(c, s, e);
+        RESET_ERROR_CODE();
+        init_solver(c, s);
+        expr_ref v = to_solver_ref(s)->get_implied_upper_bound(to_expr(e));
+        mk_c(c)->save_ast_trail(v);
+        RETURN_Z3(of_ast(v));
         Z3_CATCH_RETURN(nullptr);
     }
 

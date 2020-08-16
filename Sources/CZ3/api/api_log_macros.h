@@ -583,6 +583,8 @@ void log_Z3_to_func_decl(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_to_func_decl(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_to_func_decl(_ARG0, _ARG1); }
 void log_Z3_get_numeral_string(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_get_numeral_string(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_numeral_string(_ARG0, _ARG1); }
+void log_Z3_get_numeral_binary_string(Z3_context a0, Z3_ast a1);
+#define LOG_Z3_get_numeral_binary_string(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_numeral_binary_string(_ARG0, _ARG1); }
 void log_Z3_get_numeral_decimal_string(Z3_context a0, Z3_ast a1, unsigned a2);
 #define LOG_Z3_get_numeral_decimal_string(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_numeral_decimal_string(_ARG0, _ARG1, _ARG2); }
 void log_Z3_get_numeral_double(Z3_context a0, Z3_ast a1);
@@ -932,6 +934,12 @@ void log_Z3_solver_get_non_units(Z3_context a0, Z3_solver a1);
 #define LOG_Z3_solver_get_non_units(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_non_units(_ARG0, _ARG1); }
 void log_Z3_solver_get_levels(Z3_context a0, Z3_solver a1, Z3_ast_vector a2, unsigned a3, unsigned const * a4);
 #define LOG_Z3_solver_get_levels(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_levels(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4); }
+void log_Z3_solver_get_implied_value(Z3_context a0, Z3_solver a1, Z3_ast a2);
+#define LOG_Z3_solver_get_implied_value(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_implied_value(_ARG0, _ARG1, _ARG2); }
+void log_Z3_solver_get_implied_lower(Z3_context a0, Z3_solver a1, Z3_ast a2);
+#define LOG_Z3_solver_get_implied_lower(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_implied_lower(_ARG0, _ARG1, _ARG2); }
+void log_Z3_solver_get_implied_upper(Z3_context a0, Z3_solver a1, Z3_ast a2);
+#define LOG_Z3_solver_get_implied_upper(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_implied_upper(_ARG0, _ARG1, _ARG2); }
 void log_Z3_solver_check(Z3_context a0, Z3_solver a1);
 #define LOG_Z3_solver_check(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_check(_ARG0, _ARG1); }
 void log_Z3_solver_check_assumptions(Z3_context a0, Z3_solver a1, unsigned a2, Z3_ast const * a3);

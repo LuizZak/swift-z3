@@ -16,8 +16,7 @@ Author:
 Revision History:
 
 --*/
-#ifndef SMT_QUANTIFIER_STAT_H_
-#define SMT_QUANTIFIER_STAT_H_
+#pragma once
 
 #include "ast/ast.h"
 #include "util/obj_hashtable.h"
@@ -37,6 +36,8 @@ namespace smt {
         unsigned m_case_split_factor; //!< the product of the size of the clauses created by this quantifier.
         unsigned m_num_nested_quantifiers;
         unsigned m_num_instances;
+        unsigned m_num_instances_checker_sat;
+        unsigned m_num_instances_simplify_true;
         unsigned m_num_instances_curr_search;
         unsigned m_num_instances_curr_branch; //!< only updated if QI_TRACK_INSTANCES is true
         unsigned m_max_generation; //!< max. generation of an instance
@@ -70,6 +71,12 @@ namespace smt {
         unsigned get_num_instances() const {
             return m_num_instances;
         }
+        unsigned get_num_instances_simplify_true() const {
+            return m_num_instances_simplify_true;
+        }
+        unsigned get_num_instances_checker_sat() const {
+            return m_num_instances_checker_sat;
+        }
 
         unsigned get_num_instances_curr_search() const {
             return m_num_instances_curr_search;
@@ -77,6 +84,14 @@ namespace smt {
 
         unsigned & get_num_instances_curr_branch() {
             return m_num_instances_curr_branch;
+        }
+
+        void inc_num_instances_simplify_true() {
+            m_num_instances_simplify_true++;
+        }
+
+        void inc_num_instances_checker_sat() {
+            m_num_instances_checker_sat++;
         }
         
         void inc_num_instances() {
@@ -136,5 +151,4 @@ namespace smt {
 
 };
 
-#endif /* SMT_QUANTIFIER_STAT_H_ */
 

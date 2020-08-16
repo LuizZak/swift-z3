@@ -1048,6 +1048,7 @@ new_lemma& new_lemma::operator|=(ineq const& ineq) {
 new_lemma::~new_lemma() {
     static int i = 0;
     (void)i;
+    (void)name;
     // code for checking lemma can be added here
     TRACE("nla_solver", tout << name << " " << (++i) << "\n" << *this; );
 }
@@ -1861,6 +1862,7 @@ unsigned core::get_var_weight(lpvar j) const {
     case lp::column_type::lower_bound:
     case lp::column_type::upper_bound:
         k = 4;
+        break;
     case lp::column_type::free_column:
         k = 6;
         break;

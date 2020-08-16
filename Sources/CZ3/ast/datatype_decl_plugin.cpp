@@ -645,6 +645,7 @@ namespace datatype {
         SASSERT(is_datatype(s));
         bool fi = true;
         return fi;
+#if 0
         if (m_is_fully_interp.find(s, fi)) {
             return fi;
         }
@@ -671,6 +672,7 @@ namespace datatype {
         m_is_fully_interp.insert(s, is_interp);
         m_asts.push_back(s);
         return true;
+#endif
     }
 
     /**
@@ -679,6 +681,7 @@ namespace datatype {
     bool util::is_recursive_core(sort* s) const {
         obj_map<sort, status> already_found;
         ptr_vector<sort> todo, subsorts;
+        sort* s0 = s;
         todo.push_back(s);
         status st;
         while (!todo.empty()) {
@@ -700,7 +703,8 @@ namespace datatype {
                         if (is_datatype(s2)) {
                             if (already_found.find(s2, st)) {
                                 // type is recursive
-                                if (st == GRAY) return true;
+                                if (st == GRAY && s0 == s2) 
+                                    return true;
                             }
                             else {
                                 todo.push_back(s2);

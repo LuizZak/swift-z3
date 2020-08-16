@@ -16,15 +16,13 @@ Author:
 Revision History:
 
 --*/
-#ifndef THEORY_SEQ_H_
-#define THEORY_SEQ_H_
+#pragma once
 
 #include "ast/seq_decl_plugin.h"
 #include "ast/rewriter/th_rewriter.h"
 #include "ast/ast_trail.h"
 #include "util/scoped_vector.h"
 #include "util/scoped_ptr_vector.h"
-#include "math/automata/automaton.h"
 #include "ast/rewriter/seq_rewriter.h"
 #include "util/union_find.h"
 #include "util/obj_ref_hashtable.h"
@@ -158,18 +156,6 @@ namespace smt {
             
             eq(unsigned id, expr_ref_vector& l, expr_ref_vector& r, dependency* d):
                 m_id(id), m_lhs(l), m_rhs(r), m_dep(d) {}
-            eq(eq const& other): m_id(other.m_id), m_lhs(other.m_lhs), m_rhs(other.m_rhs), m_dep(other.m_dep) {}
-            eq& operator=(eq const& other) {
-                if (this != &other) {
-                    m_lhs.reset(); 
-                    m_rhs.reset();
-                    m_lhs.append(other.m_lhs); 
-                    m_rhs.append(other.m_rhs); 
-                    m_dep = other.m_dep;
-                    m_id = other.m_id;
-                } 
-                return *this; 
-            }
             expr_ref_vector const& ls() const { return m_lhs; }
             expr_ref_vector const& rs() const { return m_rhs; }
             dependency* dep() const { return m_dep; }
@@ -206,21 +192,6 @@ namespace smt {
                 m_dep(dep) {
                 }
 
-            ne(ne const& other): 
-                m_l(other.m_l), m_r(other.m_r),
-                m_eqs(other.m_eqs), 
-                m_lits(other.m_lits), m_dep(other.m_dep) {}
-
-            ne& operator=(ne const& other) { 
-                if (this != &other) {
-                    m_l = other.m_l;
-                    m_r = other.m_r;
-                    m_eqs.reset();  m_eqs.append(other.m_eqs);
-                    m_lits.reset(); m_lits.append(other.m_lits); 
-                    m_dep = other.m_dep; 
-                }
-                return *this; 
-            }            
             vector<decomposed_eq> const& eqs() const { return m_eqs; }
             decomposed_eq const& operator[](unsigned i) const { return m_eqs[i]; }
 
@@ -240,18 +211,7 @@ namespace smt {
                 m_contains(c), 
                 m_len_gt(len_gt),
                 m_dep(dep) {}
-            nc(nc const& other):
-                m_contains(other.m_contains), 
-                m_len_gt(other.m_len_gt),
-                m_dep(other.m_dep) {}
-            nc& operator=(nc const& other) {
-                if (this != &other) {
-                    m_contains = other.m_contains;
-                    m_dep = other.m_dep;
-                    m_len_gt = other.m_len_gt;
-                }
-                return *this;
-            }
+
             dependency* deps() const { return m_dep; }
             expr_ref const& contains() const { return m_contains; }
             literal len_gt() const { return m_len_gt; }
@@ -340,15 +300,6 @@ namespace smt {
             }
         };
 
-        struct s_in_re {
-            literal     m_lit;
-            expr*       m_s;
-            expr*       m_re;
-            eautomaton* m_aut;
-            bool        m_active;
-            s_in_re(literal l, expr*s, expr* re, eautomaton* aut):
-                m_lit(l), m_s(s), m_re(re), m_aut(aut), m_active(true) {}
-        };
 
         void erase_index(unsigned idx, unsigned i);
 
@@ -357,7 +308,6 @@ namespace smt {
             void reset() { memset(this, 0, sizeof(stats)); }
             unsigned m_num_splits;
             unsigned m_num_reductions;
-            unsigned m_propagate_automata;
             unsigned m_check_length_coherence;
             unsigned m_branch_variable;
             unsigned m_branch_nqs;
@@ -415,19 +365,13 @@ namespace smt {
         expr_ref_vector  m_ls, m_rs, m_lhs, m_rhs;
         expr_ref_pair_vector m_new_eqs;
 
-        // maintain automata with regular expressions.
-        scoped_ptr_vector<eautomaton>  m_automata;
-        obj_map<expr, eautomaton*>     m_re2aut;
-        expr_ref_vector                m_res;
         unsigned                       m_max_unfolding_depth;
         literal                        m_max_unfolding_lit;
-        vector<s_in_re>                m_s_in_re;
 
         expr*                          m_unhandled_expr;
         bool                           m_has_seq;
         bool                           m_new_solution;     // new solution added
         bool                           m_new_propagation;  // new propagation to core
-        re2automaton                   m_mk_aut;
 
         obj_hashtable<expr>            m_fixed;            // string variables that are fixed length.
         obj_hashtable<expr>            m_is_digit;         // expressions that have been constrained to be digits
@@ -487,10 +431,9 @@ namespace smt {
         bool check_length_coherence(expr* e);
         bool fixed_length(bool is_zero = false);
         bool fixed_length(expr* e, bool is_zero);
-        void branch_unit_variable(dependency* dep, expr* X, expr_ref_vector const& units);
+        bool branch_unit_variable(dependency* dep, expr* X, expr_ref_vector const& units);
         bool branch_variable_eq(eq const& e);
         bool branch_binary_variable(eq const& e);
-        bool eq_unit(expr* l, expr* r) const;       
         bool can_align_from_lhs(expr_ref_vector const& ls, expr_ref_vector const& rs);
         bool can_align_from_rhs(expr_ref_vector const& ls, expr_ref_vector const& rs);
         bool branch_ternary_variable_rhs(eq const& e);
@@ -593,7 +536,7 @@ namespace smt {
         bool find_branch_candidate(unsigned& start, dependency* dep, expr_ref_vector const& ls, expr_ref_vector const& rs);
         expr_ref_vector expand_strings(expr_ref_vector const& es);
         bool can_be_equal(unsigned szl, expr* const* ls, unsigned szr, expr* const* rs) const;
-        lbool assume_equality(expr* l, expr* r);
+        bool assume_equality(expr* l, expr* r);
 
         // variable solving utilities
         bool occurs(expr* a, expr* b);
@@ -658,13 +601,6 @@ namespace smt {
 
         void set_incomplete(app* term);
 
-        // automata utilities
-        void propagate_in_re(expr* n, bool is_true);
-        eautomaton* get_automaton(expr* e);
-        literal mk_accept(expr* s, expr* idx, expr* re, expr* state);
-        literal mk_accept(expr* s, expr* idx, expr* re, unsigned i) { return mk_accept(s, idx, re, m_autil.mk_int(i)); }
-        bool is_accept(expr* acc) const {  return m_sk.is_accept(acc); }
-        bool is_accept(expr* acc, expr*& s, expr*& idx, expr*& re, unsigned& i, eautomaton*& aut);
         void propagate_not_prefix(expr* e);
         void propagate_not_suffix(expr* e);
         void ensure_nth(literal lit, expr* s, expr* idx);
@@ -701,5 +637,4 @@ namespace smt {
     };
 };
 
-#endif /* THEORY_SEQ_H_ */
 

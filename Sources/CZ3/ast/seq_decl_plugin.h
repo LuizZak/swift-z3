@@ -20,11 +20,11 @@ Revision History:
     Add SMTLIB 2.6 support 2020-5-17
 
 --*/
-#ifndef SEQ_DECL_PLUGIN_H_
-#define SEQ_DECL_PLUGIN_H_
+#pragma once
 
 #include "ast/ast.h"
 #include "ast/bv_decl_plugin.h"
+#include <string>
 
 #define Z3_USE_UNICODE 0
 
@@ -109,6 +109,7 @@ enum seq_op_kind {
     _OP_REGEXP_EMPTY,
     _OP_REGEXP_FULL_CHAR,
     _OP_RE_IS_NULLABLE,
+    _OP_RE_ANTIMOROV_UNION, // Lifted union for antimorov-style derivatives
     _OP_SEQ_SKOLEM,
     LAST_SEQ_OP
 };
@@ -122,11 +123,10 @@ public:
     static unsigned max_char() { return 196607; }
     zstring() {}
     zstring(char const* s);
+    zstring(const std::string &str) : zstring(str.c_str()) {}
     zstring(unsigned sz, unsigned const* s) { m_buffer.append(sz, s); SASSERT(well_formed()); }
-    zstring(zstring const& other): m_buffer(other.m_buffer) {}
     zstring(unsigned num_bits, bool const* ch);
     zstring(unsigned ch);
-    zstring& operator=(zstring const& other);
     zstring replace(zstring const& src, zstring const& dst) const;
     zstring reverse() const;
     std::string encode() const;
@@ -238,9 +238,10 @@ class seq_util {
     mutable scoped_ptr<bv_util> m_bv;
     bv_util& bv() const;
 
+public:
+
     unsigned max_plus(unsigned x, unsigned y) const;
     unsigned max_mul(unsigned x, unsigned y) const;
-public:
 
     ast_manager& get_manager() const { return m; }
 
@@ -411,6 +412,7 @@ public:
         seq_util&    u;
         ast_manager& m;
         family_id    m_fid;
+
     public:
         re(seq_util& u): u(u), m(u.m), m_fid(u.m_fid) {}
 
@@ -438,6 +440,7 @@ public:
         app* mk_of_pred(expr* p);
         app* mk_reverse(expr* r) { return m.mk_app(m_fid, OP_RE_REVERSE, r); }
         app* mk_derivative(expr* ele, expr* r) { return m.mk_app(m_fid, OP_RE_DERIVATIVE, ele, r); }
+        app* mk_antimorov_union(expr* r1, expr* r2) { return m.mk_app(m_fid, _OP_RE_ANTIMOROV_UNION, r1, r2); }
 
         bool is_to_re(expr const* n)    const { return is_app_of(n, m_fid, OP_SEQ_TO_RE); }
         bool is_concat(expr const* n)    const { return is_app_of(n, m_fid, OP_RE_CONCAT); }
@@ -456,6 +459,7 @@ public:
         bool is_of_pred(expr const* n) const { return is_app_of(n, m_fid, OP_RE_OF_PRED); }
         bool is_reverse(expr const* n) const { return is_app_of(n, m_fid, OP_RE_REVERSE); }
         bool is_derivative(expr const* n) const { return is_app_of(n, m_fid, OP_RE_DERIVATIVE); }
+        bool is_antimorov_union(expr const* n) const { return is_app_of(n, m_fid, _OP_RE_ANTIMOROV_UNION); }
         MATCH_UNARY(is_to_re);
         MATCH_BINARY(is_concat);
         MATCH_BINARY(is_union);
@@ -469,12 +473,29 @@ public:
         MATCH_UNARY(is_of_pred);
         MATCH_UNARY(is_reverse);
         MATCH_BINARY(is_derivative);
+        MATCH_BINARY(is_antimorov_union);
         bool is_loop(expr const* n, expr*& body, unsigned& lo, unsigned& hi) const;
         bool is_loop(expr const* n, expr*& body, unsigned& lo) const;
         bool is_loop(expr const* n, expr*& body, expr*& lo, expr*& hi) const;
         bool is_loop(expr const* n, expr*& body, expr*& lo) const;
         unsigned min_length(expr* r) const;
         unsigned max_length(expr* r) const;
+        bool is_epsilon(expr* r) const;
+        app* mk_epsilon(sort* seq_sort);
+
+        class pp {
+            seq_util::re& re;
+            expr* e;
+            bool can_skip_parenth(expr* r) const;
+            std::ostream& seq_unit(std::ostream& out, expr* s) const;
+            std::ostream& compact_helper_seq(std::ostream& out, expr* s) const;
+            std::ostream& compact_helper_range(std::ostream& out, expr* s1, expr* s2) const;
+
+        public:
+            pp(seq_util::re& r, expr* e) : re(r), e(e) {}
+            std::ostream& display(std::ostream&) const;
+        };
+
     };
     str str;
     re  re;
@@ -493,5 +514,8 @@ public:
 
 };
 
-#endif /* SEQ_DECL_PLUGIN_H_ */
+inline std::ostream& operator<<(std::ostream& out, seq_util::re::pp const & p) { return p.display(out); }
+
+
+
 

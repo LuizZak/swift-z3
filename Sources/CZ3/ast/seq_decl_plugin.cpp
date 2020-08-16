@@ -199,12 +199,6 @@ zstring::zstring(unsigned ch) {
     m_buffer.push_back(ch);
 }
 
-zstring& zstring::operator=(zstring const& other) {
-    m_buffer.reset();
-    m_buffer.append(other.m_buffer);
-    return *this;
-}
-
 zstring zstring::reverse() const {
     zstring result;
     for (unsigned i = length(); i-- > 0; ) {
@@ -548,6 +542,10 @@ sort* seq_decl_plugin::apply_binding(ptr_vector<sort> const& binding, sort* s) {
         SASSERT(is_sort(s->get_parameter(0).get_ast()));
         sort* p = apply_binding(binding, to_sort(s->get_parameter(0).get_ast()));
         parameter param(p);
+        if (p == m_char && s->get_decl_kind() == SEQ_SORT)
+            return m_string;
+        if (p == m_string && s->get_decl_kind() == RE_SORT)
+            return m_reglan;
         return mk_sort(s->get_decl_kind(), 1, &param);
     }
     return s;
@@ -618,6 +616,7 @@ void seq_decl_plugin::init() {
     m_sigs[OP_RE_OF_PRED]        = alloc(psig, m, "re.of.pred", 1, 1, &predA, reA);
     m_sigs[OP_RE_REVERSE]        = alloc(psig, m, "re.reverse", 1, 1, &reA, reA);
     m_sigs[OP_RE_DERIVATIVE]     = alloc(psig, m, "re.derivative", 1, 2, AreA, reA);
+    m_sigs[_OP_RE_ANTIMOROV_UNION] = alloc(psig, m, "re.union", 1, 2, reAreA, reA);
     m_sigs[OP_SEQ_TO_RE]         = alloc(psig, m, "seq.to.re",  1, 1, &seqA, reA);
     m_sigs[OP_SEQ_IN_RE]         = alloc(psig, m, "seq.in.re", 1, 2, seqAreA, boolT);
     m_sigs[OP_SEQ_REPLACE_RE_ALL] = alloc(psig, m, "str.replace_re_all", 1, 3, seqAreAseqA, seqA);
@@ -762,6 +761,7 @@ func_decl * seq_decl_plugin::mk_func_decl(decl_kind k, unsigned num_parameters, 
     case OP_RE_COMPLEMENT:
     case OP_RE_REVERSE:
     case OP_RE_DERIVATIVE:
+    case _OP_RE_ANTIMOROV_UNION:
         m_has_re = true;
         // fall-through
     case OP_SEQ_UNIT:
@@ -872,7 +872,7 @@ func_decl * seq_decl_plugin::mk_func_decl(decl_kind k, unsigned num_parameters, 
         if (!(num_parameters == 1 && parameters[0].is_int())) 
             m.raise_exception("character literal expects integer parameter");
         zstring zs(parameters[0].get_int());        
-        parameter p(zs.encode().c_str());
+        parameter p(zs.encode());
         return m.mk_const_decl(m_stringc_sym, m_string,func_decl_info(m_family_id, OP_STRING_CONST, 1, &p));
     }
         
@@ -987,7 +987,7 @@ void seq_decl_plugin::get_op_names(svector<builtin_name> & op_names, symbol cons
     init();
     for (unsigned i = 0; i < m_sigs.size(); ++i) {
         if (m_sigs[i]) {
-            op_names.push_back(builtin_name(m_sigs[i]->m_name.str().c_str(), i));
+            op_names.push_back(builtin_name(m_sigs[i]->m_name.str(), i));
         }
     }
     op_names.push_back(builtin_name("str.in.re", _OP_STRING_IN_REGEXP));
@@ -1020,7 +1020,7 @@ void seq_decl_plugin::get_sort_names(svector<builtin_name> & sort_names, symbol 
 
 app* seq_decl_plugin::mk_string(symbol const& s) {
     zstring canonStr(s.bare_str());
-    symbol canonSym(canonStr.encode().c_str());
+    symbol canonSym(canonStr.encode());
     parameter param(canonSym);
     func_decl* f = m_manager->mk_const_decl(m_stringc_sym, m_string,
                                             func_decl_info(m_family_id, OP_STRING_CONST, 1, &param));
@@ -1028,7 +1028,7 @@ app* seq_decl_plugin::mk_string(symbol const& s) {
 }
 
 app* seq_decl_plugin::mk_string(zstring const& s) {
-    symbol sym(s.encode().c_str());
+    symbol sym(s.encode());
     parameter param(sym);
     func_decl* f = m_manager->mk_const_decl(m_stringc_sym, m_string,
                                             func_decl_info(m_family_id, OP_STRING_CONST, 1, &param));
@@ -1132,7 +1132,7 @@ expr* seq_decl_plugin::get_some_value(sort* s) {
 }
 
 app* seq_util::mk_skolem(symbol const& name, unsigned n, expr* const* args, sort* range) {
-    SASSERT(range);
+    SASSERT(range);    
     parameter param(name);
     func_decl* f = m.mk_func_decl(get_family_id(), _OP_SEQ_SKOLEM, 1, &param, n, args, range);
     return m.mk_app(f, n, args);
@@ -1287,13 +1287,18 @@ unsigned seq_util::str::min_length(expr* s) const {
 unsigned seq_util::str::max_length(expr* s) const {
     SASSERT(u.is_seq(s));
     unsigned result = 0;
-    expr* s1 = nullptr, *s2 = nullptr;
+    expr* s1 = nullptr, *s2 = nullptr, *s3 = nullptr;
+    unsigned n = 0;
     zstring st;
     auto get_length = [&](expr* s1) {
         if (is_empty(s1))
             return 0u;
         else if (is_unit(s1))
             return 1u;
+        else if (is_at(s1))
+            return 1u;
+        else if (is_extract(s1, s1, s2, s3)) 
+            return (arith_util(m).is_unsigned(s3, n)) ? n : UINT_MAX;
         else if (is_string(s1, st))
             return st.length();
         else
@@ -1313,22 +1318,21 @@ unsigned seq_util::re::min_length(expr* r) const {
     unsigned lo = 0, hi = 0;
     if (is_empty(r))
         return UINT_MAX;
-    if (is_concat(r, r1, r2)) 
+    if (is_concat(r, r1, r2))
         return u.max_plus(min_length(r1), min_length(r2));
-    if (m.is_ite(r, s, r1, r2)) 
+    if (is_union(r, r1, r2) || m.is_ite(r, s, r1, r2))
         return std::min(min_length(r1), min_length(r2));
-    if (is_diff(r, r1, r2))
-        return min_length(r1);
-    if (is_union(r, r1, r2)) 
-        return std::min(min_length(r1), min_length(r2));
-    if (is_intersection(r, r1, r2)) 
+    if (is_intersection(r, r1, r2))
         return std::max(min_length(r1), min_length(r2));
-    if (is_loop(r, r1, lo, hi))
+    if (is_diff(r, r1, r2) || is_reverse(r, r1) || is_plus(r, r1))
+        return min_length(r1);
+    if (is_loop(r, r1, lo) || is_loop(r, r1, lo, hi))
         return u.max_mul(lo, min_length(r1));
-    if (is_range(r)) 
-        return 1;
-    if (is_to_re(r, s)) 
+    if (is_to_re(r, s))
         return u.str.min_length(s);
+    if (is_range(r) || is_of_pred(r) || is_full_char(r))
+        return 1;
+    // Else: star, option, complement, full_seq, derivative
     return 0;
 }
 
@@ -1338,20 +1342,21 @@ unsigned seq_util::re::max_length(expr* r) const {
     unsigned lo = 0, hi = 0;
     if (is_empty(r))
         return 0;
-    if (is_concat(r, r1, r2)) 
+    if (is_concat(r, r1, r2))
         return u.max_plus(max_length(r1), max_length(r2));
-    if (m.is_ite(r, s, r1, r2)) 
+    if (is_union(r, r1, r2) || m.is_ite(r, s, r1, r2))
         return std::max(max_length(r1), max_length(r2));
-    if (is_diff(r, r1, r2))
-        return max_length(r1);
-    if (is_union(r, r1, r2)) 
-        return std::max(max_length(r1), max_length(r2));
-    if (is_intersection(r, r1, r2)) 
+    if (is_intersection(r, r1, r2))
         return std::min(max_length(r1), max_length(r2));
+    if (is_diff(r, r1, r2) || is_reverse(r, r1) || is_opt(r, r1))
+        return max_length(r1);
     if (is_loop(r, r1, lo, hi))
         return u.max_mul(hi, max_length(r1));
-    if (is_to_re(r, s)) 
+    if (is_to_re(r, s))
         return u.str.max_length(s);
+    if (is_range(r) || is_of_pred(r) || is_full_char(r))
+        return 1;
+    // Else: star, plus, complement, full_seq, loop(r,r1,lo), derivative
     return UINT_MAX;
 }
 
@@ -1445,4 +1450,148 @@ bool seq_util::re::is_loop(expr const* n, expr*& body, expr*& lo) const {
         }
     }
     return false;
+}
+
+/**
+   Returns true iff e is the epsilon regex.
+ */
+bool seq_util::re::is_epsilon(expr* r) const {
+    expr* s;
+    return is_to_re(r, s) && u.str.is_empty(s);
+}
+/**
+   Makes the epsilon regex for a given sequence sort.
+ */
+app* seq_util::re::mk_epsilon(sort* seq_sort) {
+    return mk_to_re(u.str.mk_empty(seq_sort));
+}
+
+/*
+  Produces compact view of concrete concatenations such as (abcd).
+*/
+std::ostream& seq_util::re::pp::compact_helper_seq(std::ostream& out, expr* s) const {
+    SASSERT(re.u.is_seq(s));
+    if (re.u.str.is_concat(s)) {
+        expr_ref_vector es(re.m);
+        re.u.str.get_concat(s, es);
+        for (expr* e : es) {
+            if (re.u.str.is_unit(e))
+                seq_unit(out, e);
+            else
+                out << mk_pp(e, re.m);
+        }
+    }
+    else if (re.u.str.is_empty(s))
+        out << "()";
+    else
+        seq_unit(out, s);
+    return out;
+}
+
+/*
+  Produces output such as [a-z] for a range.
+*/
+std::ostream& seq_util::re::pp::compact_helper_range(std::ostream& out, expr* s1, expr* s2) const {
+    out << "[";
+    seq_unit(out, s1) << "-";
+    seq_unit(out, s2) << "]";
+    return out;
+}
+
+/*
+  Checks if parenthesis can be omitted in some cases in a loop body or in complement.
+*/
+bool seq_util::re::pp::can_skip_parenth(expr* r) const {
+    expr* s;
+    return ((re.is_to_re(r, s) && re.u.str.is_unit(s)) || re.is_range(r) || re.is_empty(r) || re.is_epsilon(r));
+}
+
+/*
+  Specialize output for a unit sequence converting to visible ASCII characters if possible.
+*/
+std::ostream& seq_util::re::pp::seq_unit(std::ostream& out, expr* s) const {
+    expr* e;
+    unsigned n = 0;
+    if (re.u.str.is_unit(s, e) && re.u.is_const_char(e, n)) {
+        if (32 < n && n < 127)
+            out << (char)n;
+        else if (n < 16)
+            out << "\\x0" << std::hex << n;
+        else
+            out << "\\x" << std::hex << n;
+    }
+    else
+        out << mk_pp(s, re.m);
+    return out;
+}
+
+/*
+  Pretty prints the regex r into the out stream
+*/
+std::ostream& seq_util::re::pp::display(std::ostream& out) const {
+    expr* r1 = nullptr, * r2 = nullptr, * s = nullptr, * s2 = nullptr;
+    unsigned lo = 0, hi = 0;
+    if (re.is_full_char(e))
+        return out << ".";
+    else if (re.is_full_seq(e))
+        return out << ".*";
+    else if (re.is_to_re(e, s)) 
+        return compact_helper_seq(out, s);
+    else if (re.is_range(e, s, s2)) 
+        return compact_helper_range(out, s, s2);
+    else if (re.is_epsilon(e))
+        return out << "()";
+    else if (re.is_empty(e))
+        return out << "[]";
+    else if (re.is_concat(e, r1, r2)) 
+        return out << pp(re, r1) << pp(re, r2);
+    else if (re.is_union(e, r1, r2)) 
+        return out << pp(re, r1) << "|" << pp(re, r2);
+    else if (re.is_intersection(e, r1, r2)) 
+        return out << "(" << pp(re, r1) << ")&(" << pp(re, r2) << ")";
+    else if (re.is_complement(e, r1)) {
+        if (can_skip_parenth(r1))
+            return out << "~" << pp(re, r1);
+        else 
+            return out << "~(" << pp(re, r1) << ")";
+    }
+    else if (re.is_plus(e, r1)) {
+        if (can_skip_parenth(r1)) 
+            return out << pp(re, r1) << "+";
+        else 
+            return out << "(" << pp(re, r1) << ")+";
+    }
+    else if (re.is_star(e, r1)) {
+        if (can_skip_parenth(r1))
+            return out << pp(re, r1) << "*";
+        else
+            return out << "(" << pp(re, r1) << ")*";
+    }
+    else if (re.is_loop(e, r1, lo)) {
+        if (can_skip_parenth(r1))
+            return out << pp(re, r1) << "{" << lo << ",}";
+        else 
+            return out << "(" << pp(re, r1) << "){" << lo << ",}";
+    }
+    else if (re.is_loop(e, r1, lo, hi)) {
+        if (can_skip_parenth(r1))
+            return out << pp(re, r1) << "{" << lo << "," << hi << "}";
+        else
+            return out << "(" << pp(re, r1) << "){" << lo << "," << hi << "}";
+    }
+    else if (re.is_diff(e, r1, r2)) 
+        return out << "(" << pp(re, r1) << ")\\(" << pp(re, r2) << ")";
+    else if (re.m.is_ite(e, s, r1, r2)) 
+        return out << "if(" << mk_pp(s, re.m) << "," << pp(re, r1) << "," << pp(re, r2) << ")";
+    else if (re.is_opt(e, r1)) {
+        if (can_skip_parenth(r1)) 
+            return out << pp(re, r1) << "?";
+        else 
+            return out << "(" << pp(re, r1) << ")?";
+    }
+    else if (re.is_reverse(e, r1)) 
+        return out << "reverse(" << pp(re, r1) << ")";
+    else
+        // Else: derivative or is_of_pred
+        return out << mk_pp(e, re.m);
 }

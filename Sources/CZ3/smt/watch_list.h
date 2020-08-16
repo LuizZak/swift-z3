@@ -16,8 +16,7 @@ Author:
 Revision History:
 
 --*/
-#ifndef WATCH_LIST_H_
-#define WATCH_LIST_H_
+#pragma once
 
 #include "smt/smt_clause.h"
 #include "util/memory_manager.h"
@@ -86,7 +85,7 @@ namespace smt {
             m_data(nullptr) {
         }
 
-        watch_list(watch_list && other) : m_data(nullptr) {
+        watch_list(watch_list && other) noexcept : m_data(nullptr) {
             std::swap(m_data, other.m_data);
         }
         
@@ -145,6 +144,14 @@ namespace smt {
         literal const * end_literals() const {
             return reinterpret_cast<literal const *>(m_data + end_lits());
         }
+
+        class literal_iterator { 
+            watch_list const& w;
+        public:
+            literal_iterator(watch_list const& w): w(w) {}
+            literal const* begin() const { return w.begin_literals(); }
+            literal const* end() const { return w.end_literals(); }
+        };
         
         literal * find_literal(literal const & l) {
             return std::find(begin_literals(), end_literals(), l);
@@ -172,6 +179,8 @@ namespace smt {
         }
         
         void remove_clause(clause * c);
+
+        void remove_deleted();
         
         void remove_literal(literal l);
         
@@ -186,5 +195,4 @@ namespace smt {
 
 };
 
-#endif /* WATCH_LIST_H_ */
 

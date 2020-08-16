@@ -16,8 +16,7 @@ Author:
 Notes:
 
 --*/
-#ifndef SPACER_IUC_SOLVER_H_
-#define SPACER_IUC_SOLVER_H_
+#pragma once
 
 #include"solver/solver.h"
 #include"ast/expr_substitution.h"
@@ -124,6 +123,9 @@ public:
     expr_ref_vector cube(expr_ref_vector&, unsigned) override { return expr_ref_vector(m); }
     void get_levels(ptr_vector<expr> const& vars, unsigned_vector& depth) override { m_solver.get_levels(vars, depth); }
     expr_ref_vector get_trail() override { return m_solver.get_trail(); }
+    expr_ref get_implied_value(expr* e) override { return m_solver.get_implied_value(e); }
+    expr_ref get_implied_lower_bound(expr* e) override { return m_solver.get_implied_lower_bound(e); }
+    expr_ref get_implied_upper_bound(expr* e) override { return m_solver.get_implied_upper_bound(e); }
 
     void push() override;
     void pop(unsigned n) override;
@@ -180,4 +182,3 @@ public:
     };
 };
 }
-#endif

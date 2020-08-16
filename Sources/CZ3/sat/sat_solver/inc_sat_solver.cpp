@@ -206,8 +206,7 @@ public:
         catch (z3_exception& ex) {
             IF_VERBOSE(10, verbose_stream() << "exception: " << ex.msg() << "\n";);
             reason_set = true;
-            std::string msg = std::string("(sat.giveup ") + ex.msg() + std::string(")");
-            set_reason_unknown(msg.c_str());
+            set_reason_unknown(std::string("(sat.giveup ") + ex.msg() + ')');
             r = l_undef;            
         }
         switch (r) {
@@ -364,6 +363,19 @@ public:
         return nullptr;
     }
 
+    // TODO
+    expr_ref get_implied_value(expr* e) override {
+        return expr_ref(e, m);
+    }
+
+    expr_ref get_implied_lower_bound(expr* e) override {
+        return expr_ref(e, m);
+    }
+
+    expr_ref get_implied_upper_bound(expr* e) override {
+        return expr_ref(e, m);
+    }
+
     expr_ref_vector last_cube(bool is_sat) {
         expr_ref_vector result(m);
         result.push_back(is_sat ? m.mk_true() : m.mk_false());
@@ -498,6 +510,10 @@ public:
 
     void set_reason_unknown(char const* msg) override {
         m_unknown = msg;
+    }
+
+    void set_reason_unknown(std::string &&msg) {
+        m_unknown = std::move(msg);
     }
 
     void get_labels(svector<symbol> & r) override {
@@ -656,7 +672,7 @@ private:
             strm << "(sat.giveup interpreted atoms sent to SAT solver " << atoms <<")";
             TRACE("sat", tout << strm.str() << "\n";);
             IF_VERBOSE(1, verbose_stream() << strm.str() << "\n";);
-            set_reason_unknown(strm.str().c_str());
+            set_reason_unknown(strm.str());
             return l_undef;
         }
         return l_true;

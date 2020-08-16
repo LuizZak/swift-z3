@@ -16,8 +16,7 @@ Author:
 Revision History:
 
 --*/
-#ifndef THEORY_ARITH_PARAMS_H_
-#define THEORY_ARITH_PARAMS_H_
+#pragma once
 
 #include<climits>
 #include "util/params.h"
@@ -35,7 +34,7 @@ enum arith_solver_id {
 enum bound_prop_mode {
     BP_NONE,
     BP_SIMPLE, // only used for implying literals   
-    BP_REFINE  // refine known bounds
+    BP_REFINE  // adds new literals, but only refines finite bounds
 };
 
 enum arith_prop_strategy {
@@ -165,5 +164,4 @@ struct theory_arith_params {
     void display(std::ostream & out) const;
 };
 
-#endif /* THEORY_ARITH_PARAMS_H_ */
 
