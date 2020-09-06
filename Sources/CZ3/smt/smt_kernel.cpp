@@ -204,6 +204,11 @@ namespace smt {
             lookahead lh(m_kernel);
             return lh.choose();
         }
+
+        expr_ref_vector cubes(unsigned depth) {
+            lookahead lh(m_kernel);
+            return lh.choose_rec(depth);
+        }
                 
         void collect_statistics(::statistics & st) const {
             m_kernel.collect_statistics(st);
@@ -227,6 +232,35 @@ namespace smt {
         void updt_params(params_ref const & p) {
             m_kernel.updt_params(p);
         }
+
+        void user_propagate_init(
+            void*                    ctx, 
+            solver::push_eh_t&       push_eh,
+            solver::pop_eh_t&        pop_eh,
+            solver::fresh_eh_t&      fresh_eh) {
+            m_kernel.user_propagate_init(ctx, push_eh, pop_eh, fresh_eh);
+        }
+
+        void user_propagate_register_final(solver::final_eh_t& final_eh) {
+            m_kernel.user_propagate_register_final(final_eh);
+        }
+
+        void user_propagate_register_fixed(solver::fixed_eh_t& fixed_eh) {
+            m_kernel.user_propagate_register_fixed(fixed_eh);
+        }
+        
+        void user_propagate_register_eq(solver::eq_eh_t& eq_eh) {
+            m_kernel.user_propagate_register_eq(eq_eh);
+        }
+        
+        void user_propagate_register_diseq(solver::eq_eh_t& diseq_eh) {
+            m_kernel.user_propagate_register_diseq(diseq_eh);
+        }
+
+        unsigned user_propagate_register(expr* e) {
+            return m_kernel.user_propagate_register(e);
+        }
+        
     };
 
     kernel::kernel(ast_manager & m, smt_params & fp, params_ref const & p) {
@@ -314,7 +348,6 @@ namespace smt {
         return m_imp->check(cube, clauses);
     }
 
-
     lbool kernel::get_consequences(expr_ref_vector const& assumptions, expr_ref_vector const& vars, expr_ref_vector& conseq, expr_ref_vector& unfixed) {
         return m_imp->get_consequences(assumptions, vars, conseq, unfixed);
     }
@@ -379,6 +412,10 @@ namespace smt {
         return m_imp->next_cube();
     }        
 
+    expr_ref_vector kernel::cubes(unsigned depth) {
+        return m_imp->cubes(depth);
+    }        
+
     std::ostream& kernel::display(std::ostream & out) const {
         m_imp->display(out);
         return out;
@@ -436,6 +473,32 @@ namespace smt {
         return m_imp->get_implied_upper_bound(e);
     }
 
+    void kernel::user_propagate_init(
+        void*                ctx, 
+        solver::push_eh_t&   push_eh,
+        solver::pop_eh_t&    pop_eh,
+        solver::fresh_eh_t&  fresh_eh) {
+        m_imp->user_propagate_init(ctx, push_eh, pop_eh, fresh_eh);
+    }
 
+    void kernel::user_propagate_register_fixed(solver::fixed_eh_t& fixed_eh) {
+        m_imp->user_propagate_register_fixed(fixed_eh);
+    }
+    
+    void kernel::user_propagate_register_final(solver::final_eh_t& final_eh) {
+        m_imp->user_propagate_register_final(final_eh);
+    }
+    
+    void kernel::user_propagate_register_eq(solver::eq_eh_t& eq_eh) {
+        m_imp->user_propagate_register_eq(eq_eh);
+    }
+    
+    void kernel::user_propagate_register_diseq(solver::eq_eh_t& diseq_eh) {
+        m_imp->user_propagate_register_diseq(diseq_eh);
+    }
+
+    unsigned kernel::user_propagate_register(expr* e) {
+        return m_imp->user_propagate_register(e);
+    }        
 
 };

@@ -65,6 +65,7 @@ struct sat_params {
     d.insert("cardinality.encoding", CPK_SYMBOL, "encoding used for at-most-k constraints: grouped, bimander, ordered, unate, circuit", "grouped","sat");
     d.insert("pb.resolve", CPK_SYMBOL, "resolution strategy for boolean algebra solver: cardinality, rounding", "cardinality","sat");
     d.insert("pb.lemma_format", CPK_SYMBOL, "generate either cardinality or pb lemmas", "cardinality","sat");
+    d.insert("euf", CPK_BOOL, "enable euf solver (this feature is preliminary and not ready for general consumption)", "false","sat");
     d.insert("ddfw_search", CPK_BOOL, "use ddfw local search instead of CDCL", "false","sat");
     d.insert("ddfw.init_clause_weight", CPK_UINT, "initial clause weight for DDFW local search", "8","sat");
     d.insert("ddfw.use_reward_pct", CPK_UINT, "percentage to pick highest reward variable when it has reward 0", "15","sat");
@@ -166,6 +167,7 @@ struct sat_params {
   symbol cardinality_encoding() const { return p.get_sym("cardinality.encoding", g, symbol("grouped")); }
   symbol pb_resolve() const { return p.get_sym("pb.resolve", g, symbol("cardinality")); }
   symbol pb_lemma_format() const { return p.get_sym("pb.lemma_format", g, symbol("cardinality")); }
+  bool euf() const { return p.get_bool("euf", g, false); }
   bool ddfw_search() const { return p.get_bool("ddfw_search", g, false); }
   unsigned ddfw_init_clause_weight() const { return p.get_uint("ddfw.init_clause_weight", g, 8u); }
   unsigned ddfw_use_reward_pct() const { return p.get_uint("ddfw.use_reward_pct", g, 15u); }

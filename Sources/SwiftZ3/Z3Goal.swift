@@ -28,8 +28,8 @@ public class Z3Goal {
     /// Booleans either, so if the caller intends to preserve satisfiability,
     /// it should apply bit-blasting tactics.
     /// Quantifiers and theory atoms will not be encoded.
-    public func toDimacsString() -> String {
-        return String(cString: Z3_goal_to_dimacs_string(context.context, goal))
+    public func toDimacsString(includeNames: Bool) -> String {
+        return String(cString: Z3_goal_to_dimacs_string(context.context, goal, includeNames))
     }
     
     /// Copy this goal from the context source to the context `newContext` target.

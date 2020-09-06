@@ -43,12 +43,13 @@ Revision History:
 #include "ast/ast_smt_pp.h"
 #include "smt/watch_list.h"
 #include "util/trail.h"
-#include "smt/fingerprints.h"
 #include "util/ref.h"
-#include "smt/proto_model/proto_model.h"
-#include "model/model.h"
 #include "util/timer.h"
 #include "util/statistics.h"
+#include "smt/fingerprints.h"
+#include "smt/proto_model/proto_model.h"
+#include "smt/user_propagator.h"
+#include "model/model.h"
 #include "solver/progress_callback.h"
 #include <tuple>
 
@@ -56,11 +57,7 @@ Revision History:
 // the case that each context only references a few expressions.
 // Using a map instead of a vector for the literals can compress space
 // consumption.
-#ifdef SPARSE_MAP
-#define USE_BOOL_VAR_VECTOR 0
-#else
 #define USE_BOOL_VAR_VECTOR 1
-#endif
 
 namespace smt {
 
@@ -92,6 +89,7 @@ namespace smt {
         scoped_ptr<quantifier_manager>   m_qmanager;
         scoped_ptr<model_generator>      m_model_generator;
         scoped_ptr<relevancy_propagator> m_relevancy_propagator;
+        user_propagator*            m_user_propagator;
         random_gen                  m_random;
         bool                        m_flushing; // (debug support) true when flushing
         mutable unsigned            m_lemma_id;
@@ -229,6 +227,9 @@ namespace smt {
         literal_vector             m_assumptions;
         literal2assumption         m_literal2assumption; // maps an expression associated with a literal to the original assumption
         expr_ref_vector            m_unsat_core;
+
+        unsigned                   m_last_position_log { 0 };
+        svector<size_t>            m_last_positions;
 
         // -----------------------------------
         //
@@ -893,7 +894,11 @@ namespace smt {
 
         void mk_clause(literal l1, literal l2, literal l3, justification * j);
 
-        void mk_th_axiom(theory_id tid, unsigned num_lits, literal * lits, unsigned num_params = 0, parameter * params = nullptr);
+        void mk_th_clause(theory_id tid, unsigned num_lits, literal * lits, unsigned num_params, parameter * params, clause_kind k);
+
+        void mk_th_axiom(theory_id tid, unsigned num_lits, literal * lits, unsigned num_params = 0, parameter * params = nullptr) {
+            mk_th_clause(tid, num_lits, lits, num_params, params, CLS_TH_AXIOM);
+        }
 
         void mk_th_axiom(theory_id tid, literal l1, literal l2, unsigned num_params = 0, parameter * params = nullptr);
 
@@ -901,6 +906,24 @@ namespace smt {
 
         void mk_th_axiom(theory_id tid, literal_vector const& ls, unsigned num_params = 0, parameter * params = nullptr) {
             mk_th_axiom(tid, ls.size(), ls.c_ptr(), num_params, params);
+        }
+
+        void mk_th_lemma(theory_id tid, literal l1, literal l2, unsigned num_params = 0, parameter * params = nullptr) {
+            literal ls[2] = { l1, l2 };
+            mk_th_lemma(tid, 2, ls, num_params, params);
+        }
+
+        void mk_th_lemma(theory_id tid, literal l1, literal l2, literal l3, unsigned num_params = 0, parameter * params = nullptr) {
+            literal ls[3] = { l1, l2, l3 };
+            mk_th_lemma(tid, 3, ls, num_params, params);
+        }
+
+        void mk_th_lemma(theory_id tid, unsigned num_lits, literal * lits, unsigned num_params = 0, parameter * params = nullptr) {
+            mk_th_clause(tid, num_lits, lits, num_params, params, CLS_TH_LEMMA);
+        }
+
+        void mk_th_lemma(theory_id tid, literal_vector const& ls, unsigned num_params = 0, parameter * params = nullptr) {
+            mk_th_lemma(tid, ls.size(), ls.c_ptr(), num_params, params);
         }
 
         /*
@@ -1208,6 +1231,7 @@ namespace smt {
         void forget_phase_of_vars_in_current_level();
 
         virtual bool resolve_conflict();
+
 
         // -----------------------------------
         //
@@ -1543,6 +1567,10 @@ namespace smt {
 
         void display_partial_assignment(std::ostream& out, expr_ref_vector const& asms, unsigned min_core_size);
 
+        void log_stats();
+
+        void copy_user_propagator(context& src);
+
     public:
         context(ast_manager & m, smt_params & fp, params_ref const & p = params_ref());
 
@@ -1653,6 +1681,57 @@ namespace smt {
         //proof * const * get_asserted_formula_proofs() const { return m_asserted_formulas.get_formula_proofs(); }
 
         void get_assertions(ptr_vector<expr> & result) { m_asserted_formulas.get_assertions(result); }
+
+        /*
+         * user-propagator
+         */
+        void user_propagate_init(
+            void*                 ctx, 
+            solver::push_eh_t&    push_eh,
+            solver::pop_eh_t&     pop_eh,
+            solver::fresh_eh_t&   fresh_eh);
+
+        void user_propagate_register_final(solver::final_eh_t& final_eh) {
+            if (!m_user_propagator) 
+                throw default_exception("user propagator must be initialized");
+            m_user_propagator->register_final(final_eh);
+        }
+
+        void user_propagate_register_fixed(solver::fixed_eh_t& fixed_eh) {
+            if (!m_user_propagator) 
+                throw default_exception("user propagator must be initialized");
+            m_user_propagator->register_fixed(fixed_eh);
+        }
+        
+        void user_propagate_register_eq(solver::eq_eh_t& eq_eh) {
+            if (!m_user_propagator) 
+                throw default_exception("user propagator must be initialized");
+            m_user_propagator->register_eq(eq_eh);
+        }
+        
+        void user_propagate_register_diseq(solver::eq_eh_t& diseq_eh) {
+            if (!m_user_propagator) 
+                throw default_exception("user propagator must be initialized");
+            m_user_propagator->register_diseq(diseq_eh);
+        }
+
+        unsigned user_propagate_register(expr* e) {
+            if (!m_user_propagator) 
+                throw default_exception("user propagator must be initialized");
+            return m_user_propagator->add_expr(e);
+        }
+        
+        bool watches_fixed(enode* n) const;
+
+        void assign_fixed(enode* n, expr* val, unsigned sz, literal const* explain);
+
+        void assign_fixed(enode* n, expr* val, literal_vector const& explain) {
+            assign_fixed(n, val, explain.size(), explain.c_ptr());
+        }
+
+        void assign_fixed(enode* n, expr* val, literal explain) {
+            assign_fixed(n, val, 1, &explain);
+        }
 
         void display(std::ostream & out) const;
 

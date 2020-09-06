@@ -18,6 +18,8 @@ struct smt_params_helper {
     d.insert("restricted_quasi_macros", CPK_BOOL, "try to find universally quantified formulas that are restricted quasi-macros", "false","smt");
     d.insert("ematching", CPK_BOOL, "E-Matching based quantifier instantiation", "true","smt");
     d.insert("phase_selection", CPK_UINT, "phase selection heuristic: 0 - always false, 1 - always true, 2 - phase caching, 3 - phase caching conservative, 4 - phase caching conservative 2, 5 - random, 6 - number of occurrences, 7 - theory", "3","smt");
+    d.insert("phase_caching_on", CPK_UINT, "number of conflicts while phase caching is on", "400","smt");
+    d.insert("phase_caching_off", CPK_UINT, "number of conflicts while phase caching is off", "100","smt");
     d.insert("restart_strategy", CPK_UINT, "0 - geometric, 1 - inner-outer-geometric, 2 - luby, 3 - fixed, 4 - arithmetic", "1","smt");
     d.insert("restart_factor", CPK_DOUBLE, "when using geometric (or inner-outer-geometric) progression of restarts, it specifies the constant used to multiply the current restart threshold", "1.1","smt");
     d.insert("case_split", CPK_UINT, "0 - case split based on variable activity, 1 - similar to 0, but delay case splits created during the search, 2 - similar to 0, but cache the relevancy, 3 - case split based on relevancy (structural splitting), 4 - case split on relevancy and activity, 5 - case split on relevancy and current goal, 6 - activity-based case split with theory-aware branching activity", "1","smt");
@@ -27,8 +29,10 @@ struct smt_params_helper {
     d.insert("refine_inj_axioms", CPK_BOOL, "refine injectivity axioms", "true","smt");
     d.insert("max_conflicts", CPK_UINT, "maximum number of conflicts before giving up.", "4294967295","smt");
     d.insert("restart.max", CPK_UINT, "maximal number of restarts.", "4294967295","smt");
+    d.insert("cube_depth", CPK_UINT, "cube depth.", "1","smt");
     d.insert("threads", CPK_UINT, "maximal number of parallel threads.", "1","smt");
     d.insert("threads.max_conflicts", CPK_UINT, "maximal number of conflicts between rounds of cubing for parallel SMT", "400","smt");
+    d.insert("threads.cube_frequency", CPK_UINT, "frequency for using cubing", "2","smt");
     d.insert("mbqi", CPK_BOOL, "model based quantifier instantiation (MBQI)", "true","smt");
     d.insert("mbqi.max_cexs", CPK_UINT, "initial maximal number of counterexamples used in MBQI, each counterexample generates a quantifier instantiation", "1","smt");
     d.insert("mbqi.max_cexs_incr", CPK_UINT, "increment for MBQI_MAX_CEXS, the increment is performed after each round of MBQI", "0","smt");
@@ -47,6 +51,8 @@ struct smt_params_helper {
     d.insert("induction", CPK_BOOL, "enable generation of induction lemmas", "false","smt");
     d.insert("bv.reflect", CPK_BOOL, "create enode for every bit-vector term", "true","smt");
     d.insert("bv.enable_int2bv", CPK_BOOL, "enable support for int2bv and bv2int operators", "true","smt");
+    d.insert("bv.eq_axioms", CPK_BOOL, "add dynamic equality axioms", "true","smt");
+    d.insert("bv.watch_diseq", CPK_BOOL, "use watch lists instead of eager axioms for bit-vectors", "false","smt");
     d.insert("arith.random_initial_value", CPK_BOOL, "use random initial values in the simplex-based procedure for linear arithmetic", "false","smt");
     d.insert("arith.cheap_eqs", CPK_BOOL, "false - do not run, true - run cheap equality heuristic", "true","smt");
     d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "6","smt");
@@ -141,6 +147,8 @@ struct smt_params_helper {
   bool restricted_quasi_macros() const { return p.get_bool("restricted_quasi_macros", g, false); }
   bool ematching() const { return p.get_bool("ematching", g, true); }
   unsigned phase_selection() const { return p.get_uint("phase_selection", g, 3u); }
+  unsigned phase_caching_on() const { return p.get_uint("phase_caching_on", g, 400u); }
+  unsigned phase_caching_off() const { return p.get_uint("phase_caching_off", g, 100u); }
   unsigned restart_strategy() const { return p.get_uint("restart_strategy", g, 1u); }
   double restart_factor() const { return p.get_double("restart_factor", g, 1.1); }
   unsigned case_split() const { return p.get_uint("case_split", g, 1u); }
@@ -150,8 +158,10 @@ struct smt_params_helper {
   bool refine_inj_axioms() const { return p.get_bool("refine_inj_axioms", g, true); }
   unsigned max_conflicts() const { return p.get_uint("max_conflicts", g, 4294967295u); }
   unsigned restart_max() const { return p.get_uint("restart.max", g, 4294967295u); }
+  unsigned cube_depth() const { return p.get_uint("cube_depth", g, 1u); }
   unsigned threads() const { return p.get_uint("threads", g, 1u); }
   unsigned threads_max_conflicts() const { return p.get_uint("threads.max_conflicts", g, 400u); }
+  unsigned threads_cube_frequency() const { return p.get_uint("threads.cube_frequency", g, 2u); }
   bool mbqi() const { return p.get_bool("mbqi", g, true); }
   unsigned mbqi_max_cexs() const { return p.get_uint("mbqi.max_cexs", g, 1u); }
   unsigned mbqi_max_cexs_incr() const { return p.get_uint("mbqi.max_cexs_incr", g, 0u); }
@@ -170,6 +180,8 @@ struct smt_params_helper {
   bool induction() const { return p.get_bool("induction", g, false); }
   bool bv_reflect() const { return p.get_bool("bv.reflect", g, true); }
   bool bv_enable_int2bv() const { return p.get_bool("bv.enable_int2bv", g, true); }
+  bool bv_eq_axioms() const { return p.get_bool("bv.eq_axioms", g, true); }
+  bool bv_watch_diseq() const { return p.get_bool("bv.watch_diseq", g, false); }
   bool arith_random_initial_value() const { return p.get_bool("arith.random_initial_value", g, false); }
   bool arith_cheap_eqs() const { return p.get_bool("arith.cheap_eqs", g, true); }
   unsigned arith_solver() const { return p.get_uint("arith.solver", g, 6u); }

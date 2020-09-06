@@ -2731,10 +2731,11 @@ void log_Z3_goal_to_string(Z3_context a0, Z3_goal a1) {
   P(a1);
   C(385);
 }
-void log_Z3_goal_to_dimacs_string(Z3_context a0, Z3_goal a1) {
+void log_Z3_goal_to_dimacs_string(Z3_context a0, Z3_goal a1, bool a2) {
   R();
   P(a0);
   P(a1);
+  I(a2);
   C(386);
 }
 void log_Z3_mk_tactic(Z3_context a0, Z3_string a1) {
@@ -3201,11 +3202,33 @@ void log_Z3_solver_get_implied_upper(Z3_context a0, Z3_solver a1, Z3_ast a2) {
   P(a2);
   C(458);
 }
+void log_Z3_solver_propagate_register(Z3_context a0, Z3_solver a1, Z3_ast a2) {
+  R();
+  P(a0);
+  P(a1);
+  P(a2);
+  C(459);
+}
+void log_Z3_solver_propagate_consequence(Z3_context a0, Z3_solver_callback a1, unsigned a2, unsigned const * a3, unsigned a4, unsigned const * a5, unsigned const * a6, Z3_ast a7) {
+  R();
+  P(a0);
+  P(a1);
+  U(a2);
+  for (unsigned i = 0; i < a2; i++) { U(a3[i]); }
+  Au(a2);
+  U(a4);
+  for (unsigned i = 0; i < a4; i++) { U(a5[i]); }
+  Au(a4);
+  for (unsigned i = 0; i < a4; i++) { U(a6[i]); }
+  Au(a4);
+  P(a7);
+  C(460);
+}
 void log_Z3_solver_check(Z3_context a0, Z3_solver a1) {
   R();
   P(a0);
   P(a1);
-  C(459);
+  C(461);
 }
 void log_Z3_solver_check_assumptions(Z3_context a0, Z3_solver a1, unsigned a2, Z3_ast const * a3) {
   R();
@@ -3214,7 +3237,7 @@ void log_Z3_solver_check_assumptions(Z3_context a0, Z3_solver a1, unsigned a2, Z
   U(a2);
   for (unsigned i = 0; i < a2; i++) { P(a3[i]); }
   Ap(a2);
-  C(460);
+  C(462);
 }
 void log_Z3_get_implied_equalities(Z3_context a0, Z3_solver a1, unsigned a2, Z3_ast const * a3, unsigned* a4) {
   R();
@@ -3225,7 +3248,7 @@ void log_Z3_get_implied_equalities(Z3_context a0, Z3_solver a1, unsigned a2, Z3_
   Ap(a2);
   for (unsigned i = 0; i < a2; i++) { U(0); }
   Au(a2);
-  C(461);
+  C(463);
 }
 void log_Z3_solver_get_consequences(Z3_context a0, Z3_solver a1, Z3_ast_vector a2, Z3_ast_vector a3, Z3_ast_vector a4) {
   R();
@@ -3234,7 +3257,7 @@ void log_Z3_solver_get_consequences(Z3_context a0, Z3_solver a1, Z3_ast_vector a
   P(a2);
   P(a3);
   P(a4);
-  C(462);
+  C(464);
 }
 void log_Z3_solver_cube(Z3_context a0, Z3_solver a1, Z3_ast_vector a2, unsigned a3) {
   R();
@@ -3242,143 +3265,143 @@ void log_Z3_solver_cube(Z3_context a0, Z3_solver a1, Z3_ast_vector a2, unsigned 
   P(a1);
   P(a2);
   U(a3);
-  C(463);
+  C(465);
 }
 void log_Z3_solver_get_model(Z3_context a0, Z3_solver a1) {
   R();
   P(a0);
   P(a1);
-  C(464);
+  C(466);
 }
 void log_Z3_solver_get_proof(Z3_context a0, Z3_solver a1) {
   R();
   P(a0);
   P(a1);
-  C(465);
+  C(467);
 }
 void log_Z3_solver_get_unsat_core(Z3_context a0, Z3_solver a1) {
   R();
   P(a0);
   P(a1);
-  C(466);
+  C(468);
 }
 void log_Z3_solver_get_reason_unknown(Z3_context a0, Z3_solver a1) {
   R();
   P(a0);
   P(a1);
-  C(467);
+  C(469);
 }
 void log_Z3_solver_get_statistics(Z3_context a0, Z3_solver a1) {
   R();
   P(a0);
   P(a1);
-  C(468);
+  C(470);
 }
 void log_Z3_solver_to_string(Z3_context a0, Z3_solver a1) {
   R();
   P(a0);
   P(a1);
-  C(469);
+  C(471);
 }
 void log_Z3_solver_to_dimacs_string(Z3_context a0, Z3_solver a1, bool a2) {
   R();
   P(a0);
   P(a1);
   I(a2);
-  C(470);
+  C(472);
 }
 void log_Z3_stats_to_string(Z3_context a0, Z3_stats a1) {
   R();
   P(a0);
   P(a1);
-  C(471);
+  C(473);
 }
 void log_Z3_stats_inc_ref(Z3_context a0, Z3_stats a1) {
   R();
   P(a0);
   P(a1);
-  C(472);
+  C(474);
 }
 void log_Z3_stats_dec_ref(Z3_context a0, Z3_stats a1) {
   R();
   P(a0);
   P(a1);
-  C(473);
+  C(475);
 }
 void log_Z3_stats_size(Z3_context a0, Z3_stats a1) {
   R();
   P(a0);
   P(a1);
-  C(474);
+  C(476);
 }
 void log_Z3_stats_get_key(Z3_context a0, Z3_stats a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(475);
+  C(477);
 }
 void log_Z3_stats_is_uint(Z3_context a0, Z3_stats a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(476);
+  C(478);
 }
 void log_Z3_stats_is_double(Z3_context a0, Z3_stats a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(477);
+  C(479);
 }
 void log_Z3_stats_get_uint_value(Z3_context a0, Z3_stats a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(478);
+  C(480);
 }
 void log_Z3_stats_get_double_value(Z3_context a0, Z3_stats a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(479);
+  C(481);
 }
 void log_Z3_get_estimated_alloc_size() {
   R();
-  C(480);
+  C(482);
 }
 void log_Z3_mk_ast_vector(Z3_context a0) {
   R();
   P(a0);
-  C(481);
+  C(483);
 }
 void log_Z3_ast_vector_inc_ref(Z3_context a0, Z3_ast_vector a1) {
   R();
   P(a0);
   P(a1);
-  C(482);
+  C(484);
 }
 void log_Z3_ast_vector_dec_ref(Z3_context a0, Z3_ast_vector a1) {
   R();
   P(a0);
   P(a1);
-  C(483);
+  C(485);
 }
 void log_Z3_ast_vector_size(Z3_context a0, Z3_ast_vector a1) {
   R();
   P(a0);
   P(a1);
-  C(484);
+  C(486);
 }
 void log_Z3_ast_vector_get(Z3_context a0, Z3_ast_vector a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(485);
+  C(487);
 }
 void log_Z3_ast_vector_set(Z3_context a0, Z3_ast_vector a1, unsigned a2, Z3_ast a3) {
   R();
@@ -3386,65 +3409,65 @@ void log_Z3_ast_vector_set(Z3_context a0, Z3_ast_vector a1, unsigned a2, Z3_ast 
   P(a1);
   U(a2);
   P(a3);
-  C(486);
+  C(488);
 }
 void log_Z3_ast_vector_resize(Z3_context a0, Z3_ast_vector a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(487);
+  C(489);
 }
 void log_Z3_ast_vector_push(Z3_context a0, Z3_ast_vector a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(488);
+  C(490);
 }
 void log_Z3_ast_vector_translate(Z3_context a0, Z3_ast_vector a1, Z3_context a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(489);
+  C(491);
 }
 void log_Z3_ast_vector_to_string(Z3_context a0, Z3_ast_vector a1) {
   R();
   P(a0);
   P(a1);
-  C(490);
+  C(492);
 }
 void log_Z3_mk_ast_map(Z3_context a0) {
   R();
   P(a0);
-  C(491);
+  C(493);
 }
 void log_Z3_ast_map_inc_ref(Z3_context a0, Z3_ast_map a1) {
   R();
   P(a0);
   P(a1);
-  C(492);
+  C(494);
 }
 void log_Z3_ast_map_dec_ref(Z3_context a0, Z3_ast_map a1) {
   R();
   P(a0);
   P(a1);
-  C(493);
+  C(495);
 }
 void log_Z3_ast_map_contains(Z3_context a0, Z3_ast_map a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(494);
+  C(496);
 }
 void log_Z3_ast_map_find(Z3_context a0, Z3_ast_map a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(495);
+  C(497);
 }
 void log_Z3_ast_map_insert(Z3_context a0, Z3_ast_map a1, Z3_ast a2, Z3_ast a3) {
   R();
@@ -3452,152 +3475,152 @@ void log_Z3_ast_map_insert(Z3_context a0, Z3_ast_map a1, Z3_ast a2, Z3_ast a3) {
   P(a1);
   P(a2);
   P(a3);
-  C(496);
+  C(498);
 }
 void log_Z3_ast_map_erase(Z3_context a0, Z3_ast_map a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(497);
+  C(499);
 }
 void log_Z3_ast_map_reset(Z3_context a0, Z3_ast_map a1) {
   R();
   P(a0);
   P(a1);
-  C(498);
+  C(500);
 }
 void log_Z3_ast_map_size(Z3_context a0, Z3_ast_map a1) {
   R();
   P(a0);
   P(a1);
-  C(499);
+  C(501);
 }
 void log_Z3_ast_map_keys(Z3_context a0, Z3_ast_map a1) {
   R();
   P(a0);
   P(a1);
-  C(500);
+  C(502);
 }
 void log_Z3_ast_map_to_string(Z3_context a0, Z3_ast_map a1) {
   R();
   P(a0);
   P(a1);
-  C(501);
+  C(503);
 }
 void log_Z3_algebraic_is_value(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(502);
+  C(504);
 }
 void log_Z3_algebraic_is_pos(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(503);
+  C(505);
 }
 void log_Z3_algebraic_is_neg(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(504);
+  C(506);
 }
 void log_Z3_algebraic_is_zero(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(505);
+  C(507);
 }
 void log_Z3_algebraic_sign(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(506);
+  C(508);
 }
 void log_Z3_algebraic_add(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(507);
+  C(509);
 }
 void log_Z3_algebraic_sub(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(508);
+  C(510);
 }
 void log_Z3_algebraic_mul(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(509);
+  C(511);
 }
 void log_Z3_algebraic_div(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(510);
+  C(512);
 }
 void log_Z3_algebraic_root(Z3_context a0, Z3_ast a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(511);
+  C(513);
 }
 void log_Z3_algebraic_power(Z3_context a0, Z3_ast a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(512);
+  C(514);
 }
 void log_Z3_algebraic_lt(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(513);
+  C(515);
 }
 void log_Z3_algebraic_gt(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(514);
+  C(516);
 }
 void log_Z3_algebraic_le(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(515);
+  C(517);
 }
 void log_Z3_algebraic_ge(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(516);
+  C(518);
 }
 void log_Z3_algebraic_eq(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(517);
+  C(519);
 }
 void log_Z3_algebraic_neq(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(518);
+  C(520);
 }
 void log_Z3_algebraic_roots(Z3_context a0, Z3_ast a1, unsigned a2, Z3_ast const * a3) {
   R();
@@ -3606,7 +3629,7 @@ void log_Z3_algebraic_roots(Z3_context a0, Z3_ast a1, unsigned a2, Z3_ast const 
   U(a2);
   for (unsigned i = 0; i < a2; i++) { P(a3[i]); }
   Ap(a2);
-  C(519);
+  C(521);
 }
 void log_Z3_algebraic_eval(Z3_context a0, Z3_ast a1, unsigned a2, Z3_ast const * a3) {
   R();
@@ -3615,19 +3638,19 @@ void log_Z3_algebraic_eval(Z3_context a0, Z3_ast a1, unsigned a2, Z3_ast const *
   U(a2);
   for (unsigned i = 0; i < a2; i++) { P(a3[i]); }
   Ap(a2);
-  C(520);
+  C(522);
 }
 void log_Z3_algebraic_get_poly(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(521);
+  C(523);
 }
 void log_Z3_algebraic_get_i(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(522);
+  C(524);
 }
 void log_Z3_polynomial_subresultants(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3) {
   R();
@@ -3635,40 +3658,40 @@ void log_Z3_polynomial_subresultants(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast
   P(a1);
   P(a2);
   P(a3);
-  C(523);
+  C(525);
 }
 void log_Z3_rcf_del(Z3_context a0, Z3_rcf_num a1) {
   R();
   P(a0);
   P(a1);
-  C(524);
+  C(526);
 }
 void log_Z3_rcf_mk_rational(Z3_context a0, Z3_string a1) {
   R();
   P(a0);
   S(a1);
-  C(525);
+  C(527);
 }
 void log_Z3_rcf_mk_small_int(Z3_context a0, int a1) {
   R();
   P(a0);
   I(a1);
-  C(526);
+  C(528);
 }
 void log_Z3_rcf_mk_pi(Z3_context a0) {
   R();
   P(a0);
-  C(527);
+  C(529);
 }
 void log_Z3_rcf_mk_e(Z3_context a0) {
   R();
   P(a0);
-  C(528);
+  C(530);
 }
 void log_Z3_rcf_mk_infinitesimal(Z3_context a0) {
   R();
   P(a0);
-  C(529);
+  C(531);
 }
 void log_Z3_rcf_mk_roots(Z3_context a0, unsigned a1, Z3_rcf_num const * a2, Z3_rcf_num* a3) {
   R();
@@ -3678,96 +3701,96 @@ void log_Z3_rcf_mk_roots(Z3_context a0, unsigned a1, Z3_rcf_num const * a2, Z3_r
   Ap(a1);
   for (unsigned i = 0; i < a1; i++) { P(0); }
   Ap(a1);
-  C(530);
+  C(532);
 }
 void log_Z3_rcf_add(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(531);
+  C(533);
 }
 void log_Z3_rcf_sub(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(532);
+  C(534);
 }
 void log_Z3_rcf_mul(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(533);
+  C(535);
 }
 void log_Z3_rcf_div(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(534);
+  C(536);
 }
 void log_Z3_rcf_neg(Z3_context a0, Z3_rcf_num a1) {
   R();
   P(a0);
   P(a1);
-  C(535);
+  C(537);
 }
 void log_Z3_rcf_inv(Z3_context a0, Z3_rcf_num a1) {
   R();
   P(a0);
   P(a1);
-  C(536);
+  C(538);
 }
 void log_Z3_rcf_power(Z3_context a0, Z3_rcf_num a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(537);
+  C(539);
 }
 void log_Z3_rcf_lt(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(538);
+  C(540);
 }
 void log_Z3_rcf_gt(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(539);
+  C(541);
 }
 void log_Z3_rcf_le(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(540);
+  C(542);
 }
 void log_Z3_rcf_ge(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(541);
+  C(543);
 }
 void log_Z3_rcf_eq(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(542);
+  C(544);
 }
 void log_Z3_rcf_neq(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(543);
+  C(545);
 }
 void log_Z3_rcf_num_to_string(Z3_context a0, Z3_rcf_num a1, bool a2, bool a3) {
   R();
@@ -3775,14 +3798,14 @@ void log_Z3_rcf_num_to_string(Z3_context a0, Z3_rcf_num a1, bool a2, bool a3) {
   P(a1);
   I(a2);
   I(a3);
-  C(544);
+  C(546);
 }
 void log_Z3_rcf_num_to_decimal_string(Z3_context a0, Z3_rcf_num a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(545);
+  C(547);
 }
 void log_Z3_rcf_get_numerator_denominator(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num* a2, Z3_rcf_num* a3) {
   R();
@@ -3790,24 +3813,24 @@ void log_Z3_rcf_get_numerator_denominator(Z3_context a0, Z3_rcf_num a1, Z3_rcf_n
   P(a1);
   P(0);
   P(0);
-  C(546);
+  C(548);
 }
 void log_Z3_mk_fixedpoint(Z3_context a0) {
   R();
   P(a0);
-  C(547);
+  C(549);
 }
 void log_Z3_fixedpoint_inc_ref(Z3_context a0, Z3_fixedpoint a1) {
   R();
   P(a0);
   P(a1);
-  C(548);
+  C(550);
 }
 void log_Z3_fixedpoint_dec_ref(Z3_context a0, Z3_fixedpoint a1) {
   R();
   P(a0);
   P(a1);
-  C(549);
+  C(551);
 }
 void log_Z3_fixedpoint_add_rule(Z3_context a0, Z3_fixedpoint a1, Z3_ast a2, Z3_symbol a3) {
   R();
@@ -3815,7 +3838,7 @@ void log_Z3_fixedpoint_add_rule(Z3_context a0, Z3_fixedpoint a1, Z3_ast a2, Z3_s
   P(a1);
   P(a2);
   Sy(a3);
-  C(550);
+  C(552);
 }
 void log_Z3_fixedpoint_add_fact(Z3_context a0, Z3_fixedpoint a1, Z3_func_decl a2, unsigned a3, unsigned const * a4) {
   R();
@@ -3825,21 +3848,21 @@ void log_Z3_fixedpoint_add_fact(Z3_context a0, Z3_fixedpoint a1, Z3_func_decl a2
   U(a3);
   for (unsigned i = 0; i < a3; i++) { U(a4[i]); }
   Au(a3);
-  C(551);
+  C(553);
 }
 void log_Z3_fixedpoint_assert(Z3_context a0, Z3_fixedpoint a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(552);
+  C(554);
 }
 void log_Z3_fixedpoint_query(Z3_context a0, Z3_fixedpoint a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(553);
+  C(555);
 }
 void log_Z3_fixedpoint_query_relations(Z3_context a0, Z3_fixedpoint a1, unsigned a2, Z3_func_decl const * a3) {
   R();
@@ -3848,19 +3871,19 @@ void log_Z3_fixedpoint_query_relations(Z3_context a0, Z3_fixedpoint a1, unsigned
   U(a2);
   for (unsigned i = 0; i < a2; i++) { P(a3[i]); }
   Ap(a2);
-  C(554);
+  C(556);
 }
 void log_Z3_fixedpoint_get_answer(Z3_context a0, Z3_fixedpoint a1) {
   R();
   P(a0);
   P(a1);
-  C(555);
+  C(557);
 }
 void log_Z3_fixedpoint_get_reason_unknown(Z3_context a0, Z3_fixedpoint a1) {
   R();
   P(a0);
   P(a1);
-  C(556);
+  C(558);
 }
 void log_Z3_fixedpoint_update_rule(Z3_context a0, Z3_fixedpoint a1, Z3_ast a2, Z3_symbol a3) {
   R();
@@ -3868,14 +3891,14 @@ void log_Z3_fixedpoint_update_rule(Z3_context a0, Z3_fixedpoint a1, Z3_ast a2, Z
   P(a1);
   P(a2);
   Sy(a3);
-  C(557);
+  C(559);
 }
 void log_Z3_fixedpoint_get_num_levels(Z3_context a0, Z3_fixedpoint a1, Z3_func_decl a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(558);
+  C(560);
 }
 void log_Z3_fixedpoint_get_cover_delta(Z3_context a0, Z3_fixedpoint a1, int a2, Z3_func_decl a3) {
   R();
@@ -3883,7 +3906,7 @@ void log_Z3_fixedpoint_get_cover_delta(Z3_context a0, Z3_fixedpoint a1, int a2, 
   P(a1);
   I(a2);
   P(a3);
-  C(559);
+  C(561);
 }
 void log_Z3_fixedpoint_add_cover(Z3_context a0, Z3_fixedpoint a1, int a2, Z3_func_decl a3, Z3_ast a4) {
   R();
@@ -3892,20 +3915,20 @@ void log_Z3_fixedpoint_add_cover(Z3_context a0, Z3_fixedpoint a1, int a2, Z3_fun
   I(a2);
   P(a3);
   P(a4);
-  C(560);
+  C(562);
 }
 void log_Z3_fixedpoint_get_statistics(Z3_context a0, Z3_fixedpoint a1) {
   R();
   P(a0);
   P(a1);
-  C(561);
+  C(563);
 }
 void log_Z3_fixedpoint_register_relation(Z3_context a0, Z3_fixedpoint a1, Z3_func_decl a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(562);
+  C(564);
 }
 void log_Z3_fixedpoint_set_predicate_representation(Z3_context a0, Z3_fixedpoint a1, Z3_func_decl a2, unsigned a3, Z3_symbol const * a4) {
   R();
@@ -3915,38 +3938,38 @@ void log_Z3_fixedpoint_set_predicate_representation(Z3_context a0, Z3_fixedpoint
   U(a3);
   for (unsigned i = 0; i < a3; i++) { Sy(a4[i]); }
   Asy(a3);
-  C(563);
+  C(565);
 }
 void log_Z3_fixedpoint_get_rules(Z3_context a0, Z3_fixedpoint a1) {
   R();
   P(a0);
   P(a1);
-  C(564);
+  C(566);
 }
 void log_Z3_fixedpoint_get_assertions(Z3_context a0, Z3_fixedpoint a1) {
   R();
   P(a0);
   P(a1);
-  C(565);
+  C(567);
 }
 void log_Z3_fixedpoint_set_params(Z3_context a0, Z3_fixedpoint a1, Z3_params a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(566);
+  C(568);
 }
 void log_Z3_fixedpoint_get_help(Z3_context a0, Z3_fixedpoint a1) {
   R();
   P(a0);
   P(a1);
-  C(567);
+  C(569);
 }
 void log_Z3_fixedpoint_get_param_descrs(Z3_context a0, Z3_fixedpoint a1) {
   R();
   P(a0);
   P(a1);
-  C(568);
+  C(570);
 }
 void log_Z3_fixedpoint_to_string(Z3_context a0, Z3_fixedpoint a1, unsigned a2, Z3_ast const * a3) {
   R();
@@ -3955,45 +3978,45 @@ void log_Z3_fixedpoint_to_string(Z3_context a0, Z3_fixedpoint a1, unsigned a2, Z
   U(a2);
   for (unsigned i = 0; i < a2; i++) { P(a3[i]); }
   Ap(a2);
-  C(569);
+  C(571);
 }
 void log_Z3_fixedpoint_from_string(Z3_context a0, Z3_fixedpoint a1, Z3_string a2) {
   R();
   P(a0);
   P(a1);
   S(a2);
-  C(570);
+  C(572);
 }
 void log_Z3_fixedpoint_from_file(Z3_context a0, Z3_fixedpoint a1, Z3_string a2) {
   R();
   P(a0);
   P(a1);
   S(a2);
-  C(571);
+  C(573);
 }
 void log_Z3_mk_optimize(Z3_context a0) {
   R();
   P(a0);
-  C(572);
+  C(574);
 }
 void log_Z3_optimize_inc_ref(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(573);
+  C(575);
 }
 void log_Z3_optimize_dec_ref(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(574);
+  C(576);
 }
 void log_Z3_optimize_assert(Z3_context a0, Z3_optimize a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(575);
+  C(577);
 }
 void log_Z3_optimize_assert_and_track(Z3_context a0, Z3_optimize a1, Z3_ast a2, Z3_ast a3) {
   R();
@@ -4001,7 +4024,7 @@ void log_Z3_optimize_assert_and_track(Z3_context a0, Z3_optimize a1, Z3_ast a2, 
   P(a1);
   P(a2);
   P(a3);
-  C(576);
+  C(578);
 }
 void log_Z3_optimize_assert_soft(Z3_context a0, Z3_optimize a1, Z3_ast a2, Z3_string a3, Z3_symbol a4) {
   R();
@@ -4010,33 +4033,33 @@ void log_Z3_optimize_assert_soft(Z3_context a0, Z3_optimize a1, Z3_ast a2, Z3_st
   P(a2);
   S(a3);
   Sy(a4);
-  C(577);
+  C(579);
 }
 void log_Z3_optimize_maximize(Z3_context a0, Z3_optimize a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(578);
+  C(580);
 }
 void log_Z3_optimize_minimize(Z3_context a0, Z3_optimize a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(579);
+  C(581);
 }
 void log_Z3_optimize_push(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(580);
+  C(582);
 }
 void log_Z3_optimize_pop(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(581);
+  C(583);
 }
 void log_Z3_optimize_check(Z3_context a0, Z3_optimize a1, unsigned a2, Z3_ast const * a3) {
   R();
@@ -4045,232 +4068,232 @@ void log_Z3_optimize_check(Z3_context a0, Z3_optimize a1, unsigned a2, Z3_ast co
   U(a2);
   for (unsigned i = 0; i < a2; i++) { P(a3[i]); }
   Ap(a2);
-  C(582);
+  C(584);
 }
 void log_Z3_optimize_get_reason_unknown(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(583);
+  C(585);
 }
 void log_Z3_optimize_get_model(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(584);
+  C(586);
 }
 void log_Z3_optimize_get_unsat_core(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(585);
+  C(587);
 }
 void log_Z3_optimize_set_params(Z3_context a0, Z3_optimize a1, Z3_params a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(586);
+  C(588);
 }
 void log_Z3_optimize_get_param_descrs(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(587);
+  C(589);
 }
 void log_Z3_optimize_get_lower(Z3_context a0, Z3_optimize a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(588);
+  C(590);
 }
 void log_Z3_optimize_get_upper(Z3_context a0, Z3_optimize a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(589);
+  C(591);
 }
 void log_Z3_optimize_get_lower_as_vector(Z3_context a0, Z3_optimize a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(590);
+  C(592);
 }
 void log_Z3_optimize_get_upper_as_vector(Z3_context a0, Z3_optimize a1, unsigned a2) {
   R();
   P(a0);
   P(a1);
   U(a2);
-  C(591);
+  C(593);
 }
 void log_Z3_optimize_to_string(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(592);
+  C(594);
 }
 void log_Z3_optimize_from_string(Z3_context a0, Z3_optimize a1, Z3_string a2) {
   R();
   P(a0);
   P(a1);
   S(a2);
-  C(593);
+  C(595);
 }
 void log_Z3_optimize_from_file(Z3_context a0, Z3_optimize a1, Z3_string a2) {
   R();
   P(a0);
   P(a1);
   S(a2);
-  C(594);
+  C(596);
 }
 void log_Z3_optimize_get_help(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(595);
+  C(597);
 }
 void log_Z3_optimize_get_statistics(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(596);
+  C(598);
 }
 void log_Z3_optimize_get_assertions(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(597);
+  C(599);
 }
 void log_Z3_optimize_get_objectives(Z3_context a0, Z3_optimize a1) {
   R();
   P(a0);
   P(a1);
-  C(598);
+  C(600);
 }
 void log_Z3_mk_fpa_rounding_mode_sort(Z3_context a0) {
   R();
   P(a0);
-  C(599);
+  C(601);
 }
 void log_Z3_mk_fpa_round_nearest_ties_to_even(Z3_context a0) {
   R();
   P(a0);
-  C(600);
+  C(602);
 }
 void log_Z3_mk_fpa_rne(Z3_context a0) {
   R();
   P(a0);
-  C(601);
+  C(603);
 }
 void log_Z3_mk_fpa_round_nearest_ties_to_away(Z3_context a0) {
   R();
   P(a0);
-  C(602);
+  C(604);
 }
 void log_Z3_mk_fpa_rna(Z3_context a0) {
   R();
   P(a0);
-  C(603);
+  C(605);
 }
 void log_Z3_mk_fpa_round_toward_positive(Z3_context a0) {
   R();
   P(a0);
-  C(604);
+  C(606);
 }
 void log_Z3_mk_fpa_rtp(Z3_context a0) {
   R();
   P(a0);
-  C(605);
+  C(607);
 }
 void log_Z3_mk_fpa_round_toward_negative(Z3_context a0) {
   R();
   P(a0);
-  C(606);
+  C(608);
 }
 void log_Z3_mk_fpa_rtn(Z3_context a0) {
   R();
   P(a0);
-  C(607);
+  C(609);
 }
 void log_Z3_mk_fpa_round_toward_zero(Z3_context a0) {
   R();
   P(a0);
-  C(608);
+  C(610);
 }
 void log_Z3_mk_fpa_rtz(Z3_context a0) {
   R();
   P(a0);
-  C(609);
+  C(611);
 }
 void log_Z3_mk_fpa_sort(Z3_context a0, unsigned a1, unsigned a2) {
   R();
   P(a0);
   U(a1);
   U(a2);
-  C(610);
+  C(612);
 }
 void log_Z3_mk_fpa_sort_half(Z3_context a0) {
   R();
   P(a0);
-  C(611);
+  C(613);
 }
 void log_Z3_mk_fpa_sort_16(Z3_context a0) {
   R();
   P(a0);
-  C(612);
+  C(614);
 }
 void log_Z3_mk_fpa_sort_single(Z3_context a0) {
   R();
   P(a0);
-  C(613);
+  C(615);
 }
 void log_Z3_mk_fpa_sort_32(Z3_context a0) {
   R();
   P(a0);
-  C(614);
+  C(616);
 }
 void log_Z3_mk_fpa_sort_double(Z3_context a0) {
   R();
   P(a0);
-  C(615);
+  C(617);
 }
 void log_Z3_mk_fpa_sort_64(Z3_context a0) {
   R();
   P(a0);
-  C(616);
+  C(618);
 }
 void log_Z3_mk_fpa_sort_quadruple(Z3_context a0) {
   R();
   P(a0);
-  C(617);
+  C(619);
 }
 void log_Z3_mk_fpa_sort_128(Z3_context a0) {
   R();
   P(a0);
-  C(618);
+  C(620);
 }
 void log_Z3_mk_fpa_nan(Z3_context a0, Z3_sort a1) {
   R();
   P(a0);
   P(a1);
-  C(619);
+  C(621);
 }
 void log_Z3_mk_fpa_inf(Z3_context a0, Z3_sort a1, bool a2) {
   R();
   P(a0);
   P(a1);
   I(a2);
-  C(620);
+  C(622);
 }
 void log_Z3_mk_fpa_zero(Z3_context a0, Z3_sort a1, bool a2) {
   R();
   P(a0);
   P(a1);
   I(a2);
-  C(621);
+  C(623);
 }
 void log_Z3_mk_fpa_fp(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3) {
   R();
@@ -4278,28 +4301,28 @@ void log_Z3_mk_fpa_fp(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3) {
   P(a1);
   P(a2);
   P(a3);
-  C(622);
+  C(624);
 }
 void log_Z3_mk_fpa_numeral_float(Z3_context a0, float a1, Z3_sort a2) {
   R();
   P(a0);
   D(a1);
   P(a2);
-  C(623);
+  C(625);
 }
 void log_Z3_mk_fpa_numeral_double(Z3_context a0, double a1, Z3_sort a2) {
   R();
   P(a0);
   D(a1);
   P(a2);
-  C(624);
+  C(626);
 }
 void log_Z3_mk_fpa_numeral_int(Z3_context a0, int a1, Z3_sort a2) {
   R();
   P(a0);
   I(a1);
   P(a2);
-  C(625);
+  C(627);
 }
 void log_Z3_mk_fpa_numeral_int_uint(Z3_context a0, bool a1, int a2, unsigned a3, Z3_sort a4) {
   R();
@@ -4308,7 +4331,7 @@ void log_Z3_mk_fpa_numeral_int_uint(Z3_context a0, bool a1, int a2, unsigned a3,
   I(a2);
   U(a3);
   P(a4);
-  C(626);
+  C(628);
 }
 void log_Z3_mk_fpa_numeral_int64_uint64(Z3_context a0, bool a1, int64_t a2, uint64_t a3, Z3_sort a4) {
   R();
@@ -4317,19 +4340,19 @@ void log_Z3_mk_fpa_numeral_int64_uint64(Z3_context a0, bool a1, int64_t a2, uint
   I(a2);
   U(a3);
   P(a4);
-  C(627);
+  C(629);
 }
 void log_Z3_mk_fpa_abs(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(628);
+  C(630);
 }
 void log_Z3_mk_fpa_neg(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(629);
+  C(631);
 }
 void log_Z3_mk_fpa_add(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3) {
   R();
@@ -4337,7 +4360,7 @@ void log_Z3_mk_fpa_add(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3) {
   P(a1);
   P(a2);
   P(a3);
-  C(630);
+  C(632);
 }
 void log_Z3_mk_fpa_sub(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3) {
   R();
@@ -4345,7 +4368,7 @@ void log_Z3_mk_fpa_sub(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3) {
   P(a1);
   P(a2);
   P(a3);
-  C(631);
+  C(633);
 }
 void log_Z3_mk_fpa_mul(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3) {
   R();
@@ -4353,7 +4376,7 @@ void log_Z3_mk_fpa_mul(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3) {
   P(a1);
   P(a2);
   P(a3);
-  C(632);
+  C(634);
 }
 void log_Z3_mk_fpa_div(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3) {
   R();
@@ -4361,7 +4384,7 @@ void log_Z3_mk_fpa_div(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3) {
   P(a1);
   P(a2);
   P(a3);
-  C(633);
+  C(635);
 }
 void log_Z3_mk_fpa_fma(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3, Z3_ast a4) {
   R();
@@ -4370,126 +4393,126 @@ void log_Z3_mk_fpa_fma(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3, Z3_ast a4
   P(a2);
   P(a3);
   P(a4);
-  C(634);
+  C(636);
 }
 void log_Z3_mk_fpa_sqrt(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(635);
+  C(637);
 }
 void log_Z3_mk_fpa_rem(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(636);
+  C(638);
 }
 void log_Z3_mk_fpa_round_to_integral(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(637);
+  C(639);
 }
 void log_Z3_mk_fpa_min(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(638);
+  C(640);
 }
 void log_Z3_mk_fpa_max(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(639);
+  C(641);
 }
 void log_Z3_mk_fpa_leq(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(640);
+  C(642);
 }
 void log_Z3_mk_fpa_lt(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(641);
+  C(643);
 }
 void log_Z3_mk_fpa_geq(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(642);
+  C(644);
 }
 void log_Z3_mk_fpa_gt(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(643);
+  C(645);
 }
 void log_Z3_mk_fpa_eq(Z3_context a0, Z3_ast a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(644);
+  C(646);
 }
 void log_Z3_mk_fpa_is_normal(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(645);
+  C(647);
 }
 void log_Z3_mk_fpa_is_subnormal(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(646);
+  C(648);
 }
 void log_Z3_mk_fpa_is_zero(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(647);
+  C(649);
 }
 void log_Z3_mk_fpa_is_infinite(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(648);
+  C(650);
 }
 void log_Z3_mk_fpa_is_nan(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(649);
+  C(651);
 }
 void log_Z3_mk_fpa_is_negative(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(650);
+  C(652);
 }
 void log_Z3_mk_fpa_is_positive(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(651);
+  C(653);
 }
 void log_Z3_mk_fpa_to_fp_bv(Z3_context a0, Z3_ast a1, Z3_sort a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(652);
+  C(654);
 }
 void log_Z3_mk_fpa_to_fp_float(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_sort a3) {
   R();
@@ -4497,7 +4520,7 @@ void log_Z3_mk_fpa_to_fp_float(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_sort a3) 
   P(a1);
   P(a2);
   P(a3);
-  C(653);
+  C(655);
 }
 void log_Z3_mk_fpa_to_fp_real(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_sort a3) {
   R();
@@ -4505,7 +4528,7 @@ void log_Z3_mk_fpa_to_fp_real(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_sort a3) {
   P(a1);
   P(a2);
   P(a3);
-  C(654);
+  C(656);
 }
 void log_Z3_mk_fpa_to_fp_signed(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_sort a3) {
   R();
@@ -4513,7 +4536,7 @@ void log_Z3_mk_fpa_to_fp_signed(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_sort a3)
   P(a1);
   P(a2);
   P(a3);
-  C(655);
+  C(657);
 }
 void log_Z3_mk_fpa_to_fp_unsigned(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_sort a3) {
   R();
@@ -4521,7 +4544,7 @@ void log_Z3_mk_fpa_to_fp_unsigned(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_sort a
   P(a1);
   P(a2);
   P(a3);
-  C(656);
+  C(658);
 }
 void log_Z3_mk_fpa_to_ubv(Z3_context a0, Z3_ast a1, Z3_ast a2, unsigned a3) {
   R();
@@ -4529,7 +4552,7 @@ void log_Z3_mk_fpa_to_ubv(Z3_context a0, Z3_ast a1, Z3_ast a2, unsigned a3) {
   P(a1);
   P(a2);
   U(a3);
-  C(657);
+  C(659);
 }
 void log_Z3_mk_fpa_to_sbv(Z3_context a0, Z3_ast a1, Z3_ast a2, unsigned a3) {
   R();
@@ -4537,106 +4560,106 @@ void log_Z3_mk_fpa_to_sbv(Z3_context a0, Z3_ast a1, Z3_ast a2, unsigned a3) {
   P(a1);
   P(a2);
   U(a3);
-  C(658);
+  C(660);
 }
 void log_Z3_mk_fpa_to_real(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(659);
+  C(661);
 }
 void log_Z3_fpa_get_ebits(Z3_context a0, Z3_sort a1) {
   R();
   P(a0);
   P(a1);
-  C(660);
+  C(662);
 }
 void log_Z3_fpa_get_sbits(Z3_context a0, Z3_sort a1) {
   R();
   P(a0);
   P(a1);
-  C(661);
+  C(663);
 }
 void log_Z3_fpa_is_numeral_nan(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(662);
+  C(664);
 }
 void log_Z3_fpa_is_numeral_inf(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(663);
+  C(665);
 }
 void log_Z3_fpa_is_numeral_zero(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(664);
+  C(666);
 }
 void log_Z3_fpa_is_numeral_normal(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(665);
+  C(667);
 }
 void log_Z3_fpa_is_numeral_subnormal(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(666);
+  C(668);
 }
 void log_Z3_fpa_is_numeral_positive(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(667);
+  C(669);
 }
 void log_Z3_fpa_is_numeral_negative(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(668);
+  C(670);
 }
 void log_Z3_fpa_get_numeral_sign_bv(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(669);
+  C(671);
 }
 void log_Z3_fpa_get_numeral_significand_bv(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(670);
+  C(672);
 }
 void log_Z3_fpa_get_numeral_sign(Z3_context a0, Z3_ast a1, int* a2) {
   R();
   P(a0);
   P(a1);
   I(0);
-  C(671);
+  C(673);
 }
 void log_Z3_fpa_get_numeral_significand_string(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(672);
+  C(674);
 }
 void log_Z3_fpa_get_numeral_significand_uint64(Z3_context a0, Z3_ast a1, uint64_t* a2) {
   R();
   P(a0);
   P(a1);
   U(0);
-  C(673);
+  C(675);
 }
 void log_Z3_fpa_get_numeral_exponent_string(Z3_context a0, Z3_ast a1, bool a2) {
   R();
   P(a0);
   P(a1);
   I(a2);
-  C(674);
+  C(676);
 }
 void log_Z3_fpa_get_numeral_exponent_int64(Z3_context a0, Z3_ast a1, int64_t* a2, bool a3) {
   R();
@@ -4644,20 +4667,20 @@ void log_Z3_fpa_get_numeral_exponent_int64(Z3_context a0, Z3_ast a1, int64_t* a2
   P(a1);
   I(0);
   I(a3);
-  C(675);
+  C(677);
 }
 void log_Z3_fpa_get_numeral_exponent_bv(Z3_context a0, Z3_ast a1, bool a2) {
   R();
   P(a0);
   P(a1);
   I(a2);
-  C(676);
+  C(678);
 }
 void log_Z3_mk_fpa_to_ieee_bv(Z3_context a0, Z3_ast a1) {
   R();
   P(a0);
   P(a1);
-  C(677);
+  C(679);
 }
 void log_Z3_mk_fpa_to_fp_int_real(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3, Z3_sort a4) {
   R();
@@ -4666,7 +4689,7 @@ void log_Z3_mk_fpa_to_fp_int_real(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3
   P(a2);
   P(a3);
   P(a4);
-  C(678);
+  C(680);
 }
 void log_Z3_fixedpoint_query_from_lvl(Z3_context a0, Z3_fixedpoint a1, Z3_ast a2, unsigned a3) {
   R();
@@ -4674,25 +4697,25 @@ void log_Z3_fixedpoint_query_from_lvl(Z3_context a0, Z3_fixedpoint a1, Z3_ast a2
   P(a1);
   P(a2);
   U(a3);
-  C(679);
+  C(681);
 }
 void log_Z3_fixedpoint_get_ground_sat_answer(Z3_context a0, Z3_fixedpoint a1) {
   R();
   P(a0);
   P(a1);
-  C(680);
+  C(682);
 }
 void log_Z3_fixedpoint_get_rules_along_trace(Z3_context a0, Z3_fixedpoint a1) {
   R();
   P(a0);
   P(a1);
-  C(681);
+  C(683);
 }
 void log_Z3_fixedpoint_get_rule_names_along_trace(Z3_context a0, Z3_fixedpoint a1) {
   R();
   P(a0);
   P(a1);
-  C(682);
+  C(684);
 }
 void log_Z3_fixedpoint_add_invariant(Z3_context a0, Z3_fixedpoint a1, Z3_func_decl a2, Z3_ast a3) {
   R();
@@ -4700,14 +4723,14 @@ void log_Z3_fixedpoint_add_invariant(Z3_context a0, Z3_fixedpoint a1, Z3_func_de
   P(a1);
   P(a2);
   P(a3);
-  C(683);
+  C(685);
 }
 void log_Z3_fixedpoint_get_reachable(Z3_context a0, Z3_fixedpoint a1, Z3_func_decl a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(684);
+  C(686);
 }
 void log_Z3_qe_model_project(Z3_context a0, Z3_model a1, unsigned a2, Z3_app const * a3, Z3_ast a4) {
   R();
@@ -4717,7 +4740,7 @@ void log_Z3_qe_model_project(Z3_context a0, Z3_model a1, unsigned a2, Z3_app con
   for (unsigned i = 0; i < a2; i++) { P(a3[i]); }
   Ap(a2);
   P(a4);
-  C(685);
+  C(687);
 }
 void log_Z3_qe_model_project_skolem(Z3_context a0, Z3_model a1, unsigned a2, Z3_app const * a3, Z3_ast a4, Z3_ast_map a5) {
   R();
@@ -4728,19 +4751,19 @@ void log_Z3_qe_model_project_skolem(Z3_context a0, Z3_model a1, unsigned a2, Z3_
   Ap(a2);
   P(a4);
   P(a5);
-  C(686);
+  C(688);
 }
 void log_Z3_model_extrapolate(Z3_context a0, Z3_model a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(687);
+  C(689);
 }
 void log_Z3_qe_lite(Z3_context a0, Z3_ast_vector a1, Z3_ast a2) {
   R();
   P(a0);
   P(a1);
   P(a2);
-  C(688);
+  C(690);
 }

@@ -249,15 +249,15 @@ namespace sat {
         // Variable & Clause creation
         //
         // -----------------------
-        void add_clause(unsigned num_lits, literal * lits, bool learned) override { mk_clause(num_lits, lits, learned); }
+        void add_clause(unsigned num_lits, literal * lits, sat::status st) override { mk_clause(num_lits, lits, st); }
         bool_var add_var(bool ext) override { return mk_var(ext, true); }
 
         bool_var mk_var(bool ext = false, bool dvar = true);
 
-        clause* mk_clause(literal_vector const& lits, bool learned = false) { return mk_clause(lits.size(), lits.c_ptr(), learned); }
-        clause* mk_clause(unsigned num_lits, literal * lits, bool learned = false);
-        clause* mk_clause(literal l1, literal l2, bool learned = false);
-        clause* mk_clause(literal l1, literal l2, literal l3, bool learned = false);        
+        clause* mk_clause(literal_vector const& lits, sat::status st = sat::status::asserted()) { return mk_clause(lits.size(), lits.c_ptr(), st); }
+        clause* mk_clause(unsigned num_lits, literal * lits, sat::status st = sat::status::asserted());
+        clause* mk_clause(literal l1, literal l2, sat::status st = sat::status::asserted());
+        clause* mk_clause(literal l1, literal l2, literal l3, sat::status st = sat::status::asserted());
 
         random_gen& rand() { return m_rand; }
 
@@ -271,15 +271,16 @@ namespace sat {
         bool should_defrag();
         bool memory_pressure();
         void del_clause(clause & c);
-        clause * mk_clause_core(unsigned num_lits, literal * lits, bool learned);
+        clause * mk_clause_core(unsigned num_lits, literal * lits, sat::status st);
         clause * mk_clause_core(literal_vector const& lits) { return mk_clause_core(lits.size(), lits.c_ptr()); }
-        clause * mk_clause_core(unsigned num_lits, literal * lits) { return mk_clause_core(num_lits, lits, false); }
+        clause * mk_clause_core(unsigned num_lits, literal * lits) { return mk_clause_core(num_lits, lits, sat::status::asserted()); }
         void mk_clause_core(literal l1, literal l2) { literal lits[2] = { l1, l2 }; mk_clause_core(2, lits); }
-        void mk_bin_clause(literal l1, literal l2, bool learned);
+        void mk_bin_clause(literal l1, literal l2, sat::status st);
+        void mk_bin_clause(literal l1, literal l2, bool learned) { mk_bin_clause(l1, l2, learned ? sat::status::redundant() : sat::status::asserted()); }
         bool propagate_bin_clause(literal l1, literal l2);
-        clause * mk_ter_clause(literal * lits, bool learned);
+        clause * mk_ter_clause(literal * lits, status st);
         bool attach_ter_clause(clause & c);
-        clause * mk_nary_clause(unsigned num_lits, literal * lits, bool learned);
+        clause * mk_nary_clause(unsigned num_lits, literal * lits, status st);
         bool attach_nary_clause(clause & c);
         void attach_clause(clause & c, bool & reinit);
         void attach_clause(clause & c) { bool reinit; attach_clause(c, reinit); }
@@ -397,6 +398,7 @@ namespace sat {
         void set_par(parallel* p, unsigned id);
         bool canceled() { return !m_rlimit.inc(); }
         config const& get_config() const { return m_config; }
+        drat& get_drat() { return m_drat; }
         void set_incremental(bool b) { m_config.m_incremental = b; }
         bool is_incremental() const { return m_config.m_incremental; }
         extension* get_extension() const override { return m_ext.get(); }
@@ -454,31 +456,32 @@ namespace sat {
         
         void display_lookahead_scores(std::ostream& out);
 
+        stats const& get_stats() const { return m_stats; }
+
     protected:
 
-        unsigned m_conflicts_since_init;
-        unsigned m_restarts;
-        unsigned m_restart_next_out;
-        unsigned m_conflicts_since_restart;
-        bool     m_force_conflict_analysis;
-        unsigned m_simplifications;
-        unsigned m_restart_threshold;
-        unsigned m_luby_idx;
-        unsigned m_conflicts_since_gc;
-        unsigned m_gc_threshold;
-        unsigned m_defrag_threshold;
-        unsigned m_num_checkpoints;
-        double   m_min_d_tk;
-        unsigned m_next_simplify;
+        unsigned m_conflicts_since_init { 0 };
+        unsigned m_restarts { 0 };
+        unsigned m_restart_next_out { 0 };
+        unsigned m_conflicts_since_restart { 0 };
+        bool     m_force_conflict_analysis { false };
+        unsigned m_simplifications { 0 };
+        unsigned m_restart_threshold { 0 };
+        unsigned m_luby_idx { 0 };
+        unsigned m_conflicts_since_gc { 0 };
+        unsigned m_gc_threshold { 0 };
+        unsigned m_defrag_threshold { 0 };
+        unsigned m_num_checkpoints { 0 };
+        double   m_min_d_tk { 0 } ;
+        unsigned m_next_simplify { 0 };
         bool decide();
         bool_var next_var();
         lbool bounded_search();
         lbool final_check();
-        lbool propagate_and_backjump_step(bool& done);
         void init_search();
         
         literal_vector m_min_core;
-        bool           m_min_core_valid;
+        bool           m_min_core_valid { false };
         void init_reason_unknown() { m_reason_unknown = "no reason given"; }
         void init_assumptions(unsigned num_lits, literal const* lits);
         void reassert_min_core();
@@ -562,6 +565,8 @@ namespace sat {
         unsigned       m_conflict_lvl;
         literal_vector m_lemma;
         literal_vector m_ext_antecedents;
+        literal        m_cached_antecedent_consequent;
+        ext_justification_idx m_cached_antecedent_js { 0 };
         bool use_backjumping(unsigned num_scopes);
         bool resolve_conflict();
         lbool resolve_conflict_core();
@@ -635,6 +640,7 @@ namespace sat {
         void user_pop(unsigned num_scopes) override;
         void pop_to_base_level() override;
         unsigned num_user_scopes() const override { return m_user_scope_literals.size(); }
+        unsigned num_scopes() const override { return m_scopes.size(); }
         reslimit& rlimit() { return m_rlimit; }
         params_ref const& params() { return m_params; }
         // -----------------------

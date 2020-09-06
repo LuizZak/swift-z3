@@ -727,6 +727,7 @@ extern "C" {
         to_solver_ref(s)->collect_statistics(st->m_stats);
         get_memory_statistics(st->m_stats);
         get_rlimit_statistics(mk_c(c)->m().limit(), st->m_stats);
+        to_solver_ref(s)->collect_timer_stats(st->m_stats);
         mk_c(c)->save_object(st);
         Z3_stats r = of_stats(st);
         RETURN_Z3(r);
@@ -886,5 +887,94 @@ extern "C" {
         Z3_CATCH_RETURN(nullptr);
     }
 
+    class api_context_obj : public solver::context_obj {
+        api::context* c;
+    public:
+        api_context_obj(api::context* c):c(c) {}
+        ~api_context_obj() override { dealloc(c); }
+    };
+
+    void Z3_API Z3_solver_propagate_init(
+        Z3_context  c, 
+        Z3_solver   s, 
+        void*       user_context,
+        Z3_push_eh  push_eh,
+        Z3_pop_eh   pop_eh,
+        Z3_fresh_eh fresh_eh) {
+        Z3_TRY;
+        RESET_ERROR_CODE();
+        init_solver(c, s);
+        solver::push_eh_t _push = push_eh;
+        solver::pop_eh_t _pop = pop_eh;
+        solver::fresh_eh_t _fresh = [&](void * user_ctx, ast_manager& m, solver::context_obj*& _ctx) {
+            context_params params;
+            params.set_foreign_manager(&m);
+            auto* ctx = alloc(api::context, &params, false);
+            _ctx = alloc(api_context_obj, ctx);
+            return fresh_eh(user_ctx, reinterpret_cast<Z3_context>(ctx));
+        };
+        to_solver_ref(s)->user_propagate_init(user_context, _push, _pop, _fresh);
+        Z3_CATCH;
+    }
+
+    void Z3_API Z3_solver_propagate_fixed(
+        Z3_context  c, 
+        Z3_solver   s,
+        Z3_fixed_eh fixed_eh) {
+        Z3_TRY;
+        RESET_ERROR_CODE();
+        solver::fixed_eh_t _fixed = (void(*)(void*,solver::propagate_callback*,unsigned,expr*))fixed_eh; 
+        to_solver_ref(s)->user_propagate_register_fixed(_fixed);
+        Z3_CATCH;        
+    }
+
+    void Z3_API Z3_solver_propagate_final(
+        Z3_context  c, 
+        Z3_solver   s,
+        Z3_final_eh final_eh) {
+        Z3_TRY;
+        RESET_ERROR_CODE();
+        solver::final_eh_t _final = (bool(*)(void*,solver::propagate_callback*))final_eh;
+        to_solver_ref(s)->user_propagate_register_final(_final);
+        Z3_CATCH;        
+    }
+
+    void Z3_API Z3_solver_propagate_eq(
+        Z3_context  c, 
+        Z3_solver   s,
+        Z3_eq_eh eq_eh) {
+        Z3_TRY;
+        RESET_ERROR_CODE();
+        solver::eq_eh_t _eq = (void(*)(void*,solver::propagate_callback*,unsigned,unsigned))eq_eh;
+        to_solver_ref(s)->user_propagate_register_eq(_eq);
+        Z3_CATCH;        
+    }
+
+    void Z3_API Z3_solver_propagate_diseq(
+        Z3_context  c, 
+        Z3_solver   s,
+        Z3_eq_eh    diseq_eh) {
+        Z3_TRY;
+        RESET_ERROR_CODE();
+        solver::eq_eh_t _diseq = (void(*)(void*,solver::propagate_callback*,unsigned,unsigned))diseq_eh;
+        to_solver_ref(s)->user_propagate_register_diseq(_diseq);
+        Z3_CATCH;        
+    }
+
+    unsigned Z3_API Z3_solver_propagate_register(Z3_context c, Z3_solver s, Z3_ast e) {
+        Z3_TRY;
+        LOG_Z3_solver_propagate_register(c, s, e);
+        RESET_ERROR_CODE();
+        return to_solver_ref(s)->user_propagate_register(to_expr(e));
+        Z3_CATCH_RETURN(0);
+    }
+
+    void Z3_API Z3_solver_propagate_consequence(Z3_context c, Z3_solver_callback s, unsigned num_fixed, unsigned const* fixed_ids, unsigned num_eqs, unsigned const* eq_lhs, unsigned const* eq_rhs, Z3_ast conseq) {
+        Z3_TRY;
+        LOG_Z3_solver_propagate_consequence(c, s, num_fixed, fixed_ids, num_eqs, eq_lhs, eq_rhs, conseq);
+        RESET_ERROR_CODE();
+        reinterpret_cast<solver::propagate_callback*>(s)->propagate(num_fixed, fixed_ids, num_eqs, eq_lhs, eq_rhs, to_expr(conseq));
+        Z3_CATCH;        
+    }
 
 };

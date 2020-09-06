@@ -35,6 +35,8 @@ namespace smt {
         ast_manager &   m;
         enode_vector    m_var2enode;
         unsigned_vector m_var2enode_lim;
+        unsigned        m_lazy_scopes;
+        bool            m_lazy;
 
         friend class context;
         friend class arith_value;
@@ -72,6 +74,9 @@ namespace smt {
             return n->get_th_var(get_id());
         }
 
+        bool lazy_push();
+        bool lazy_pop(unsigned& num_scopes);
+        void force_push();
         
     public:
         /**
@@ -527,6 +532,8 @@ namespace smt {
         literal mk_eq(expr * a, expr * b, bool gate_ctx);
 
         literal mk_preferred_eq(expr* a, expr* b);
+
+        literal mk_literal(expr* e);
 
         enode* ensure_enode(expr* e);
 

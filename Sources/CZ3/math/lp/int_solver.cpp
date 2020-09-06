@@ -419,7 +419,6 @@ const impq & int_solver::get_value(unsigned j) const {
 
 std::ostream& int_solver::display_column(std::ostream & out, unsigned j) const {
     return lrac.m_r_solver.print_column_info(j, out);
-    return out;
 }
 
 bool int_solver::column_is_int_inf(unsigned j) const {
@@ -520,10 +519,10 @@ bool int_solver::shift_var(unsigned j, unsigned range) {
     if (is_fixed(j) || is_base(j))
         return false;
        
-    bool inf_l, inf_u;
+    bool inf_l = false, inf_u = false;
     impq l, u;
     mpq m;
-    get_freedom_interval_for_column(j, inf_l, l, inf_u, u, m);
+    VERIFY(get_freedom_interval_for_column(j, inf_l, l, inf_u, u, m));
     const impq & x = get_value(j);
     // x, the value of j column, might be shifted on a multiple of m
     if (inf_l && inf_u) {

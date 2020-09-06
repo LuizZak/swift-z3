@@ -26,11 +26,12 @@ Revision History:
 --*/
 #pragma once
 
-#include "ast/ast.h"
 #include "util/params.h"
-#include "model/model.h"
 #include "util/lbool.h"
 #include "util/statistics.h"
+#include "ast/ast.h"
+#include "model/model.h"
+#include "solver/solver.h"
 #include "smt/smt_failure.h"
 
 struct smt_params;
@@ -219,6 +220,11 @@ namespace smt {
         expr_ref next_cube();
 
         /**
+           \brief return up to 2^depth cubes to case split on.
+        */
+        expr_ref_vector cubes(unsigned depth);
+
+        /**
            \brief retrieve upper/lower bound for arithmetic term, if it is implied.
            retrieve implied values if terms are fixed to a value.
         */
@@ -278,6 +284,30 @@ namespace smt {
            \brief Collect a description of the configuration parameters.
         */
         static void collect_param_descrs(param_descrs & d);
+
+        /**
+           \brief initialize a user-propagator "theory"
+        */
+        void user_propagate_init(
+            void* ctx, 
+            solver::push_eh_t&      push_eh,
+            solver::pop_eh_t&       pop_eh,
+            solver::fresh_eh_t&     fresh_eh);
+
+        void user_propagate_register_fixed(solver::fixed_eh_t& fixed_eh);
+
+        void user_propagate_register_final(solver::final_eh_t& final_eh);
+        
+        void user_propagate_register_eq(solver::eq_eh_t& eq_eh);
+        
+        void user_propagate_register_diseq(solver::eq_eh_t& diseq_eh);
+
+
+        /**
+           \brief register an expression to be tracked fro user propagation.
+        */
+        unsigned user_propagate_register(expr* e);
+        
 
         /**
            \brief Return a reference to smt::context.

@@ -193,6 +193,8 @@ class seq_rewriter {
     expr_ref mk_der_cond(expr* cond, expr* ele, sort* seq_sort);
     expr_ref mk_der_antimorov_union(expr* r1, expr* r2);
     bool ite_bdds_compatabile(expr* a, expr* b);
+    /* if r has the form deriv(en..deriv(e1,to_re(s))..) returns 's = [e1..en]' else returns '() in r'*/
+    expr_ref is_nullable_symbolic_regex(expr* r, sort* seq_sort);
     #ifdef Z3DEBUG
     bool check_deriv_normal_form(expr* r, int level = 3);
     #endif
@@ -288,8 +290,8 @@ class seq_rewriter {
     void remove_empty_and_concats(expr_ref_vector& es);
     void remove_leading(unsigned n, expr_ref_vector& es);
 
-    class seq_util::re& re() { return u().re; }
-    class seq_util::re const& re() const { return u().re; }
+    class seq_util::rex& re() { return u().re; }
+    class seq_util::rex const& re() const { return u().re; }
     class seq_util::str& str() { return u().str; }
     class seq_util::str const& str() const { return u().str; }
 

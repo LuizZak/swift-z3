@@ -24,15 +24,18 @@ Revision History:
 #include "sat/sat_solver.h"
 #include "sat/sat_lookahead.h"
 #include "sat/sat_big.h"
+#include "sat/smt/sat_smt.h"
+#include "sat/smt/sat_th.h"
 #include "util/small_object_allocator.h"
 #include "util/scoped_ptr_vector.h"
 #include "util/sorting_network.h"
+#include "ast/pb_decl_plugin.h"
 
 namespace sat {
 
     class xor_finder;
     
-    class ba_solver : public extension {
+    class ba_solver : public euf::th_solver {
 
         friend class local_search;
 
@@ -79,8 +82,10 @@ namespace sat {
             bool           m_pure;        // is the constraint pure (only positive occurrences)
         public:
             constraint(tag_t t, unsigned id, literal l, unsigned sz, size_t osz): 
-            m_tag(t), m_removed(false), m_lit(l), m_watch(null_literal), m_glue(0), m_psm(0), m_size(sz), m_obj_size(osz), m_learned(false), m_id(id), m_pure(false) {}
-            ext_constraint_idx index() const { return reinterpret_cast<ext_constraint_idx>(this); }
+            m_tag(t), m_removed(false), m_lit(l), m_watch(null_literal), m_glue(0), m_psm(0), m_size(sz), m_obj_size(osz), m_learned(false), m_id(id), m_pure(false) {
+            }
+            ext_constraint_idx cindex() const { return constraint_base::mem2base(this); }
+            void deallocate(small_object_allocator& a) { a.deallocate(obj_size(), constraint_base::mem2base_ptr(this)); }
             unsigned id() const { return m_id; }
             tag_t tag() const { return m_tag; }
             literal lit() const { return m_lit; }
@@ -132,7 +137,8 @@ namespace sat {
         protected:
             unsigned       m_k;
         public:
-            pb_base(tag_t t, unsigned id, literal l, unsigned sz, size_t osz, unsigned k): constraint(t, id, l, sz, osz), m_k(k) { VERIFY(k < 4000000000); }
+            pb_base(tag_t t, unsigned id, literal l, unsigned sz, size_t osz, unsigned k): 
+                constraint(t, id, l, sz, osz), m_k(k) { VERIFY(k < 4000000000); }
             virtual void set_k(unsigned k) { VERIFY(k < 4000000000);  m_k = k; }
             virtual unsigned get_coeff(unsigned i) const { UNREACHABLE(); return 0; }
             unsigned k() const { return m_k; }
@@ -142,7 +148,7 @@ namespace sat {
         class card : public pb_base {
             literal        m_lits[0];
         public:
-            static size_t get_obj_size(unsigned num_lits) { return sizeof(card) + num_lits * sizeof(literal); }
+            static size_t get_obj_size(unsigned num_lits) { return constraint_base::obj_size(sizeof(card) + num_lits * sizeof(literal)); }
             card(unsigned id, literal lit, literal_vector const& lits, unsigned k);
             literal operator[](unsigned i) const { return m_lits[i]; }
             literal& operator[](unsigned i) { return m_lits[i]; }
@@ -166,7 +172,7 @@ namespace sat {
             unsigned       m_max_sum;
             wliteral       m_wlits[0];
         public:
-            static size_t get_obj_size(unsigned num_lits) { return sizeof(pb) + num_lits * sizeof(wliteral); }
+            static size_t get_obj_size(unsigned num_lits) { return constraint_base::obj_size(sizeof(pb) + num_lits * sizeof(wliteral)); }
             pb(unsigned id, literal lit, svector<wliteral> const& wlits, unsigned k);
             literal lit() const { return m_lit; }
             wliteral operator[](unsigned i) const { return m_wlits[i]; }
@@ -194,7 +200,7 @@ namespace sat {
         class xr : public constraint {
             literal        m_lits[0];
         public:
-            static size_t get_obj_size(unsigned num_lits) { return sizeof(xr) + num_lits * sizeof(literal); }
+            static size_t get_obj_size(unsigned num_lits) { return constraint_base::obj_size(sizeof(xr) + num_lits * sizeof(literal)); }
             xr(unsigned id, literal_vector const& lits);
             literal operator[](unsigned i) const { return m_lits[i]; }
             literal const* begin() const { return m_lits; }
@@ -225,6 +231,9 @@ namespace sat {
             void weaken(unsigned i);
             bool contains(literal l) const { for (auto wl : m_wlits) if (wl.second == l) return true; return false; }
         };
+
+        sat_internalizer&      si;
+        pb_util                m_pb;
 
         solver*                m_solver;
         lookahead*             m_lookahead;
@@ -295,6 +304,9 @@ namespace sat {
         bool_vector             m_root_vars;
         unsigned_vector           m_weights;
         svector<wliteral>         m_wlits;
+
+        euf::th_solver* fresh(sat::solver* new_s, ast_manager& m, sat::sat_internalizer& si, euf::theory_id id);
+
         bool subsumes(card& c1, card& c2, literal_vector& comp);
         bool subsumes(card& c1, clause& c2, bool& self);
         bool subsumed(card& c1, literal l1, literal l2);
@@ -331,7 +343,7 @@ namespace sat {
         void remove_constraint(constraint& c, char const* reason);
 
         // constraints
-        constraint& index2constraint(size_t idx) const { return *reinterpret_cast<constraint*>(idx); }        
+        constraint& index2constraint(size_t idx) const { return *reinterpret_cast<constraint*>(constraint_base::from_index(idx)->mem()); }
         void pop_constraint();
         void unwatch_literal(literal w, constraint& c);
         void watch_literal(literal w, constraint& c);
@@ -459,7 +471,6 @@ namespace sat {
             else m_solver->set_conflict(j, l); 
         }
         inline config const& get_config() const { return m_lookahead ? m_lookahead->get_config() : m_solver->get_config(); }
-        inline void drat_add(literal_vector const& c, svector<drat::premise> const& premises) { if (m_solver) m_solver->m_drat.add(c, premises); }
 
 
         mutable bool m_overflow;
@@ -533,15 +544,37 @@ namespace sat {
         void copy_core(ba_solver* result, bool learned);
         void copy_constraints(ba_solver* result, ptr_vector<constraint> const& constraints);
 
+        // Internalize
+        literal convert_eq_k(app* t, rational const& k, bool root, bool sign);
+        literal convert_at_most_k(app* t, rational const& k, bool root, bool sign);
+        literal convert_at_least_k(app* t, rational const& k, bool root, bool sign);
+        literal convert_pb_eq(app* t, bool root, bool sign);
+        literal convert_pb_le(app* t, bool root, bool sign);
+        literal convert_pb_ge(app* t, bool root, bool sign);
+        void check_unsigned(rational const& c);
+        void convert_to_wlits(app* t, sat::literal_vector const& lits, svector<wliteral>& wlits);
+        void convert_pb_args(app* t, svector<wliteral>& wlits);
+        void convert_pb_args(app* t, literal_vector& lits);
+        bool m_is_redundant{ false };
+        literal internalize_pb(expr* e, bool sign, bool root);
+        literal internalize_xor(expr* e, bool sign, bool root);
+
+        // Decompile
+        expr_ref get_card(std::function<expr_ref(sat::literal)>& l2e, ba_solver::card const& c);
+        expr_ref get_pb(std::function<expr_ref(sat::literal)>& l2e, ba_solver::pb const& p);
+        expr_ref get_xor(std::function<expr_ref(sat::literal)>& l2e, ba_solver::xr const& x);
+
     public:
-        ba_solver();
+        ba_solver(euf::solver& ctx, euf::theory_id id);
+        ba_solver(ast_manager& m, sat::sat_internalizer& si, euf::theory_id id);
         ~ba_solver() override;
         void set_solver(solver* s) override { m_solver = s; }
         void set_lookahead(lookahead* l) override { m_lookahead = l; }
-        void    add_at_least(bool_var v, literal_vector const& lits, unsigned k);
-        void    add_pb_ge(bool_var v, svector<wliteral> const& wlits, unsigned k);
-        void    add_xr(literal_vector const& lits);
+        void add_at_least(bool_var v, literal_vector const& lits, unsigned k);
+        void add_pb_ge(bool_var v, svector<wliteral> const& wlits, unsigned k);
+        void add_xr(literal_vector const& lits);
 
+        bool is_external(bool_var v) override;
         bool propagate(literal l, ext_constraint_idx idx) override;
         lbool resolve_conflict() override;
         void get_antecedents(literal l, ext_justification_idx idx, literal_vector & r) override;
@@ -560,7 +593,6 @@ namespace sat {
         std::ostream& display_constraint(std::ostream& out, ext_constraint_idx idx) const override;
         void collect_statistics(statistics& st) const override;
         extension* copy(solver* s) override;
-        extension* copy(lookahead* s, bool learned) override;
         void find_mutexes(literal_vector& lits, vector<literal_vector> & mutexes) override;
         void pop_reinit() override;
         void gc() override;
@@ -571,10 +603,17 @@ namespace sat {
         bool is_blocked(literal l, ext_constraint_idx idx) override;
         bool check_model(model const& m) const override;
 
+        literal internalize(expr* e, bool sign, bool root, bool redundant) override;
+        bool to_formulas(std::function<expr_ref(sat::literal)>& l2e, expr_ref_vector& fmls) override;
+        euf::th_solver* fresh(solver* s, euf::solver& ctx) override;
+
         ptr_vector<constraint> const & constraints() const { return m_constraints; }
         std::ostream& display(std::ostream& out, constraint const& c, bool values) const;
 
         bool validate() override;
+
+        bool extract_pb(std::function<void(unsigned sz, literal const* c, unsigned k)>& add_cardinlaity,
+                        std::function<void(unsigned sz, literal const* c, unsigned const* coeffs, unsigned k)>& add_pb) override;
 
 
     };

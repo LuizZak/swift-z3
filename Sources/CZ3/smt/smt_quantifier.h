@@ -30,10 +30,14 @@ struct smt_params;
 namespace smt {
     class quantifier_manager_plugin;
     class quantifier_stat;
+    class context;
 
     class quantifier_manager {
         struct imp;
         imp *                       m_imp;
+        unsigned                    m_lazy_scopes;
+        bool                        m_lazy;
+        void flush();
     public:
         quantifier_manager(context & ctx, smt_params & fp, params_ref const & p);
         ~quantifier_manager();

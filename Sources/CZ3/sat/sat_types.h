@@ -26,7 +26,6 @@ Revision History:
 #include "util/vector.h"
 #include "util/uint_set.h"
 #include "util/stopwatch.h"
-#include<iomanip>
 
 class params_ref;
 class reslimit;
@@ -207,14 +206,6 @@ namespace sat {
         }
     };
 
-    struct mem_stat {
-    };
-
-    inline std::ostream & operator<<(std::ostream & out, mem_stat const & m) {
-        double mem = static_cast<double>(memory::get_allocation_size())/static_cast<double>(1024*1024);
-        return out << std::fixed << std::setprecision(2) << mem;
-    }
-
     struct dimacs_lit {
         literal m_lit;
         dimacs_lit(literal l):m_lit(l) {}
@@ -260,5 +251,30 @@ namespace sat {
         virtual double get_priority(bool_var v) const { return 0; }
 
     };
+
+    class status {
+    public:
+        enum class st { asserted, redundant, deleted };
+        st m_st;
+        int m_orig;
+    public:
+        status(enum st s, int o) : m_st(s), m_orig(o) {};
+        status(status const& s) : m_st(s.m_st), m_orig(s.m_orig) {}
+        status(status&& s) noexcept { m_st = st::asserted; m_orig = -1; std::swap(m_st, s.m_st); std::swap(m_orig, s.m_orig); }
+        static status redundant() { return status(status::st::redundant, -1); }
+        static status asserted() { return status(status::st::asserted, -1); }
+        static status deleted() { return status(status::st::deleted, -1); }
+
+        static status th(bool redundant, int id) { return status(redundant ? st::redundant : st::asserted, id); }
+
+        bool is_redundant() const { return st::redundant == m_st; }
+        bool is_asserted() const { return st::asserted == m_st; }
+        bool is_deleted() const { return st::deleted == m_st; }
+
+        bool is_sat() const { return -1 == m_orig; }
+        int  get_th() const { return m_orig;  }
+    };
+
+
 };
 

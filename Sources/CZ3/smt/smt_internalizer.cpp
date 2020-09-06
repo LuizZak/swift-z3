@@ -795,7 +795,7 @@ namespace smt {
                 //   and a theory variable must be created for it.
                 enode * e = get_enode(n);
                 if (!th->is_attached_to_var(e))
-                    internalize_theory_term(n);
+                    th->internalize_term(n);
             }
             return;
         }
@@ -1415,6 +1415,7 @@ namespace smt {
                 m_stats.m_num_mk_bin_clause++;
                 return nullptr;
             }
+            Z3_fallthrough;
         default: {
             m_stats.m_num_mk_clause++;
             unsigned iscope_lvl = lemma ? get_max_iscope_lvl(num_lits, lits) : 0;
@@ -1488,7 +1489,7 @@ namespace smt {
         mk_clause(3, ls, j);
     }
     
-    void context::mk_th_axiom(theory_id tid, unsigned num_lits, literal * lits, unsigned num_params, parameter * params) {
+    void context::mk_th_clause(theory_id tid, unsigned num_lits, literal * lits, unsigned num_params, parameter * params, clause_kind k) {
         justification * js = nullptr;
         TRACE("mk_th_axiom", display_literals_verbose(tout, num_lits, lits) << "\n";);
 
@@ -1501,7 +1502,7 @@ namespace smt {
             SASSERT(tmp.size() == num_lits);
             display_lemma_as_smt_problem(tmp.size(), tmp.c_ptr(), false_literal, m_fparams.m_logic);
         }
-        mk_clause(num_lits, lits, js, CLS_TH_AXIOM);
+        mk_clause(num_lits, lits, js, k);
     }
     
     void context::mk_th_axiom(theory_id tid, literal l1, literal l2, unsigned num_params, parameter * params) {

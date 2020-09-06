@@ -206,9 +206,9 @@ namespace smt {
         }
 
         void log_causality(
-                fingerprint* f,
-                app * pat,
-                vector<std::tuple<enode *, enode *>> & used_enodes) {
+            fingerprint* f,
+            app * pat,
+            vector<std::tuple<enode *, enode *>> & used_enodes) {
 
             if (pat != nullptr) {
                 if (used_enodes.size() > 0) {
@@ -219,6 +219,7 @@ namespace smt {
                 for (auto n : used_enodes) {
                     enode *orig = std::get<0>(n);
                     enode *substituted = std::get<1>(n);
+                    (void) substituted;
                     if (orig == nullptr) {
                         STRACE("causality", tout << " #" << substituted->get_owner_id(););
                     }
@@ -426,6 +427,8 @@ namespace smt {
     quantifier_manager::quantifier_manager(context & ctx, smt_params & fp, params_ref const & p) {
         m_imp = alloc(imp, *this, ctx, fp, mk_default_plugin());
         m_imp->m_plugin->set_manager(*this);
+        m_lazy_scopes = 0;
+        m_lazy = true;
         
     }
 
@@ -438,6 +441,10 @@ namespace smt {
     }
 
     void quantifier_manager::add(quantifier * q, unsigned generation) {
+        if (m_lazy) {
+            while (m_lazy_scopes-- > 0) m_imp->push();
+            m_lazy = false;
+        }
         m_imp->add(q, generation);
     }
 
@@ -529,12 +536,18 @@ namespace smt {
         return m_imp->check_model(m, root2value);
     }
 
-    void quantifier_manager::push() {
-        m_imp->push();
+    void quantifier_manager::push() {        
+        if (m_lazy) 
+            ++m_lazy_scopes;
+        else 
+            m_imp->push();
     }
 
     void quantifier_manager::pop(unsigned num_scopes) {
-        m_imp->pop(num_scopes);
+        if (m_lazy)
+            m_lazy_scopes -= num_scopes;
+        else
+            m_imp->pop(num_scopes);
     }
 
     void quantifier_manager::reset() {
@@ -711,7 +724,7 @@ namespace smt {
         }
 
         bool can_propagate() const override {
-            return m_mam->has_work();
+            return m_active && m_mam->has_work();
         }
 
         void restart_eh() override {
@@ -733,6 +746,8 @@ namespace smt {
         }
 
         void propagate() override {
+            if (!m_active)
+                return;
             m_mam->match();
             if (!m_context->relevancy() && use_ematching()) {
                 ptr_vector<enode>::const_iterator it  = m_context->begin_enodes();

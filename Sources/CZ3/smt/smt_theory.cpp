@@ -39,6 +39,26 @@ namespace smt {
         m_var2enode_lim.shrink(new_lvl);
     }
 
+    bool theory::lazy_push() {
+        if (m_lazy)
+            ++m_lazy_scopes;
+        return m_lazy;
+    }
+
+    bool theory::lazy_pop(unsigned& num_scopes) {
+        unsigned n = std::min(num_scopes, m_lazy_scopes);
+        num_scopes -= n;
+        m_lazy_scopes -= n;
+        return num_scopes == 0;
+    }
+
+    void theory::force_push() {
+        flet<bool> _lazy(m_lazy, false);
+        for (; m_lazy_scopes > 0; --m_lazy_scopes) {
+            push_scope_eh();
+        }
+    }
+
     void theory::display_var2enode(std::ostream & out) const {
         unsigned sz = m_var2enode.size();
         for (unsigned v = 0; v < sz; v++) {
@@ -126,6 +146,18 @@ namespace smt {
         return lit;
     }
 
+    literal theory::mk_literal(expr* _e) {
+        expr_ref e(_e, m);
+        bool is_not = m.is_not(_e, _e);
+        if (!ctx.e_internalized(_e)) {
+            ctx.internalize(_e, is_quantifier(_e));
+        }
+        literal lit = ctx.get_literal(_e);
+        ctx.mark_as_relevant(lit);
+        if (is_not) lit.neg();
+        return lit;
+    }
+
     enode* theory::ensure_enode(expr* e) {
         if (!ctx.e_internalized(e)) {
             ctx.internalize(e, is_quantifier(e));
@@ -138,7 +170,9 @@ namespace smt {
     theory::theory(context& ctx, family_id fid):
         m_id(fid),
         ctx(ctx),
-        m(ctx.get_manager()) {
+        m(ctx.get_manager()),
+        m_lazy_scopes(0),
+        m_lazy(true) {
     }
 
     theory::~theory() {

@@ -1501,6 +1501,9 @@ bool theory_seq::internalize_term(app* term) {
 
     if (m.is_bool(term) && 
         (m_util.str.is_in_re(term) || m_sk.is_skolem(term))) {
+        if (m_util.str.is_in_re(term)) {
+            mk_var(ensure_enode(term->get_arg(0)));
+        }
         bool_var bv = ctx.mk_bool_var(term);
         ctx.set_var_theory(bv, get_id());
         ctx.mark_as_relevant(bv);
@@ -1720,9 +1723,11 @@ std::ostream& theory_seq::display_deps(std::ostream& out, literal_vector const& 
     smt2_pp_environment_dbg env(m);
     params_ref p;
     for (auto const& eq : eqs) {
+        if (eq.first->get_root() != eq.second->get_root())
+            out << "invalid: ";
         out << "  (= " << mk_bounded_pp(eq.first->get_owner(), m, 2)
             << "\n     " << mk_bounded_pp(eq.second->get_owner(), m, 2) 
-            << ")\n";
+            << ")\n";        
     }
     for (literal l : lits) {
         display_lit(out, l) << "\n";
@@ -2782,18 +2787,6 @@ literal theory_seq::mk_simplified_literal(expr * _e) {
     expr_ref e(_e, m);
     m_rewrite(e);
     return mk_literal(e);
-}
-
-literal theory_seq::mk_literal(expr* _e) {
-    expr_ref e(_e, m);
-    bool is_not = m.is_not(_e, _e);
-    if (!ctx.e_internalized(_e)) {
-        ctx.internalize(_e, is_quantifier(_e));
-    }
-    literal lit = ctx.get_literal(_e);
-    ctx.mark_as_relevant(lit);
-    if (is_not) lit.neg();
-    return lit;
 }
 
 literal theory_seq::mk_seq_eq(expr* a, expr* b) {
