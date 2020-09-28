@@ -126,7 +126,7 @@ public:
         auto* ext = dynamic_cast<euf::solver*>(m_solver.get_extension());
         if (ext) {
             auto& si = result->m_goal2sat.si(dst_m, m_params, result->m_solver, result->m_map, result->m_dep2asm, is_incremental());
-            euf::solver::scoped_set_translate st(*ext, dst_m, result->m_map, si);  
+            euf::solver::scoped_set_translate st(*ext, dst_m, si);  
             result->m_solver.copy(m_solver);
         }        
         else {
@@ -624,6 +624,39 @@ public:
         m_preprocess->reset();
     }
 
+    euf::solver* ensure_euf() {
+        auto* ext = dynamic_cast<euf::solver*>(m_solver.get_extension());
+        return ext;
+    }
+
+    void user_propagate_init(
+        void*                ctx, 
+        solver::push_eh_t&   push_eh,
+        solver::pop_eh_t&    pop_eh,
+        solver::fresh_eh_t&  fresh_eh) override {
+        ensure_euf()->user_propagate_init(ctx, push_eh, pop_eh, fresh_eh);
+    }
+        
+    void user_propagate_register_fixed(solver::fixed_eh_t& fixed_eh) override {
+        ensure_euf()->user_propagate_register_fixed(fixed_eh);
+    }
+    
+    void user_propagate_register_final(solver::final_eh_t& final_eh) override {
+        ensure_euf()->user_propagate_register_final(final_eh);
+    }
+    
+    void user_propagate_register_eq(solver::eq_eh_t& eq_eh) override {
+        ensure_euf()->user_propagate_register_eq(eq_eh);
+    }
+    
+    void user_propagate_register_diseq(solver::eq_eh_t& diseq_eh) override {
+        ensure_euf()->user_propagate_register_diseq(diseq_eh);
+    }
+    
+    unsigned user_propagate_register(expr* e) override { 
+        return ensure_euf()->user_propagate_register(e);
+    }
+
 private:
 
     lbool internalize_goal(goal_ref& g) {        
@@ -718,7 +751,7 @@ private:
     bool internalize_var(expr* v, sat::bool_var_vector& bvars) {
         obj_map<func_decl, expr*> const2bits;
         ptr_vector<func_decl> newbits;
-        m_bb_rewriter->end_rewrite(const2bits, newbits);
+        m_bb_rewriter->get_translation(const2bits, newbits);
         expr* bv;
         bv_util bvutil(m);
         bool internalized = false;

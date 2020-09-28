@@ -852,7 +852,7 @@ namespace smt {
             SASSERT(!has_var_kind(get_var_row(s), BASE));
         }
         TRACE("init_row_bug", tout << "after:\n"; display_row_info(tout, r););
-        if (propagation_mode() != BP_NONE)
+        if (propagation_mode() != bound_prop_mode::BP_NONE)
             mark_row_for_bound_prop(r_id);
         SASSERT(r.is_coeff_of(s, numeral::one()));
         SASSERT(wf_row(r_id));
@@ -1728,7 +1728,7 @@ namespace smt {
     template<typename Ext>
     void theory_arith<Ext>::add_row(unsigned rid1, const numeral & coeff, unsigned rid2, bool apply_gcd_test) {
         m_stats.m_add_rows++;
-        if (propagation_mode() != BP_NONE)
+        if (propagation_mode() != bound_prop_mode::BP_NONE)
             mark_row_for_bound_prop(rid1);
         row & r1 = m_rows[rid1];
         row & r2 = m_rows[rid2];
@@ -2278,9 +2278,9 @@ namespace smt {
         if (m_blands_rule)
             return select_smallest_var();
         switch (m_params.m_arith_pivot_strategy) {
-        case ARITH_PIVOT_GREATEST_ERROR:
+        case arith_pivot_strategy::ARITH_PIVOT_GREATEST_ERROR:
             return select_greatest_error_var();
-        case ARITH_PIVOT_LEAST_ERROR:
+        case arith_pivot_strategy::ARITH_PIVOT_LEAST_ERROR:
             return select_least_error_var();
         default:
             return select_smallest_var();
@@ -2442,7 +2442,7 @@ namespace smt {
         push_bound_trail(v, l, false);
         set_bound(b, false);
 
-        if (propagation_mode() != BP_NONE)
+        if (propagation_mode() != bound_prop_mode::BP_NONE)
             mark_rows_for_bound_prop(v);
 
         return true;
@@ -2490,7 +2490,7 @@ namespace smt {
         push_bound_trail(v, u, true);
         set_bound(b, true);
 
-        if (propagation_mode() != BP_NONE)
+        if (propagation_mode() != bound_prop_mode::BP_NONE)
             mark_rows_for_bound_prop(v);
 
         return true;

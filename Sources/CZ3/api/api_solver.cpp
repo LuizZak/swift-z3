@@ -79,22 +79,24 @@ extern "C" {
     }
 
     void solver2smt2_pp::check(unsigned n, expr* const* asms) {
-        for (unsigned i = 0; i < n; ++i) {
+        for (unsigned i = 0; i < n; ++i) 
             m_pp_util.collect(asms[i]);
-        }
         m_pp_util.display_decls(m_out);
         m_out << "(check-sat";        
-        for (unsigned i = 0; i < n; ++i) {
+        for (unsigned i = 0; i < n; ++i) 
             m_pp_util.display_expr(m_out << "\n", asms[i]);            
-        }
-        for (expr* e : m_tracked) {
+        for (expr* e : m_tracked) 
             m_pp_util.display_expr(m_out << "\n", e);
-        }
         m_out << ")\n";
         m_out.flush();
     }
 
     void solver2smt2_pp::get_consequences(expr_ref_vector const& assumptions, expr_ref_vector const& variables) {
+        for (expr* a : assumptions)
+            m_pp_util.collect(a);
+        for (expr* v : variables)
+            m_pp_util.collect(v);
+        m_pp_util.display_decls(m_out);        
         m_out << "(get-consequences (";
         for (expr* f : assumptions) {
             m_out << "\n";
@@ -105,7 +107,7 @@ extern "C" {
             m_out << "\n";
             m_pp_util.display_expr(m_out, f);
         }
-        m_out << ")\n";
+        m_out << "))\n";
         m_out.flush();
     }
 
@@ -258,9 +260,8 @@ extern "C" {
         bool initialized = to_solver(s)->m_solver.get() != nullptr;
         if (!initialized)
             init_solver(c, s);
-        for (expr* e : ctx->tracked_assertions()) {
+        for (expr* e : ctx->tracked_assertions()) 
             to_solver(s)->assert_expr(e);
-        }
         to_solver_ref(s)->set_model_converter(ctx->get_model_converter());
     }
 
@@ -973,7 +974,7 @@ extern "C" {
         Z3_TRY;
         LOG_Z3_solver_propagate_consequence(c, s, num_fixed, fixed_ids, num_eqs, eq_lhs, eq_rhs, conseq);
         RESET_ERROR_CODE();
-        reinterpret_cast<solver::propagate_callback*>(s)->propagate(num_fixed, fixed_ids, num_eqs, eq_lhs, eq_rhs, to_expr(conseq));
+        reinterpret_cast<solver::propagate_callback*>(s)->propagate_cb(num_fixed, fixed_ids, num_eqs, eq_lhs, eq_rhs, to_expr(conseq));
         Z3_CATCH;        
     }
 

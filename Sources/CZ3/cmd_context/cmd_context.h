@@ -81,6 +81,7 @@ public:
     macro_decls() { m_decls = nullptr; }
     void finalize(ast_manager& m);
     bool insert(ast_manager& m, unsigned arity, sort *const* domain, expr* body);
+    bool empty() const { return !m_decls || m_decls->empty(); }
     expr* find(unsigned arity, sort *const* domain) const;
     void erase_last(ast_manager& m);
     vector<macro_decl>::iterator begin() const { return m_decls->begin(); }
@@ -192,6 +193,7 @@ protected:
     bool                         m_numeral_as_real;
     bool                         m_ignore_check;      // used by the API to disable check-sat() commands when parsing SMT 2.0 files.
     bool                         m_exit_on_error;
+    bool                         m_allow_duplicate_declarations { false };
 
     static std::ostringstream    g_error_stream;
 
@@ -346,6 +348,7 @@ public:
     void set_produce_unsat_cores(bool flag);
     void set_produce_proofs(bool flag);
     void set_produce_unsat_assumptions(bool flag) { m_produce_unsat_assumptions = flag; }
+    void set_allow_duplicate_declarations() { m_allow_duplicate_declarations = true; }
     bool produce_assignments() const { return m_produce_assignments; }
     bool produce_unsat_assumptions() const { return m_produce_unsat_assumptions; }
     void set_produce_assignments(bool flag) { m_produce_assignments = flag; }

@@ -995,6 +995,7 @@ namespace sat {
             literal next() { SASSERT(!empty()); return to_literal(m_queue.erase_min()); }
             bool empty() const { return m_queue.empty(); }
             void reset() { m_queue.reset(); }
+            unsigned size() const { return m_queue.size(); }
         };
 
         simplifier &      s;
@@ -1589,9 +1590,8 @@ namespace sat {
             SASSERT(!s.is_external(l));
             model_converter::entry& new_entry = m_mc.mk(k, l.var());
             for (literal lit : c) {
-                if (lit != l && process_var(lit.var())) {
-                    m_queue.decreased(~lit);
-                }
+                if (lit != l && process_var(lit.var())) 
+                    m_queue.decreased(~lit);                
             }
             m_mc.insert(new_entry, m_covered_clause);
             m_mc.set_clause(new_entry, c);
@@ -1605,7 +1605,8 @@ namespace sat {
             s.set_learned(l1, l2);
             m_mc.insert(new_entry, m_covered_clause);
             m_mc.set_clause(new_entry, l1, l2);
-            m_queue.decreased(~l2);
+            if (process_var(l2.var()))
+                m_queue.decreased(~l2);
         }
 
         void bca() {
@@ -1900,7 +1901,6 @@ namespace sat {
     }
 
     bool simplifier::try_eliminate(bool_var v) {
-        TRACE("sat_simplifier", tout << "processing: " << v << "\n";);
         if (value(v) != l_undef)
             return false;
 
@@ -1963,7 +1963,7 @@ namespace sat {
                 }
             }
         }
-        TRACE("sat_simplifier", tout << "found var to eliminate, before: " << before_clauses << " after: " << after_clauses << "\n";);
+        TRACE("sat_simplifier", tout << "eliminate " << v << ", before: " << before_clauses << " after: " << after_clauses << "\n";);
         m_elim_counter -= num_pos * num_neg + before_lits;
 
         m_elim_counter -= num_pos * num_neg + before_lits;

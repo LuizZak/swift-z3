@@ -30,7 +30,6 @@ Notes:
 #include "ast/seq_decl_plugin.h"
 #include "ast/pb_decl_plugin.h"
 #include "ast/fpa_decl_plugin.h"
-#include "ast/csp_decl_plugin.h"
 #include "ast/special_relations_decl_plugin.h"
 #include "ast/ast_pp.h"
 #include "ast/rewriter/var_subst.h"
@@ -286,7 +285,8 @@ bool cmd_context::contains_func_decl(symbol const& s, unsigned n, sort* const* d
 }
 
 bool cmd_context::contains_macro(symbol const& s) const {
-    return m_macros.contains(s);
+    macro_decls decls;
+    return m_macros.find(s, decls) && !decls.empty();
 }
 
 bool cmd_context::contains_macro(symbol const& s, func_decl* f) const {
@@ -307,6 +307,7 @@ void cmd_context::insert_macro(symbol const& s, unsigned arity, sort*const* doma
     else {
         VERIFY(decls.insert(m(), arity, domain, t));
     }
+    model_add(s, arity, domain, t);
 }
 
 void cmd_context::erase_macro(symbol const& s) {
@@ -698,7 +699,6 @@ void cmd_context::init_manager_core(bool new_manager) {
         register_plugin(symbol("pb"),       alloc(pb_decl_plugin), logic_has_pb());
         register_plugin(symbol("fpa"),      alloc(fpa_decl_plugin), logic_has_fpa());
         register_plugin(symbol("datalog_relation"), alloc(datalog::dl_decl_plugin), !has_logic());
-        register_plugin(symbol("csp"),      alloc(csp_decl_plugin), smt_logics::logic_is_csp(m_logic));
         register_plugin(symbol("specrels"), alloc(special_relations_decl_plugin), !has_logic());
     }
     else {
@@ -715,7 +715,6 @@ void cmd_context::init_manager_core(bool new_manager) {
         load_plugin(symbol("seq"),      logic_has_seq(), fids);
         load_plugin(symbol("fpa"),      logic_has_fpa(), fids);
         load_plugin(symbol("pb"),       logic_has_pb(), fids);
-        load_plugin(symbol("csp"),      smt_logics::logic_is_csp(m_logic), fids);
 
         for (family_id fid : fids) {
             decl_plugin * p = m_manager->get_plugin(fid);
@@ -805,6 +804,8 @@ void cmd_context::insert(symbol const & s, func_decl * f) {
 #endif
     func_decls & fs = m_func_decls.insert_if_not_there(s, func_decls());
     if (!fs.insert(m(), f)) {
+        if (m_allow_duplicate_declarations)
+            return;
         std::string msg = "invalid declaration, ";
         msg += f->get_arity() == 0 ? "constant" : "function";
         msg += " '";
@@ -851,6 +852,7 @@ void cmd_context::insert(symbol const & s, unsigned arity, sort *const* domain, 
     insert_macro(s, arity, domain, t);
     if (!m_global_decls) {
         m_macros_stack.push_back(s);
+        
     }
 }
 
@@ -890,6 +892,8 @@ void cmd_context::model_add(symbol const & s, unsigned arity, sort *const* domai
     fs.insert(m(), fn);
     VERIFY(fn->get_range() == m().get_sort(t));
     m_mc0->add(fn, t);
+    if (!m_global_decls)
+        m_func_decls_stack.push_back(sf_pair(s, fn));
 }
 
 void cmd_context::model_del(func_decl* f) {
@@ -1424,10 +1428,8 @@ void cmd_context::restore_macros(unsigned old_sz) {
     SASSERT(old_sz <= m_macros_stack.size());
     svector<symbol>::iterator it  = m_macros_stack.begin() + old_sz;
     svector<symbol>::iterator end = m_macros_stack.end();
-    for (; it != end; ++it) {
-        symbol const & s = *it;
-        erase_macro(s);
-    }
+    for (; it != end; ++it) 
+        erase_macro(*it);    
     m_macros_stack.shrink(old_sz);
 }
 

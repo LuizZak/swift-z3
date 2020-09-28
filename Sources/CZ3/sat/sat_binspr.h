@@ -38,13 +38,13 @@ namespace sat {
 
         solver&                              m_solver;
         scoped_ptr<solver>                   s;
-        unsigned                             m_bin_clauses;
-        unsigned                             m_stopped_at;
+        unsigned                             m_bin_clauses{ 0 };
+        unsigned                             m_stopped_at{ 0 };
         vector<clause_vector>                m_use_list;
-        unsigned                             m_limit1, m_limit2;
+        unsigned                             m_limit1{ 0 }, m_limit2{ 0 };
         bool_vector                        m_mark, m_mark2;
         literal_vector                       m_must_candidates, m_may_candidates;
-        unsigned                             m_state;
+        unsigned                             m_state{ 0 };
 
         void init_g() { m_state = 0x7; }
         void g_add_binary(literal l1, literal l2, bool flip2);
@@ -71,7 +71,7 @@ namespace sat {
         void collect_candidates(literal lit, literal const* begin, literal const* end);
         void strengthen_clause(literal lit, literal const* begin, literal const* end);
 
-        bool_var m_p, m_q, m_u, m_v; 
+        bool_var m_p{ 0 }, m_q{ 0 }, m_u{ 0 }, m_v{ 0 };
         lbool m_vals[4];
 
         void algorithm2();
@@ -92,7 +92,10 @@ namespace sat {
 
     public:
 
-        binspr(solver& s): m_solver(s), m_stopped_at(0), m_limit1(1000), m_limit2(300) {}
+        binspr(solver& s): m_solver(s), m_stopped_at(0), m_limit1(1000), m_limit2(300) {
+            memset(m_true, 0, sizeof(unsigned) * max_lits);
+            memset(m_false, 0, sizeof(unsigned) * max_lits);
+        }
 
         ~binspr() {}
 

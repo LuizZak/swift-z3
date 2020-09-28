@@ -485,6 +485,7 @@ namespace smt {
                 TRACE("add_eq", tout << "redundant constraint.\n";);
                 return;
             }
+            IF_VERBOSE(20, verbose_stream() << "merge " << mk_bounded_pp(n1->get_owner(), m) << " " << mk_bounded_pp(n2->get_owner(), m) << "\n");
 
             if (r1->is_interpreted() && r2->is_interpreted()) {
                 TRACE("add_eq", tout << "interpreted roots conflict.\n";);
@@ -1279,9 +1280,9 @@ namespace smt {
                     SASSERT(e_internalized(arg));
                     enode * _arg = get_enode(arg);
                     CTRACE("eq_to_bug", args[i]->get_root() != _arg->get_root(),
-                           tout << "#" << args[i]->get_owner_id() << " #" << args[i]->get_root()->get_owner_id()
-                           << " #" << _arg->get_owner_id() << " #" << _arg->get_root()->get_owner_id() << "\n";
-                           tout << "#" << r->get_owner_id() << "\n";
+                           tout << "#" << args[i]->get_expr_id() << " #" << args[i]->get_root()->get_expr_id()
+                           << " #" << _arg->get_expr_id() << " #" << _arg->get_root()->get_expr_id() << "\n";
+                           tout << "#" << r->get_expr_id() << "\n";
                            display(tout););
                     SASSERT(args[i]->get_root() == _arg->get_root());
                 }
@@ -1408,6 +1409,7 @@ namespace smt {
         TRACE("propagate_bool_var_enode_bug", tout << "var: " << v << " #" << bool_var2expr(v)->get_id() << "\n";);
         SASSERT(v < static_cast<int>(m_b_internalized_stack.size()));
         enode * n  = bool_var2enode(v);
+
         CTRACE("mk_bool_var", !n, tout << "No enode for " << v << "\n";);
         bool sign  = val == l_false;
         if (n->merge_tf())
@@ -2704,81 +2706,6 @@ namespace smt {
         SASSERT(check_clauses(m_lemmas) && check_clauses(m_aux_clauses));
     }
 
-    void context::log_stats() {
-        size_t bin_lemmas = 0;
-        for (watch_list const& w : m_watches) {
-            bin_lemmas += w.end_literals() - w.begin_literals();
-        }
-        bin_lemmas /= 2;
-        std::stringstream strm;
-        strm << "(smt.stats " 
-             << std::setw(4) << m_stats.m_num_restarts << " "
-             << std::setw(6) << m_stats.m_num_conflicts << " "
-             << std::setw(6) << m_stats.m_num_decisions << " " 
-             << std::setw(6) << m_stats.m_num_propagations << " "
-             << std::setw(5) << m_aux_clauses.size() << "/" << bin_lemmas << " "
-             << std::setw(5) << m_lemmas.size() << " "
-             << std::setw(5) << m_stats.m_num_simplifications << " "
-             << std::setw(4) << m_stats.m_num_del_clauses << " "
-             << std::setw(7) << mem_stat() << ")\n";
-
-        std::string str(strm.str());
-        svector<size_t> offsets;
-        for (size_t i = 0; i < str.size(); ++i) {
-            while (i < str.size() && str[i] != ' ') ++i;
-            while (i < str.size() && str[i] == ' ') ++i;
-            // position of first character after space
-            if (i < str.size()) {
-                offsets.push_back(i);
-            }
-        }   
-        bool same = m_last_positions.size() == offsets.size();
-        size_t diff = 0;
-        for (unsigned i = 0; i < offsets.size() && same; ++i) {
-            if (m_last_positions[i] > offsets[i]) diff += m_last_positions[i] - offsets[i];
-            if (m_last_positions[i] < offsets[i]) diff += offsets[i] - m_last_positions[i];
-        }
-
-        if (m_last_positions.empty() || 
-            m_stats.m_num_restarts >= 20 + m_last_position_log ||
-            (m_stats.m_num_restarts >= 6 + m_last_position_log && (!same || diff > 3))) {
-            m_last_position_log = m_stats.m_num_restarts;
-            // restarts       decisions      clauses    simplifications  memory
-            //      conflicts       propagations    lemmas       deletions
-            int adjust[9] = { -3, -3, -3, -3, -3, -3, -4, -4, -1 };
-            char const* tag[9] = { ":restarts ", ":conflicts ", ":decisions ", ":propagations ", ":clauses/bin ", ":lemmas ", ":simplify ", ":deletions", ":memory" };
-
-            std::stringstream l1, l2;
-            l1 << "(sat.stats ";
-            l2 << "(sat.stats ";
-            size_t p1 = 11, p2 = 11;
-            SASSERT(offsets.size() == 9);
-            for (unsigned i = 0; i < offsets.size(); ++i) {
-                size_t p = offsets[i];
-                if (i & 0x1) {
-                    // odd positions
-                    for (; p2 < p + adjust[i]; ++p2) l2 << " ";
-                    p2 += strlen(tag[i]);
-                    l2 << tag[i];
-                }
-                else {
-                    // even positions
-                    for (; p1 < p + adjust[i]; ++p1) l1 << " ";
-                    p1 += strlen(tag[i]);
-                    l1 << tag[i];
-                }                               
-            }
-            for (; p1 + 2 < str.size(); ++p1) l1 << " ";            
-            for (; p2 + 2 < str.size(); ++p2) l2 << " ";            
-            l1 << ")\n";
-            l2 << ")\n";
-            IF_VERBOSE(1, verbose_stream() << l1.str() << l2.str());
-            m_last_positions.reset();
-            m_last_positions.append(offsets);
-        }
-        IF_VERBOSE(1, verbose_stream() << str);
-    }
-
     struct clause_lt {
         bool operator()(clause * cls1, clause * cls2) const { return cls1->get_activity() > cls2->get_activity(); }
     };
@@ -3929,6 +3856,7 @@ namespace smt {
                 TRACE("final_check_result", tout << "fcs: " << fcs << " last_search_failure: " << m_last_search_failure << "\n";);
                 switch (fcs) {
                 case FC_DONE:
+                    log_stats();
                     return l_true;
                 case FC_CONTINUE:
                     break;

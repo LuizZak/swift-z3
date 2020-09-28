@@ -45,6 +45,7 @@ Revision History:
 #include "util/trace.h"
 #include "util/rlimit.h"
 #include "util/scoped_ptr_vector.h"
+#include "util/scoped_limit_trail.h"
 
 namespace sat {
 
@@ -102,6 +103,7 @@ namespace sat {
         scc                     m_scc;
         asymm_branch            m_asymm_branch;
         probing                 m_probing;
+        bool                    m_is_probing { false };
         mus                     m_mus;           // MUS for minimal core extraction
         binspr                  m_binspr;
         bool                    m_inconsistent;
@@ -114,6 +116,7 @@ namespace sat {
         clause_vector           m_clauses;
         clause_vector           m_learned;
         unsigned                m_num_frozen;
+        unsigned_vector         m_active_vars, m_free_vars, m_vars_to_reinit;
         vector<watch_list>      m_watches;
         svector<lbool>          m_assignment;
         svector<justification>  m_justification; 
@@ -122,6 +125,7 @@ namespace sat {
         bool_vector             m_lit_mark;
         bool_vector             m_eliminated;
         bool_vector             m_external;
+        unsigned_vector         m_var_scope;
         unsigned_vector         m_touched;
         unsigned                m_touch_index;
         literal_vector          m_replay_assign;
@@ -172,6 +176,7 @@ namespace sat {
             bool     m_inconsistent;
         };
         svector<scope>          m_scopes;
+        scoped_limit_trail      m_vars_lim;
         stopwatch               m_stopwatch;
         params_ref              m_params;
         scoped_ptr<solver>      m_clone; // for debugging purposes
@@ -262,6 +267,8 @@ namespace sat {
         random_gen& rand() { return m_rand; }
 
     protected:
+        void reset_var(bool_var v, bool ext, bool dvar);
+
         inline clause_allocator& cls_allocator() { return m_cls_allocator[m_cls_allocator_idx]; }
         inline clause_allocator const& cls_allocator() const { return m_cls_allocator[m_cls_allocator_idx]; }
         inline clause * alloc_clause(unsigned num_lits, literal const * lits, bool learned) { return cls_allocator().mk_clause(num_lits, lits, learned); }
@@ -279,9 +286,11 @@ namespace sat {
         void mk_bin_clause(literal l1, literal l2, bool learned) { mk_bin_clause(l1, l2, learned ? sat::status::redundant() : sat::status::asserted()); }
         bool propagate_bin_clause(literal l1, literal l2);
         clause * mk_ter_clause(literal * lits, status st);
-        bool attach_ter_clause(clause & c);
+        bool attach_ter_clause(clause & c, status st);
         clause * mk_nary_clause(unsigned num_lits, literal * lits, status st);
-        bool attach_nary_clause(clause & c);
+        bool has_variables_to_reinit(clause const& c) const;
+        bool has_variables_to_reinit(literal l1, literal l2) const;
+        bool attach_nary_clause(clause & c, bool is_asserting);
         void attach_clause(clause & c, bool & reinit);
         void attach_clause(clause & c) { bool reinit; attach_clause(c, reinit); }
         void set_learned(clause& c, bool learned);
@@ -291,6 +300,9 @@ namespace sat {
         void add_ate(clause& c) { m_mc.add_ate(c); }        
         void add_ate(literal l1, literal l2) { m_mc.add_ate(l1, l2); }        
         void add_ate(literal_vector const& lits) { m_mc.add_ate(lits); }
+        void drat_log_unit(literal lit, justification j);
+        void drat_log_clause(unsigned sz, literal const* lits, status st);
+        void drat_explain_conflict();
 
         class scoped_disable_checkpoint {
             solver& s;
@@ -312,6 +324,7 @@ namespace sat {
         void detach_nary_clause(clause & c);
         void detach_ter_clause(clause & c);
         void push_reinit_stack(clause & c);
+        void push_reinit_stack(literal l1, literal l2);
 
         void init_visited();
         void mark_visited(literal l) { m_visited[l.index()] = m_visited_ts; }
@@ -338,6 +351,7 @@ namespace sat {
         bool was_eliminated(bool_var v) const { return m_eliminated[v]; }
         void set_eliminated(bool_var v, bool f) override;
         bool was_eliminated(literal l) const { return was_eliminated(l.var()); }
+        void set_phase(literal l) override { m_phase[l.var()] = !l.sign(); }
         unsigned scope_lvl() const { return m_scope_lvl; }
         unsigned search_lvl() const { return m_search_lvl; }
         bool  at_search_lvl() const { return m_scope_lvl == m_search_lvl; }
@@ -399,6 +413,7 @@ namespace sat {
         bool canceled() { return !m_rlimit.inc(); }
         config const& get_config() const { return m_config; }
         drat& get_drat() { return m_drat; }
+        drat* get_drat_ptr() override { return &m_drat;  }
         void set_incremental(bool b) { m_config.m_incremental = b; }
         bool is_incremental() const { return m_config.m_incremental; }
         extension* get_extension() const override { return m_ext.get(); }
@@ -432,6 +447,7 @@ namespace sat {
     protected:
         bool should_propagate() const;
         bool propagate_core(bool update);
+        bool propagate_literal(literal l, bool update);
         
         // -----------------------
         //
@@ -537,6 +553,10 @@ namespace sat {
         bool can_delete(clause const & c) const;
         bool can_delete3(literal l1, literal l2, literal l3) const;
 
+        // gc for lemmas in the reinit-stack
+        void gc_reinit_stack(unsigned num_scopes);
+        bool is_asserting(unsigned new_lvl, clause_wrapper const& cw) const;
+
         clause& get_clause(watch_list::iterator it) const {
             SASSERT(it->get_kind() == watched::CLAUSE);
             return get_clause(it->get_clause_offset());
@@ -565,9 +585,8 @@ namespace sat {
         unsigned       m_conflict_lvl;
         literal_vector m_lemma;
         literal_vector m_ext_antecedents;
-        literal        m_cached_antecedent_consequent;
-        ext_justification_idx m_cached_antecedent_js { 0 };
-        bool use_backjumping(unsigned num_scopes);
+        bool use_backjumping(unsigned num_scopes) const;
+        bool allow_backtracking() const;
         bool resolve_conflict();
         lbool resolve_conflict_core();
         void learn_lemma_and_backjump();
@@ -582,7 +601,7 @@ namespace sat {
         void resolve_conflict_for_unsat_core();
         void process_antecedent_for_unsat_core(literal antecedent);
         void process_consequent_for_unsat_core(literal consequent, justification const& js);
-        void fill_ext_antecedents(literal consequent, justification js);
+        void fill_ext_antecedents(literal consequent, justification js, bool probing);
         unsigned skip_literals_above_conflict_level();
         void updt_phase_of_vars();
         void updt_phase_counters();
@@ -621,6 +640,8 @@ namespace sat {
         void push();
         void pop(unsigned num_scopes);
         void pop_reinit(unsigned num_scopes);
+        void shrink_vars(unsigned v);
+        void pop_vars(unsigned num_scopes);
 
         void unassign_vars(unsigned old_sz, unsigned new_lvl);
         void reinit_clauses(unsigned old_sz);
@@ -634,6 +655,16 @@ namespace sat {
 
         bool_var max_var(clause_vector& clauses, bool_var v);
         bool_var max_var(bool learned, bool_var v);
+
+        // -----------------------
+        //
+        // External
+        //
+        // -----------------------
+    public:
+        void set_should_simplify() { m_next_simplify = m_conflicts_since_init; }
+        bool_var_vector const& get_vars_to_reinit() const { return m_vars_to_reinit;  }
+        bool is_probing() const { return m_is_probing; }
 
     public:
         void user_push() override;
@@ -798,4 +829,3 @@ namespace sat {
 
     std::ostream & operator<<(std::ostream & out, mk_stat const & stat);
 };
-

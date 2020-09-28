@@ -16,6 +16,7 @@ Author:
 --*/
 
 #include "ast/ast_pp.h"
+#include "ast/ast_ll_pp.h"
 #include "sat/smt/euf_solver.h"
 #include "model/value_factory.h"
 
@@ -37,7 +38,7 @@ namespace euf {
             return true;
         if (f->get_family_id() == m.get_basic_family_id())
             return false;
-        euf::th_model_builder* mb = get_solver(f);
+        euf::th_model_builder* mb = func_decl2solver(f);
         return mb && mb->include_func_interp(f);
     }
 
@@ -47,7 +48,7 @@ namespace euf {
                 deps.insert(n, nullptr);
                 continue;
             }
-            auto* mb = get_solver(n->get_owner());
+            auto* mb = expr2solver(n->get_expr());
             if (mb)
                 mb->add_dep(n, deps);
             else
@@ -55,13 +56,13 @@ namespace euf {
         }
     }
 
-    void solver::dependencies2values(deps_t& deps, expr_ref_vector& values, model_ref const& mdl) {
+    void solver::dependencies2values(deps_t& deps, expr_ref_vector& values, model_ref& mdl) {
         user_sort_factory user_sort(m);
         for (enode* n : deps.top_sorted()) {
             unsigned id = n->get_root_id();
             if (values.get(id, nullptr))
                 continue;
-            expr* e = n->get_owner();
+            expr* e = n->get_expr();
             values.reserve(id + 1);
             if (m.is_bool(e) && is_uninterp_const(e) && mdl->get_const_interp(to_app(e)->get_decl())) {
                 values.set(id, mdl->get_const_interp(to_app(e)->get_decl()));
@@ -79,7 +80,7 @@ namespace euf {
                 }
                 if (is_app(e) && to_app(e)->get_family_id() == m.get_basic_family_id())
                     continue;
-                sat::bool_var v = m_expr2var.to_bool_var(e);
+                sat::bool_var v = si.to_bool_var(e);
                 SASSERT(v != sat::null_bool_var);
                 switch (s().value(v)) {
                 case l_true:
@@ -93,13 +94,15 @@ namespace euf {
                 }
                 continue;
             }
-            auto* mb = get_solver(e);
+            auto* mb = expr2solver(e);
             if (mb) 
-                mb->add_value(n, values);
+                mb->add_value(n, *mdl, values);
             else if (m.is_uninterp(m.get_sort(e))) {
                 expr* v = user_sort.get_fresh_value(m.get_sort(e));
                 values.set(id, v);
             }
+            else if ((mb = sort2solver(m.get_sort(e))))
+                mb->add_value(n, *mdl, values);
             else {
                 IF_VERBOSE(1, verbose_stream() << "no model values created for " << mk_pp(e, m) << "\n");
             }                
@@ -109,7 +112,7 @@ namespace euf {
     void solver::values2model(deps_t const& deps, expr_ref_vector const& values, model_ref& mdl) {
         ptr_vector<expr> args;
         for (enode* n : deps.top_sorted()) {
-            expr* e = n->get_owner();
+            expr* e = n->get_expr();
             if (!is_app(e))
                 continue;
             app* a = to_app(e);
@@ -119,6 +122,9 @@ namespace euf {
             if (m.is_bool(e) && is_uninterp_const(e) && mdl->get_const_interp(f))
                 continue;
             expr* v = values.get(n->get_root_id());
+            CTRACE("euf", !v, tout << "no value for " << mk_pp(e, m) << "\n";);
+            if (!v)
+                continue;
             unsigned arity = f->get_arity();
             if (arity == 0) 
                 mdl->register_decl(f, v);
@@ -129,8 +135,11 @@ namespace euf {
                     mdl->register_decl(f, fi);
                 }
                 args.reset();
-                for (enode* arg : enode_args(n)) 
+                for (enode* arg : enode_args(n)) {
                     args.push_back(values.get(arg->get_root_id()));
+                    SASSERT(args.back());
+                }
+                SASSERT(args.size() == arity);
                 if (!fi->get_entry(args.c_ptr()))
                     fi->insert_new_entry(args.c_ptr(), v);
             }

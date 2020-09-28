@@ -1791,7 +1791,7 @@ void theory_seq::collect_statistics(::statistics & st) const {
 
 void theory_seq::init_search_eh() {
     auto as = get_fparams().m_arith_mode;
-    if (m_has_seq && as != AS_OLD_ARITH && as != AS_NEW_ARITH) {
+    if (m_has_seq && as != arith_solver_id::AS_OLD_ARITH && as != arith_solver_id::AS_NEW_ARITH) {
         throw default_exception("illegal arithmetic solver used with string solver");
     }
 }
@@ -2083,8 +2083,8 @@ void theory_seq::validate_model(model& mdl) {
             enode* rn = ensure_enode(r);
             IF_VERBOSE(0, verbose_stream() << "bad representation: " << l << " ->\n" << r << "\nbut\n" 
                        << mdl(l) << "\n->\n" << mdl(r) << "\n"
-                       << "nodes: #" << ln->get_owner_id() << " #" << rn->get_owner_id() << "\n"
-                       << "roots: #" << ln->get_root()->get_owner_id() << " #" << rn->get_root()->get_owner_id() << "\n";
+                       << "nodes: #" << ln->get_expr_id() << " #" << rn->get_expr_id() << "\n"
+                       << "roots: #" << ln->get_root()->get_expr_id() << " #" << rn->get_root()->get_expr_id() << "\n";
                        );
         }
     }

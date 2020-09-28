@@ -31,7 +31,6 @@ namespace sat {
         unsigned        m_stopped_at;  // where did it stop
         literal_set     m_assigned;    // literals assigned in the first branch
         literal_vector  m_to_assert;
-
         // counters
         int             m_counter;       // track cost
 

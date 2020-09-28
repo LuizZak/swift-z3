@@ -31,6 +31,15 @@ using namespace format_ns;
 #define MAX_INDENT   16
 #define SMALL_INDENT 2
 
+std::string ensure_quote(symbol const& s) {
+    std::string str;
+    if (is_smt2_quoted_symbol(s))
+        str = mk_smt2_quoted_symbol(s);
+    else
+        str = s.str();
+    return str;
+}
+
 format * smt2_pp_environment::pp_fdecl_name(symbol const & s, unsigned & len, bool is_skolem) const {
     ast_manager & m = get_manager();
     if (is_smt2_quoted_symbol(s)) {
@@ -430,6 +439,8 @@ format_ns::format * smt2_pp_environment::pp_sort(sort * s) {
         fs.push_back(pp_sort(to_sort(s->get_parameter(0).get_ast())));
         return mk_seq1(m, fs.begin(), fs.end(), f2f(), get_sutil().is_seq(s)?"Seq":"RegEx");
     }
+    std::string name = ensure_quote(s->get_name());
+    
     if (get_dtutil().is_datatype(s)) {
         unsigned sz = get_dtutil().get_datatype_num_parameter_sorts(s);
         if (sz > 0) {
@@ -437,10 +448,10 @@ format_ns::format * smt2_pp_environment::pp_sort(sort * s) {
             for (unsigned i = 0; i < sz; i++) {
                 fs.push_back(pp_sort(get_dtutil().get_datatype_parameter_sort(s, i)));
             }
-            return mk_seq1(m, fs.begin(), fs.end(), f2f(), s->get_name().str());
+            return mk_seq1(m, fs.begin(), fs.end(), f2f(), name);
         }
     }
-    return format_ns::mk_string(get_manager(), s->get_name().str());
+    return format_ns::mk_string(get_manager(), name);
 }
 
 typedef app_ref_vector format_ref_vector;
@@ -543,14 +554,6 @@ class smt2_printer {
     ast_manager & m() const { return m_manager; }
     ast_manager & fm() const { return format_ns::fm(m()); }
 
-    std::string ensure_quote(symbol const& s) {
-        std::string str;
-        if (is_smt2_quoted_symbol(s))
-            str = mk_smt2_quoted_symbol(s);
-        else
-            str = s.str();
-        return str;
-    }
 
     symbol ensure_quote_sym(symbol const& s) {
         if (is_smt2_quoted_symbol(s)) {
@@ -1342,6 +1345,17 @@ std::ostream& operator<<(std::ostream& out, mk_ismt2_pp const & p) {
     return out;
 }
 
+std::ostream& operator<<(std::ostream& out, mk_ismt2_func const& p) {
+    smt2_pp_environment_dbg env(p.m);        
+    format_ref r(fm(p.m));
+    unsigned len = 0;
+    r = env.pp_fdecl(p.m_fn, len);
+    params_ref pa;
+    pp(out, r.get(), p.m, pa);
+    return out;
+}
+
+
 std::ostream& operator<<(std::ostream& out, expr_ref const&  e) {
     return out << mk_ismt2_pp(e.get(), e.get_manager());
 }
@@ -1387,6 +1401,8 @@ std::ostream& operator<<(std::ostream& out, sort_ref_vector const&  e) {
         out << mk_ismt2_pp(s, e.get_manager()) << "\n";
     return out;
 }
+
+
 
 #ifdef Z3DEBUG
 void pp(expr const * n, ast_manager & m) {

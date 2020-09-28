@@ -25,6 +25,7 @@ namespace sat {
 
     class cut_simplifier;
     class extension;
+    class drat;
 
     class solver_core {
     protected:
@@ -80,6 +81,7 @@ namespace sat {
         virtual void set_external(bool_var v) {}
         virtual void set_non_external(bool_var v) {}
         virtual void set_eliminated(bool_var v, bool f) {}
+        virtual void set_phase(literal l) { }
 
         // optional support for user-scopes. Not relevant for sat_tactic integration. 
         // it is only relevant for incremental mode SAT, which isn't wrapped (yet)
@@ -94,6 +96,8 @@ namespace sat {
         virtual void       set_extension(extension* e) { if (e) throw default_exception("optional API not supported"); }
 
         virtual cut_simplifier* get_cut_simplifier() { return nullptr; }
+
+        virtual drat* get_drat_ptr() { return nullptr;  }
 
 
         // The following methods are used when converting the state from the SAT solver back

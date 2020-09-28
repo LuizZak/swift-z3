@@ -7,7 +7,7 @@ Module Name:
 
 Abstract:
 
-    Templates for manipulating doubly linked lists.
+    Templates for manipulating circular doubly linked lists.
 
 Author:
 
@@ -18,118 +18,73 @@ Revision History:
 --*/
 #pragma once
 
-/**
-   Add element \c elem to the list headed by \c head.
-   NextProc and PrevProc must have the methods:
-      T * & operator()(T *);
-      T * & operator()(T *);
-   They should return the next and prev fields of the given object.
-*/
-template<typename T, typename NextProc, typename PrevProc>
-void dlist_add(T * & head, T * elem, NextProc const & next = NextProc(), PrevProc const & prev = PrevProc()) {
-    SASSERT(prev(elem) == 0);
-    SASSERT(next(elem) == 0);
-    if (head == 0) {
-        head = elem;
-    }
-    else {
-        next(elem) = head;
-        prev(head) = elem;
-        head       = elem;
-    }
-}
 
-template<typename T, typename NextProc, typename PrevProc>
-void dlist_del(T * & head, T * elem, NextProc const & next = NextProc(), PrevProc const & prev = PrevProc()) {
-    T * & prev_elem = prev(elem);
-    T * & next_elem = next(elem);
-    if (head == elem) {
-        SASSERT(prev_elem == 0);
-        if (next_elem != 0)
-            prev(next_elem) = 0;
-        head = next_elem;
-    }
-    else {
-        SASSERT(prev_elem != 0);
-        next(prev_elem) = next_elem;
-        if (next_elem != 0)
-            prev(next_elem) = prev_elem;
-    }
-    prev_elem = 0;
-    next_elem = 0;
-}
+template<typename T>
+class dll_base {
+    T* m_next { nullptr };
+    T* m_prev { nullptr };
+public:
 
-/**
-   \brief Remove the head of the list. Return the old head.
-*/
-template<typename T, typename NextProc, typename PrevProc>
-T * dlist_pop(T * & head, NextProc const & next = NextProc(), PrevProc const & prev = PrevProc()) {
-    if (head == 0) {
-        return 0;
-    }
-    else {
-        SASSERT(prev(head) == 0);
-        T * r = head;
-        head = next(head);
-        if (head)
-            prev(head) = 0;
-        next(r) = 0;
-        return r;
-    }
-}
+    T* prev() { return m_prev; }
+    T* next() { return m_next; }
 
-/**
-   \brief Insert new element after elem.
-*/
-template<typename T, typename NextProc, typename PrevProc>
-void dlist_insert_after(T * elem, T * new_elem, NextProc const & next = NextProc(), PrevProc const & prev = PrevProc()) {
-    SASSERT(elem);
-    SASSERT(new_elem);
-    T * & old_next_elem = next(elem);
-    prev(new_elem) = elem;
-    next(new_elem) = old_next_elem;
-    if (old_next_elem)
-        prev(old_next_elem) = new_elem;
-    // next(elem) = new_elem;
-    old_next_elem = new_elem;
-}
-
-template<typename T, typename NextProc>
-bool dlist_contains(T * head, T const * elem, NextProc const & next = NextProc()) {
-    T * curr = head;
-    while (curr != 0) {
-        if (curr == elem)
-            return true;
-        curr = next(curr);
+    void init(T* t) {
+        m_next = t;
+        m_prev = t;
     }
-    return false;
-}
 
-template<typename T, typename NextProc>
-unsigned dlist_length(T * head, NextProc const & next = NextProc()) {
-    unsigned r = 0;
-    T * curr = head;
-    while (curr != 0) {
-        r++;
-        curr = next(curr);
+    static T* pop(T*& list) {
+        if (!list)
+            return list;
+        T* head = list;
+        remove_from(list, head);
+        return head;
     }
-    return r;
-}
+    
+    static void remove_from(T*& list, T* elem) {
+        if (list->m_next == list) {
+            SASSERT(elem == list);
+            list = nullptr;
+            return;
+        }            
+        if (list == elem)
+            list = elem->m_next;
+        auto* next = elem->m_next;
+        auto* prev = elem->m_prev;
+        prev->m_next = next;
+        next->m_prev = prev;        
+    }
 
-template<typename T, typename NextProc, typename PrevProc>
-bool dlist_check_invariant(T * head, NextProc const & next = NextProc(), PrevProc const & prev = PrevProc()) {
-    if (head == 0)
+    static void push_to_front(T*& list, T* elem) {
+        if (!list) {
+            list = elem;
+            elem->m_next = elem;
+            elem->m_prev = elem;            
+        }
+        else if (list != elem) {
+            auto* next = elem->m_next;
+            auto* prev = elem->m_prev;
+            prev->m_next = next;
+            next->m_prev = prev;        
+            list->m_prev->m_next = elem;
+            elem->m_prev = list->m_prev;
+            elem->m_next = list;
+            list->m_prev = elem;
+            list = elem;
+        }
+    }
+
+    bool invariant() const {
+        auto* e = this;
+        do {
+            if (e->m_next->m_prev != e)
+                return false;
+            e = e->m_next;
+        }
+        while (e != this);
         return true;
-    SASSERT(prev(head) == 0);
-    T * old  = head;
-    T * curr = next(head);
-    while (curr != 0) {
-        SASSERT(prev(curr) == old);
-        old = curr;
-        curr = next(curr);
     }
-    return true;
-}
+};
 
 
 

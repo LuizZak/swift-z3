@@ -53,6 +53,7 @@ struct smt_params_helper {
     d.insert("bv.enable_int2bv", CPK_BOOL, "enable support for int2bv and bv2int operators", "true","smt");
     d.insert("bv.eq_axioms", CPK_BOOL, "add dynamic equality axioms", "true","smt");
     d.insert("bv.watch_diseq", CPK_BOOL, "use watch lists instead of eager axioms for bit-vectors", "false","smt");
+    d.insert("bv.delay", CPK_BOOL, "delay internalize expensive bit-vector operations", "true","smt");
     d.insert("arith.random_initial_value", CPK_BOOL, "use random initial values in the simplex-based procedure for linear arithmetic", "false","smt");
     d.insert("arith.cheap_eqs", CPK_BOOL, "false - do not run, true - run cheap equality heuristic", "true","smt");
     d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "6","smt");
@@ -182,6 +183,7 @@ struct smt_params_helper {
   bool bv_enable_int2bv() const { return p.get_bool("bv.enable_int2bv", g, true); }
   bool bv_eq_axioms() const { return p.get_bool("bv.eq_axioms", g, true); }
   bool bv_watch_diseq() const { return p.get_bool("bv.watch_diseq", g, false); }
+  bool bv_delay() const { return p.get_bool("bv.delay", g, true); }
   bool arith_random_initial_value() const { return p.get_bool("arith.random_initial_value", g, false); }
   bool arith_cheap_eqs() const { return p.get_bool("arith.cheap_eqs", g, true); }
   unsigned arith_solver() const { return p.get_uint("arith.solver", g, 6u); }

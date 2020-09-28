@@ -17,6 +17,7 @@ Author:
 #pragma once
 #include "ast/ast.h"
 #include "ast/ast_pp.h"
+#include "ast/ast_ll_pp.h"
 #include "sat/sat_solver.h"
 
 namespace sat {
@@ -39,8 +40,12 @@ namespace sat {
         virtual ~sat_internalizer() {}
         virtual bool is_bool_op(expr* e) const = 0;
         virtual literal internalize(expr* e, bool learned) = 0;
+        virtual bool_var to_bool_var(expr* e) = 0;
         virtual bool_var add_bool_var(expr* e)  = 0;
         virtual void cache(app* t, literal l) = 0;
+        virtual void push() = 0;
+        virtual void pop(unsigned n) = 0;
+        virtual void set_expr2var_replay(obj_map<expr, sat::bool_var>* r) = 0;
     };
     
     class constraint_base {
