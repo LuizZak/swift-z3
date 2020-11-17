@@ -16,22 +16,19 @@ Author:
 Notes:
 
 --*/
-
-#include "util/ref_util.h"
-#include "util/trace.h"
-#include "util/statistics.h"
-#include "ast/arith_decl_plugin.h"
-#include "ast/ast_smt2_pp.h"
-#include "ast/expr_substitution.h"
-#include "ast/ast_pp.h"
-#include "ast/rewriter/bool_rewriter.h"
-#include "ast/rewriter/rewriter_def.h"
-#include "ast/rewriter/pb2bv_rewriter.h"
 #include "tactic/tactical.h"
 #include "tactic/arith/bound_manager.h"
+#include "ast/rewriter/bool_rewriter.h"
+#include "ast/rewriter/rewriter_def.h"
+#include "util/ref_util.h"
+#include "ast/arith_decl_plugin.h"
+#include "util/trace.h"
+#include "ast/ast_smt2_pp.h"
+#include "ast/expr_substitution.h"
 #include "tactic/generic_model_converter.h"
 #include "tactic/arith/pb2bv_model_converter.h"
 #include "tactic/arith/pb2bv_tactic.h"
+#include "ast/ast_pp.h"
 
 class pb2bv_tactic : public tactic {
 public:
@@ -41,13 +38,11 @@ public:
         typedef rational numeral;
         ast_manager   & m;
         arith_util    & m_util;
-        pb_util       & m_pb;
-        bound_manager & m_bm;        
+        bound_manager & m_bm;
     
-        only_01_visitor(arith_util & u, pb_util& pb, bound_manager & bm):
+        only_01_visitor(arith_util & u, bound_manager & bm):
             m(u.get_manager()),
             m_util(u),
-            m_pb(pb),
             m_bm(bm) {
         }
     
@@ -85,10 +80,7 @@ public:
                     throw_non_pb(n);
                 }
             }
-
-            if (fid == m_pb.get_family_id())
-                return;
-            
+        
             if (is_uninterp_const(n)) {
                 if (m.is_bool(n))
                     return; // boolean variables are ok
@@ -117,10 +109,8 @@ private:
         ast_manager &              m;
         bound_manager              m_bm;        
         bool_rewriter              m_b_rw;
-        pb2bv_rewriter             m_pb_rw;
         arith_util                 m_arith_util;
         bv_util                    m_bv_util;
-        pb_util                    m_pb;
         expr_dependency_ref_vector m_new_deps;
         
         bool                       m_produce_models;
@@ -197,7 +187,7 @@ private:
 
         void quick_pb_check(goal_ref const & g) {
             expr_fast_mark1 visited;
-            only_01_visitor proc(m_arith_util, m_pb, m_bm);
+            only_01_visitor proc(m_arith_util, m_bm);
             unsigned sz = g->size();
             for (unsigned i = 0; i < sz; i++) {
                 expr * f = g->form(i);
@@ -856,10 +846,8 @@ private:
             m(_m),
             m_bm(m),
             m_b_rw(m, p),
-            m_pb_rw(m, p),
             m_arith_util(m),
             m_bv_util(m),
-            m_pb(m),
             m_new_deps(m),            
             m_temporary_ints(m),
             m_used_dependencies(m),
@@ -882,7 +870,6 @@ private:
             m_all_clauses_limit = p.get_uint("pb2bv_all_clauses_limit", 8);
             m_cardinality_limit = p.get_uint("pb2bv_cardinality_limit", UINT_MAX);
             m_b_rw.updt_params(p);
-            m_pb_rw.updt_params(p);
         }
 
         void collect_param_descrs(param_descrs & r) {
@@ -891,12 +878,10 @@ private:
             r.insert("pb2bv_cardinality_limit", CPK_UINT, "(default: inf) limit for using arc-consistent cardinality constraint encoding.");
 
             m_b_rw.get_param_descrs(r);        
-            m_pb_rw.collect_param_descrs(r);
             r.erase("flat"); 
             r.erase("elim_and");            
         }
         
-
         void operator()(goal_ref const & g, 
                         goal_ref_buffer & result) {
             TRACE("pb2bv", g->display(tout););
@@ -905,7 +890,7 @@ private:
             m_produce_unsat_cores = g->unsat_core_enabled();
             result.reset();
             tactic_report report("pb2bv", *g);
-            m_bm.reset(); m_rw.reset(); m_new_deps.reset(); m_pb_rw.cleanup();
+            m_bm.reset(); m_rw.reset(); m_new_deps.reset();
 
             if (g->inconsistent()) {
                 result.push_back(g.get());
@@ -940,9 +925,7 @@ private:
                         TRACE("pb2bv_convert", tout << "pos: " << pos << "\n" << mk_ismt2_pp(atom, m) << "\n--->\n" << mk_ismt2_pp(new_f, m) << "\n";); 
                     }
                     else {
-                        proof_ref pr(m);
                         m_rw(curr, new_f);
-                        m_pb_rw(true, new_f, new_f, pr);
                     }
                     if (m_produce_unsat_cores) {
                         new_deps.push_back(m.mk_join(m_used_dependencies, g->dep(idx)));
@@ -956,20 +939,13 @@ private:
             }
 
             for (unsigned idx = 0; idx < size; idx++)
-                g->update(idx, new_exprs.get(idx), nullptr, (m_produce_unsat_cores) ? new_deps.get(idx) : g->dep(idx));
-
-            expr_ref_vector fmls(m);
-            m_pb_rw.flush_side_constraints(fmls);
-            for (expr* e : fmls) 
-                g->assert_expr(e);
+                g->update(idx, new_exprs[idx].get(), nullptr, (m_produce_unsat_cores) ? new_deps[idx].get() : g->dep(idx));
 
             if (m_produce_models) {
                 model_converter_ref mc;
                 generic_model_converter * mc1 = alloc(generic_model_converter, m, "pb2bv");
                 for (auto const& kv : m_const2bit) 
                     mc1->hide(kv.m_value);
-                for (func_decl* f : m_pb_rw.fresh_constants()) 
-                    mc1->hide(f);
                 // store temp int constants in the filter
                 unsigned num_temps = m_temporary_ints.size();
                 for (unsigned i = 0; i < num_temps; i++)
@@ -1041,9 +1017,8 @@ struct is_pb_probe : public probe {
             bound_manager bm(m);
             bm(g);
             arith_util a_util(m);
-            pb_util pb(m);
             expr_fast_mark1 visited;
-            pb2bv_tactic::only_01_visitor proc(a_util, pb, bm);
+            pb2bv_tactic::only_01_visitor proc(a_util, bm);
             
             unsigned sz = g.size();
             for (unsigned i = 0; i < sz; i++) {

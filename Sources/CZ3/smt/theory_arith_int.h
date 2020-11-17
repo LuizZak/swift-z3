@@ -219,7 +219,6 @@ namespace smt {
         {
             std::function<expr*(void)> fn = [&]() { return m.mk_or(bound, m.mk_not(bound)); };
             scoped_trace_stream _sts(*this, fn);
-            IF_VERBOSE(10, verbose_stream() << "branch " << bound << "\n");
             TRACE("arith_int", tout << mk_bounded_pp(bound, m) << "\n";);
             ctx.internalize(bound, true);
             ctx.mark_as_relevant(bound.get());
@@ -297,7 +296,7 @@ namespace smt {
                     continue;
                 }
                 if (!is_int(x)) {
-                    TRACE("arith_int", display_row(tout << "!int:  ", r, true); );
+                    TRACE("theory_arith_int", display_row(tout << "!int:  ", r, true); );
                     is_tight = false;
                     continue;
                 }
@@ -325,7 +324,7 @@ namespace smt {
                     row[i] *= denom.to_rational();
                 }
             }
-            TRACE("arith_int",
+            TRACE("theory_arith_int",
                   tout << "extracted row:\n";
                   for (unsigned i = 0; i < max_row; ++i) {
                       tout << row[i] << " ";
@@ -366,7 +365,7 @@ namespace smt {
             }
         }            
         if (pol.empty()) {
-            TRACE("arith_int", tout << "The witness is trivial\n";);
+            TRACE("theory_arith_int", tout << "The witness is trivial\n";);
             return false;
         }
         expr_ref p1(get_manager()), p2(get_manager());
@@ -420,7 +419,6 @@ namespace smt {
                     scoped_trace_stream _sts(*this, fn);
                     ctx.internalize(bound, true);
                 }
-                IF_VERBOSE(10, verbose_stream() << "free " << bound << "\n");
                 ctx.mark_as_relevant(bound.get());
                 result = true;
             }
@@ -674,7 +672,6 @@ namespace smt {
             ctx.internalize(bound, true);
         }
         l = ctx.get_literal(bound);
-        IF_VERBOSE(10, verbose_stream() << "cut " << bound << "\n");
         ctx.mark_as_relevant(l);
         dump_lemmas(l, ante);
         auto js = ctx.mk_justification(

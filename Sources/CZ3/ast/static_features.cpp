@@ -280,7 +280,7 @@ void static_features::update_core(expr * e) {
     if (is_app(e) && to_app(e)->get_family_id() == m_srfid) 
         m_has_sr = true;
     if (!m_has_arrays && m_arrayutil.is_array(e)) 
-        check_array(m.get_sort(e));
+        m_has_arrays = true;
     if (!m_has_ext_arrays && m_arrayutil.is_array(e) && 
         !m_arrayutil.is_select(e) && !m_arrayutil.is_store(e)) 
         m_has_ext_arrays = true;
@@ -373,16 +373,6 @@ void static_features::update_core(expr * e) {
     }
 }
 
-void static_features::check_array(sort* s) {
-    if (m_arrayutil.is_array(s)) {
-        m_has_arrays = true;
-        update_core(get_array_range(s));
-        for (unsigned i = get_array_arity(s); i-- > 0; )
-            update_core(get_array_domain(s, i));
-    }
-}
-
-
 void static_features::update_core(sort * s) {
     mark_theory(s->get_family_id());
     if (!m_has_int && m_autil.is_int(s))
@@ -393,7 +383,8 @@ void static_features::update_core(sort * s) {
         m_has_bv = true;
     if (!m_has_fpa && (m_fpautil.is_float(s) || m_fpautil.is_rm(s)))
         m_has_fpa = true;
-    check_array(s);
+    if (!m_has_arrays && m_arrayutil.is_array(s))
+        m_has_arrays = true;
 }
 
 void static_features::process(expr * e, bool form_ctx, bool or_and_ctx, bool ite_ctx, unsigned stack_depth) {

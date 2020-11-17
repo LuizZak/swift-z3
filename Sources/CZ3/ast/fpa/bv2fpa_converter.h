@@ -18,7 +18,6 @@ Notes:
 --*/
 #pragma once
 
-#include "util/trail.h"
 #include "ast/fpa_decl_plugin.h"
 #include "ast/bv_decl_plugin.h"
 #include "ast/rewriter/th_rewriter.h"
@@ -69,5 +68,4 @@ public:
 
     array_model convert_array_func_interp(model_core * mc, func_decl * f, func_decl * bv_f);
 };
-
 

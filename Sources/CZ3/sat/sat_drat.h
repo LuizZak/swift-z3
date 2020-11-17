@@ -38,12 +38,6 @@ Notes:
     Redundant clause (theory lemma if theory id is given)
       [r [<theory-id>]] <literal>* 0
 
-    Declaration of an auxiliary function:
-      f <smtlib2-function-declaration> 0
-
-    Garbage collection of a Boolean variable:
-      g <bool-var-id> 0
-
     Available theories are:
       - euf   The theory lemma should be a consequence of congruence closure.
       - ba    TBD (need to also log cardinality and pb constraints)
@@ -129,14 +123,13 @@ namespace sat {
         void add(clause& c, status st);
         void add(literal_vector const& c, status st);
         void add(literal_vector const& c); // add learned clause
-        void add(unsigned sz, literal const* lits, status st);
 
         // support for SMT - connect Boolean variables with AST nodes
         // associate AST node id with Boolean variable v
         void bool_def(bool_var v, unsigned n);
 
         // declare AST node n with 'name' and arguments arg
-        void def_begin(char id, unsigned n, std::string const& name);
+        void def_begin(unsigned n, std::string const& name);
         void def_add_arg(unsigned arg);
         void def_end();
 
@@ -163,13 +156,9 @@ namespace sat {
         void check_model(model const& m);
 
         void collect_statistics(statistics& st) const;
-
-        bool inconsistent() const { return m_inconsistent; }
-        literal_vector const& units() { return m_units; }
-        bool is_drup(unsigned n, literal const* c, literal_vector& units);
-        solver& get_solver() { return s; }
     };
 
-}
+    std::ostream& operator<<(std::ostream& out, status const& st);
 
+};
 

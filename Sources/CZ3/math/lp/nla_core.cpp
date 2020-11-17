@@ -1467,7 +1467,7 @@ lbool core::check(vector<lemma>& l_vec) {
     init_to_refine();
     patch_monomials();
     set_use_nra_model(false);    
-    if (m_to_refine.empty()) { return l_true; }   
+    if (m_to_refine.is_empty()) { return l_true; }   
     init_search();
 
     lbool ret = l_undef;
@@ -1500,7 +1500,7 @@ lbool core::check(vector<lemma>& l_vec) {
 
     if (l_vec.empty() && !done() && m_nla_settings.run_nra()) {
         ret = m_nra.check();
-        m_stats.m_nra_calls++;
+        m_stats.m_nra_calls ++;
     }
     
     if (ret == l_undef && !l_vec.empty() && m_reslim.inc()) 

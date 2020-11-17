@@ -40,7 +40,6 @@ struct smt_params_helper {
     d.insert("mbqi.trace", CPK_BOOL, "generate tracing messages for Model Based Quantifier Instantiation (MBQI). It will display a message before every round of MBQI, and the quantifiers that were not satisfied", "false","smt");
     d.insert("mbqi.force_template", CPK_UINT, "some quantifiers can be used as templates for building interpretations for functions. Z3 uses heuristics to decide whether a quantifier will be used as a template or not. Quantifiers with weight >= mbqi.force_template are forced to be used as a template", "10","smt");
     d.insert("mbqi.id", CPK_STRING, "Only use model-based instantiation for quantifiers with id's beginning with string", "","smt");
-    d.insert("q.lift_ite", CPK_UINT, "0 - don not lift non-ground if-then-else, 1 - use conservative ite lifting, 2 - use full lifting of if-then-else under quantifiers", "0","smt");
     d.insert("qi.profile", CPK_BOOL, "profile quantifier instantiation", "false","smt");
     d.insert("qi.profile_freq", CPK_UINT, "how frequent results are reported by qi.profile", "4294967295","smt");
     d.insert("qi.max_instances", CPK_UINT, "maximum number of quantifier instantiations", "4294967295","smt");
@@ -54,7 +53,6 @@ struct smt_params_helper {
     d.insert("bv.enable_int2bv", CPK_BOOL, "enable support for int2bv and bv2int operators", "true","smt");
     d.insert("bv.eq_axioms", CPK_BOOL, "add dynamic equality axioms", "true","smt");
     d.insert("bv.watch_diseq", CPK_BOOL, "use watch lists instead of eager axioms for bit-vectors", "false","smt");
-    d.insert("bv.delay", CPK_BOOL, "delay internalize expensive bit-vector operations", "true","smt");
     d.insert("arith.random_initial_value", CPK_BOOL, "use random initial values in the simplex-based procedure for linear arithmetic", "false","smt");
     d.insert("arith.cheap_eqs", CPK_BOOL, "false - do not run, true - run cheap equality heuristic", "true","smt");
     d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "6","smt");
@@ -171,7 +169,6 @@ struct smt_params_helper {
   bool mbqi_trace() const { return p.get_bool("mbqi.trace", g, false); }
   unsigned mbqi_force_template() const { return p.get_uint("mbqi.force_template", g, 10u); }
   char const * mbqi_id() const { return p.get_str("mbqi.id", g, ""); }
-  unsigned q_lift_ite() const { return p.get_uint("q.lift_ite", g, 0u); }
   bool qi_profile() const { return p.get_bool("qi.profile", g, false); }
   unsigned qi_profile_freq() const { return p.get_uint("qi.profile_freq", g, 4294967295u); }
   unsigned qi_max_instances() const { return p.get_uint("qi.max_instances", g, 4294967295u); }
@@ -185,7 +182,6 @@ struct smt_params_helper {
   bool bv_enable_int2bv() const { return p.get_bool("bv.enable_int2bv", g, true); }
   bool bv_eq_axioms() const { return p.get_bool("bv.eq_axioms", g, true); }
   bool bv_watch_diseq() const { return p.get_bool("bv.watch_diseq", g, false); }
-  bool bv_delay() const { return p.get_bool("bv.delay", g, true); }
   bool arith_random_initial_value() const { return p.get_bool("arith.random_initial_value", g, false); }
   bool arith_cheap_eqs() const { return p.get_bool("arith.cheap_eqs", g, true); }
   unsigned arith_solver() const { return p.get_uint("arith.solver", g, 6u); }

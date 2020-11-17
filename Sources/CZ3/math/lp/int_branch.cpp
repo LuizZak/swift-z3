@@ -25,7 +25,7 @@ namespace lp {
 int_branch::int_branch(int_solver& lia):lia(lia), lra(lia.lra) {}
 
 lia_move int_branch::operator()() {
-    lra.move_non_basic_columns_to_bounds(true);
+    lra.move_non_basic_columns_to_bounds();
     int j = find_inf_int_base_column();
     return j == -1? lia_move::sat : create_branch_on_column(j);        
 }
@@ -87,10 +87,10 @@ int int_branch::find_inf_int_base_column() {
     // this loop looks for boxed columns with a small span
     for (; k < lra.r_basis().size(); k++) {
         j = lra.r_basis()[k];
+        usage = lra.usage_in_terms(j);
         if (!lia.column_is_int_inf(j) || !lia.is_boxed(j))
             continue;
         SASSERT(!lia.is_fixed(j));
-        usage = lra.usage_in_terms(j);
         new_range  = lcs.m_r_upper_bounds()[j].x - lcs.m_r_lower_bounds()[j].x - rational(2*usage);
         if (new_range < range) {
             n = 1;

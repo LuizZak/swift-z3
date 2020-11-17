@@ -196,9 +196,8 @@ void arith_decl_plugin::set_manager(ast_manager * m, family_id id) {
     m_is_int_decl = m->mk_func_decl(symbol("is_int"), r, m->mk_bool_sort(), func_decl_info(id, OP_IS_INT));
     m->inc_ref(m_is_int_decl);
 
-    m_i_power_decl = m->mk_func_decl(symbol("^"), i, i, r, func_decl_info(id, OP_POWER));
-    m->inc_ref(m_i_power_decl);
     MK_OP(m_r_power_decl, "^", OP_POWER, r);
+    MK_OP(m_i_power_decl, "^", OP_POWER, i);
 
     MK_UNARY(m_i_abs_decl, "abs", OP_ABS, i);
     MK_UNARY(m_r_abs_decl, "abs", OP_ABS, r);
@@ -831,8 +830,6 @@ bool arith_util::is_considered_uninterpreted(func_decl* f, unsigned n, expr* con
     return plugin().is_considered_uninterpreted(f);
 }
 
-
-
 func_decl* arith_util::mk_ipower0() {
     sort* s = mk_int();
     sort* rs[2] = { s, s };
@@ -864,90 +861,3 @@ func_decl* arith_util::mk_mod0() {
     sort* rs[2] = { mk_int(), mk_int() };
     return m_manager.mk_func_decl(m_afid, OP_MOD0, 0, nullptr, 2, rs, mk_int());
 }
-
-bool arith_util::is_bounded(expr* n) const {
-    expr* x = nullptr, * y = nullptr;
-    while (true) {
-        if (is_idiv(n, x, y) && is_numeral(y)) {
-            n = x;
-        }
-        else if (is_mod(n, x, y) && is_numeral(y)) {
-            return true;
-        }
-        else if (is_numeral(n)) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-}
-
-bool arith_util::is_extended_numeral(expr* term, rational& r) const {
-    rational mul(1);
-    do {
-        if (is_numeral(term, r)) {
-            r *= mul;
-            return true;
-        }
-        if (is_uminus(term, term)) {
-            mul.neg();
-            continue;
-        }
-        if (is_to_real(term, term)) {
-            continue;
-        }
-        if (is_mul(term)) {
-            rational r(mul), n(0);
-            for (expr* arg : *to_app(term)) {
-                if (!is_extended_numeral(arg, n))
-                    return false;
-                r *= n;
-            }
-            return true;
-        }
-        if (is_add(term)) {
-            rational r(0), n(0);
-            for (expr* arg : *to_app(term)) {
-                if (!is_extended_numeral(arg, n))
-                    return false;
-                r += n;
-            }
-            r *= mul;
-            return true;
-        }
-        rational k1, k2;
-        expr* t1, *t2;
-        if (is_sub(term, t1, t2) && 
-            is_extended_numeral(t1, k1) &&
-            is_extended_numeral(t2, k2)) {
-            r = k1 - k2;
-            r *= mul;
-            return true;
-        }
-        return false;
-    } while (false);
-    return false;
-}
-
-bool arith_util::is_underspecified(expr* e) const {
-    if (!is_app(e))
-        return false;
-    if (to_app(e)->get_family_id() == get_family_id()) {
-        switch (to_app(e)->get_decl_kind()) {
-        case OP_DIV:
-        case OP_IDIV:
-        case OP_REM:
-        case OP_MOD:
-        case OP_DIV0:
-        case OP_IDIV0:
-        case OP_REM0:
-        case OP_MOD0:
-            return true;
-        default:
-            break;
-        }
-    }
-    return false;
-}
-

@@ -277,9 +277,9 @@ public:
         m_capacity    = source.m_capacity;
         std::swap(m_table, source.m_table);
         m_size        = source.m_size;
-        m_num_deleted = source.m_num_deleted;
+        m_num_deleted = 0;
         HS_CODE({
-            m_st_collision = source.m_st_collision;
+            m_st_collision = 0;
         });
     }
     

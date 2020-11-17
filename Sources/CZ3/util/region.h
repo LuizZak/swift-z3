@@ -25,23 +25,44 @@ Revision History:
 #include "util/vector.h"
 
 class region {
-    ptr_vector<char> m_chunks;
+    ptr_vector<char> m_chuncks;
     unsigned_vector  m_scopes;
 public:
     ~region() {
         reset();
     }
 
-
-    void * allocate(size_t size);
-
-    void reset();
-
-    void push_scope() {
-        m_scopes.push_back(m_chunks.size());
+    void * allocate(size_t size) {
+        char * r = alloc_svect(char, size);
+        m_chuncks.push_back(r);
+        return r;
     }
 
-    void pop_scope();
+    void reset() {
+        ptr_vector<char>::iterator it  = m_chuncks.begin();
+        ptr_vector<char>::iterator end = m_chuncks.end();
+        for (; it != end; ++it) {
+            dealloc_svect(*it);
+        }
+        m_chuncks.reset();
+        m_scopes.reset();
+    }
+
+    void push_scope() {
+        m_scopes.push_back(m_chuncks.size());
+    }
+
+
+    void pop_scope() {
+        unsigned old_size = m_scopes.back();
+        m_scopes.pop_back();
+        ptr_vector<char>::iterator it  = m_chuncks.begin() + old_size;
+        ptr_vector<char>::iterator end = m_chuncks.end();
+        for (; it != end; ++it) {
+            dealloc_svect(*it);
+        }
+        m_chuncks.shrink(old_size);
+    }
     
     void pop_scope(unsigned num_scopes) {
         for (unsigned i = 0; i < num_scopes; i++) {

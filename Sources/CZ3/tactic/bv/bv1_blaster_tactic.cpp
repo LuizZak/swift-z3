@@ -27,7 +27,6 @@ Notes:
 #include "ast/bv_decl_plugin.h"
 #include "ast/rewriter/rewriter_def.h"
 #include "ast/for_each_expr.h"
-#include "ast/ast_util.h"
 #include "ast/rewriter/bv_rewriter.h"
 
 class bv1_blaster_tactic : public tactic {
@@ -142,7 +141,7 @@ class bv1_blaster_tactic : public tactic {
                 --i;
                 new_eqs.push_back(m().mk_eq(bits1[i], bits2[i]));
             }
-            result = mk_and(m(), new_eqs.size(), new_eqs.c_ptr());
+            result = m().mk_and(new_eqs.size(), new_eqs.c_ptr());
         }
         
         void reduce_ite(expr * c, expr * t, expr * e, expr_ref & result) {
@@ -153,8 +152,8 @@ class bv1_blaster_tactic : public tactic {
             SASSERT(t_bits.size() == e_bits.size());
             bit_buffer new_ites;
             unsigned num = t_bits.size();
-            for (unsigned i = 0; i < num; i++)             
-                new_ites.push_back(t_bits[i] == e_bits[i] ? t_bits[i] : m().mk_ite(c, t_bits[i], e_bits[i]));
+            for (unsigned i = 0; i < num; i++)
+                new_ites.push_back(m().mk_ite(c, t_bits[i], e_bits[i]));
             result = butil().mk_concat(new_ites.size(), new_ites.c_ptr());
         }
         

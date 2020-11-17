@@ -32,15 +32,15 @@ static mutex g_log_mux;
 #define SCOPED_LOCK() {}
 #endif
 
-static void Z3_close_log_unsafe(void) {
-    if (g_z3_log != nullptr) {
-        g_z3_log_enabled = false;
-        dealloc(g_z3_log);
-        g_z3_log = nullptr;
-    }
-}
-
 extern "C" {
+    void Z3_close_log_unsafe(void) {
+        if (g_z3_log != nullptr) {
+            g_z3_log_enabled = false;
+            dealloc(g_z3_log);
+            g_z3_log = nullptr;
+        }
+    }
+
     bool Z3_API Z3_open_log(Z3_string filename) {
         bool res = true;
 

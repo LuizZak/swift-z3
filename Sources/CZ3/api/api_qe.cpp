@@ -18,7 +18,6 @@ Notes:
 --*/
 
 #include <iostream>
-#include "ast/expr_map.h"
 #include "api/z3.h"
 #include "api/api_log_macros.h"
 #include "api/api_context.h"
@@ -26,8 +25,10 @@ Notes:
 #include "api/api_model.h"
 #include "api/api_ast_map.h"
 #include "api/api_ast_vector.h"
+#include "qe/qe_vartest.h"
 #include "qe/qe_lite.h"
 #include "muz/spacer/spacer_util.h"
+#include "ast/expr_map.h"
 
 extern "C"
 {

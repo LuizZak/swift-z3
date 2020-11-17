@@ -19,7 +19,6 @@ Revision History:
 #pragma once
 
 #include "util/vector.h"
-#include <atomic>
 
 void initialize_rlimit();
 void finalize_rlimit();
@@ -29,7 +28,7 @@ void finalize_rlimit();
 */
 
 class reslimit {
-    std::atomic<unsigned> m_cancel;
+    volatile unsigned   m_cancel;
     bool            m_suspend;
     uint64_t        m_count;
     uint64_t        m_limit;

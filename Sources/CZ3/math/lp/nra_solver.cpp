@@ -85,7 +85,7 @@ struct solver::imp {
                 throw;
             }
         }
-        TRACE("nra", 
+        TRACE("arith", 
               m_nlsat->display(tout << r << "\n");
               display(tout); 
               for (auto kv : m_lp2nl) 

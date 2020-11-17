@@ -245,7 +245,7 @@ public:
     bool is_unsigned(expr const * n, unsigned& u) const { 
         rational val;
         bool is_int = true;
-        return is_numeral(n, val, is_int) && is_int && val.is_unsigned() && (u = val.get_unsigned(), true); 
+        return is_numeral(n, val, is_int) && is_int && val.is_unsigned(), u = val.get_unsigned(), true; 
     }
     bool is_numeral(expr const * n, rational & val, bool & is_int) const;
     bool is_numeral(expr const * n, rational & val) const { bool is_int; return is_numeral(n, val, is_int); }
@@ -494,12 +494,6 @@ public:
     expr_ref mk_add_simplify(unsigned sz, expr* const* args);
 
     bool is_considered_uninterpreted(func_decl* f, unsigned n, expr* const* args, func_decl_ref& f_out);
-
-    bool is_underspecified(expr* e) const;
-
-    bool is_bounded(expr* e) const;
-
-    bool is_extended_numeral(expr* e, rational& r) const;
 
 };
 

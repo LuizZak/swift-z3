@@ -26,7 +26,6 @@ Revision History:
 #include "util/vector.h"
 #include "util/uint_set.h"
 #include "util/stopwatch.h"
-#include "util/symbol.h"
 
 class params_ref;
 class reslimit;
@@ -259,7 +258,7 @@ namespace sat {
         st m_st;
         int m_orig;
     public:
-        status(st s, int o) : m_st(s), m_orig(o) {};
+        status(enum st s, int o) : m_st(s), m_orig(o) {};
         status(status const& s) : m_st(s.m_st), m_orig(s.m_orig) {}
         status(status&& s) noexcept { m_st = st::asserted; m_orig = -1; std::swap(m_st, s.m_st); std::swap(m_orig, s.m_orig); }
         status& operator=(status const& other) { m_st = other.m_st; m_orig = other.m_orig; return *this; }
@@ -279,16 +278,5 @@ namespace sat {
         int  get_th() const { return m_orig;  }
     };
 
-    struct status_pp {
-        status const& st;
-        std::function<symbol(int)>& th;
-        status_pp(status const& st, std::function<symbol(int)>& th) : st(st), th(th) {}
-    };
-
-    std::ostream& operator<<(std::ostream& out, sat::status const& st);
-    std::ostream& operator<<(std::ostream& out, sat::status_pp const& p);
-
 };
-
-
 

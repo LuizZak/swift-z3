@@ -367,23 +367,22 @@ extern "C" {
         LOG_Z3_solver_set_params(c, s, p);
         RESET_ERROR_CODE();
 
-        auto &params = to_param_ref(p);
-        symbol logic = params.get_sym("smt.logic", symbol::null);
+        symbol logic = to_param_ref(p).get_sym("smt.logic", symbol::null);
         if (logic != symbol::null) {
             to_solver(s)->m_logic = logic;
         }
         if (to_solver(s)->m_solver) {
             bool old_model = to_solver(s)->m_params.get_bool("model", true);
-            bool new_model = params.get_bool("model", true);
+            bool new_model = to_param_ref(p).get_bool("model", true);
             if (old_model != new_model)
                 to_solver_ref(s)->set_produce_models(new_model);
             param_descrs r;
             to_solver_ref(s)->collect_param_descrs(r);
             context_params::collect_solver_param_descrs(r);
-            params.validate(r);
-            to_solver_ref(s)->updt_params(params);
+            to_param_ref(p).validate(r);
+            to_solver_ref(s)->updt_params(to_param_ref(p));
         }
-        to_solver(s)->m_params.append(params);
+        to_solver(s)->m_params.append(to_param_ref(p));
 
         init_solver_log(c, s);
         
@@ -557,6 +556,39 @@ extern "C" {
             v->m_ast_vector.push_back(f);
         }
         RETURN_Z3(of_ast_vector(v));
+        Z3_CATCH_RETURN(nullptr);
+    }
+
+    Z3_ast Z3_API Z3_solver_get_implied_value(Z3_context c, Z3_solver s, Z3_ast e) {
+        Z3_TRY;
+        LOG_Z3_solver_get_implied_value(c, s, e);
+        RESET_ERROR_CODE();
+        init_solver(c, s);
+        expr_ref v = to_solver_ref(s)->get_implied_value(to_expr(e));
+        mk_c(c)->save_ast_trail(v);
+        RETURN_Z3(of_ast(v));
+        Z3_CATCH_RETURN(nullptr);
+    }
+
+    Z3_ast Z3_API Z3_solver_get_implied_lower(Z3_context c, Z3_solver s, Z3_ast e) {
+        Z3_TRY;
+        LOG_Z3_solver_get_implied_lower(c, s, e);
+        RESET_ERROR_CODE();
+        init_solver(c, s);
+        expr_ref v = to_solver_ref(s)->get_implied_lower_bound(to_expr(e));
+        mk_c(c)->save_ast_trail(v);
+        RETURN_Z3(of_ast(v));
+        Z3_CATCH_RETURN(nullptr);
+    }
+
+    Z3_ast Z3_API Z3_solver_get_implied_upper(Z3_context c, Z3_solver s, Z3_ast e) {
+        Z3_TRY;
+        LOG_Z3_solver_get_implied_upper(c, s, e);
+        RESET_ERROR_CODE();
+        init_solver(c, s);
+        expr_ref v = to_solver_ref(s)->get_implied_upper_bound(to_expr(e));
+        mk_c(c)->save_ast_trail(v);
+        RETURN_Z3(of_ast(v));
         Z3_CATCH_RETURN(nullptr);
     }
 
@@ -942,7 +974,7 @@ extern "C" {
         Z3_TRY;
         LOG_Z3_solver_propagate_consequence(c, s, num_fixed, fixed_ids, num_eqs, eq_lhs, eq_rhs, conseq);
         RESET_ERROR_CODE();
-        reinterpret_cast<solver::propagate_callback*>(s)->propagate_cb(num_fixed, fixed_ids, num_eqs, eq_lhs, eq_rhs, to_expr(conseq));
+        reinterpret_cast<solver::propagate_callback*>(s)->propagate(num_fixed, fixed_ids, num_eqs, eq_lhs, eq_rhs, to_expr(conseq));
         Z3_CATCH;        
     }
 

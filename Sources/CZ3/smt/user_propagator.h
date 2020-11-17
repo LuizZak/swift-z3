@@ -22,7 +22,6 @@ Notes:
 
 #pragma once
 
-#include "util/uint_set.h"
 #include "smt/smt_theory.h"
 #include "solver/solver.h"
 
@@ -58,7 +57,6 @@ namespace smt {
         solver::eq_eh_t        m_diseq_eh;
         solver::context_obj*   m_api_context { nullptr };
         unsigned               m_qhead { 0 };
-        uint_set               m_fixed;
         vector<prop_info>      m_prop;
         unsigned_vector        m_prop_lim;
         vector<literal_vector> m_id2justification;
@@ -97,7 +95,7 @@ namespace smt {
 
         bool has_fixed() const { return (bool)m_fixed_eh; }
 
-        void propagate_cb(unsigned num_fixed, unsigned const* fixed_ids, unsigned num_eqs, unsigned const* lhs, unsigned const* rhs, expr* conseq) override;
+        void propagate(unsigned num_fixed, unsigned const* fixed_ids, unsigned num_eqs, unsigned const* lhs, unsigned const* rhs, expr* conseq) override;
 
         void new_fixed_eh(theory_var v, expr* value, unsigned num_lits, literal const* jlits);
 

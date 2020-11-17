@@ -3,7 +3,7 @@ Copyright (c) 2018 Microsoft Corporation
 
 Module Name:
 
-    mbp_solve_plugin.h
+    qe_solve.h
 
 Abstract:
 
@@ -21,10 +21,10 @@ Revision History:
 #pragma once
 
 #include "ast/ast.h"
-#include "ast/is_variable_test.h"
 #include "util/plugin_manager.h"
+#include "qe/qe_vartest.h"
 
-namespace mbp {
+namespace qe {
 
     class solve_plugin {
     protected:

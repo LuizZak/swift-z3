@@ -191,7 +191,7 @@ public:
 
     void add_delta_to_entering(unsigned entering, const X & delta);
 
-    const X & get_var_value(unsigned j) const {
+    const T & get_var_value(unsigned j) const {
         return m_x[j];
     }
 
@@ -590,39 +590,37 @@ public:
             return out;
         }
 
-        std::stringstream strm;
-        strm << m_x[j];
-        std::string j_val = strm.str();
-        out << "[" << j << "] " << std::setw(6) << " := " << j_val;
-        if (m_basis_heading[j] >= 0)
-            out << " base ";
-        else 
-            out << "      ";
-        for (auto k = j_val.size(); k < 15; ++k)
-            out << " ";
+        out << "[" << j << "]\t";
+            
         switch (m_column_types[j]) {
         case column_type::fixed:
         case column_type::boxed:
-            out << "[" << m_lower_bounds[j] << ", " << m_upper_bounds[j] << "]";
+            out << " [" << m_lower_bounds[j] << ", " << m_upper_bounds[j] << "]";
             break;
         case column_type::lower_bound:
-            out << "[" << m_lower_bounds[j] << ", oo" << "]";
+            out << " [" << m_lower_bounds[j] << "," << "oo" << "]";
             break;
         case column_type::upper_bound:
-            out << "[-oo, " << m_upper_bounds[j] << ']';
+            out << " [-oo, " << m_upper_bounds[j] << ']';
             break;
         case column_type::free_column:
-            out << "[-oo, oo]";
+            out << " [-oo, oo]";
             break;
         default:
             lp_assert(false);
         }
-        return out << "\n";
+        //        out << "basis heading = " << m_basis_heading[j] << std::endl;
+        out << "\tx = " << m_x[j];
+        if (m_basis_heading[j] >= 0)
+            out << " base\n";
+        else
+           out << " \n";
+        return out;
     }
 
-    bool column_is_free(unsigned j) const { return this->m_column_types[j] == column_type::free_column; }
+    bool column_is_free(unsigned j) const { return this->m_column_type[j] == column_type::free_column; }
 
-    bool column_is_fixed(unsigned j) const { return this->m_column_types[j] == column_type::fixed; }
+    bool column_is_fixed(unsigned j) const { return this->m_column_type[j] == column_type::fixed; }
 
     
     bool column_has_upper_bound(unsigned j) const {

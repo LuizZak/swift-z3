@@ -451,7 +451,7 @@ bool seq_decl_plugin::match(ptr_vector<sort>& binding, sort* s, sort* sP) {
 /*
   \brief match right associative operator.
 */
-void seq_decl_plugin::match_assoc(psig& sig, unsigned dsz, sort *const* dom, sort* range, sort_ref& range_out) {
+void seq_decl_plugin::match_right_assoc(psig& sig, unsigned dsz, sort *const* dom, sort* range, sort_ref& range_out) {
     ptr_vector<sort> binding;
     ast_manager& m = *m_manager;
     if (dsz == 0) {
@@ -463,7 +463,7 @@ void seq_decl_plugin::match_assoc(psig& sig, unsigned dsz, sort *const* dom, sor
     bool is_match = true;
     for (unsigned i = 0; is_match && i < dsz; ++i) {
         SASSERT(dom[i]);
-        is_match = match(binding, dom[i], sig.m_dom.get(0));
+        is_match = match(binding, dom[i], sig.m_dom[0].get());
     }
     if (range && is_match) {
         is_match = match(binding, range, sig.m_range);
@@ -722,27 +722,17 @@ func_decl* seq_decl_plugin::mk_str_fun(decl_kind k, unsigned arity, sort* const*
 }
 
 func_decl* seq_decl_plugin::mk_assoc_fun(decl_kind k, unsigned arity, sort* const* domain, sort* range, decl_kind k_seq, decl_kind k_string) {
-    return mk_assoc_fun(k, arity, domain, range, k_seq, k_string, true);
-}
-
-func_decl* seq_decl_plugin::mk_left_assoc_fun(decl_kind k, unsigned arity, sort* const* domain, sort* range, decl_kind k_seq, decl_kind k_string) {
-    return mk_assoc_fun(k, arity, domain, range, k_seq, k_string, false);
-}
-
-func_decl* seq_decl_plugin::mk_assoc_fun(decl_kind k, unsigned arity, sort* const* domain, sort* range, decl_kind k_seq, decl_kind k_string, bool is_right) {
     ast_manager& m = *m_manager;
     sort_ref rng(m);
     if (arity == 0) {
         m.raise_exception("Invalid function application. At least one argument expected");
     }
-    match_assoc(*m_sigs[k], arity, domain, range, rng);
+    match_right_assoc(*m_sigs[k], arity, domain, range, rng);
     func_decl_info info(m_family_id, k_seq);
-    if (is_right)
-        info.set_right_associative(true);
+    info.set_right_associative(true);
     info.set_left_associative(true);
     return m.mk_func_decl(m_sigs[(rng == m_string)?k_string:k_seq]->m_name, rng, rng, rng, info);
 }
-
 
 func_decl * seq_decl_plugin::mk_func_decl(decl_kind k, unsigned num_parameters, parameter const * parameters,
                                           unsigned arity, sort * const * domain, sort * range) {
@@ -864,7 +854,7 @@ func_decl * seq_decl_plugin::mk_func_decl(decl_kind k, unsigned num_parameters, 
     case OP_RE_INTERSECT:
     case OP_RE_DIFF:
         m_has_re = true;
-        return mk_left_assoc_fun(k, arity, domain, range, k, k);
+        return mk_assoc_fun(k, arity, domain, range, k, k);
 
     case OP_SEQ_REPLACE_RE_ALL:
     case OP_SEQ_REPLACE_RE:
@@ -1689,6 +1679,7 @@ seq_util::rex::info seq_util::rex::mk_info_rec(app* e) const {
     lbool nullable(l_false);
     unsigned min_length(0), lower_bound(0), upper_bound(UINT_MAX);
     bool is_value(false);
+    bool normalized(false);
     if (e->get_family_id() == u.get_family_id()) {
         switch (e->get_decl()->get_decl_kind()) {
         case OP_RE_EMPTY_SET:

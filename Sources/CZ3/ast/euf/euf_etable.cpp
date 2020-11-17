@@ -30,20 +30,20 @@ namespace euf {
         unsigned i = n->num_args();
         while (i >= 3) {
             i--;
-            a += get_root(n, i)->hash();
+            a += n->get_arg(i)->get_root()->hash();
             i--;
-            b += get_root(n, i)->hash();
+            b += n->get_arg(i)->get_root()->hash();
             i--;
-            c += get_root(n, i)->hash();
+            c += n->get_arg(i)->get_root()->hash();
             mix(a, b, c);
         }
         
         switch (i) {
         case 2:
-            b += get_root(n, 1)->hash();
+            b += n->get_arg(1)->get_root()->hash();
             Z3_fallthrough;
         case 1:
-            c += get_root(n, 0)->hash();
+            c += n->get_arg(0)->get_root()->hash();
         }
         mix(a, b, c);
         return c;
@@ -56,7 +56,7 @@ namespace euf {
             return false;
         }
         for (unsigned i = 0; i < num; i++) 
-            if (get_root(n1, i) != get_root(n2, i))
+            if (n1->get_arg(i)->get_root() != n2->get_arg(i)->get_root())
                 return false;
         return true;
     }
@@ -69,25 +69,31 @@ namespace euf {
         reset();
     }
 
-    void * etable::mk_table_for(unsigned arity, func_decl * d) {
+    void * etable::mk_table_for(func_decl * d) {
         void * r;
         SASSERT(d->get_arity() >= 1);
-        SASSERT(arity >= d->get_arity());
-        switch (arity) {
+        switch (d->get_arity()) {
         case 1:
             r = TAG(void*, alloc(unary_table), UNARY);
             SASSERT(GET_TAG(r) == UNARY);
             return r;
         case 2:
-            if (d->is_commutative()) {
+            if (d->is_flat_associative()) {
+                // applications of declarations that are flat-assoc (e.g., +) may have many arguments.
+                r = TAG(void*, alloc(table), NARY);
+                SASSERT(GET_TAG(r) == NARY);
+                return r;
+            }
+            else if (d->is_commutative()) {
                 r = TAG(void*, alloc(comm_table, cg_comm_hash(), cg_comm_eq(m_commutativity)), BINARY_COMM);
                 SASSERT(GET_TAG(r) == BINARY_COMM);
+                return r;
             }
             else {
                 r = TAG(void*, alloc(binary_table), BINARY);
                 SASSERT(GET_TAG(r) == BINARY);
+                return r;
             }
-            return r;
         default: 
             r = TAG(void*, alloc(table), NARY);
             SASSERT(GET_TAG(r) == NARY);
@@ -98,20 +104,18 @@ namespace euf {
     unsigned etable::set_table_id(enode * n) {
         func_decl * f = n->get_decl();
         unsigned tid;
-        decl_info d(f, n->num_args());
-        if (!m_func_decl2id.find(d, tid)) {
+        if (!m_func_decl2id.find(f, tid)) {
             tid = m_tables.size();
-            m_func_decl2id.insert(d, tid);
+            m_func_decl2id.insert(f, tid);
             m_manager.inc_ref(f);
             SASSERT(tid <= m_tables.size());
-            m_tables.push_back(mk_table_for(n->num_args(), f));
+            m_tables.push_back(mk_table_for(f));
         }
         SASSERT(tid < m_tables.size());
         n->set_table_id(tid);
         DEBUG_CODE({
-            decl_info d(n->get_decl(), n->num_args());
-            SASSERT(m_func_decl2id.contains(d));
-            SASSERT(m_func_decl2id[d] == tid);
+            unsigned tid_prime;
+            SASSERT(m_func_decl2id.find(n->get_decl(), tid_prime) && tid == tid_prime);
         });
         return tid;
     }
@@ -135,7 +139,7 @@ namespace euf {
         }
         m_tables.reset();
         for (auto const& kv : m_func_decl2id) {
-            m_manager.dec_ref(kv.m_key.first);
+            m_manager.dec_ref(kv.m_key);
         }
         m_func_decl2id.reset();
     }
@@ -143,7 +147,7 @@ namespace euf {
     void etable::display(std::ostream & out) const {
         for (auto const& kv : m_func_decl2id) {
             void * t = m_tables[kv.m_value];
-            out << mk_pp(kv.m_key.first, m_manager) << ": ";
+            out << mk_pp(kv.m_key, m_manager) << ": ";
             switch (GET_TAG(t)) {
             case UNARY: 
                 display_unary(out, t);
@@ -211,6 +215,8 @@ namespace euf {
             return enode_bool_pair(n_prime, false);
         case BINARY:
             n_prime = UNTAG(binary_table*, t)->insert_if_not_there(n);
+            TRACE("euf", tout << "insert: " << n->get_expr_id() << " " << cg_binary_hash()(n) << " inserted: " << (n == n_prime) << " " << n_prime->get_expr_id() << "\n";
+                  display_binary(tout, t); tout << "contains_ptr: " << contains_ptr(n) << "\n";); 
             return enode_bool_pair(n_prime, false);
         case BINARY_COMM:
             m_commutativity = false;
@@ -230,6 +236,7 @@ namespace euf {
             UNTAG(unary_table*, t)->erase(n);
             break;
         case BINARY:
+            TRACE("euf", tout << "erase: " << n->get_expr_id() << " " << cg_binary_hash()(n) << " contains: " << contains_ptr(n) << "\n";);
             UNTAG(binary_table*, t)->erase(n);
             break;
         case BINARY_COMM:
@@ -239,41 +246,6 @@ namespace euf {
             UNTAG(table*, t)->erase(n);
             break;
         }
-    }
-
-    bool etable::contains(enode* n) const {
-        SASSERT(n->num_args() > 0);
-        void* t = const_cast<etable*>(this)->get_table(n);
-        switch (static_cast<table_kind>(GET_TAG(t))) {
-        case UNARY:
-            return UNTAG(unary_table*, t)->contains(n);
-        case BINARY:
-            return UNTAG(binary_table*, t)->contains(n);
-        case BINARY_COMM:
-            return UNTAG(comm_table*, t)->contains(n);
-        default:
-            return UNTAG(table*, t)->contains(n);
-        }
-    }
-
-    enode* etable::find(enode* n) const {
-        SASSERT(n->num_args() > 0);
-        enode* r = nullptr;
-        void* t = const_cast<etable*>(this)->get_table(n);
-        switch (static_cast<table_kind>(GET_TAG(t))) {
-        case UNARY:
-            return UNTAG(unary_table*, t)->find(n, r) ? r : nullptr;
-        case BINARY:
-            return UNTAG(binary_table*, t)->find(n, r) ? r : nullptr;
-        case BINARY_COMM:
-            return UNTAG(comm_table*, t)->find(n, r) ? r : nullptr;
-        default:
-            return UNTAG(table*, t)->find(n, r) ? r : nullptr;
-        }
-    }
-
-    bool etable::contains_ptr(enode* n) const {
-        return find(n) == n;
     }
 
 };

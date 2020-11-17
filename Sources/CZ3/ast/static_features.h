@@ -134,8 +134,6 @@ struct static_features {
             m_num_theories++; 
         }
     }
-
-    void check_array(sort* s);
     
     void acc_num(rational const & r) {
         if (r.is_neg())

@@ -21,9 +21,6 @@ Revision History:
 #include "ast/ast_pp.h"
 #include "ast/ast_pp_util.h"
 #include "util/stats.h"
-#ifndef SINGLE_THREAD
-#include <thread>
-#endif
 
 namespace smt {
 
@@ -181,19 +178,14 @@ namespace smt {
 
     std::ostream& context::display_clauses(std::ostream & out, ptr_vector<clause> const & v) const {
         for (clause* cp : v) {
-            out << "(";
-            bool first = true;
-            for (auto lit : *cp) {
-                if (!first) out << " "; 
-                first = false;
-                out << lit;
-            }
-            out << ")\n";
+            display_clause_smt2(out, *cp);
+            out << "\n";
         }
         return out;
     }
 
     std::ostream& context::display_binary_clauses(std::ostream & out) const {
+        bool first = true;
         unsigned l_idx = 0;
         for (watch_list const& wl : m_watches) {
             literal l1 = to_literal(l_idx++);
@@ -203,13 +195,21 @@ namespace smt {
             for (; it2 != end2; ++it2) {
                 literal l2 = *it2;
                 if (l1.index() < l2.index()) {
-                    out << "(" << neg_l1 << " " << l2 << ")\n";
-#if 0
+                    if (first) {
+                        out << "binary clauses:\n";
+                        first = false;
+                    }
                     expr_ref t1(m), t2(m);
                     literal2expr(neg_l1, t1);
                     literal2expr(l2, t2);
                     expr_ref disj(m.mk_or(t1, t2), m);
                     out << mk_bounded_pp(disj, m, 3) << "\n";
+#if 0
+                    out << "(clause ";
+                    display_literal(out, neg_l1);
+                    out << " ";
+                    display_literal(out, l2);
+                    out << ")\n";
 #endif
                 }
             }
@@ -327,7 +327,6 @@ namespace smt {
         display_bool_var_defs(out);
         display_enode_defs(out);
         display_asserted_formulas(out);
-        display_binary_clauses(out);
         if (!m_aux_clauses.empty()) {
             out << "auxiliary clauses:\n";
             display_clauses(out, m_aux_clauses);
@@ -336,6 +335,7 @@ namespace smt {
             out << "lemmas:\n";
             display_clauses(out, m_lemmas);
         }
+        display_binary_clauses(out);
         display_assignment(out);
         display_eqc(out);
         m_cg_table.display_compact(out);
@@ -392,7 +392,20 @@ namespace smt {
         st.update("max generation", m_stats.m_max_generation);
         st.update("minimized lits", m_stats.m_num_minimized_lits);
         st.update("num checks", m_stats.m_num_checks);
-        st.update("mk bool var", m_stats.m_num_mk_bool_var ? m_stats.m_num_mk_bool_var - 1 : 0);
+        st.update("mk bool var", m_stats.m_num_mk_bool_var);
+
+#if 0
+        // missing?
+        st.update("mk lit", m_stats.m_num_mk_lits);
+        st.update("sat conflicts", m_stats.m_num_sat_conflicts);
+        st.update("del bool var", m_stats.m_num_del_bool_var);
+        st.update("mk enode", m_stats.m_num_mk_enode);
+        st.update("del enode", m_stats.m_num_del_enode);
+        st.update("mk bin clause", m_stats.m_num_mk_bin_clause);
+        st.update("backwd subs", m_stats.m_num_bs);
+        st.update("backwd subs res", m_stats.m_num_bsr);
+        st.update("frwrd subs res", m_stats.m_num_fsr);
+#endif
         m_qmanager->collect_statistics(st);
         m_asserted_formulas.collect_statistics(st);
         for (theory* th : m_theory_set) {
@@ -433,12 +446,13 @@ namespace smt {
         out << "(check-sat)\n";
     }
 
-
     unsigned context::display_lemma_as_smt_problem(unsigned num_antecedents, literal const * antecedents, literal consequent, symbol const& logic) const {
-        std::string name = mk_lemma_name();
-        std::ofstream out(name);
-        TRACE("lemma", tout << name << "\n";);
+        std::stringstream strm;
+        strm << "lemma_" << (++m_lemma_id) << ".smt2";
+        std::ofstream out(strm.str());
+        TRACE("lemma", tout << strm.str() << "\n";);
         display_lemma_as_smt_problem(out, num_antecedents, antecedents, consequent, logic);
+        TRACE("non_linear", display_lemma_as_smt_problem(tout, num_antecedents, antecedents, consequent, logic););
         out.close();
         return m_lemma_id;
     }
@@ -472,24 +486,13 @@ namespace smt {
         out << "(check-sat)\n";
     }
 
-    std::string context::mk_lemma_name() const {
-        std::stringstream strm;
-#ifndef SINGLE_THREAD
-        std::thread::id this_id = std::this_thread::get_id();
-        strm << "lemma_" << this_id << "." << (++m_lemma_id) << ".smt2";
-#else
-        strm << "lemma_" << (++m_lemma_id) << ".smt2";
-#endif
-        return strm.str();
-    }
-
-
     unsigned context::display_lemma_as_smt_problem(unsigned num_antecedents, literal const * antecedents,
                                                unsigned num_eq_antecedents, enode_pair const * eq_antecedents,
                                                literal consequent, symbol const& logic) const {
-        std::string name = mk_lemma_name();
-        std::ofstream out(name);
-        TRACE("lemma", tout << name << "\n";
+        std::stringstream strm;
+        strm << "lemma_" << (++m_lemma_id) << ".smt2";
+        std::ofstream out(strm.str());
+        TRACE("lemma", tout << strm.str() << "\n";
               display_lemma_as_smt_problem(tout, num_antecedents, antecedents, num_eq_antecedents, eq_antecedents, consequent, logic);
               );
         display_lemma_as_smt_problem(out, num_antecedents, antecedents, num_eq_antecedents, eq_antecedents, consequent, logic);
@@ -665,83 +668,7 @@ namespace smt {
         return out << enode_pp(p.p.first, p.ctx) << " = " << enode_pp(p.p.second, p.ctx) << "\n";
     }
 
-    void context::log_stats() {
-        size_t bin_clauses = 0, bin_lemmas = 0;
-        for (watch_list const& w : m_watches) {
-            bin_clauses += w.end_literals() - w.begin_literals();
-        }
-        bin_clauses /= 2;
-        for (clause* cp : m_lemmas)
-            if (cp->get_num_literals() == 2)
-                ++bin_lemmas;
-        std::stringstream strm;
-        strm << "(smt.stats " 
-             << std::setw(4) << m_stats.m_num_restarts << " "
-             << std::setw(6) << m_stats.m_num_conflicts << " "
-             << std::setw(6) << m_stats.m_num_decisions << " " 
-             << std::setw(6) << m_stats.m_num_propagations << " "
-             << std::setw(5) << (m_aux_clauses.size() + bin_clauses) << "/" << bin_clauses << " "
-             << std::setw(5) << m_lemmas.size(); if (bin_lemmas > 0) strm << "/" << bin_lemmas << " ";
-        strm << std::setw(5) << m_stats.m_num_simplifications << " "
-             << std::setw(4) << m_stats.m_num_del_clauses << " "
-             << std::setw(7) << mem_stat() << ")\n";
 
-        std::string str(strm.str());
-        svector<size_t> offsets;
-        for (size_t i = 0; i < str.size(); ++i) {
-            while (i < str.size() && str[i] != ' ') ++i;
-            while (i < str.size() && str[i] == ' ') ++i;
-            // position of first character after space
-            if (i < str.size()) {
-                offsets.push_back(i);
-            }
-        }   
-        bool same = m_last_positions.size() == offsets.size();
-        size_t diff = 0;
-        for (unsigned i = 0; i < offsets.size() && same; ++i) {
-            if (m_last_positions[i] > offsets[i]) diff += m_last_positions[i] - offsets[i];
-            if (m_last_positions[i] < offsets[i]) diff += offsets[i] - m_last_positions[i];
-        }
-
-        if (m_last_positions.empty() || 
-            m_stats.m_num_restarts >= 20 + m_last_position_log ||
-            (m_stats.m_num_restarts >= 6 + m_last_position_log && (!same || diff > 3))) {
-            m_last_position_log = m_stats.m_num_restarts;
-            // restarts       decisions      clauses    simplifications  memory
-            //      conflicts       propagations    lemmas       deletions
-            int adjust[9] = { -3, -3, -3, -3, -3, -3, -4, -4, -1 };
-            char const* tag[9] = { ":restarts ", ":conflicts ", ":decisions ", ":propagations ", ":clauses/bin ", ":lemmas ", ":simplify ", ":deletions", ":memory" };
-
-            std::stringstream l1, l2;
-            l1 << "(smt.stats ";
-            l2 << "(smt.stats ";
-            size_t p1 = 11, p2 = 11;
-            SASSERT(offsets.size() == 9);
-            for (unsigned i = 0; i < offsets.size(); ++i) {
-                size_t p = offsets[i];
-                if (i & 0x1) {
-                    // odd positions
-                    for (; p2 < p + adjust[i]; ++p2) l2 << " ";
-                    p2 += strlen(tag[i]);
-                    l2 << tag[i];
-                }
-                else {
-                    // even positions
-                    for (; p1 < p + adjust[i]; ++p1) l1 << " ";
-                    p1 += strlen(tag[i]);
-                    l1 << tag[i];
-                }                               
-            }
-            for (; p1 + 2 < str.size(); ++p1) l1 << " ";            
-            for (; p2 + 2 < str.size(); ++p2) l2 << " ";            
-            l1 << ")\n";
-            l2 << ")\n";
-            IF_VERBOSE(1, verbose_stream() << l1.str() << l2.str());
-            m_last_positions.reset();
-            m_last_positions.append(offsets);
-        }
-        IF_VERBOSE(1, verbose_stream() << str);
-    }
 
 };
 

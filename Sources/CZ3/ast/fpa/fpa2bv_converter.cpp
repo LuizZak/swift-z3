@@ -32,11 +32,11 @@ Notes:
 fpa2bv_converter::fpa2bv_converter(ast_manager & m) :
     m(m),
     m_simp(m),
+    m_util(m),
     m_bv_util(m),
     m_arith_util(m),
     m_dt_util(m),
     m_seq_util(m),
-    m_util(m),
     m_mpf_manager(m_util.fm()),
     m_mpz_manager(m_mpf_manager.mpz_manager()),
     m_hi_fp_unspecified(true),
@@ -1142,9 +1142,9 @@ void fpa2bv_converter::mk_rem(sort * s, expr_ref & x, expr_ref & y, expr_ref & r
     dbg_decouple("fpa2bv_rem_exp_diff", exp_diff);
 
     // CMW: This creates _huge_ bit-vectors, which is potentially sub-optimal,
-    // but calculating this via successive approx. of rem = x - y * nearest(x/y)
-    // as in mpf::rem creates huge circuits, too. Lazy instantiation seems the
-    // way to go in the long run (using the lazy bit-blaster helps on simple instances).
+    // but calculating this via rem = x - y * nearest(x/y) creates huge
+    // circuits, too. Lazy instantiation seems the way to go in the long run
+    // (using the lazy bit-blaster helps on simple instances).
     expr_ref lshift(m), rshift(m), shifted(m), huge_rem(m), huge_div(m), huge_div_is_even(m);
     expr_ref a_sig_ext_l = a_sig, b_sig_ext_l = b_sig;
     scoped_mpz remaining(m_mpz_manager);
@@ -1170,8 +1170,14 @@ void fpa2bv_converter::mk_rem(sort * s, expr_ref & x, expr_ref & y, expr_ref & r
     m_mpz_manager.add(max_exp_diff_adj, 1, max_exp_diff_adj);
     expr_ref edr_tmp = exp_diff, nedr_tmp = neg_exp_diff;
     m_mpz_manager.set(remaining, max_exp_diff_adj);
-    if (m_mpz_manager.gt(remaining, INT32_MAX))
-        throw default_exception("zero extension bit-vector types are too large; would exhaust memory");
+    while (m_mpz_manager.gt(remaining, INT32_MAX)) {
+        throw default_exception("zero extension overflow floating point types are too large");
+#if 0
+        edr_tmp = m_bv_util.mk_zero_extend(INT32_MAX, edr_tmp);
+        nedr_tmp = m_bv_util.mk_zero_extend(INT32_MAX, nedr_tmp);
+        m_mpz_manager.sub(remaining, INT32_MAX, remaining);
+#endif
+    }
     if (!m_mpz_manager.is_zero(remaining)) {
         edr_tmp = m_bv_util.mk_zero_extend(m_mpz_manager.get_uint(remaining), edr_tmp);
         nedr_tmp = m_bv_util.mk_zero_extend(m_mpz_manager.get_uint(remaining), nedr_tmp);
@@ -1197,10 +1203,8 @@ void fpa2bv_converter::mk_rem(sort * s, expr_ref & x, expr_ref & y, expr_ref & r
     rndd_sig = m_bv_util.mk_extract(sbits+3, 0, huge_rem);
     rne_bv = m_bv_util.mk_numeral(BV_RM_TIES_TO_EVEN, 3);
     mk_leading_zeros(rndd_sig, ebits+2, rndd_sig_lz);
-    dbg_decouple("fpa2bv_rem_rndd_sgn", rndd_sgn);
     dbg_decouple("fpa2bv_rem_rndd_sig", rndd_sig);
     dbg_decouple("fpa2bv_rem_rndd_sig_lz", rndd_sig_lz);
-    dbg_decouple("fpa2bv_rem_rndd_exp", rndd_exp);
 
     SASSERT(m_bv_util.get_bv_size(rndd_exp) == ebits+2);
     SASSERT(m_bv_util.get_bv_size(y_exp_m1) == ebits);
@@ -1218,22 +1222,16 @@ void fpa2bv_converter::mk_rem(sort * s, expr_ref & x, expr_ref & y, expr_ref & r
     dbg_decouple("fpa2bv_rem_y_sig_le_rndd_sig", y_sig_le_rndd_sig);
     dbg_decouple("fpa2bv_rem_y_sig_eq_rndd_sig", y_sig_eq_rndd_sig);
 
-    expr_ref adj_cnd(m);
-    adj_cnd = m.mk_or(m.mk_and(rndd_exp_eq_y_exp, y_sig_le_rndd_sig),
+    expr_ref sub_cnd(m);
+    sub_cnd = m.mk_or(m.mk_and(rndd_exp_eq_y_exp, y_sig_le_rndd_sig),
                       m.mk_and(rndd_exp_eq_y_exp_m1, y_sig_le_rndd_sig, m.mk_not(y_sig_eq_rndd_sig)),
                       m.mk_and(rndd_exp_eq_y_exp_m1, y_sig_eq_rndd_sig, m.mk_not(huge_div_is_even)));
-    dbg_decouple("fpa2bv_rem_adj_cnd", adj_cnd);
+    dbg_decouple("fpa2bv_rem_sub_cnd", sub_cnd);
 
-    expr_ref rndd(m), rounded_sub_y(m), rounded_add_y(m), add_cnd(m), adjusted(m);
+    expr_ref rndd(m), rounded_sub_y(m), rounded_add_y(m);
     round(s, rne_bv, rndd_sgn, rndd_sig, rndd_exp, rndd);
     mk_sub(s, rne_bv, rndd, y, rounded_sub_y);
-    mk_add(s, rne_bv, rndd, y, rounded_add_y);
-    add_cnd = m.mk_not(m.mk_eq(rndd_sgn, b_sgn));
-    mk_ite(add_cnd, rounded_add_y, rounded_sub_y, adjusted);
-    mk_ite(adj_cnd, adjusted, rndd, v7);
-    dbg_decouple("fpa2bv_rem_add_cnd", add_cnd);
-    dbg_decouple("fpa2bv_rem_adj_cnd", adj_cnd);
-    dbg_decouple("fpa2bv_rem_rndd", rndd);
+    mk_ite(sub_cnd, rounded_sub_y, rndd, v7);
 
     // And finally, we tie them together.
     mk_ite(c6, v6, v7, result);
@@ -4255,200 +4253,4 @@ func_decl * fpa2bv_converter::mk_bv_uf(func_decl * f, sort * const * domain, sor
         TRACE("fpa2bv", tout << "New UF func_decl: " << res->get_id() << std::endl << mk_ismt2_pp(res, m) << std::endl;);
     }
     return res;
-}
-
-void fpa2bv_converter_wrapped::mk_const(func_decl* f, expr_ref& result) {
-    SASSERT(f->get_family_id() == null_family_id);
-    SASSERT(f->get_arity() == 0);
-    expr* r;
-    if (m_const2bv.find(f, r)) {
-        result = r;
-    }
-    else {
-        sort* s = f->get_range();
-        expr_ref bv(m);
-        bv = wrap(m.mk_const(f));
-        unsigned bv_sz = m_bv_util.get_bv_size(bv);
-        unsigned sbits = m_util.get_sbits(s);
-        SASSERT(bv_sz == m_util.get_ebits(s) + sbits);
-        result = m_util.mk_fp(m_bv_util.mk_extract(bv_sz - 1, bv_sz - 1, bv),
-            m_bv_util.mk_extract(bv_sz - 2, sbits - 1, bv),
-            m_bv_util.mk_extract(sbits - 2, 0, bv));
-        SASSERT(m_util.is_float(result));
-        m_const2bv.insert(f, result);
-        m.inc_ref(f);
-        m.inc_ref(result);
-    }
-}
-
-app_ref fpa2bv_converter_wrapped::wrap(expr* e) {
-    SASSERT(m_util.is_float(e) || m_util.is_rm(e));
-    SASSERT(!m_util.is_bvwrap(e));
-    app_ref res(m);
-
-    if (m_util.is_fp(e)) {
-        expr* cargs[3] = { to_app(e)->get_arg(0), to_app(e)->get_arg(1), to_app(e)->get_arg(2) };
-        expr_ref tmp(m_bv_util.mk_concat(3, cargs), m);
-        m_rw(tmp);
-        res = to_app(tmp);
-    }
-    else {
-        sort* es = m.get_sort(e);
-
-        sort_ref bv_srt(m);
-        if (is_rm(es))
-            bv_srt = m_bv_util.mk_sort(3);
-        else {
-            SASSERT(is_float(es));
-            unsigned ebits = m_util.get_ebits(es);
-            unsigned sbits = m_util.get_sbits(es);
-            bv_srt = m_bv_util.mk_sort(ebits + sbits);
-        }
-
-        func_decl_ref wrap_fd(m);
-        wrap_fd = m.mk_func_decl(m_util.get_family_id(), OP_FPA_BVWRAP, 0, nullptr, 1, &es, bv_srt);
-        res = m.mk_app(wrap_fd, e);
-    }
-
-    return res;
-}
-
-app_ref fpa2bv_converter_wrapped::unwrap(expr* e, sort* s) {
-    SASSERT(!m_util.is_fp(e));
-    SASSERT(m_bv_util.is_bv(e));
-    SASSERT(m_util.is_float(s) || m_util.is_rm(s));
-    app_ref res(m);
-
-    unsigned bv_sz = m_bv_util.get_bv_size(e);
-
-    if (m_util.is_rm(s)) {
-        SASSERT(bv_sz == 3);
-        res = m.mk_ite(m.mk_eq(e, m_bv_util.mk_numeral(BV_RM_TIES_TO_AWAY, 3)), m_util.mk_round_nearest_ties_to_away(),
-            m.mk_ite(m.mk_eq(e, m_bv_util.mk_numeral(BV_RM_TIES_TO_EVEN, 3)), m_util.mk_round_nearest_ties_to_even(),
-                m.mk_ite(m.mk_eq(e, m_bv_util.mk_numeral(BV_RM_TO_NEGATIVE, 3)), m_util.mk_round_toward_negative(),
-                    m.mk_ite(m.mk_eq(e, m_bv_util.mk_numeral(BV_RM_TO_POSITIVE, 3)), m_util.mk_round_toward_positive(),
-                        m_util.mk_round_toward_zero()))));
-    }
-    else {
-        SASSERT(m_util.is_float(s));
-        unsigned sbits = m_util.get_sbits(s);
-        SASSERT(bv_sz == m_util.get_ebits(s) + sbits);
-        res = m_util.mk_fp(m_bv_util.mk_extract(bv_sz - 1, bv_sz - 1, e),
-            m_bv_util.mk_extract(bv_sz - 2, sbits - 1, e),
-            m_bv_util.mk_extract(sbits - 2, 0, e));
-    }
-
-    return res;
-}
-
-
-void fpa2bv_converter_wrapped::mk_rm_const(func_decl* f, expr_ref& result) {
-    SASSERT(f->get_family_id() == null_family_id);
-    SASSERT(f->get_arity() == 0);
-    expr* r;
-    if (m_rm_const2bv.find(f, r)) {
-        result = r;
-    }
-    else {
-        SASSERT(is_rm(f->get_range()));
-        expr_ref bv(m);
-        bv = wrap(m.mk_const(f));
-        result = m_util.mk_bv2rm(bv);
-        m_rm_const2bv.insert(f, result);
-        m.inc_ref(f);
-        m.inc_ref(result);
-    }
-}
-
-
-expr* fpa2bv_converter_wrapped::bv2rm_value(expr* b) {
-    app* result = nullptr;
-    unsigned bv_sz;
-    rational val(0);
-    VERIFY(m_bv_util.is_numeral(b, val, bv_sz));
-    SASSERT(bv_sz == 3);
-
-    switch (val.get_uint64()) {
-    case BV_RM_TIES_TO_AWAY: result = m_util.mk_round_nearest_ties_to_away(); break;
-    case BV_RM_TIES_TO_EVEN: result = m_util.mk_round_nearest_ties_to_even(); break;
-    case BV_RM_TO_NEGATIVE: result = m_util.mk_round_toward_negative(); break;
-    case BV_RM_TO_POSITIVE: result = m_util.mk_round_toward_positive(); break;
-    case BV_RM_TO_ZERO:
-    default: result = m_util.mk_round_toward_zero();
-    }
-
-    TRACE("t_fpa", tout << "result: " << mk_ismt2_pp(result, m) << std::endl;);
-    return result;
-}
-
-expr* fpa2bv_converter_wrapped::bv2fpa_value(sort* s, expr* a, expr* b, expr* c) {
-    mpf_manager& mpfm = m_util.fm();
-    unsynch_mpz_manager& mpzm = mpfm.mpz_manager();
-    app* result;
-    unsigned ebits = m_util.get_ebits(s);
-    unsigned sbits = m_util.get_sbits(s);
-
-    scoped_mpz bias(mpzm);
-    mpzm.power(mpz(2), ebits - 1, bias);
-    mpzm.dec(bias);
-
-    scoped_mpz sgn_z(mpzm), sig_z(mpzm), exp_z(mpzm);
-    unsigned bv_sz;
-
-    if (b == nullptr) {
-        SASSERT(m_bv_util.is_bv(a));
-        SASSERT(m_bv_util.get_bv_size(a) == (ebits + sbits));
-
-        rational all_r(0);
-        scoped_mpz all_z(mpzm);
-
-        VERIFY(m_bv_util.is_numeral(a, all_r, bv_sz));
-        SASSERT(bv_sz == (ebits + sbits));
-        SASSERT(all_r.is_int());
-        mpzm.set(all_z, all_r.to_mpq().numerator());
-
-        mpzm.machine_div2k(all_z, ebits + sbits - 1, sgn_z);
-        mpzm.mod(all_z, mpfm.m_powers2(ebits + sbits - 1), all_z);
-
-        mpzm.machine_div2k(all_z, sbits - 1, exp_z);
-        mpzm.mod(all_z, mpfm.m_powers2(sbits - 1), all_z);
-
-        mpzm.set(sig_z, all_z);
-    }
-    else {
-        SASSERT(b);
-        SASSERT(c);
-        rational sgn_r(0), exp_r(0), sig_r(0);
-
-        bool r = m_bv_util.is_numeral(a, sgn_r, bv_sz);
-        SASSERT(r && bv_sz == 1);
-        r = m_bv_util.is_numeral(b, exp_r, bv_sz);
-        SASSERT(r && bv_sz == ebits);
-        r = m_bv_util.is_numeral(c, sig_r, bv_sz);
-        SASSERT(r && bv_sz == sbits - 1);
-        (void)r;
-
-        SASSERT(mpzm.is_one(sgn_r.to_mpq().denominator()));
-        SASSERT(mpzm.is_one(exp_r.to_mpq().denominator()));
-        SASSERT(mpzm.is_one(sig_r.to_mpq().denominator()));
-
-        mpzm.set(sgn_z, sgn_r.to_mpq().numerator());
-        mpzm.set(exp_z, exp_r.to_mpq().numerator());
-        mpzm.set(sig_z, sig_r.to_mpq().numerator());
-    }
-
-    scoped_mpz exp_u = exp_z - bias;
-    SASSERT(mpzm.is_int64(exp_u));
-
-    scoped_mpf f(mpfm);
-    mpfm.set(f, ebits, sbits, mpzm.is_one(sgn_z), mpzm.get_int64(exp_u), sig_z);
-    result = m_util.mk_value(f);
-
-    TRACE("t_fpa", tout << "result: [" <<
-          mpzm.to_string(sgn_z) << "," <<
-          mpzm.to_string(exp_z) << "," <<
-          mpzm.to_string(sig_z) << "] --> " <<
-          mk_ismt2_pp(result, m) << std::endl;);
-
-    return result;
 }

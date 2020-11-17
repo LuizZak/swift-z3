@@ -20,8 +20,7 @@ Revision History:
 
 #pragma once
 
-#include "qe/mbp/mbp_arith.h"
-#include "qe/mbp/mbp_plugin.h"
+#include "qe/qe_arith.h"
 #include "util/lbool.h"
 
 namespace qe {
@@ -127,7 +126,7 @@ namespace qe {
         void add_arith_dcert(model& mdl, expr_ref_vector& lits);
         void add_arith_dcert(model& mdl, expr_ref_vector& lits, app* a, app* b);
         app_ref_vector get_arith_vars(expr_ref_vector const& lits);
-        vector<::mbp::def> arith_project(model_ref& mdl, app_ref_vector& avars, expr_ref_vector& lits);
+        vector<def> arith_project(model_ref& mdl, app_ref_vector& avars, expr_ref_vector& lits);
         void project_euf(model_ref& mdl, expr_ref_vector& lits);
         void split_arith(expr_ref_vector const& lits, 
                          expr_ref_vector& alits,

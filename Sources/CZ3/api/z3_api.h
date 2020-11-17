@@ -1209,8 +1209,6 @@ typedef enum {
     // strings
     Z3_OP_STR_TO_INT,
     Z3_OP_INT_TO_STR,
-    Z3_OP_STRING_LT,
-    Z3_OP_STRING_LE,
 
     // regular expressions
     Z3_OP_RE_PLUS,
@@ -1586,14 +1584,7 @@ extern "C" {
        \c Z3_solver, \c Z3_func_interp have to be managed by the caller.
        Their reference counts are not handled by the context.
 
-       \remark Thread safety: objects created using a given context should not be 
-       accessed from different threads without synchronization. In other words, 
-       operations on a context are not thread safe. To use Z3 from different threads
-       create separate context objects. The \c Z3_translate, \c Z3_solver_translate, 
-       \c Z3_model_translate, \c Z3_goal_translate
-       methods are exposed to allow copying state from one context to another.
-
-       \remark
+       Further remarks:
        - \c Z3_sort, \c Z3_func_decl, \c Z3_app, \c Z3_pattern are \c Z3_ast's.
        - Z3 uses hash-consing, i.e., when the same \c Z3_ast is created twice,
          Z3 will return the same pointer twice.
@@ -5244,10 +5235,6 @@ extern "C" {
     /**
        \brief translate model from context \c c to context \c dst.
 
-       \remark Use this method for cloning state between contexts. Note that 
-       operations on contexts are not thread safe and therefore all operations
-       that related to a given context have to be synchronized (or run in the same thread).
-
        def_API('Z3_model_translate', MODEL, (_in(CONTEXT), _in(MODEL), _in(CONTEXT)))
     */
     Z3_model Z3_API Z3_model_translate(Z3_context c, Z3_model m, Z3_context dst);
@@ -6511,6 +6498,35 @@ extern "C" {
        def_API('Z3_solver_get_levels', VOID, (_in(CONTEXT), _in(SOLVER), _in(AST_VECTOR), _in(UINT), _in_array(3, UINT)))
     */
     void Z3_API Z3_solver_get_levels(Z3_context c, Z3_solver s, Z3_ast_vector literals, unsigned sz,  unsigned levels[]);
+
+    /**
+       \brief retrieve implied value for expression, if any is implied by solver at search level.
+       The method works for expressions that are known to the solver state, such as Boolean and
+       arithmetical variables.
+       
+       def_API('Z3_solver_get_implied_value', AST, (_in(CONTEXT), _in(SOLVER), _in(AST)))
+    */
+    Z3_ast Z3_API Z3_solver_get_implied_value(Z3_context c, Z3_solver s, Z3_ast e);
+
+    /**
+       \brief retrieve implied lower bound value for arithmetic expression.
+       If a lower bound is implied at search level, the arithmetic expression returned
+       is a constant representing the bound.
+       
+       def_API('Z3_solver_get_implied_lower', AST, (_in(CONTEXT), _in(SOLVER), _in(AST)))
+    */
+    Z3_ast Z3_API Z3_solver_get_implied_lower(Z3_context c, Z3_solver s, Z3_ast e);
+
+    /**
+       \brief retrieve implied upper bound value for arithmetic expression.
+       If an upper bound is implied at search level, the arithmetic expression returned
+       is a constant representing the bound.
+       
+       def_API('Z3_solver_get_implied_upper', AST, (_in(CONTEXT), _in(SOLVER), _in(AST)))
+    */
+
+    Z3_ast Z3_API Z3_solver_get_implied_upper(Z3_context c, Z3_solver s, Z3_ast e);
+
 
 
     /**

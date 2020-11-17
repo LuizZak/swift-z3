@@ -17,7 +17,6 @@ Author:
 
 #include "util/vector.h"
 #include "util/id_var_list.h"
-#include "util/lbool.h"
 #include "ast/ast.h"
 #include "ast/euf/euf_justification.h"
 
@@ -30,8 +29,6 @@ namespace euf {
     typedef ptr_vector<enode> enode_vector;
     typedef std::pair<enode*,enode*> enode_pair;
     typedef svector<enode_pair> enode_pair_vector;
-    typedef std::pair<enode*,bool> enode_bool_pair;
-    typedef svector<enode_bool_pair> enode_bool_pair_vector;
     typedef id_var_list<> th_var_list;
     typedef int theory_var;
     typedef int theory_id;
@@ -39,27 +36,23 @@ namespace euf {
     const theory_id null_theory_id = -1;
 
     class enode {
-        expr* m_expr{ nullptr };
-        bool          m_mark1{ false };
-        bool          m_mark2{ false };
-        bool          m_commutative{ false };
-        bool          m_update_children{ false };
-        bool          m_interpreted{ false };
-        bool          m_merge_enabled{ true };
-        bool          m_is_equality{ false };
-        lbool         m_value;
-        unsigned      m_bool_var { UINT_MAX };
-        unsigned      m_class_size{ 1 };
-        unsigned      m_table_id{ UINT_MAX };        
+        expr*         m_expr{ nullptr };
+        bool          m_mark1 { false };
+        bool          m_mark2 { false };
+        bool          m_commutative { false };
+        bool          m_update_children { false };
+        bool          m_interpreted { false };
+        bool          m_merge_enabled { true };
+        unsigned      m_class_size { 1 };
+        unsigned      m_table_id { UINT_MAX };
         enode_vector  m_parents;
-        enode* m_next{ nullptr };
-        enode* m_root{ nullptr };
-        enode* m_target{ nullptr };
-        enode* m_cg { nullptr };
+        enode*        m_next{ nullptr };
+        enode*        m_root{ nullptr };
+        enode*        m_target { nullptr };
         th_var_list   m_th_vars;
         justification m_justification;
-        unsigned      m_num_args{ 0 };
-        enode* m_args[0];
+        unsigned      m_num_args { 0 };
+        enode*        m_args[0];        
 
         friend class enode_args;
         friend class enode_parents;
@@ -88,23 +81,8 @@ namespace euf {
             }
             return n;
         }
-
-        static enode* mk_tmp(region& r, unsigned num_args) {
-            void* mem = r.allocate(get_enode_size(num_args));
-            enode* n = new (mem) enode();
-            n->m_expr = nullptr;
-            n->m_next = n;
-            n->m_root = n;
-            n->m_commutative = true;
-            n->m_num_args = 2;
-            n->m_merge_enabled = true;
-            for (unsigned i = 0; i < num_args; ++i) 
-                n->m_args[i] = nullptr;            
-            return n;
-        }    
         
         void set_update_children() { m_update_children = true; }
-
 
         friend class add_th_var_trail;
         friend class replace_th_var_trail;
@@ -112,9 +90,6 @@ namespace euf {
         void replace_th_var(theory_var v, theory_id id) { m_th_vars.replace(v, id); }
         void del_th_var(theory_id id) { m_th_vars.del_var(id); }   
         void set_merge_enabled(bool m) { m_merge_enabled = m; }
-        void set_value(lbool v) { m_value = v; }
-        void set_is_equality() { m_is_equality = true;  }
-        void set_bool_var(unsigned v) { m_bool_var = v; }
 
     public:
         ~enode() { 
@@ -132,13 +107,9 @@ namespace euf {
         unsigned num_args() const { return m_num_args; }
         unsigned num_parents() const { return m_parents.size(); }
         bool interpreted() const { return m_interpreted; }
-        bool is_equality() const { return m_is_equality; }
-        lbool value() const { return m_value;  }
-        unsigned bool_var() const { return m_bool_var; }
-        bool is_cgr() const { return this == m_cg; }
         bool commutative() const { return m_commutative; }
         void mark_interpreted() { SASSERT(num_args() == 0); m_interpreted = true; }
-        bool merge_enabled() const { return m_merge_enabled; }
+        bool merge_enabled() { return m_merge_enabled; }
 
         enode* get_arg(unsigned i) const { SASSERT(i < num_args()); return m_args[i]; }        
         unsigned hash() const { return m_expr->hash(); }
@@ -176,35 +147,28 @@ namespace euf {
         func_decl* get_decl() const { return is_app(m_expr) ? to_app(m_expr)->get_decl() : nullptr; }
         unsigned get_expr_id() const { return m_expr->get_id(); }
         unsigned get_root_id() const { return m_root->m_expr->get_id(); }
-        bool children_are_roots() const;
-
         theory_var get_th_var(theory_id id) const { return m_th_vars.find(id); }
-        theory_var get_closest_th_var(theory_id id) const;
         bool is_attached_to(theory_id id) const { return get_th_var(id) != null_theory_var; }
         bool has_th_vars() const { return !m_th_vars.empty(); }
-        bool has_one_th_var() const { return !m_th_vars.empty() && !m_th_vars.get_next();}
-        theory_var get_first_th_id() const { SASSERT(has_th_vars()); return m_th_vars.get_id(); }
-        
 
         void inc_class_size(unsigned n) { m_class_size += n; }
         void dec_class_size(unsigned n) { m_class_size -= n; }
 
         void reverse_justification();
         bool reaches(enode* n) const;
-        bool acyclic() const;
 
         enode* const* begin_parents() const { return m_parents.begin(); }
         enode* const* end_parents() const { return m_parents.end(); }
 
-        void invariant(class egraph& g);
+        void invariant();
         bool congruent(enode* n) const;
     };
 
     class enode_args {
-        enode const& n;
+        enode& n;
     public:
-        enode_args(enode const& _n):n(_n) {}
-        enode_args(enode const* _n):n(*_n) {}
+        enode_args(enode& _n):n(_n) {}
+        enode_args(enode* _n):n(*_n) {}
         enode* const* begin() const { return n.m_args; }
         enode* const* end()   const { return n.m_args + n.num_args(); }
     };

@@ -34,8 +34,6 @@ public:
 
 solver_factory * mk_smt_strategic_solver_factory(symbol const & logic = symbol::null);
 
-solver* mk_smt2_solver(ast_manager& m, params_ref const& p);
-
 /**
    \brief Abstract interface for making solvers available in the Z3
    API and front-ends such as SMT 2.0 and (legacy) SMT 1.0.
@@ -229,10 +227,21 @@ public:
 
     virtual expr_ref_vector cube(expr_ref_vector& vars, unsigned backtrack_level) = 0;
 
+    /**
+       \brief retrieve fixed value assignment in current solver state, if it is implied.
+    */
+    virtual expr_ref get_implied_value(expr* e) = 0;
+
+    /**
+       \brief retrieve upper/lower bound for arithmetic term, if it is implied.
+    */
+    virtual expr_ref get_implied_lower_bound(expr* e) = 0;
+
+    virtual expr_ref get_implied_upper_bound(expr* e) = 0;
 
     class propagate_callback {
     public:
-        virtual void propagate_cb(unsigned num_fixed, unsigned const* fixed_ids, unsigned num_eqs, unsigned const* eq_lhs, unsigned const* eq_rhs, expr* conseq) = 0;
+        virtual void propagate(unsigned num_fixed, unsigned const* fixed_ids, unsigned num_eqs, unsigned const* eq_lhs, unsigned const* eq_rhs, expr* conseq) = 0;
     };
     class context_obj {
     public:

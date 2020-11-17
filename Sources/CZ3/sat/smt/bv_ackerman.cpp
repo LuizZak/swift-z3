@@ -41,41 +41,18 @@ namespace bv {
         if (v1 > v2)
             std::swap(v1, v2);
         vv* n = m_tmp_vv;
-        n->set_var(v1, v2);
+        n->v1 = v1;
+        n->v2 = v2;
         vv* other = m_table.insert_if_not_there(n);        
         other->m_count++;
         update_glue(*other);
-
+        if (other->m_count > m_propagate_high_watermark || other->m_glue == 0)
+            s.s().set_should_simplify();
         vv::push_to_front(m_queue, other);
         if (other == n) {
             new_tmp();        
             gc();
         }
-        if (other->m_glue == 0) {
-            remove(other);
-            add_cc(v1, v2);
-        }
-        else if (other->m_count > m_propagate_high_watermark) 
-            s.s().set_should_simplify();
-    }
-
-    void ackerman::used_diseq_eh(euf::theory_var v1, euf::theory_var v2) {
-        if (v1 == v2)
-            return;
-        if (v1 > v2)
-            std::swap(v1, v2);
-        vv* n = m_tmp_vv;
-        n->set_var(v1, v2);
-        vv* other = m_table.insert_if_not_there(n);
-        other->m_count++;
-
-        vv::push_to_front(m_queue, other);
-        if (other == n) {
-            new_tmp();
-            gc();
-        }
-        if (other->m_count > m_propagate_high_watermark) 
-            s.s().set_should_simplify();
     }
 
     void ackerman::update_glue(vv& v) {
@@ -114,7 +91,7 @@ namespace bv {
         }
         
         if (glue < max_glue) 
-            v.m_glue = (sz > 6 && 2*glue <= sz) ? 0 : glue;
+            v.m_glue = glue <= sz ? 0 : glue;
     }
 
     void ackerman::remove(vv* p) {
@@ -169,7 +146,7 @@ namespace bv {
         sort* s2 = s.m.get_sort(s.var2expr(v2));
         if (s1 != s2 || !s.bv.is_bv_sort(s1))
             return;
-        // IF_VERBOSE(0, verbose_stream() << "assert ackerman " << v1 << " " << v2 << "\n");
+        IF_VERBOSE(0, verbose_stream() << "assert ackerman " << v1 << " " << v2 << "\n");
         s.assert_ackerman(v1, v2);
     }
 

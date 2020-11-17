@@ -23,7 +23,6 @@ Notes:
 #include "ast/ast_smt2_pp.h"
 #include "util/z3_exception.h"
 #include "util/common_msgs.h"
-#include <atomic>
 
 struct expr2polynomial::imp {
     struct frame {
@@ -52,7 +51,7 @@ struct expr2polynomial::imp {
 
     bool                               m_use_var_idxs;
 
-    std::atomic<bool>                  m_cancel;
+    volatile bool                      m_cancel;
 
     imp(expr2polynomial & w, ast_manager & am, polynomial::manager & pm, expr2var * e2v, bool use_var_idxs):
         m_wrapper(w),

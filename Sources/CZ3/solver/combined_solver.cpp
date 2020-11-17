@@ -23,7 +23,6 @@ Notes:
 #include "ast/ast_pp.h"
 #include "solver/solver.h"
 #include "solver/combined_solver_params.hpp"
-#include <atomic>
 #define PS_VB_LVL 15
 
 /**
@@ -72,7 +71,7 @@ private:
 
     struct aux_timeout_eh : public event_handler {
         solver *        m_solver;
-        std::atomic<bool> m_canceled;
+        volatile bool   m_canceled;
         aux_timeout_eh(solver * s):m_solver(s), m_canceled(false) {}
         ~aux_timeout_eh() override {
             if (m_canceled) {                
@@ -184,6 +183,28 @@ public:
     unsigned get_scope_level() const override {
         return m_solver1->get_scope_level();
     }
+
+    expr_ref get_implied_value(expr* e) override {
+        if (m_use_solver1_results)
+            return m_solver1->get_implied_value(e);
+        else
+            return m_solver2->get_implied_value(e);
+    }
+    
+    expr_ref get_implied_lower_bound(expr* e) override {
+        if (m_use_solver1_results)
+            return m_solver1->get_implied_lower_bound(e);
+        else
+            return m_solver2->get_implied_lower_bound(e);
+    }
+    
+    expr_ref get_implied_upper_bound(expr* e) override {
+        if (m_use_solver1_results)
+            return m_solver1->get_implied_upper_bound(e);
+        else
+            return m_solver2->get_implied_upper_bound(e);
+    }
+
 
     lbool get_consequences(expr_ref_vector const& asms, expr_ref_vector const& vars, expr_ref_vector& consequences) override {
         switch_inc_mode();
