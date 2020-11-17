@@ -1363,7 +1363,7 @@ namespace sat {
         ba_solver(ctx.get_manager(), ctx.get_si(), id) {}
 
     ba_solver::ba_solver(ast_manager& m, sat::sat_internalizer& si, euf::theory_id id)
-        : euf::th_solver(m, id),
+        : euf::th_solver(m, symbol("ba"), id),
           si(si), m_pb(m),
           m_lookahead(nullptr), 
           m_constraint_id(0), m_ba(*this), m_sort(m_ba) {
@@ -1484,7 +1484,7 @@ namespace sat {
     /*
       \brief return true to keep watching literal.
     */
-    bool ba_solver::propagate(literal l, ext_constraint_idx idx) {
+    bool ba_solver::propagated(literal l, ext_constraint_idx idx) {
         SASSERT(value(l) == l_true);
         constraint& c = index2constraint(idx);
         if (c.lit() != null_literal && l.var() == c.lit().var()) {
@@ -3137,16 +3137,16 @@ namespace sat {
     }
 
     extension* ba_solver::copy(solver* s) {
-        return fresh(s, m, si, m_id);
+        return clone_aux(m, *s, si, m_id);
     }
 
-    euf::th_solver* ba_solver::fresh(solver* new_s, euf::solver& new_ctx) {
-        return fresh(new_s, new_ctx.get_manager(), new_ctx.get_si(), get_id());
+    euf::th_solver* ba_solver::clone(euf::solver& new_ctx) {
+        return clone_aux(new_ctx.get_manager(), new_ctx.s(), new_ctx.get_si(), get_id());
     }
 
-    euf::th_solver* ba_solver::fresh(solver* new_s, ast_manager& m, sat::sat_internalizer& si, euf::theory_id id) {
+    euf::th_solver* ba_solver::clone_aux(ast_manager& m, sat::solver& s, sat::sat_internalizer& si, euf::theory_id id) {
         ba_solver* result = alloc(ba_solver, m, si, id);
-        result->set_solver(new_s);
+        result->set_solver(&s);
         copy_constraints(result, m_constraints);
         return result;
     }

@@ -15,6 +15,7 @@ Author:
 
 --*/
 
+#include "params/bv_rewriter_params.hpp"
 #include "sat/smt/bv_solver.h"
 #include "sat/smt/euf_solver.h"
 #include "sat/smt/sat_th.h"
@@ -22,26 +23,10 @@ Author:
 
 namespace bv {
 
-    solver::bit_atom& solver::atom::to_bit() {
-        SASSERT(is_bit());
-        return dynamic_cast<bit_atom&>(*this);
-    }
-
-    solver::def_atom& solver::atom::to_def() {
-        SASSERT(!is_bit());
-        SASSERT(!is_eq());
-        return dynamic_cast<def_atom&>(*this);
-    }
-
-    solver::eq_atom& solver::atom::to_eq() {
-        SASSERT(is_eq());
-        return dynamic_cast<eq_atom&>(*this);
-    }
-
     class solver::add_var_pos_trail : public trail<euf::solver> {
-        solver::bit_atom* m_atom;
+        solver::atom* m_atom;
     public:
-        add_var_pos_trail(solver::bit_atom* a) :m_atom(a) {}
+        add_var_pos_trail(solver::atom* a) :m_atom(a) {}
         void undo(euf::solver& euf) override {
             SASSERT(m_atom->m_occs);
             m_atom->m_occs = m_atom->m_occs->m_next;
@@ -49,9 +34,9 @@ namespace bv {
     };
 
     class solver::add_eq_occurs_trail : public trail<euf::solver> {
-        bit_atom* m_atom;
+        atom* m_atom;
     public:
-        add_eq_occurs_trail(bit_atom* a) :m_atom(a) {}
+        add_eq_occurs_trail(atom* a) :m_atom(a) {}
         void undo(euf::solver& euf) override {
             SASSERT(m_atom->m_eqs);
             m_atom->m_eqs = m_atom->m_eqs->m_next;
@@ -61,10 +46,10 @@ namespace bv {
     };    
 
     class solver::del_eq_occurs_trail : public trail<euf::solver> {
-        bit_atom* m_atom;
+        atom* m_atom;
         eq_occurs* m_node;
     public:
-        del_eq_occurs_trail(bit_atom* a, eq_occurs* n) : m_atom(a), m_node(n) {}
+        del_eq_occurs_trail(atom* a, eq_occurs* n) : m_atom(a), m_node(n) {}
         void undo(euf::solver& euf) override {
             if (m_node->m_next)
                 m_node->m_next->m_prev = m_node;
@@ -75,7 +60,7 @@ namespace bv {
         }
     };
 
-    void solver::del_eq_occurs(bit_atom* a, eq_occurs* occ) {
+    void solver::del_eq_occurs(atom* a, eq_occurs* occ) {
         eq_occurs* prev = occ->m_prev;
         if (prev)
             prev->m_next = occ->m_next;
@@ -104,8 +89,7 @@ namespace bv {
         m_bits.push_back(sat::literal_vector());
         m_wpos.push_back(0);
         m_zero_one_bits.push_back(zero_one_bits());       
-        ctx.attach_th_var(n, this, r);
-        
+        ctx.attach_th_var(n, this, r);        
         TRACE("bv", tout << "mk-var: " << r << " " << n->get_expr_id() << " " << mk_bounded_pp(n->get_expr(), m) << "\n";);
         return r;
     }
@@ -149,22 +133,25 @@ namespace bv {
         euf::enode* n = expr2enode(e);
         app* a = to_app(e);
 
+        if (visited(e))
+            return true;
+
         SASSERT(!n || !n->is_attached_to(get_id()));
         bool suppress_args = !get_config().m_bv_reflect && !m.is_considered_uninterpreted(a->get_decl());
         if (!n)
             n = mk_enode(e, suppress_args);
 
         SASSERT(!n->is_attached_to(get_id()));
-        theory_var v = mk_var(n);
+        mk_var(n);
         SASSERT(n->is_attached_to(get_id()));
-        if (internalize_mode::init_bits_i == get_internalize_mode(a)) 
+        if (internalize_mode::no_delay_i != get_internalize_mode(a)) 
             mk_bits(n->get_th_var(get_id()));
         else
-            internalize_circuit(a, v);
+            internalize_circuit(a);
         return true;
     }
 
-    bool solver::internalize_circuit(app* a, theory_var v) {
+    bool solver::internalize_circuit(app* a) {
 
         std::function<void(unsigned sz, expr* const* xs, expr* const* ys, expr_ref_vector& bits)> bin;
         std::function<void(unsigned sz, expr* const* xs, expr* const* ys, expr_ref& bit)> ebin;
@@ -177,8 +164,9 @@ namespace bv {
 #define internalize_nfl(F) ebin = [&](unsigned sz, expr* const* xs, expr* const* ys, expr_ref& out) { m_bb.F(sz, xs, ys, out);}; internalize_novfl(a, ebin);
 
         switch (a->get_decl_kind()) {
-        case OP_BV_NUM:           internalize_num(a, v); break;
+        case OP_BV_NUM:           internalize_num(a); break;
         case OP_BNOT:             internalize_un(mk_not); break;
+        case OP_BNEG:             internalize_un(mk_neg); break;
         case OP_BREDAND:          internalize_un(mk_redand); break;
         case OP_BREDOR:           internalize_un(mk_redor); break;
         case OP_BSDIV_I:          internalize_bin(mk_sdiv); break;
@@ -199,7 +187,7 @@ namespace bv {
         case OP_BNAND:            internalize_bin(mk_nand); break;
         case OP_BNOR:             internalize_bin(mk_nor); break;
         case OP_BXNOR:            internalize_bin(mk_xnor); break;
-        case OP_BCOMP:            internalize_bin(mk_comp); break;
+        case OP_BCOMP:            internalize_bin(mk_comp); break;        
         case OP_SIGN_EXT:         internalize_pun(mk_sign_extend); break;
         case OP_ZERO_EXT:         internalize_pun(mk_zero_extend); break;
         case OP_ROTATE_LEFT:      internalize_pun(mk_rotate_left); break;
@@ -208,8 +196,14 @@ namespace bv {
         case OP_BSMUL_NO_OVFL:    internalize_nfl(mk_smul_no_overflow); break;
         case OP_BSMUL_NO_UDFL:    internalize_nfl(mk_smul_no_underflow); break;
         case OP_BIT2BOOL:         internalize_bit2bool(a); break;
-        case OP_ULEQ:             internalize_le<false>(a); break;
-        case OP_SLEQ:             internalize_le<true>(a); break;
+        case OP_ULEQ:             internalize_le<false, false, false>(a); break;
+        case OP_SLEQ:             internalize_le<true,  false, false>(a); break;
+        case OP_UGEQ:             internalize_le<false, true,  false>(a); break;
+        case OP_SGEQ:             internalize_le<true,  true,  false>(a); break;
+        case OP_ULT:              internalize_le<false, true,  true>(a); break;
+        case OP_SLT:              internalize_le<true,  true,  true>(a); break;
+        case OP_UGT:              internalize_le<false, false, true>(a); break;
+        case OP_SGT:              internalize_le<true,  false, true>(a); break;
         case OP_XOR3:             internalize_xor3(a); break;
         case OP_CARRY:            internalize_carry(a); break;
         case OP_BSUB:             internalize_sub(a); break;
@@ -218,12 +212,14 @@ namespace bv {
         case OP_MKBV:             internalize_mkbv(a); break;
         case OP_INT2BV:           internalize_int2bv(a); break;
         case OP_BV2INT:           internalize_bv2int(a); break;
+        case OP_BUDIV:            internalize_udiv(a); break;
         case OP_BSDIV0:           break;
         case OP_BUDIV0:           break;
         case OP_BSREM0:           break;
         case OP_BUREM0:           break;
         case OP_BSMOD0:           break;
         default:
+            IF_VERBOSE(0, verbose_stream() << mk_bounded_pp(a, m) << "\n");
             UNREACHABLE();
             break;
         }
@@ -231,7 +227,7 @@ namespace bv {
     }
 
     void solver::mk_bits(theory_var v) {
-        TRACE("bv", tout << "v" << v << "\n";);
+        TRACE("bv", tout << "v" << v << "@" << s().scope_lvl() << "\n";);
         expr* e = var2expr(v);
         unsigned bv_size = get_bv_size(v);
         m_bits[v].reset();
@@ -239,6 +235,8 @@ namespace bv {
             expr_ref b2b(bv.mk_bit2bool(e, i), m);
             m_bits[v].push_back(sat::null_literal);
             sat::literal lit = ctx.internalize(b2b, false, false, m_is_redundant);
+            (void)lit;
+            TRACE("bv", tout << "add-bit: " << lit << " " << literal2expr(lit) << "\n";);
             SASSERT(m_bits[v].back() == lit);
         }
     }
@@ -289,48 +287,36 @@ namespace bv {
     void solver::add_bit(theory_var v, literal l) {
         unsigned idx = m_bits[v].size();
         m_bits[v].push_back(l);
+        TRACE("bv", tout << "add-bit: v" << v << "[" << idx << "] " << l << " " << literal2expr(l) << "@" << s().scope_lvl() << "\n";);
+        SASSERT(m_num_scopes == 0);
         s().set_external(l.var());
+        euf::enode* n = bool_var2enode(l.var());
+        if (!n->is_attached_to(get_id())) 
+            mk_var(n);
+
         set_bit_eh(v, l, idx);
     }
 
-    solver::bit_atom* solver::mk_bit_atom(sat::bool_var bv) {
-        atom* a = get_bv2a(bv);
-        if (a) 
-            return a->is_bit() ? &a->to_bit() : nullptr;
-        else {
-            bit_atom* b = new (get_region()) bit_atom();
-            insert_bv2a(bv, b);
-            ctx.push(mk_atom_trail(bv, *this));
-            return b;
-        }
-    }
-
-    solver::eq_atom* solver::mk_eq_atom(sat::bool_var bv) {
+    solver::atom* solver::mk_atom(sat::bool_var bv) {
         atom* a = get_bv2a(bv);
         if (a)
-            return a->is_eq() ? &a->to_eq() : nullptr;
-        else {
-            eq_atom* b = new (get_region()) eq_atom();
-            insert_bv2a(bv, b);
-            ctx.push(mk_atom_trail(bv, *this));
-            return b;
-        }
+            return a;
+        a = new (get_region()) atom(bv);
+        insert_bv2a(bv, a);
+        ctx.push(mk_atom_trail(bv, *this));
+        return a;        
     }
-
 
     void solver::set_bit_eh(theory_var v, literal l, unsigned idx) {
         SASSERT(m_bits[v][idx] == l);
         if (s().value(l) != l_undef && s().lvl(l) == 0) 
             register_true_false_bit(v, idx);
-        else if (m_bits[v].size() > 1) {
-            bit_atom* b = mk_bit_atom(l.var());
-            if (b) {
-                if (b->m_occs)
-                    find_new_diseq_axioms(*b, v, idx);
-                if (!b->is_fresh()) 
-                    ctx.push(add_var_pos_trail(b));                
-                b->m_occs = new (get_region()) var_pos_occ(v, idx, b->m_occs);
-            }
+        else {
+            atom* b = mk_atom(l.var());
+            if (b->m_occs)
+                find_new_diseq_axioms(*b, v, idx);
+            ctx.push(add_var_pos_trail(b));
+            b->m_occs = new (get_region()) var_pos_occ(v, idx, b->m_occs);
         }
     }
 
@@ -339,7 +325,19 @@ namespace bv {
         SASSERT(get_bv_size(n) == bits.size());
         SASSERT(euf::null_theory_var != n->get_th_var(get_id()));
         theory_var v = n->get_th_var(get_id());
-        m_bits[v].reset();
+        
+        if (!m_bits[v].empty()) {
+            SASSERT(bits.size() == m_bits[v].size());
+            unsigned i = 0;
+            for (expr* bit : bits) {
+                sat::literal lit = ctx.internalize(bit, false, false, m_is_redundant);
+                TRACE("bv", tout << "set " << m_bits[v][i] << " == " << lit << "\n";);
+                add_clause(~lit, m_bits[v][i]);
+                add_clause(lit, ~m_bits[v][i]);
+                ++i;
+            }
+            return;
+        }
         for (expr* bit : bits) 
             add_bit(v, ctx.internalize(bit, false, false, m_is_redundant));        
         for (expr* bit : bits)
@@ -356,11 +354,13 @@ namespace bv {
         return get_bv_size(var2enode(v));
     }
 
-    void solver::internalize_num(app* n, theory_var v) {
+    void solver::internalize_num(app* a) {
         numeral val;
         unsigned sz = 0;
-        SASSERT(expr2enode(n)->interpreted());
-        VERIFY(bv.is_numeral(n, val, sz));
+        euf::enode* n = expr2enode(a);
+        theory_var v = n->get_th_var(get_id());
+        SASSERT(n->interpreted());
+        VERIFY(bv.is_numeral(a, val, sz));
         expr_ref_vector bits(m);
         m_bb.num2bits(val, sz, bits);
         SASSERT(bits.size() == sz);
@@ -453,18 +453,20 @@ namespace bv {
         }
     }
 
-    template<bool Signed>
+    template<bool Signed, bool Rev, bool Negated>
     void solver::internalize_le(app* n) {
         SASSERT(n->get_num_args() == 2);
         expr_ref_vector arg1_bits(m), arg2_bits(m);
-        get_arg_bits(n, 0, arg1_bits);
-        get_arg_bits(n, 1, arg2_bits);
+        get_arg_bits(n, Rev ? 1 : 0, arg1_bits);
+        get_arg_bits(n, Rev ? 0 : 1, arg2_bits);
         expr_ref le(m);
         if (Signed)
             m_bb.mk_sle(arg1_bits.size(), arg1_bits.c_ptr(), arg2_bits.c_ptr(), le);
         else
             m_bb.mk_ule(arg1_bits.size(), arg1_bits.c_ptr(), arg2_bits.c_ptr(), le);
         literal def = ctx.internalize(le, false, false, m_is_redundant);
+        if (Negated)
+            def.neg();
         add_def(def, expr2literal(n));
     }
 
@@ -496,6 +498,27 @@ namespace bv {
         add_clause(r, l1, ~l2, l3);
         add_clause(r, l1, l2, ~l3);
         add_clause(r, ~l1, ~l2, ~l3);
+    }
+
+    void solver::internalize_udiv_i(app* a) {
+        std::function<void(unsigned sz, expr* const* xs, expr* const* ys, expr_ref_vector& bits)> bin;
+        bin = [&](unsigned sz, expr* const* xs, expr* const* ys, expr_ref_vector& bits) { m_bb.mk_udiv(sz, xs, ys, bits); }; 
+        internalize_binary(a, bin);
+    }
+
+    void solver::internalize_udiv(app* n) {
+        bv_rewriter_params p(s().params());
+        expr* arg1 = n->get_arg(0);
+        expr* arg2 = n->get_arg(1);
+        if (p.hi_div0()) {
+            add_unit(eq_internalize(n, bv.mk_bv_udiv_i(arg1, arg2)));
+            return;
+        }
+        unsigned sz = bv.get_bv_size(n);
+        expr_ref zero(bv.mk_numeral(0, sz), m);
+        expr_ref eq(m.mk_eq(arg2, zero), m);
+        expr_ref udiv(m.mk_ite(eq, bv.mk_bv_udiv0(arg1), bv.mk_bv_udiv_i(arg1, arg2)), m);
+        add_unit(eq_internalize(n, udiv));
     }
 
     void solver::internalize_unary(app* n, std::function<void(unsigned, expr* const*, expr_ref_vector&)>& fn) {
@@ -554,7 +577,9 @@ namespace bv {
     }
 
     void solver::add_def(sat::literal def, sat::literal l) {        
-        def_atom* a = new (get_region()) def_atom(l, def);
+        atom* a = new (get_region()) atom(l.var());
+        a->m_var = l;
+        a->m_def = def;
         insert_bv2a(l.var(), a);
         ctx.push(mk_atom_trail(l.var(), *this));
         add_clause(l, ~def);
@@ -592,7 +617,7 @@ namespace bv {
         SASSERT(hi - lo + 1 == get_bv_size(v));
         SASSERT(lo <= hi && hi < get_bv_size(arg_v));
         m_bits[v].reset();
-        for (unsigned i = lo; i <= hi; ++i)
+        for (unsigned i = lo; i <= hi; ++i) 
             add_bit(v, m_bits[arg_v][i]);
         find_wpos(v);
     }
@@ -612,8 +637,9 @@ namespace bv {
         sat::literal lit0 = m_bits[v_arg][idx];
         if (lit0 == sat::null_literal) {
             m_bits[v_arg][idx] = lit;
+            TRACE("bv", tout << "add-bit: " << lit << " " << literal2expr(lit) << "\n";);
             if (arg_sz > 1) {
-                bit_atom* a = new (get_region()) bit_atom();
+                atom* a = new (get_region()) atom(lit.var());
                 a->m_occs = new (get_region()) var_pos_occ(v_arg, idx);
                 insert_bv2a(lit.var(), a);
                 ctx.push(mk_atom_trail(lit.var(), *this));
@@ -677,21 +703,13 @@ namespace bv {
     }
 
     void solver::eq_internalized(sat::bool_var b1, sat::bool_var b2, unsigned idx, theory_var v1, theory_var v2, literal lit, euf::enode* n) {
-        bit_atom* a = mk_bit_atom(b1);
-//        eq_atom* b = mk_eq_atom(lit.var());
+        atom* a = mk_atom(b1);
         if (a) {
-            if (!a->is_fresh()) 
-                ctx.push(add_eq_occurs_trail(a));            
+            ctx.push(add_eq_occurs_trail(a));            
             auto* next = a->m_eqs;
             a->m_eqs = new (get_region()) eq_occurs(b1, b2, idx, v1, v2, lit, n, next);
             if (next)
                 next->m_prev = a->m_eqs;
-#if 0
-            if (b) {
-                b->m_eqs.push_back(std::make_pair(a, a->m_eqs));
-                ctx.push(push_back_vector<euf::solver, svector<std::pair<bit_atom*,eq_occurs*>>>(b->m_eqs));
-            }
-#endif
         }        
     }
 
@@ -711,8 +729,6 @@ namespace bv {
         literal_vector eqs;
         eqs.push_back(oeq);
         for (unsigned i = 0; i < sz; ++i) {
-            literal l1 = m_bits[v1][i];
-            literal l2 = m_bits[v2][i];
             expr_ref e1(m), e2(m);
             e1 = bv.mk_bit2bool(o1, i);
             e2 = bv.mk_bit2bool(o2, i);

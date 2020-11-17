@@ -35,10 +35,10 @@ Notes:
 #include "ast/rewriter/seq_rewriter.h"
 #include "tactic/generic_model_converter.h"
 #include "solver/solver.h"
+#include "solver/check_logic.h"
 #include "solver/progress_callback.h"
 #include "cmd_context/pdecl.h"
 #include "cmd_context/tactic_manager.h"
-#include "cmd_context/check_logic.h"
 #include "params/context_params.h"
 
 
@@ -368,7 +368,7 @@ public:
     check_sat_state cs_state() const;
     void complete_model(model_ref& mdl) const;
     void validate_model();
-    void analyze_failure(model_evaluator& ev, expr* e, bool expected_value);
+    void analyze_failure(expr_mark& seen, model_evaluator& ev, expr* e, bool expected_value);
     void display_detailed_analysis(std::ostream& out, model_evaluator& ev, expr* e);
     void display_model(model_ref& mdl);
 

@@ -47,6 +47,7 @@ tactic * mk_parallel_tactic(solver* s, params_ref const& p) {
 
 #else
 
+#include <atomic>
 #include <thread>
 #include <mutex>
 #include <cmath>
@@ -63,7 +64,7 @@ class parallel_tactic : public tactic {
         ptr_vector<solver_state>     m_tasks;
         ptr_vector<solver_state>     m_active;
         unsigned                     m_num_waiters;
-        volatile bool                m_shutdown;
+        std::atomic<bool>            m_shutdown;
 
         void inc_wait() {
             std::lock_guard<std::mutex> lock(m_mutex);
@@ -326,7 +327,7 @@ class parallel_tactic : public tactic {
             p.copy(m_params);
             double exp = pp.simplify_exp();
             exp = std::max(exp, 1.0);
-            unsigned mult = static_cast<unsigned>(pow(exp, m_depth - 1));
+            unsigned mult = static_cast<unsigned>(pow(exp, static_cast<double>(m_depth - 1)));
             unsigned max_conflicts = pp.simplify_max_conflicts();
             if (max_conflicts < 1000000)
                 max_conflicts *= std::max(m_depth, 1u);
@@ -365,7 +366,7 @@ private:
     unsigned      m_branches;
     unsigned      m_backtrack_frequency;
     unsigned      m_conquer_delay;
-    volatile bool m_has_undef;
+    std::atomic<bool> m_has_undef;
     bool          m_allsat;
     unsigned      m_num_unsat;
     unsigned      m_last_depth;

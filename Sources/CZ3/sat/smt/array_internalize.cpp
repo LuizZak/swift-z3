@@ -22,9 +22,14 @@ namespace array {
 
     sat::literal solver::internalize(expr* e, bool sign, bool root, bool redundant) { 
         SASSERT(m.is_bool(e));
-        if (!visit_rec(m, e, sign, root, redundant))
+        if (!visit_rec(m, e, sign, root, redundant)) {
+            TRACE("array", tout << mk_pp(e, m) << "\n";);
             return sat::null_literal;
-        return expr2literal(e);
+        }
+        auto lit = expr2literal(e);
+        if (sign)
+            lit.neg();
+        return lit;
     }
 
     void solver::internalize(expr* e, bool redundant) {
@@ -71,7 +76,8 @@ namespace array {
 
     void solver::internalize_lambda(euf::enode* n) {
         set_prop_upward(n);
-        push_axiom(default_axiom(n));
+        if (!a.is_store(n->get_expr()))
+            push_axiom(default_axiom(n));
         add_lambda(n->get_th_var(get_id()), n);
     }
 
@@ -80,7 +86,8 @@ namespace array {
     }
 
     void solver::internalize_ext(euf::enode* n) {
-        push_axiom(extensionality_axiom(n));
+        SASSERT(is_array(n->get_arg(0)));
+        push_axiom(extensionality_axiom(n->get_arg(0), n->get_arg(1)));
     }
 
     void solver::internalize_default(euf::enode* n) {
@@ -94,6 +101,8 @@ namespace array {
     }
 
     bool solver::visit(expr* e) {
+        if (visited(e))
+            return true;
         if (!is_app(e) || to_app(e)->get_family_id() != get_id()) {
             ctx.internalize(e, m_is_redundant);
             euf::enode* n = expr2enode(e);
@@ -148,6 +157,62 @@ namespace array {
             break;            
         }
         return true;
+    }
+
+    /**
+        \brief Return true if v is shared between two different "instances" of the array theory.
+        It is shared if it is used in more than one role. The possible roles are: array, index, and value.
+        Example:
+          (store v i j) <--- v is used as an array
+          (select A v)  <--- v is used as an index
+          (store A i v) <--- v is used as an value
+     */
+    bool solver::is_shared(theory_var v) const {
+        euf::enode* n = var2enode(v);
+        euf::enode* r = n->get_root();
+        bool is_array = false;
+        bool is_index = false;
+        bool is_value = false;
+        auto set_array = [&](euf::enode* arg) { if (arg->get_root() == r) is_array = true; };
+        auto set_index = [&](euf::enode* arg) { if (arg->get_root() == r) is_index = true; };
+        auto set_value = [&](euf::enode* arg) { if (arg->get_root() == r) is_value = true; };
+
+        for (euf::enode* parent : euf::enode_parents(r)) {
+            app* p = parent->get_app();
+            unsigned num_args = parent->num_args();
+            if (a.is_store(p)) {
+                set_array(parent->get_arg(0));
+                for (unsigned i = 1; i < num_args - 1; i++)
+                    set_index(parent->get_arg(i));
+                set_value(parent->get_arg(num_args - 1));
+            }
+            else if (a.is_select(p)) {
+                set_array(parent->get_arg(0));
+                for (unsigned i = 1; i < num_args - 1; i++)
+                    set_index(parent->get_arg(i));
+            }
+            else if (a.is_const(p)) {
+                set_value(parent->get_arg(0));
+            }
+            if (is_array + is_index + is_value > 1)
+                return true;
+        }
+        return false;
+    }
+
+    func_decl_ref_vector const& solver::sort2diff(sort* s) {
+        func_decl_ref_vector* result = nullptr;
+        if (m_sort2diff.find(s, result))
+            return *result;
+        
+        unsigned dimension = get_array_arity(s);
+        result = alloc(func_decl_ref_vector, m);
+        for (unsigned i = 0; i < dimension; ++i) 
+            result->push_back(a.mk_array_ext(s, i));
+        m_sort2diff.insert(s, result);
+        ctx.push(insert_map<euf::solver, obj_map<sort, func_decl_ref_vector*>, sort*>(m_sort2diff, s));
+        ctx.push(new_obj_trail<euf::solver,func_decl_ref_vector>(result));
+        return *result;
     }
 
 }

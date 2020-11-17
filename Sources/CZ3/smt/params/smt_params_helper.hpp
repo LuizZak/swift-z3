@@ -40,6 +40,7 @@ struct smt_params_helper {
     d.insert("mbqi.trace", CPK_BOOL, "generate tracing messages for Model Based Quantifier Instantiation (MBQI). It will display a message before every round of MBQI, and the quantifiers that were not satisfied", "false","smt");
     d.insert("mbqi.force_template", CPK_UINT, "some quantifiers can be used as templates for building interpretations for functions. Z3 uses heuristics to decide whether a quantifier will be used as a template or not. Quantifiers with weight >= mbqi.force_template are forced to be used as a template", "10","smt");
     d.insert("mbqi.id", CPK_STRING, "Only use model-based instantiation for quantifiers with id's beginning with string", "","smt");
+    d.insert("q.lift_ite", CPK_UINT, "0 - don not lift non-ground if-then-else, 1 - use conservative ite lifting, 2 - use full lifting of if-then-else under quantifiers", "0","smt");
     d.insert("qi.profile", CPK_BOOL, "profile quantifier instantiation", "false","smt");
     d.insert("qi.profile_freq", CPK_UINT, "how frequent results are reported by qi.profile", "4294967295","smt");
     d.insert("qi.max_instances", CPK_UINT, "maximum number of quantifier instantiations", "4294967295","smt");
@@ -170,6 +171,7 @@ struct smt_params_helper {
   bool mbqi_trace() const { return p.get_bool("mbqi.trace", g, false); }
   unsigned mbqi_force_template() const { return p.get_uint("mbqi.force_template", g, 10u); }
   char const * mbqi_id() const { return p.get_str("mbqi.id", g, ""); }
+  unsigned q_lift_ite() const { return p.get_uint("q.lift_ite", g, 0u); }
   bool qi_profile() const { return p.get_bool("qi.profile", g, false); }
   unsigned qi_profile_freq() const { return p.get_uint("qi.profile_freq", g, 4294967295u); }
   unsigned qi_max_instances() const { return p.get_uint("qi.max_instances", g, 4294967295u); }

@@ -67,6 +67,7 @@ namespace array {
         array_union_find                     m_find;
 
         theory_var find(theory_var v) { return m_find.find(v); }
+        func_decl_ref_vector const& sort2diff(sort* s);
 
         // internalize
         bool visit(expr* e) override;
@@ -92,6 +93,7 @@ namespace array {
             kind_t      m_kind;
             euf::enode* n;
             euf::enode* select;
+            bool        m_delayed { false };
             axiom_record(kind_t k, euf::enode* n, euf::enode* select = nullptr) : m_kind(k), n(n), select(select) {}
 
             struct hash {
@@ -119,13 +121,18 @@ namespace array {
         axiom_table_t         m_axioms;
         svector<axiom_record> m_axiom_trail;
         unsigned              m_qhead { 0 };
+        unsigned              m_delay_qhead { 0 };
+        struct set_delay_bit;
         void push_axiom(axiom_record const& r);
+        bool propagate_axiom(unsigned idx);
         bool assert_axiom(unsigned idx);
+        bool assert_select(unsigned idx, axiom_record & r);
+        bool assert_default(axiom_record & r);
 
         axiom_record select_axiom(euf::enode* s, euf::enode* n) { return axiom_record(axiom_record::kind_t::is_select, n, s); }
         axiom_record default_axiom(euf::enode* n) { return axiom_record(axiom_record::kind_t::is_default, n); }
         axiom_record store_axiom(euf::enode* n) { return axiom_record(axiom_record::kind_t::is_store, n); }
-        axiom_record extensionality_axiom(euf::enode* n) { return axiom_record(axiom_record::kind_t::is_extensionality, n); }
+        axiom_record extensionality_axiom(euf::enode* x, euf::enode* y) { return axiom_record(axiom_record::kind_t::is_extensionality, x, y); }
         axiom_record congruence_axiom(euf::enode* a, euf::enode* b) { return axiom_record(axiom_record::kind_t::is_congruence, a, b); }
 
         scoped_ptr<sat::constraint_base> m_constraint;
@@ -151,6 +158,7 @@ namespace array {
         void collect_shared_vars(sbuffer<theory_var>& roots);
         bool add_interface_equalities();
         bool is_select_arg(euf::enode* r);
+        bool is_array(euf::enode* n) const { return a.is_array(n->get_expr()); }
 
         // solving          
         void add_parent_select(theory_var v_child, euf::enode* select);
@@ -180,13 +188,11 @@ namespace array {
         bool have_different_model_values(theory_var v1, theory_var v2);
 
         // diagnostics
-
         std::ostream& display_info(std::ostream& out, char const* id, euf::enode_vector const& v) const;
     public:
         solver(euf::solver& ctx, theory_id id);
-        ~solver() override {}
+        ~solver() override;
         bool is_external(bool_var v) override { return false; }
-        bool propagate(literal l, sat::ext_constraint_idx idx) override { UNREACHABLE(); return false; }
         void get_antecedents(literal l, sat::ext_justification_idx idx, literal_vector& r, bool probing) override {}
         void asserted(literal l) override {}
         sat::check_result check() override;
@@ -195,8 +201,10 @@ namespace array {
         std::ostream& display_justification(std::ostream& out, sat::ext_justification_idx idx) const override;
         std::ostream& display_constraint(std::ostream& out, sat::ext_constraint_idx idx) const override;
         void collect_statistics(statistics& st) const override;
-        euf::th_solver* fresh(sat::solver* s, euf::solver& ctx) override;
+        euf::th_solver* clone(euf::solver& ctx) override;
         void new_eq_eh(euf::th_eq const& eq) override;
+        bool use_diseqs() const override { return true; }
+        void new_diseq_eh(euf::th_eq const& eq) override;
         bool unit_propagate() override;
         void add_value(euf::enode* n, model& mdl, expr_ref_vector& values) override;
         void add_dep(euf::enode* n, top_sort<euf::enode>& dep) override;
@@ -204,11 +212,12 @@ namespace array {
         void internalize(expr* e, bool redundant) override;
         euf::theory_var mk_var(euf::enode* n) override;
         void apply_sort_cnstr(euf::enode* n, sort* s) override;
-
-        void tracked_push(euf::enode_vector& v, euf::enode* n);
+        bool is_shared(theory_var v) const override;
 
         void merge_eh(theory_var, theory_var, theory_var v1, theory_var v2);
         void after_merge_eh(theory_var r1, theory_var r2, theory_var v1, theory_var v2) {}
         void unmerge_eh(theory_var v1, theory_var v2) {}
+
+        euf::enode_vector const& parent_selects(euf::enode* n) const { return m_var_data[n->get_th_var(get_id())]->m_parent_selects; }
     };
 }

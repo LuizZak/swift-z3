@@ -740,7 +740,7 @@ extern "C" {
         RESET_ERROR_CODE();
         ast_manager & m = mk_c(c)->m();
         expr * a = to_expr(_a);
-        params_ref p = to_param_ref(_p);
+        auto &p = to_param_ref(_p);
         unsigned timeout     = p.get_uint("timeout", mk_c(c)->get_timeout());
         bool     use_ctrl_c  = p.get_bool("ctrl_c", false);
         th_rewriter m_rw(m, p);
@@ -1202,6 +1202,8 @@ extern "C" {
 
             case OP_STRING_STOI: return Z3_OP_STR_TO_INT;
             case OP_STRING_ITOS: return Z3_OP_INT_TO_STR;
+            case OP_STRING_LT: return Z3_OP_STRING_LT;
+            case OP_STRING_LE: return Z3_OP_STRING_LE;
 
             case OP_RE_PLUS: return Z3_OP_RE_PLUS;
             case OP_RE_STAR: return Z3_OP_RE_STAR;

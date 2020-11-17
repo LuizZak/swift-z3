@@ -109,7 +109,13 @@ namespace sat {
 
     void solver::set_extension(extension* ext) {
         m_ext = ext;
-        if (ext) ext->set_solver(this);
+        if (ext) {
+            ext->set_solver(this);
+            for (unsigned i = num_user_scopes(); i-- > 0;)
+                ext->user_push();
+            for (unsigned i = num_scopes(); i-- > 0;)
+                ext->push();
+        }
     }
 
     void solver::copy(solver const & src, bool copy_learned) {
@@ -386,6 +392,8 @@ namespace sat {
     }
 
     void solver::drat_log_unit(literal lit, justification j) {
+        if (!m_ext)
+            return;
         extension::scoped_drating _sd(*m_ext.get());
         if (j.get_kind() == justification::EXT_JUSTIFICATION) 
             fill_ext_antecedents(lit, j, false);
@@ -415,6 +423,7 @@ namespace sat {
                 m_mc.add_clause(num_lits, lits);
             }
         }       
+
 
         switch (num_lits) {
         case 0:
@@ -940,11 +949,6 @@ namespace sat {
         m_phase[v]                 = !l.sign();
         m_assigned_since_gc[v]     = true;
         m_trail.push_back(l);
-
-        if (m_ext && m_external[v] && (!is_probing() || at_base_lvl()))
-            m_ext->asserted(l);
-//        else 
-//            std::cout << "assert " << l << "\n";
         
         switch (m_config.m_branching_heuristic) {
         case BH_VSIDS: 
@@ -957,7 +961,7 @@ namespace sat {
         if (m_config.m_anti_exploration) {
             uint64_t age = m_stats.m_conflict - m_canceled[v];
             if (age > 0) {
-                double decay = pow(0.95, age);
+                double decay = pow(0.95, static_cast<double>(age));
                 set_activity(v, static_cast<unsigned>(m_activity[v] * decay));
                 // NB. MapleSAT does not update canceled.
                 m_canceled[v] = m_stats.m_conflict;
@@ -1042,7 +1046,7 @@ namespace sat {
         lbool val1, val2;
         bool keep;
         unsigned curr_level = lvl(l);
-        TRACE("sat_propagate", tout << "propagating: " << l << " " << m_justification[l.var()] << "\n"; );
+        TRACE("sat_propagate", tout << "propagating: " << l << "@" << curr_level << " " << m_justification[l.var()] << "\n"; );
 
         literal not_l = ~l;
         SASSERT(value(l) == l_true);
@@ -1185,7 +1189,7 @@ namespace sat {
             }
             case watched::EXT_CONSTRAINT:
                 SASSERT(m_ext);
-                keep = m_ext->propagate(l, it->get_ext_constraint_idx());
+                keep = m_ext->propagated(l, it->get_ext_constraint_idx());
                 if (m_inconsistent) {
                     if (!keep) {
                         ++it;
@@ -1204,6 +1208,9 @@ namespace sat {
             }
         }
         wlist.set_end(it2);
+        if (m_ext && m_external[l.var()] && (!is_probing() || at_base_lvl()))
+            m_ext->asserted(l);
+
         return true;
     }
 
@@ -1636,7 +1643,7 @@ namespace sat {
                 next = m_case_split_queue.min_var();
                 auto age = m_stats.m_conflict - m_canceled[next];
                 while (age > 0) {
-                    set_activity(next, static_cast<unsigned>(m_activity[next] * pow(0.95, age)));
+                    set_activity(next, static_cast<unsigned>(m_activity[next] * pow(0.95, static_cast<double>(age))));
                     m_canceled[next] = m_stats.m_conflict;
                     next = m_case_split_queue.min_var();
                     age = m_stats.m_conflict - m_canceled[next];                    
@@ -2340,7 +2347,6 @@ namespace sat {
 
 
     lbool solver::resolve_conflict_core() {
-        TRACE("sat", tout << "**************************\n";);
         m_conflicts_since_init++;
         m_conflicts_since_restart++;
         m_conflicts_since_gc++;
@@ -3575,6 +3581,7 @@ namespace sat {
         m_trail.shrink(old_sz);        
         m_qhead = m_trail.size();
         if (!m_replay_assign.empty()) IF_VERBOSE(20, verbose_stream() << "replay assign: " << m_replay_assign.size() << "\n");
+        CTRACE("sat", !m_replay_assign.empty(), tout << "replay-assign: " << m_replay_assign << "\n";);
         for (unsigned i = m_replay_assign.size(); i-- > 0; ) {
             literal lit = m_replay_assign[i];
             m_trail.push_back(lit);            
@@ -3624,6 +3631,8 @@ namespace sat {
         lit = literal(new_v, false);
         m_user_scope_literals.push_back(lit);
         m_cut_simplifier = nullptr; // for simplicity, wipe it out
+        if (m_ext)
+            m_ext->user_push();
         TRACE("sat", tout << "user_push: " << lit << "\n";);
     }
 
@@ -3706,6 +3715,8 @@ namespace sat {
     void solver::user_pop(unsigned num_scopes) {
         pop_to_base_level();
         TRACE("sat", display(tout););
+        if (m_ext)
+            m_ext->user_pop(num_scopes);
         while (num_scopes > 0) {
             literal lit = m_user_scope_literals.back();
             m_user_scope_literals.pop_back();

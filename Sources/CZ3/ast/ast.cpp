@@ -1143,11 +1143,13 @@ func_decl * basic_decl_plugin::mk_func_decl(decl_kind k, unsigned num_parameters
     case OP_DISTINCT: {
         func_decl_info info(m_family_id, OP_DISTINCT);
         info.set_pairwise();
+        ptr_buffer<sort> sorts;
         for (unsigned i = 1; i < arity; i++) {
             if (domain[i] != domain[0]) {
-                std::ostringstream buffer;
-                buffer << "Sort mismatch between first argument and argument " << (i+1);
-                throw ast_exception(buffer.str());
+                sort* srt = join(arity, domain);
+                for (unsigned j = 0; j < arity; ++j) 
+                    sorts.push_back(srt);
+                domain = sorts.c_ptr();
             }
         }
         return m_manager->mk_func_decl(symbol("distinct"), arity, domain, m_bool_sort, info);
@@ -1785,12 +1787,14 @@ bool ast_manager::slow_not_contains(ast const * n) {
 }
 #endif
 
-static unsigned s_count = 0;
 #if 0
+static unsigned s_count = 0;
+
 static void track_id(ast_manager& m, ast* n, unsigned id) {
     if (n->get_id() != id) return;
     ++s_count;
     TRACE("ast", tout << s_count << "\n";);
+//    SASSERT(s_count != 5);
 }
 #endif
 
@@ -1822,11 +1826,11 @@ ast * ast_manager::register_node_core(ast * n) {
         SASSERT(m_ast_table.contains(n));
     }
 
-    n->m_id = is_decl(n) ? m_decl_id_gen.mk() : m_expr_id_gen.mk();
+    n->m_id = is_decl(n) ? m_decl_id_gen.mk() : m_expr_id_gen.mk();        
 
-//  track_id(*this, n, 3);
+//    track_id(*this, n, 77);
     
-    TRACE("ast", tout << (s_count++) << " Object " << n->m_id << " was created.\n";);
+//    TRACE("ast", tout << (s_count++) << " Object " << n->m_id << " was created.\n";);
     TRACE("mk_var_bug", tout << "mk_ast: " << n->m_id << "\n";);
     // increment reference counters
     switch (n->get_kind()) {
@@ -1909,9 +1913,9 @@ ast * ast_manager::register_node_core(ast * n) {
     default:
         break;
     }
-
     return n;
 }
+
 
 void ast_manager::delete_node(ast * n) {
     TRACE("delete_node_bug", tout << mk_ll_pp(n, *this) << "\n";);

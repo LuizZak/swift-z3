@@ -123,7 +123,7 @@ public:
         ast_translation tr(m, dst_m);
         m_solver.pop_to_base_level();
         inc_sat_solver* result = alloc(inc_sat_solver, dst_m, p, is_incremental());
-        auto* ext = dynamic_cast<euf::solver*>(m_solver.get_extension());
+        auto* ext = get_euf();
         if (ext) {
             auto& si = result->m_goal2sat.si(dst_m, m_params, result->m_solver, result->m_map, result->m_dep2asm, is_incremental());
             euf::solver::scoped_set_translate st(*ext, dst_m, si);  
@@ -257,6 +257,7 @@ public:
     }
 
     void push_internal() {
+        m_goal2sat.user_push();
         m_solver.user_push();
         ++m_num_scopes;
         m_mcs.push_back(m_mcs.back());
@@ -277,6 +278,7 @@ public:
         m_map.pop(n);
         SASSERT(n <= m_num_scopes);
         m_solver.user_pop(n);
+        m_goal2sat.user_pop(n);
         m_num_scopes -= n;
         // ? m_internalized_converted = false;
         m_has_uninterpreted.pop(n);
@@ -337,7 +339,8 @@ public:
         m_params.set_sym("pb.solver", p1.pb_solver());
         m_solver.updt_params(m_params);
         m_solver.set_incremental(is_incremental() && !override_incremental());
-
+        if (p1.euf() && !get_euf()) 
+            ensure_euf();        
     }
     void collect_statistics(statistics & st) const override {
         if (m_preprocess) m_preprocess->collect_statistics(st);
@@ -372,19 +375,6 @@ public:
 
     proof * get_proof() override {
         return nullptr;
-    }
-
-    // TODO
-    expr_ref get_implied_value(expr* e) override {
-        return expr_ref(e, m);
-    }
-
-    expr_ref get_implied_lower_bound(expr* e) override {
-        return expr_ref(e, m);
-    }
-
-    expr_ref get_implied_upper_bound(expr* e) override {
-        return expr_ref(e, m);
     }
 
     expr_ref_vector last_cube(bool is_sat) {
@@ -609,19 +599,29 @@ public:
         params_ref simp2_p = m_params;
         simp2_p.set_bool("flat", false);
 
-        m_preprocess =
-            and_then(mk_simplify_tactic(m),
-                     mk_propagate_values_tactic(m),
-                     mk_card2bv_tactic(m, m_params),                  // updates model converter
-                     using_params(mk_simplify_tactic(m), simp1_p),
-                     mk_max_bv_sharing_tactic(m),
-                     mk_bit_blaster_tactic(m, m_bb_rewriter.get()),
-                     using_params(mk_simplify_tactic(m), simp2_p)
-                     );
+        sat_params sp(m_params);
+        if (sp.euf()) 
+            m_preprocess =
+                and_then(mk_simplify_tactic(m),
+                         mk_propagate_values_tactic(m));
+        else 
+            m_preprocess =
+                and_then(mk_simplify_tactic(m),
+                         mk_propagate_values_tactic(m),
+                         mk_card2bv_tactic(m, m_params),                  // updates model converter
+                         using_params(mk_simplify_tactic(m), simp1_p),
+                         mk_max_bv_sharing_tactic(m),
+                         mk_bit_blaster_tactic(m, m_bb_rewriter.get()),
+                         using_params(mk_simplify_tactic(m), simp2_p)
+                         );
         while (m_bb_rewriter->get_num_scopes() < m_num_scopes) {
             m_bb_rewriter->push();
         }
         m_preprocess->reset();
+    }
+
+    euf::solver* get_euf() {
+        return dynamic_cast<euf::solver*>(m_solver.get_extension());
     }
 
     euf::solver* ensure_euf() {
@@ -982,11 +982,11 @@ private:
         if (m_sat_mc) {
             (*m_sat_mc)(ll_m);
         }        
-        app_ref_vector var2expr(m);
+        expr_ref_vector var2expr(m);
         m_map.mk_var_inv(var2expr);
         
         for (unsigned v = 0; v < var2expr.size(); ++v) {
-            app * n = var2expr.get(v);
+            expr * n = var2expr.get(v);
             if (!n || !is_uninterp_const(n)) {
                 continue;
             }

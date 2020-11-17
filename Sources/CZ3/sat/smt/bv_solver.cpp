@@ -37,26 +37,24 @@ namespace bv {
     };
 
     class solver::bit_occs_trail : public trail<euf::solver> {
-        bit_atom& a;
+        atom& a;
         var_pos_occ* m_occs;
 
     public:
-        bit_occs_trail(solver& s, bit_atom& a): a(a), m_occs(a.m_occs) {}
+        bit_occs_trail(solver& s, atom& a): a(a), m_occs(a.m_occs) {}
         
         virtual void undo(euf::solver& euf) {
-            IF_VERBOSE(1, verbose_stream() << "add back occurrences " << & a << "\n");
             a.m_occs = m_occs;
         }
     };
 
     solver::solver(euf::solver& ctx, theory_id id) :
-        euf::th_euf_solver(ctx, id),
+        euf::th_euf_solver(ctx, symbol("bv"), id),
         bv(m),
         m_autil(m),
         m_ackerman(*this),
         m_bb(m, get_config()),
         m_find(*this) {
-        ctx.get_egraph().set_th_propagates_diseqs(id);
     }
 
     void solver::fixed_var_eh(theory_var v1) {
@@ -76,7 +74,6 @@ namespace bv {
             is_bv(v2) &&
             m_bits[v2].size() == sz &&
             get_fixed_value(v2, val2) && val1 == val2;
-
         if (!is_current)
             m_fixed_var_table.insert(key, v1);
         else if (n1->get_root() != var2enode(v2)->get_root()) {
@@ -134,7 +131,7 @@ namespace bv {
     /**
      *\brief v[idx] = ~v'[idx], then v /= v' is a theory axiom.
     */
-    void solver::find_new_diseq_axioms(bit_atom& a, theory_var v, unsigned idx) {
+    void solver::find_new_diseq_axioms(atom& a, theory_var v, unsigned idx) {
         if (!get_config().m_bv_eq_axioms)
             return;
         literal l = m_bits[v][idx];
@@ -180,12 +177,8 @@ namespace bv {
             }
         }
         else if (m.is_bool(e) && (a = m_bool_var2atom.get(expr2literal(e).var(), nullptr))) {
-            if (a->is_bit()) {
-                for (var_pos vp : a->to_bit())
-                    out << " " << var2enode(vp.first)->get_expr_id() << "[" << vp.second << "]";
-            }
-            else
-                out << "def-atom";
+            for (var_pos vp : *a)
+                out << " " << var2enode(vp.first)->get_expr_id() << "[" << vp.second << "]";
         }
         else
             out << " " << mk_bounded_pp(e, m, 1);
@@ -265,11 +258,10 @@ namespace bv {
     double solver::get_reward(literal l, sat::ext_constraint_idx idx, sat::literal_occs_fun& occs) const { return 0; }
     bool solver::is_extended_binary(sat::ext_justification_idx idx, literal_vector& r) { return false; }
     bool solver::is_external(bool_var v) { return true; }
-    bool solver::propagate(literal l, sat::ext_constraint_idx idx) { return false; }
 
     void solver::get_antecedents(literal l, sat::ext_justification_idx idx, literal_vector& r, bool probing) {
         auto& c = bv_justification::from_index(idx);
-        TRACE("bv", display_constraint(tout, idx););
+        TRACE("bv", display_constraint(tout, idx) << "\n";);
         switch (c.m_kind) {
         case bv_justification::kind_t::eq2bit:
             SASSERT(s().value(c.m_antecedent) == l_true);
@@ -387,14 +379,13 @@ namespace bv {
     }
 
     void solver::asserted(literal l) {
+        
         atom* a = get_bv2a(l.var());
         TRACE("bv", tout << "asserted: " << l << "\n";);
-        if (a && a->is_bit()) {
+        if (a) {
             force_push();
-            m_prop_queue.push_back(propagation_item(&a->to_bit()));
-        }
-        else if (a && a->is_eq()) {
-            for (auto p : a->to_eq().m_eqs) {
+            m_prop_queue.push_back(propagation_item(a));            
+            for (auto p : a->m_bit2occ) {
                 del_eq_occurs(p.first, p.second);
             }
         }
@@ -408,21 +399,10 @@ namespace bv {
         for (; m_prop_queue_head < m_prop_queue.size() && !s().inconsistent(); ++m_prop_queue_head) {
             auto const p = m_prop_queue[m_prop_queue_head];
             if (p.m_atom) {
-                unsigned num_atoms = 0, num_eqs = 0, num_assigned = 0, num_eq_assigned = 0, num_lit_assigned = 0;
-                for (auto vp : *p.m_atom) {
-                    if (propagate_bits(vp))
-                        ++num_assigned;
-                    ++num_atoms;
-                }
-                for (auto const& eq : p.m_atom->eqs()) {
-                    ++num_eqs;
-                    if (s().value(eq.m_literal) != l_undef)
-                        ++num_lit_assigned;
-                    if (propagate_eq_occurs(eq)) {
-                        ++num_eq_assigned;
-                    }
-                }
-                IF_VERBOSE(20, verbose_stream() << "atoms: " << num_atoms << " eqs: " << num_eqs << " atoms-assigned:" << num_assigned << " eqs-assigned: " << num_eq_assigned << " lits: " << num_lit_assigned << "\n");
+                for (auto vp : *p.m_atom)
+                    propagate_bits(vp);
+                for (auto const& eq : p.m_atom->eqs()) 
+                    propagate_eq_occurs(eq);                
             }
             else 
                 propagate_bits(p.m_vp);            
@@ -495,20 +475,39 @@ namespace bv {
         return num_assigned > 0;
     }
 
+    /**
+    * Check each delay internalized bit-vector operation for compliance.
+    * 
+    * TBD: add model-repair attempt after cheap propagation axioms have been added
+    */
     sat::check_result solver::check() {
         force_push();
         SASSERT(m_prop_queue.size() == m_prop_queue_head);
         bool ok = true;
-        for (auto kv : m_delay_internalize) {
-            if (ctx.is_relevant(kv.m_key) && 
-                kv.m_value == internalize_mode::init_bits_i &&
-                !check_delay_internalized(expr2enode(kv.m_key)))
+        svector<std::pair<expr*, internalize_mode>> delay;
+        for (auto kv : m_delay_internalize)
+            delay.push_back(std::make_pair(kv.m_key, kv.m_value));
+        flet<bool> _cheap1(m_cheap_axioms, true);
+        for (auto kv : delay) 
+            if (!check_delay_internalized(kv.first))
                 ok = false;
-        }
-        return ok ? sat::check_result::CR_DONE : sat::check_result::CR_CONTINUE;
+        if (!ok)
+            return sat::check_result::CR_CONTINUE;
+
+        // if (repair_model()) return sat::check_result::DONE;
+
+        flet<bool> _cheap2(m_cheap_axioms, false);
+        for (auto kv : delay) 
+            if (!check_delay_internalized(kv.first))
+                ok = false;
+        
+        if (!ok)
+            return sat::check_result::CR_CONTINUE;
+        return sat::check_result::CR_DONE;
     }
 
     void solver::push_core() {
+        TRACE("bv", tout << "push: " << get_num_vars() << "@" << m_prop_queue_lim.size() << "\n";);
         th_euf_solver::push_core();
         m_prop_queue_lim.push_back(m_prop_queue.size());
     }
@@ -523,22 +522,19 @@ namespace bv {
         m_bits.shrink(old_sz);
         m_wpos.shrink(old_sz);
         m_zero_one_bits.shrink(old_sz);
+        TRACE("bv", tout << "num vars " << old_sz << "@" << m_prop_queue_lim.size() << "\n";);
     }
-
-    void solver::pre_simplify() {}
 
     void solver::simplify() {
         m_ackerman.propagate();
     }
 
     bool solver::set_root(literal l, literal r) {
+        return false;
         atom* a = get_bv2a(l.var());
-        atom* b = get_bv2a(r.var());
-        if (!a || !a->is_bit())
+        if (!a)
             return true;
-        if (b && !b->is_bit())
-            return false;
-        for (auto vp : a->to_bit()) {            
+        for (auto vp : *a) {            
             sat::literal l2 = m_bits[vp.first][vp.second];
             if (l2.var() == r.var())
                 continue;
@@ -549,8 +545,8 @@ namespace bv {
             m_bits[vp.first][vp.second] = r2;
             set_bit_eh(vp.first, r2, vp.second);
         }
-        ctx.push(bit_occs_trail(*this, a->to_bit()));
-        a->to_bit().m_occs = nullptr;
+        ctx.push(bit_occs_trail(*this, *a));
+        a->m_occs = nullptr;
         // validate_atoms();
         return true;
     }
@@ -621,14 +617,23 @@ namespace bv {
             return out << "bv <- v" << v1 << "[" << cidx << "] != v" << v2 << "[" << cidx << "] " << m_bits[v1][cidx] << " != " << m_bits[v2][cidx];
         }
         case bv_justification::kind_t::ne2bit: 
-            return out << "bv <- " << m_bits[v1] << " != " << m_bits[v2] << " @" << cidx;
-            break;                                                     
+            return out << "bv <- " << m_bits[v1] << " != " << m_bits[v2] << " @" << cidx;                                                 
         default:
             UNREACHABLE();
             break;
         }
         return out;
     }
+
+    std::ostream& solver::display(std::ostream& out, atom const& a) const {
+        out << a.m_bv << "\n";
+        for (auto vp : a) 
+            out << vp.first << "[" << vp.second << "]\n";
+        for (auto e : a.eqs())
+            out << e.m_bv1 << " " << e.m_bv2 << "\n";
+        return out;
+    }
+
 
     void solver::collect_statistics(statistics& st) const {
         st.update("bv conflicts", m_stats.m_num_conflicts);
@@ -643,7 +648,7 @@ namespace bv {
 
     sat::extension* solver::copy(sat::solver* s) { UNREACHABLE(); return nullptr; }
 
-    euf::th_solver* solver::fresh(sat::solver* s, euf::solver& ctx) {
+    euf::th_solver* solver::clone(euf::solver& ctx) {
         bv::solver* result = alloc(bv::solver, ctx, get_id());
         ast_translation tr(m, ctx.get_manager());
         for (unsigned i = 0; i < get_num_vars(); ++i) {
@@ -664,23 +669,19 @@ namespace bv {
             if (!a)
                 continue;
 
-            if (a->is_bit()) {
-                bit_atom* new_a = new (result->get_region()) bit_atom();
-                m_bool_var2atom.setx(i, new_a, nullptr);
-                for (auto vp : a->to_bit())
-                    new_a->m_occs = new (result->get_region()) var_pos_occ(vp.first, vp.second, new_a->m_occs);
-                for (auto const& occ : a->to_bit().eqs()) {
-                    expr* e = occ.m_node->get_expr();
-                    expr_ref e2(tr(e), tr.to());
-                    euf::enode* n = ctx.get_enode(e2);
-                    new_a->m_eqs = new (result->get_region()) eq_occurs(occ.m_bv1, occ.m_bv2, occ.m_idx, occ.m_v1, occ.m_v2, occ.m_literal, n, new_a->m_eqs);
-                }
+            atom* new_a = new (result->get_region()) atom(i);
+            result->m_bool_var2atom.setx(i, new_a, nullptr);
+            for (auto vp : *a)
+                new_a->m_occs = new (result->get_region()) var_pos_occ(vp.first, vp.second, new_a->m_occs);
+            for (auto const& occ : a->eqs()) {
+                expr* e = occ.m_node->get_expr();
+                expr_ref e2(tr(e), tr.to());
+                euf::enode* n = ctx.get_enode(e2);
+                new_a->m_eqs = new (result->get_region()) eq_occurs(occ.m_bv1, occ.m_bv2, occ.m_idx, occ.m_v1, occ.m_v2, occ.m_literal, n, new_a->m_eqs);
             }
-            else {
-                def_atom* new_a = new (result->get_region()) def_atom(a->to_def().m_var, a->to_def().m_def);
-                m_bool_var2atom.setx(i, new_a, nullptr);
-            }
-            validate_atoms();
+            new_a->m_def = a->m_def;
+            new_a->m_var = a->m_var;
+            // validate_atoms();
         }
         return result;
     }
@@ -690,6 +691,7 @@ namespace bv {
     void solver::init_use_list(sat::ext_use_list& ul) {}
     bool solver::is_blocked(literal l, sat::ext_constraint_idx) { return false; }
     bool solver::check_model(sat::model const& m) const { return true; }
+    void solver::finalize_model(model& mdl) {}
     unsigned solver::max_var(unsigned w) const { return w; }
 
     void solver::add_value(euf::enode* n, model& mdl, expr_ref_vector& values) {
@@ -783,9 +785,7 @@ namespace bv {
         return sat::justification::mk_ext_justification(s().scope_lvl(), constraint->to_index());
     }
 
-
     bool solver::assign_bit(literal consequent, theory_var v1, theory_var v2, unsigned idx, literal antecedent, bool propagate_eqc) {
-
         m_stats.m_num_eq2bit++;
         SASSERT(ctx.s().value(antecedent) == l_true);
         SASSERT(m_bits[v2][idx].var() == consequent.var());
@@ -801,8 +801,9 @@ namespace bv {
                 find_wpos(v2);
             bool_var cv = consequent.var();
             atom* a = get_bv2a(cv);
-            if (a && a->is_bit())
-                for (auto curr : a->to_bit())
+            force_push();
+            if (a)
+                for (auto curr : *a)
                     if (propagate_eqc || find(curr.first) != find(v2) || curr.second != idx) 
                         m_prop_queue.push_back(propagation_item(curr));  
             return true;

@@ -336,6 +336,10 @@ bool cmd_context::macros_find(symbol const& s, unsigned n, expr*const* args, exp
                 coerced_args.push_back(au.mk_to_real(args[i]));
                 continue;
             }
+            if (au.is_int(d.m_domain[i]) && au.is_real(args[i])) {
+                coerced_args.push_back(au.mk_to_int(args[i]));
+                continue;
+            }
             eq = false;
         }
         if (eq) {
@@ -1660,7 +1664,7 @@ void cmd_context::display_model(model_ref& mdl) {
             model_v2_pp(buffer, *mdl, false);
             regular_stream() << '"' << escaped(buffer.str(), true) << '"' << std::endl;
         } else {
-            regular_stream() << "(model " << std::endl;
+            regular_stream() << "(" << std::endl;
             model_smt2_pp(regular_stream(), *this, *mdl, 2);
             regular_stream() << ")" << std::endl;
         }
@@ -1674,7 +1678,7 @@ void cmd_context::add_declared_functions(model& mdl) {
             expr* val = mdl.get_some_value(f->get_range());
             if (f->get_arity() == 0) {
                 mdl.register_decl(f, val);
-                }
+            }
             else {
                 func_interp* fi = alloc(func_interp, m(), f->get_arity());
                 fi->set_else(val);
@@ -1864,6 +1868,7 @@ void cmd_context::validate_model() {
         cancel_eh<reslimit> eh(m().limit());
         expr_ref r(m());
         scoped_ctrl_c ctrlc(eh);
+        expr_mark seen;
         bool invalid_model = false;
         for (expr * a : assertions()) {
             if (is_ground(a)) {
@@ -1888,7 +1893,7 @@ void cmd_context::validate_model() {
                     continue;
                 }
 
-                analyze_failure(evaluator, a, true);
+                analyze_failure(seen, evaluator, a, true);
                 IF_VERBOSE(11, model_smt2_pp(verbose_stream(), *this, *md, 0););                
                 TRACE("model_validate", model_smt2_pp(tout, *this, *md, 0););
                 invalid_model |= m().is_false(r);
@@ -1900,16 +1905,19 @@ void cmd_context::validate_model() {
     }
 }
 
-void cmd_context::analyze_failure(model_evaluator& ev, expr* a, bool expected_value) {
+void cmd_context::analyze_failure(expr_mark& seen, model_evaluator& ev, expr* a, bool expected_value) {
     expr* c = nullptr, *t = nullptr, *e = nullptr;
+    if (seen.is_marked(a))
+        return;
+    seen.mark(a, true);
     if (m().is_not(a, e)) {
-        analyze_failure(ev, e, !expected_value);
+        analyze_failure(seen, ev, e, !expected_value);
         return;
     }
     if (!expected_value && m().is_or(a)) {
         for (expr* arg : *to_app(a)) {
             if (ev.is_true(arg)) {
-                analyze_failure(ev, arg, false);
+                analyze_failure(seen, ev, arg, false);
                 return;
             }
         }
@@ -1917,39 +1925,39 @@ void cmd_context::analyze_failure(model_evaluator& ev, expr* a, bool expected_va
     if (expected_value && m().is_and(a)) {
         for (expr* arg : *to_app(a)) {
             if (ev.is_false(arg)) {
-                analyze_failure(ev, arg, true);
+                analyze_failure(seen, ev, arg, true);
                 return;
             }
         }
     }
     if (expected_value && m().is_ite(a, c, t, e)) {
         if (ev.is_true(c) && ev.is_false(t)) {
-            if (!m().is_true(c)) analyze_failure(ev, c, false);
-            if (!m().is_false(t)) analyze_failure(ev, t, true);
+            if (!m().is_true(c)) analyze_failure(seen, ev, c, false);
+            if (!m().is_false(t)) analyze_failure(seen, ev, t, true);
             return;
         }
         if (ev.is_false(c) && ev.is_false(e)) {
-            if (!m().is_false(c)) analyze_failure(ev, c, true);
-            if (!m().is_false(e)) analyze_failure(ev, e, true);
+            if (!m().is_false(c)) analyze_failure(seen, ev, c, true);
+            if (!m().is_false(e)) analyze_failure(seen, ev, e, true);
             return;
         }
     }
     if (!expected_value && m().is_ite(a, c, t, e)) {
         if (ev.is_true(c) && ev.is_true(t)) {
-            if (!m().is_true(c)) analyze_failure(ev, c, false);
-            if (!m().is_true(t)) analyze_failure(ev, t, false);
+            if (!m().is_true(c)) analyze_failure(seen, ev, c, false);
+            if (!m().is_true(t)) analyze_failure(seen, ev, t, false);
             return;
         }
         if (ev.is_false(c) && ev.is_true(e)) {
-            if (!m().is_false(c)) analyze_failure(ev, c, true);
-            if (!m().is_true(e)) analyze_failure(ev, e, false);
+            if (!m().is_false(c)) analyze_failure(seen, ev, c, true);
+            if (!m().is_true(e)) analyze_failure(seen, ev, e, false);
             return;
         }
     }
-    IF_VERBOSE(10, verbose_stream() << "model check failed on: " << " " << mk_pp(a, m()) << "\n";);                
-    IF_VERBOSE(10, verbose_stream() << "expected value: " << (expected_value?"true":"false") << "\n";);                
+    IF_VERBOSE(10, verbose_stream() << "#" << a->get_id() << " " << mk_pp(a, m()) << " expected: "
+               << (expected_value?"true":"false") << "\n";);                
 
-    IF_VERBOSE(10, display_detailed_analysis(verbose_stream(), ev, a));
+    IF_VERBOSE(11, display_detailed_analysis(verbose_stream(), ev, a));
 }
 
 void cmd_context::display_detailed_analysis(std::ostream& out, model_evaluator& ev, expr* e) {

@@ -21,6 +21,9 @@ Revision History:
 #include "ast/ast_pp.h"
 #include "ast/ast_pp_util.h"
 #include "util/stats.h"
+#ifndef SINGLE_THREAD
+#include <thread>
+#endif
 
 namespace smt {
 
@@ -179,8 +182,12 @@ namespace smt {
     std::ostream& context::display_clauses(std::ostream & out, ptr_vector<clause> const & v) const {
         for (clause* cp : v) {
             out << "(";
-            for (auto lit : *cp)
-                out << lit << " ";
+            bool first = true;
+            for (auto lit : *cp) {
+                if (!first) out << " "; 
+                first = false;
+                out << lit;
+            }
             out << ")\n";
         }
         return out;
@@ -385,20 +392,7 @@ namespace smt {
         st.update("max generation", m_stats.m_max_generation);
         st.update("minimized lits", m_stats.m_num_minimized_lits);
         st.update("num checks", m_stats.m_num_checks);
-        st.update("mk bool var", m_stats.m_num_mk_bool_var);
-
-#if 0
-        // missing?
-        st.update("mk lit", m_stats.m_num_mk_lits);
-        st.update("sat conflicts", m_stats.m_num_sat_conflicts);
-        st.update("del bool var", m_stats.m_num_del_bool_var);
-        st.update("mk enode", m_stats.m_num_mk_enode);
-        st.update("del enode", m_stats.m_num_del_enode);
-        st.update("mk bin clause", m_stats.m_num_mk_bin_clause);
-        st.update("backwd subs", m_stats.m_num_bs);
-        st.update("backwd subs res", m_stats.m_num_bsr);
-        st.update("frwrd subs res", m_stats.m_num_fsr);
-#endif
+        st.update("mk bool var", m_stats.m_num_mk_bool_var ? m_stats.m_num_mk_bool_var - 1 : 0);
         m_qmanager->collect_statistics(st);
         m_asserted_formulas.collect_statistics(st);
         for (theory* th : m_theory_set) {
@@ -439,13 +433,12 @@ namespace smt {
         out << "(check-sat)\n";
     }
 
+
     unsigned context::display_lemma_as_smt_problem(unsigned num_antecedents, literal const * antecedents, literal consequent, symbol const& logic) const {
-        std::stringstream strm;
-        strm << "lemma_" << (++m_lemma_id) << ".smt2";
-        std::ofstream out(strm.str());
-        TRACE("lemma", tout << strm.str() << "\n";);
+        std::string name = mk_lemma_name();
+        std::ofstream out(name);
+        TRACE("lemma", tout << name << "\n";);
         display_lemma_as_smt_problem(out, num_antecedents, antecedents, consequent, logic);
-        TRACE("non_linear", display_lemma_as_smt_problem(tout, num_antecedents, antecedents, consequent, logic););
         out.close();
         return m_lemma_id;
     }
@@ -479,13 +472,24 @@ namespace smt {
         out << "(check-sat)\n";
     }
 
+    std::string context::mk_lemma_name() const {
+        std::stringstream strm;
+#ifndef SINGLE_THREAD
+        std::thread::id this_id = std::this_thread::get_id();
+        strm << "lemma_" << this_id << "." << (++m_lemma_id) << ".smt2";
+#else
+        strm << "lemma_" << (++m_lemma_id) << ".smt2";
+#endif
+        return strm.str();
+    }
+
+
     unsigned context::display_lemma_as_smt_problem(unsigned num_antecedents, literal const * antecedents,
                                                unsigned num_eq_antecedents, enode_pair const * eq_antecedents,
                                                literal consequent, symbol const& logic) const {
-        std::stringstream strm;
-        strm << "lemma_" << (++m_lemma_id) << ".smt2";
-        std::ofstream out(strm.str());
-        TRACE("lemma", tout << strm.str() << "\n";
+        std::string name = mk_lemma_name();
+        std::ofstream out(name);
+        TRACE("lemma", tout << name << "\n";
               display_lemma_as_smt_problem(tout, num_antecedents, antecedents, num_eq_antecedents, eq_antecedents, consequent, logic);
               );
         display_lemma_as_smt_problem(out, num_antecedents, antecedents, num_eq_antecedents, eq_antecedents, consequent, logic);

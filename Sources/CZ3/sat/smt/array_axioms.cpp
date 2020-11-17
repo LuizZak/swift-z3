@@ -31,61 +31,90 @@ namespace array {
             ctx.push(push_back_vector<euf::solver, svector<axiom_record>>(m_axiom_trail));
     }
 
-    bool solver::assert_axiom(unsigned idx) {
-        axiom_record const& r = m_axiom_trail[idx];
+    bool solver::propagate_axiom(unsigned idx) {
         if (m_axioms.contains(idx))
             return false;
         m_axioms.insert(idx);
         ctx.push(insert_map<euf::solver, axiom_table_t, unsigned>(m_axioms, idx));
-        expr* child = r.n->get_expr();
-        app* select;
+        return assert_axiom(idx);
+    }
+
+    bool solver::assert_axiom(unsigned idx) {
+        axiom_record& r = m_axiom_trail[idx];
         switch (r.m_kind) {
         case axiom_record::kind_t::is_store:
-            TRACE("array", tout << "store-axiom: " << mk_bounded_pp(child, m, 2) << "\n";);
-            return assert_store_axiom(to_app(child));
+            return assert_store_axiom(to_app(r.n->get_expr()));
         case axiom_record::kind_t::is_select:
-            select = r.select->get_app();
-            SASSERT(a.is_select(select));
-            SASSERT(can_beta_reduce(r.n));
-            TRACE("array", tout << "select-axiom: " << mk_bounded_pp(select, m, 2) << " " << mk_bounded_pp(child, m, 2) << "\n";);
-            if (r.select->get_arg(0)->get_root() != r.n->get_root()) {
-                IF_VERBOSE(0, verbose_stream() << "could delay " << mk_pp(select, m) << " " << mk_pp(child, m) << "\n");
-            }
-            if (a.is_const(child))
-                return assert_select_const_axiom(select, to_app(child));
-            else if (a.is_as_array(child))
-                return assert_select_as_array_axiom(select, to_app(child));
-            else if (a.is_store(child))
-                return assert_select_store_axiom(select, to_app(child));
-            else if (a.is_map(child))
-                return assert_select_map_axiom(select, to_app(child));
-            else if (is_lambda(child))
-                return assert_select_lambda_axiom(select, child);
-            else
-                UNREACHABLE();
-            break;
+            return assert_select(idx, r);
         case axiom_record::kind_t::is_default:
-            SASSERT(can_beta_reduce(r.n));
-            TRACE("array", tout << "default-axiom: " << mk_bounded_pp(child, m, 2) << "\n";);
-            if (a.is_const(child))
-                return assert_default_const_axiom(to_app(child));
-            else if (a.is_store(child))
-                return assert_default_store_axiom(to_app(child));
-            else if (a.is_map(child))
-                return assert_default_map_axiom(to_app(child));
-            else
-                return true;                
-            break;
+            return assert_default(r);
         case axiom_record::kind_t::is_extensionality:
-            TRACE("array", tout << "extensionality-axiom: " << mk_bounded_pp(child, m, 2) << "\n";);
-            return assert_extensionality(r.n->get_arg(0)->get_expr(), r.n->get_arg(1)->get_expr());
+            return assert_extensionality(r.n->get_expr(), r.select->get_expr());
         case axiom_record::kind_t::is_congruence:
-            TRACE("array", tout << "congruence-axiom: " << mk_bounded_pp(child, m, 2) << " " << mk_bounded_pp(r.select->get_expr(), m, 2) << "\n";);
-            return assert_congruent_axiom(child, r.select->get_expr());
+            return assert_congruent_axiom(r.n->get_expr(), r.select->get_expr());
         default:
             UNREACHABLE();
             break;
         }
+        return false;
+    }
+
+    bool solver::assert_default(axiom_record& r) {
+        expr* child = r.n->get_expr();
+        SASSERT(can_beta_reduce(r.n));
+        if (!ctx.is_relevant(child))
+            return false;
+        TRACE("array", tout << "default-axiom: " << mk_bounded_pp(child, m, 2) << "\n";);
+        if (a.is_const(child))
+            return assert_default_const_axiom(to_app(child));
+        else if (a.is_store(child))
+            return assert_default_store_axiom(to_app(child));
+        else if (a.is_map(child))
+            return assert_default_map_axiom(to_app(child));
+        else
+            return false;                
+    }
+
+    struct solver::set_delay_bit : trail<euf::solver> {
+        solver& s;
+        unsigned m_idx;
+        set_delay_bit(solver& s, unsigned idx) : s(s), m_idx(idx) {}
+        void undo(euf::solver& euf) override {
+            s.m_axiom_trail[m_idx].m_delayed = false;
+        }
+    };
+
+    bool solver::assert_select(unsigned idx, axiom_record& r) {
+        expr* child = r.n->get_expr();
+        app* select = r.select->get_app();
+        SASSERT(a.is_select(select));
+        SASSERT(can_beta_reduce(r.n));
+        if (!ctx.is_relevant(child))
+            return false;
+        for (unsigned i = 1; i < select->get_num_args(); ++i)
+            if (!ctx.is_relevant(select->get_arg(i)))
+                return false;
+        TRACE("array", tout << "select-axiom: " << mk_bounded_pp(select, m, 2) << " " << mk_bounded_pp(child, m, 2) << "\n";);
+        if (get_config().m_array_delay_exp_axiom && r.select->get_arg(0)->get_root() != r.n->get_root() && !r.m_delayed) {
+            IF_VERBOSE(11, verbose_stream() << "delay: " << mk_bounded_pp(child, m) << " " << mk_bounded_pp(select, m) << "\n");
+            ctx.push(set_delay_bit(*this, idx));
+            r.m_delayed = true;
+            return false;
+        }
+        if (r.select->get_arg(0)->get_root() != r.n->get_root() && r.m_delayed)
+            return false;
+        if (a.is_const(child))
+            return assert_select_const_axiom(select, to_app(child));
+        else if (a.is_as_array(child))
+            return assert_select_as_array_axiom(select, to_app(child));
+        else if (a.is_store(child))
+            return assert_select_store_axiom(select, to_app(child));
+        else if (a.is_map(child))
+            return assert_select_map_axiom(select, to_app(child));
+        else if (is_lambda(child))
+            return assert_select_lambda_axiom(select, child);
+        else
+            UNREACHABLE();
         return false;
     }
 
@@ -96,6 +125,7 @@ namespace array {
      *    n := store(a, i, v)
      */
     bool solver::assert_store_axiom(app* e) {
+        TRACE("array", tout << "store-axiom: " << mk_bounded_pp(e, m) << "\n";);
         ++m_stats.m_num_store_axiom;
         SASSERT(a.is_store(e));
         unsigned num_args = e->get_num_args();
@@ -135,7 +165,7 @@ namespace array {
         euf::enode* s2 = e_internalize(sel2);
         if (s1->get_root() == s2->get_root())
             return false;
-        sat::literal sel_eq = b_internalize(sel_eq_e);
+        sat::literal sel_eq = mk_literal(sel_eq_e);
         if (s().value(sel_eq) == l_true)
             return false;
         
@@ -152,7 +182,7 @@ namespace array {
                 add_clause(sel_eq);
                 break;
             }
-            sat::literal idx_eq = b_internalize(m.mk_eq(idx1, idx2));
+            sat::literal idx_eq = eq_internalize(idx1, idx2);
             if (add_clause(idx_eq, sel_eq))
                 new_prop = true;
         }
@@ -182,23 +212,24 @@ namespace array {
      * e1 = e2 or select(e1, diff(e1,e2)) != select(e2, diff(e1, e2))
      */
     bool solver::assert_extensionality(expr* e1, expr* e2) {
+        TRACE("array", tout << "extensionality-axiom: " << mk_bounded_pp(e1, m) << " == " << mk_bounded_pp(e2, m) << "\n";);
         ++m_stats.m_num_extensionality_axiom;
-        func_decl_ref_vector* funcs = nullptr;
-        VERIFY(m_sort2diff.find(m.get_sort(e1), funcs));
+        func_decl_ref_vector const& funcs = sort2diff(m.get_sort(e1));
         expr_ref_vector args1(m), args2(m);
         args1.push_back(e1);
         args2.push_back(e2);
-        for (func_decl* f : *funcs) {
+        for (func_decl* f : funcs) {
             expr* k = m.mk_app(f, e1, e2);
             args1.push_back(k);
             args2.push_back(k);
         }
+        std::cout << "e1: " << mk_pp(e1, m) << "\n";
+        std::cout << "e2: " << mk_pp(e2, m) << "\n";
+        std::cout << "funcs: " << funcs << "\n";
         expr_ref sel1(a.mk_select(args1), m);
         expr_ref sel2(a.mk_select(args2), m);
-        expr_ref n1_eq_n2(m.mk_eq(e1, e2), m);
-        expr_ref sel1_eq_sel2(m.mk_eq(sel1, sel2), m);
-        literal lit1 = b_internalize(n1_eq_n2);
-        literal lit2 = b_internalize(sel1_eq_sel2);
+        literal lit1 = eq_internalize(e1, e2);
+        literal lit2 = eq_internalize(sel1, sel2);
         return add_clause(lit1, ~lit2);
     }
 
@@ -289,7 +320,6 @@ namespace array {
         return ctx.propagate(expr2enode(val), e_internalize(def), array_axiom());
     }
 
-
     /**
      * let n := store(a, i, v)
      * Assert:
@@ -368,10 +398,10 @@ namespace array {
        \brief assert n1 = n2 => forall vars . (n1 vars) = (n2 vars)
      */
     bool solver::assert_congruent_axiom(expr* e1, expr* e2) {
+        TRACE("array", tout << "congruence-axiom: " << mk_bounded_pp(e1, m) << " " << mk_bounded_pp(e2, m) << "\n";);
         ++m_stats.m_num_congruence_axiom;
         sort* srt         = m.get_sort(e1);
         unsigned dimension = get_array_arity(srt);
-        expr_ref n1_eq_n2(m.mk_eq(e1, e2), m);
         expr_ref_vector args1(m), args2(m);
         args1.push_back(e1);
         args2.push_back(e2);
@@ -390,9 +420,7 @@ namespace array {
         expr * eq = m.mk_eq(sel1, sel2);
         expr_ref q(m.mk_forall(dimension, sorts.c_ptr(), names.c_ptr(), eq), m);
         rewrite(q);
-        sat::literal fa_eq = b_internalize(q);
-        sat::literal neq = b_internalize(n1_eq_n2);        
-        return add_clause(~neq, fa_eq);
+        return add_clause(~eq_internalize(e1, e2), mk_literal(q));
     }
 
     bool solver::has_unitary_domain(app* array_term) {
@@ -446,10 +474,24 @@ namespace array {
         for (unsigned v = 0; v < num_vars; v++) {
             propagate_parent_select_axioms(v);
             auto& d = get_var_data(v);
-            if (d.m_prop_upward) 
+            if (!d.m_prop_upward)
+                continue;
+            euf::enode* n = var2enode(v);
+            bool has_default = false;
+            for (euf::enode* p : euf::enode_parents(n))
+                has_default |= a.is_default(p->get_expr());
+            if (has_default)
                 propagate_parent_default(v);            
         }
-        return unit_propagate();
+        bool change = false;
+        unsigned sz = m_axiom_trail.size();
+        m_delay_qhead = 0;
+        for (; m_delay_qhead < sz; ++m_delay_qhead) 
+            if (m_axiom_trail[m_delay_qhead].m_delayed && assert_axiom(m_delay_qhead))
+                change = true;        
+        if (unit_propagate())
+            change = true;
+        return change;
     }
 
     bool solver::add_interface_equalities() {
@@ -466,9 +508,10 @@ namespace array {
                     continue;
                 if (have_different_model_values(v1, v2))
                     continue;
-                expr_ref eq(m.mk_eq(e1, e2), m);
-                sat::literal lit = b_internalize(eq);
-                if (s().value(lit) == l_undef)
+                if (ctx.get_egraph().are_diseq(var2enode(v1), var2enode(v2)))
+                    continue;              
+                sat::literal lit = eq_internalize(e1, e2);
+                if (s().value(lit) == l_undef) 
                     prop = true;
             }
         }
@@ -480,13 +523,12 @@ namespace array {
         unsigned num_vars = get_num_vars();
         for (unsigned i = 0; i < num_vars; i++) {
             euf::enode * n = var2enode(i);
-            if (!a.is_array(n->get_expr())) {
-                continue;
-            }
+            
+            if (!is_array(n)) 
+                continue;            
             euf::enode * r = n->get_root();
-            if (r->is_marked1()) {
-                continue;
-            }
+            if (r->is_marked1()) 
+                continue;            
             // arrays used as indices in other arrays have to be treated as shared issue #3532, #3529            
             if (ctx.is_shared(r) || is_select_arg(r)) 
                 roots.push_back(r->get_th_var(get_id()));

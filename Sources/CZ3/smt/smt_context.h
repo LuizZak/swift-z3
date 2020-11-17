@@ -585,11 +585,10 @@ namespace smt {
             return get_bdata(v).get_theory();
         }
 
-        expr_ref get_implied_value(expr* e);
-
-        expr_ref get_implied_lower_bound(expr* e);
-
-        expr_ref get_implied_upper_bound(expr* e);
+        /** 
+         * flag to toggle quantifier tracing.
+         */
+        bool m_coming_from_quant { false };
 
 
         friend class set_var_theory_trail;
@@ -1420,6 +1419,8 @@ namespace smt {
         unsigned display_lemma_as_smt_problem(unsigned num_antecedents, literal const * antecedents,
                                           unsigned num_antecedent_eqs, enode_pair const * antecedent_eqs,
                                           literal consequent = false_literal, symbol const& logic = symbol::null) const;
+
+        std::string mk_lemma_name() const;
 
         void display_assignment_as_smtlib2(std::ostream& out, symbol const& logic = symbol::null) const;
 

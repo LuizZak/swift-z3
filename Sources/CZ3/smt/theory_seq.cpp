@@ -501,6 +501,8 @@ bool theory_seq::fixed_length(expr* len_e, bool is_zero) {
     TRACE("seq", tout << "Fixed: " << mk_bounded_pp(e, m, 2) << " " << lo << "\n";);
     literal a = mk_eq(len_e, m_autil.mk_numeral(lo, true), false);
     literal b = mk_seq_eq(seq, e);
+    if (ctx.get_assignment(a) == l_false || ctx.get_assignment(b) == l_true)
+        return false;
     add_axiom(~a, b);
     if (!ctx.at_base_level()) {
         m_trail_stack.push(push_replay(alloc(replay_fixed_length, m, len_e)));
@@ -1980,15 +1982,16 @@ model_value_proc * theory_seq::mk_value(enode * n, model_generator & mg) {
         seq_value_proc* sv = alloc(seq_value_proc, *this, n, srt);
        
         unsigned end = m_concat.size();
-        TRACE("seq", tout << mk_pp(e, m) << "\n";);
+        TRACE("seq", tout << "sequence: " << start << " " << end << " " << mk_pp(e, m) << "\n";);
         for (unsigned i = start; i < end; ++i) {
             expr* c = m_concat[i];
             expr *c1;
-            TRACE("seq", tout << mk_pp(c, m) << "\n";);
+            TRACE("seq", tout << "elem: " << mk_pp(c, m) << "\n";);
             if (m_util.str.is_unit(c, c1)) {
-                if (ctx.e_internalized(c1)) {
+                if (ctx.e_internalized(c1)) 
                     sv->add_unit(ctx.get_enode(c1));
-                }
+                else if (m.is_value(c1))
+                    sv->add_string(c);
                 else {
                     TRACE("seq", tout << "not internalized " << mk_pp(c, m) << "\n";);
                 }
@@ -2005,7 +2008,7 @@ model_value_proc * theory_seq::mk_value(enode * n, model_generator & mg) {
                 sv->add_string(mk_value(to_app(c)));
             }
         }
-        m_concat.shrink(start);
+        m_concat.shrink(start);        
         return sv;
     }
     else {
@@ -2022,7 +2025,7 @@ app* theory_seq::mk_value(app* e) {
     if (is_var(result)) {
         SASSERT(m_factory);
         expr_ref val(m);
-        val = m_factory->get_some_value(m.get_sort(result));
+        val = m_factory->get_fresh_value(m.get_sort(result));
         if (val) {
             result = val;
         }

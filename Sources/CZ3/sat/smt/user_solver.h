@@ -59,7 +59,6 @@ namespace user {
         vector<prop_info>      m_prop;
         unsigned_vector        m_prop_lim;
         vector<sat::literal_vector> m_id2justification;
-        unsigned               m_num_scopes { 0 };
         sat::literal_vector         m_lits;
         euf::enode_pair_vector      m_eqs;
         stats                  m_stats;
@@ -124,7 +123,7 @@ namespace user {
         std::ostream& display(std::ostream& out) const override;
         std::ostream& display_justification(std::ostream& out, sat::ext_justification_idx idx) const override;
         std::ostream& display_constraint(std::ostream& out, sat::ext_constraint_idx idx) const override;
-        euf::th_solver* fresh(sat::solver* s, euf::solver& ctx) override;
+        euf::th_solver* clone(euf::solver& ctx) override;
 
     };
 };

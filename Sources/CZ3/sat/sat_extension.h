@@ -29,6 +29,14 @@ namespace sat {
         CR_DONE, CR_CONTINUE, CR_GIVEUP
     };
 
+    inline std::ostream& operator<<(std::ostream& out, check_result const& r) {
+        switch (r) {
+        case check_result::CR_DONE: return out << "done";
+        case check_result::CR_CONTINUE: return out << "continue";
+        default: return out << "giveup";
+        }
+    }
+
     class literal_occs_fun {
     public:
         virtual double operator()(literal l) = 0;        
@@ -57,14 +65,16 @@ namespace sat {
     protected:
         bool m_drating { false };
         int  m_id { 0 };
+        symbol m_name;
         solver* m_solver { nullptr };
     public:        
-        extension(int id): m_id(id) {}
+        extension(symbol const& name, int id): m_id(id), m_name(name) {}
         virtual ~extension() {}
         int get_id() const { return m_id; }
         void set_solver(solver* s) { m_solver = s; }        
         solver& s() { return *m_solver; }
         solver const& s() const { return *m_solver; }
+        symbol const& name() const { return m_name;  }
 
         virtual void set_lookahead(lookahead* s) {};
         class scoped_drating {
@@ -74,7 +84,7 @@ namespace sat {
             ~scoped_drating() { ext.m_drating = false;  }
         };
         virtual void init_search() {}
-        virtual bool propagate(sat::literal l, sat::ext_constraint_idx idx) { UNREACHABLE(); return false; }
+        virtual bool propagated(sat::literal l, sat::ext_constraint_idx idx) { UNREACHABLE(); return false; }
         virtual bool unit_propagate() = 0;        
         virtual bool is_external(bool_var v) { return false; }
         virtual double get_reward(literal l, ext_constraint_idx idx, literal_occs_fun& occs) const { return 0; }
@@ -86,6 +96,8 @@ namespace sat {
         virtual void push() = 0;
         void push_scopes(unsigned n) { for (unsigned i = 0; i < n; ++i) push(); }
         virtual void pop(unsigned n) = 0;
+        virtual void user_push() { push(); }
+        virtual void user_pop(unsigned n) { pop(n); }
         virtual void pre_simplify() {}
         virtual void simplify() {}
         // have a way to replace l by r in all constraints
@@ -96,7 +108,7 @@ namespace sat {
         virtual std::ostream& display(std::ostream& out) const = 0;
         virtual std::ostream& display_justification(std::ostream& out, ext_justification_idx idx) const = 0;
         virtual std::ostream& display_constraint(std::ostream& out, ext_constraint_idx idx) const = 0;
-        virtual void collect_statistics(statistics& st) const = 0;
+        virtual void collect_statistics(statistics& st) const {}
         virtual extension* copy(solver* s) { UNREACHABLE(); return nullptr; }       
         virtual void find_mutexes(literal_vector& lits, vector<literal_vector> & mutexes) {}
         virtual void gc() {}

@@ -30,6 +30,7 @@ void array_rewriter::updt_params(params_ref const & _p) {
     m_expand_select_store = p.expand_select_store();
     m_expand_store_eq = p.expand_store_eq();
     m_expand_nested_stores = p.expand_nested_stores();
+    m_blast_select_store = p.blast_select_store();
     m_expand_select_ite = false;
 }
 
@@ -179,7 +180,7 @@ br_status array_rewriter::mk_select_core(unsigned num_args, expr * const * args,
             return BR_REWRITE1;
         }
         default:
-            if (m_expand_select_store && to_app(args[0])->get_arg(0)->get_ref_count() == 1) {
+            if (m_blast_select_store || (m_expand_select_store && to_app(args[0])->get_arg(0)->get_ref_count() == 1)) {
                 // select(store(a, I, v), J) --> ite(I=J, v, select(a, J))
                 ptr_buffer<expr> new_args;
                 new_args.push_back(to_app(args[0])->get_arg(0));
@@ -707,12 +708,6 @@ br_status array_rewriter::mk_eq_core(expr * lhs, expr * rhs, expr_ref & result) 
         expr_ref e(m().mk_eq(lam->get_expr(), v), m());
         result = m().update_quantifier(lam, quantifier_kind::forall_k, e);
         return BR_REWRITE2; 
-    }
-    if (m_util.is_const(lhs, v) && m_util.is_store(rhs)) {
-        expr_ref eq1(m().mk_eq(v, to_app(rhs)->get_arg(to_app(rhs)->get_num_args()-1)), m());
-	expr_ref eq2(m().mk_eq(lhs, to_app(rhs)->get_arg(0)), m());
-	result = m().mk_and(eq1, eq2);
-	return BR_REWRITE3;
     }
     expr_ref lh1(m()), rh1(m());
     if (m_expand_nested_stores) {
