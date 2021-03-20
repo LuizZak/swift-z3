@@ -202,7 +202,7 @@ public:
     }
 
     void register_value(expr * n) override {
-        sort * s = n->get_sort();
+        sort * s = this->m_manager.get_sort(n);
         value_set * set  = get_value_set(s);
         if (!set->m_values.contains(n)) {
             m_values.push_back(n);

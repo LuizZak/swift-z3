@@ -148,37 +148,36 @@ namespace datalog {
     //
     // -----------------------------------
 
-    class context::restore_rules : public trail {
-        context& ctx;
+    class context::restore_rules : public trail<context> {
         rule_set* m_old_rules;
         void reset() {
             dealloc(m_old_rules);
             m_old_rules = nullptr;
         }
     public:
-        restore_rules(context& ctx, rule_set& r): ctx(ctx), m_old_rules(alloc(rule_set, r)) {}
+        restore_rules(rule_set& r): m_old_rules(alloc(rule_set, r)) {}
 
         ~restore_rules() override {}
 
-        void undo() override {
+        void undo(context& ctx) override {
             ctx.replace_rules(*m_old_rules);
             reset();
         }
     };
 
     template<typename Ctx, typename Vec>
-    class restore_vec_size_trail : public trail {
+    class restore_vec_size_trail : public trail<Ctx> {
         Vec& m_vector;
         unsigned m_old_size;
     public:
         restore_vec_size_trail(Vec& v): m_vector(v), m_old_size(v.size()) {}
         ~restore_vec_size_trail() override {}
-        void undo() override { m_vector.shrink(m_old_size); }
+        void undo(Ctx& ctx) override { m_vector.shrink(m_old_size); }
     };
 
     void context::push() {
         m_trail.push_scope();
-        m_trail.push(restore_rules(*this, m_rule_set));
+        m_trail.push(restore_rules(m_rule_set));
         m_trail.push(restore_vec_size_trail<context,expr_ref_vector>(m_rule_fmls));
         m_trail.push(restore_vec_size_trail<context,expr_ref_vector>(m_background));
     }
@@ -210,7 +209,7 @@ namespace datalog {
         m_contains_p(*this),
         m_rule_properties(m, m_rule_manager, *this, m_contains_p),
         m_transf(*this),
-        m_trail(),
+        m_trail(*this),
         m_pinned(m),
         m_bind_variables(m),
         m_rule_set(*this),
@@ -783,13 +782,13 @@ namespace datalog {
             else if (is_var(e) && m.is_bool(e)) {
                 m_engine_type = SPACER_ENGINE;
             }
-            else if (dt.is_datatype(e->get_sort())) {
+            else if (dt.is_datatype(m.get_sort(e))) {
                 m_engine_type = SPACER_ENGINE;
             }
-            else if (is_large_bv(e->get_sort())) {
+            else if (is_large_bv(m.get_sort(e))) {
                 m_engine_type = SPACER_ENGINE;
             }
-            else if (!e->get_sort()->get_num_elements().is_finite()) {
+            else if (!m.get_sort(e)->get_num_elements().is_finite()) {
                 m_engine_type = SPACER_ENGINE;
             }
             else if (ar.is_array(e)) {

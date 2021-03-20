@@ -66,8 +66,19 @@ namespace smt {
         m_e_internalized_stack(m),
         m_l_internalized_stack(m),
         m_final_check_idx(0),
+        m_is_auxiliary(false),
+        m_par(nullptr),
+        m_par_index(0),
         m_cg_table(m),
+        m_is_diseq_tmp(nullptr),
         m_units_to_reassert(m),
+        m_qhead(0),
+        m_simp_qhead(0),
+        m_simp_counter(0),
+        m_bvar_inc(1.0),
+        m_phase_cache_on(true),
+        m_phase_counter(0),
+        m_phase_default(false),
         m_conflict(null_b_justification),
         m_not_l(null_literal),
         m_conflict_resolution(mk_conflict_resolution(m, *this, m_dyn_ack_manager, p, m_assigned_literals, m_watches)),
@@ -75,9 +86,16 @@ namespace smt {
         m_dyn_ack_manager(*this, p),
         m_unknown("unknown"),
         m_unsat_core(m),
-        m_mk_bool_var_trail(*this),
-        m_mk_enode_trail(*this),
-        m_mk_lambda_trail(*this) {
+#ifdef Z3DEBUG
+        m_trail_enabled(true),
+#endif
+        m_scope_lvl(0),
+        m_base_lvl(0),
+        m_search_lvl(0),
+        m_generation(0),
+        m_last_search_result(l_undef),
+        m_last_search_failure(UNKNOWN),
+        m_searching(false) {
 
         SASSERT(m_scope_lvl == 0);
         SASSERT(m_base_lvl == 0);
@@ -241,7 +259,7 @@ namespace smt {
        See comments in theory::mk_eq_atom
     */
     app * context::mk_eq_atom(expr * lhs, expr * rhs) {
-        family_id fid = lhs->get_sort()->get_family_id();
+        family_id fid = m.get_sort(lhs)->get_family_id();
         theory * th   = get_theory(fid);
         if (th)
             return th->mk_eq_atom(lhs, rhs);
@@ -429,20 +447,18 @@ namespace smt {
         m_th_diseq_propagation_queue.push_back(new_th_eq(th, lhs, rhs));
     }
 
-    class add_eq_trail : public trail {
-        context& ctx;
+    class add_eq_trail : public trail<context> {
         enode * m_r1;
         enode * m_n1;
         unsigned m_r2_num_parents;
     public:
-        add_eq_trail(context& ctx, enode * r1, enode * n1, unsigned r2_num_parents):
-            ctx(ctx),
+        add_eq_trail(enode * r1, enode * n1, unsigned r2_num_parents):
             m_r1(r1),
             m_n1(n1),
             m_r2_num_parents(r2_num_parents) {
         }
 
-        void undo() override {
+        void undo(context & ctx) override {
             ctx.undo_add_eq(m_r1, m_n1, m_r2_num_parents);
         }
     };
@@ -458,17 +474,18 @@ namespace smt {
             TRACE("add_eq", tout << "assigning: #" << n1->get_owner_id() << " = #" << n2->get_owner_id() << "\n";);
             TRACE("add_eq_detail", tout << "assigning\n" << enode_pp(n1, *this) << "\n" << enode_pp(n2, *this) << "\n";
                   tout << "kind: " << js.get_kind() << "\n";);
-            SASSERT(n1->get_sort() == n2->get_sort());
+            SASSERT(m.get_sort(n1->get_owner()) == m.get_sort(n2->get_owner()));
 
             m_stats.m_num_add_eq++;
             enode * r1 = n1->get_root();
             enode * r2 = n2->get_root();
 
+
             if (r1 == r2) {
                 TRACE("add_eq", tout << "redundant constraint.\n";);
                 return;
             }
-            IF_VERBOSE(20, verbose_stream() << "merge " << mk_bounded_pp(n1->get_expr(), m) << " " << mk_bounded_pp(n2->get_expr(), m) << "\n");
+            IF_VERBOSE(20, verbose_stream() << "merge " << mk_bounded_pp(n1->get_owner(), m) << " " << mk_bounded_pp(n2->get_owner(), m) << "\n");
 
             if (r1->is_interpreted() && r2->is_interpreted()) {
                 TRACE("add_eq", tout << "interpreted roots conflict.\n";);
@@ -509,7 +526,7 @@ namespace smt {
                 mark_as_relevant(r1);
             }
 
-            push_trail(add_eq_trail(*this, r1, n1, r2->get_num_parents()));
+            push_trail(add_eq_trail(r1, n1, r2->get_num_parents()));
 
             m_qmanager->add_eq_eh(r1, r2);
 
@@ -626,7 +643,7 @@ namespace smt {
                     lbool val  = get_assignment(v);
                     if (val != l_true) {
                         if (val == l_false && js.get_kind() == eq_justification::CONGRUENCE)
-                            m_dyn_ack_manager.cg_conflict_eh(n1->get_expr(), n2->get_expr());
+                            m_dyn_ack_manager.cg_conflict_eh(n1->get_owner(), n2->get_owner());
 
                         assign(literal(v), mk_justification(eq_propagation_justification(lhs, rhs)));
                     }
@@ -754,8 +771,7 @@ namespace smt {
         enode * r2 = n2->get_root();
         enode * r1 = n1->get_root();
         if (!r1->has_th_vars() && !r2->has_th_vars()) {
-            TRACE("merge_theory_vars", tout << "Neither have theory vars #" 
-                  << mk_bounded_pp(n1->get_expr(), m) << " #" << mk_bounded_pp(n2->get_expr(), m) << "\n";);
+            TRACE("merge_theory_vars", tout << "Neither have theory vars #" << n1->get_owner()->get_id() << " #" << n2->get_owner()->get_id() << "\n";);
             return;
         }
 
@@ -891,7 +907,7 @@ namespace smt {
             lbool val2  = get_assignment(v2);
             if (val2 != val) {
                 if (val2 != l_undef && congruent(source, target) && source->get_num_args() > 0)
-                    m_dyn_ack_manager.cg_conflict_eh(source->get_expr(), target->get_expr());
+                    m_dyn_ack_manager.cg_conflict_eh(source->get_owner(), target->get_owner());
                 assign(literal(v2, sign), mk_justification(mp_iff_justification(source, target)));
             }
             target = target->get_next();
@@ -1041,14 +1057,14 @@ namespace smt {
         enode * r1 = n1->get_root();
         enode * r2 = n2->get_root();
         TRACE("add_diseq", tout << "assigning: #" << n1->get_owner_id() << " != #" << n2->get_owner_id() << "\n";
-              tout << mk_ll_pp(n1->get_expr(), m) << " != ";
-              tout << mk_ll_pp(n2->get_expr(), m) << "\n";
-              tout << mk_ll_pp(r1->get_expr(), m) << " != ";
-              tout << mk_ll_pp(r2->get_expr(), m) << "\n";
+              tout << mk_ll_pp(n1->get_owner(), m) << " != ";
+              tout << mk_ll_pp(n2->get_owner(), m) << "\n";
+              tout << mk_ll_pp(r1->get_owner(), m) << " != ";
+              tout << mk_ll_pp(r2->get_owner(), m) << "\n";
               );
 
         DEBUG_CODE(
-            push_trail(push_back_trail<enode_pair, false>(m_diseq_vector));
+            push_trail(push_back_trail<context, enode_pair, false>(m_diseq_vector));
             m_diseq_vector.push_back(enode_pair(n1, n2)););
 
         if (r1 == r2) {
@@ -1099,16 +1115,16 @@ namespace smt {
        context.
     */
     bool context::is_diseq(enode * n1, enode * n2) const {
-        SASSERT(n1->get_sort() == n2->get_sort());
+        SASSERT(m.get_sort(n1->get_owner()) == m.get_sort(n2->get_owner()));
         context * _this = const_cast<context*>(this);
         if (!m_is_diseq_tmp) {
-            app * eq       = m.mk_eq(n1->get_expr(), n2->get_expr());
+            app * eq       = m.mk_eq(n1->get_owner(), n2->get_owner());
             m.inc_ref(eq);
             _this->m_is_diseq_tmp = enode::mk_dummy(m, m_app2enode, eq);
         }
-        else if (m_is_diseq_tmp->get_expr()->get_arg(0)->get_sort() != n1->get_sort()) {
-            m.dec_ref(m_is_diseq_tmp->get_expr());
-            app * eq = m.mk_eq(n1->get_expr(), n2->get_expr());
+        else if (m.get_sort(m_is_diseq_tmp->get_owner()->get_arg(0)) != m.get_sort(n1->get_owner())) {
+            m.dec_ref(m_is_diseq_tmp->get_owner());
+            app * eq = m.mk_eq(n1->get_owner(), n2->get_owner());
             m.inc_ref(eq);
             m_is_diseq_tmp->m_func_decl_id = UINT_MAX;
             m_is_diseq_tmp->m_owner = eq;
@@ -1136,7 +1152,7 @@ namespace smt {
         if (n1->get_num_parents() > n2->get_num_parents())
             std::swap(n1, n2);
         for (enode * parent : enode::parents(n1)) {
-            if (parent->is_eq() && is_relevant(parent->get_expr()) && get_assignment(enode2bool_var(parent)) == l_false &&
+            if (parent->is_eq() && is_relevant(parent->get_owner()) && get_assignment(enode2bool_var(parent)) == l_false &&
                 ((parent->get_arg(0)->get_root() == n1->get_root() && parent->get_arg(1)->get_root() == n2->get_root()) ||
                  (parent->get_arg(1)->get_root() == n1->get_root() && parent->get_arg(0)->get_root() == n2->get_root()))) {
                 TRACE("is_diseq_bug", tout << "parent: #" << parent->get_owner_id() << ", parent->root: #" <<
@@ -1253,14 +1269,14 @@ namespace smt {
         enode * r   = m_cg_table.find(tmp);
 #ifdef Z3DEBUG
         if (r != nullptr) {
-            SASSERT(r->get_expr()->get_decl() == f);
+            SASSERT(r->get_owner()->get_decl() == f);
             SASSERT(r->get_num_args() == num_args);
             if (r->is_commutative()) {
                 // TODO
             }
             else {
                 for (unsigned i = 0; i < num_args; i++) {
-                    expr * arg   = r->get_expr()->get_arg(i);
+                    expr * arg   = r->get_owner()->get_arg(i);
                     SASSERT(e_internalized(arg));
                     enode * _arg = get_enode(arg);
                     CTRACE("eq_to_bug", args[i]->get_root() != _arg->get_root(),
@@ -1363,12 +1379,11 @@ namespace smt {
         return true;
     }
 
-    class set_var_theory_trail : public trail {
-        context& ctx;
+    class set_var_theory_trail : public trail<context> {
         bool_var m_var;
     public:
-        set_var_theory_trail(context& ctx, bool_var v): ctx(ctx), m_var(v) {}
-        void undo() override {
+        set_var_theory_trail(bool_var v):m_var(v) {}
+        void undo(context & ctx) override {
             bool_var_data & d = ctx.m_bdata[m_var];
             d.reset_notify_theory();
         }
@@ -1379,7 +1394,7 @@ namespace smt {
         SASSERT(tid > 0 && tid <= 255);
         SASSERT(get_intern_level(v) <= m_scope_lvl);
         if (m_scope_lvl > get_intern_level(v))
-            push_trail(set_var_theory_trail(*this, v));
+            push_trail(set_var_theory_trail(v));
         bool_var_data & d = m_bdata[v];
         d.set_notify_theory(tid);
     }
@@ -1434,7 +1449,7 @@ namespace smt {
             return;
         }
         theory_id th_id = th->get_id();
-        TRACE("push_new_th_diseqs", tout << "#" << r->get_owner_id() << " " << mk_bounded_pp(r->get_expr(), m) << " v" << v << " th: " << th_id << "\n";);
+        TRACE("push_new_th_diseqs", tout << "#" << r->get_owner_id() << " " << mk_bounded_pp(r->get_owner(), m) << " v" << v << " th: " << th_id << "\n";);
         for (enode * parent : r->get_parents()) {
             CTRACE("parent_bug", parent == 0, tout << "#" << r->get_owner_id() << ", num_parents: " << r->get_num_parents() << "\n"; display(tout););
             if (parent->is_eq()) {
@@ -1518,7 +1533,7 @@ namespace smt {
        If the enode is not boolean, then return l_undef.
     */
     lbool context::get_assignment(enode * n) const {
-        expr * owner = n->get_expr();
+        expr * owner = n->get_owner();
         if (!m.is_bool(owner))
             return l_undef;
         if (n == m_false_enode)
@@ -1627,7 +1642,7 @@ namespace smt {
             SASSERT(th);
             th->new_eq_eh(curr.m_lhs, curr.m_rhs);
             DEBUG_CODE(
-                push_trail(push_back_trail<new_th_eq, false>(m_propagated_th_eqs));
+                push_trail(push_back_trail<context, new_th_eq, false>(m_propagated_th_eqs));
                 m_propagated_th_eqs.push_back(curr););
         }
         m_th_eq_propagation_queue.reset();
@@ -1640,7 +1655,7 @@ namespace smt {
             SASSERT(th);
             th->new_diseq_eh(curr.m_lhs, curr.m_rhs);
             DEBUG_CODE(
-                push_trail(push_back_trail<new_th_eq, false>(m_propagated_th_diseqs));
+                push_trail(push_back_trail<context, new_th_eq, false>(m_propagated_th_diseqs));
                 m_propagated_th_diseqs.push_back(curr););
         }
         m_th_diseq_propagation_queue.reset();
@@ -1941,7 +1956,7 @@ namespace smt {
        \brief Execute generic undo-objects.
     */
     void context::undo_trail_stack(unsigned old_size) {
-        ::undo_trail_stack(m_trail_stack, old_size);
+        ::undo_trail_stack(*this, m_trail_stack, old_size);
     }
 
     /**
@@ -2953,7 +2968,7 @@ namespace smt {
         m_qmanager = nullptr;
         if (m_is_diseq_tmp) {
             m_is_diseq_tmp->del_eh(m, false);
-            m.dec_ref(m_is_diseq_tmp->get_expr());
+            m.dec_ref(m_is_diseq_tmp->get_owner());
             enode::del_dummy(m_is_diseq_tmp);
             m_is_diseq_tmp = nullptr;
         }
@@ -2982,15 +2997,13 @@ namespace smt {
         assert_expr_core(e, pr);
     }
 
-    class case_split_insert_trail : public trail {
-        context& ctx;
+    class case_split_insert_trail : public trail<context> {
         literal l;
     public:
-        case_split_insert_trail(context& ctx, literal l):
-            ctx(ctx),
+        case_split_insert_trail(literal l):
             l(l) {
         }
-        void undo() override {
+        void undo(context & ctx) override {
             ctx.undo_th_case_split(l);
         }
     };
@@ -3016,11 +3029,11 @@ namespace smt {
                 literal l = lits[i];
                 SASSERT(!m_all_th_case_split_literals.contains(l.index()));
                 m_all_th_case_split_literals.insert(l.index());
-                push_trail(case_split_insert_trail(*this, l));
+                push_trail(case_split_insert_trail(l));
                 new_case_split.push_back(l);
             }
             m_th_case_split_sets.push_back(new_case_split);
-            push_trail(push_back_vector<vector<literal_vector> >(m_th_case_split_sets));
+            push_trail(push_back_vector<context, vector<literal_vector> >(m_th_case_split_sets));
             for (unsigned i = 0; i < num_lits; ++i) {
                 literal l = lits[i];
                 if (!m_literal2casesplitsets.contains(l.index())) {
@@ -4335,18 +4348,17 @@ namespace smt {
     /**
        \brief Undo object for bool var m_true_first field update.
     */
-    class set_true_first_trail : public trail {
-        context& ctx;
+    class set_true_first_trail : public trail<context> {
         bool_var m_var;
     public:
-        set_true_first_trail(context& ctx, bool_var v): ctx(ctx), m_var(v) {}
-        void undo() override {
+        set_true_first_trail(bool_var v):m_var(v) {}
+        void undo(context & ctx) override {
             ctx.m_bdata[m_var].reset_true_first_flag();
         }
     };
 
     void context::set_true_first_flag(bool_var v) {
-        push_trail(set_true_first_trail(*this, v));
+        push_trail(set_true_first_trail(v));
         bool_var_data & d = m_bdata[v];
         d.set_true_first_flag();
     }
@@ -4354,8 +4366,8 @@ namespace smt {
     bool context::assume_eq(enode * lhs, enode * rhs) {
         if (lhs->get_root() == rhs->get_root())
             return false; // it is not necessary to assume the eq.
-        expr * _lhs = lhs->get_expr();
-        expr * _rhs = rhs->get_expr();
+        expr * _lhs = lhs->get_owner();
+        expr * _rhs = rhs->get_owner();
         expr * eq = mk_eq_atom(_lhs, _rhs);
         TRACE("assume_eq", tout << "creating interface eq:\n" << mk_pp(eq, m) << "\n";);
         if (m.is_false(eq)) {
@@ -4376,7 +4388,7 @@ namespace smt {
                 bool_var_data & d = get_bdata(v);
                 d.set_eq_flag();
                 set_true_first_flag(v);
-                sort * s    = to_app(eq)->get_arg(0)->get_sort();
+                sort * s    = m.get_sort(to_app(eq)->get_arg(0));
                 theory * th = m_theories.get_plugin(s->get_family_id());
                 if (th)
                     th->internalize_eq_eh(to_app(eq), v);
@@ -4412,7 +4424,7 @@ namespace smt {
     bool context::is_shared(enode * n) const {
         n = n->get_root();
         unsigned num_th_vars = n->get_num_th_vars();
-        if (m.is_ite(n->get_expr())) {
+        if (m.is_ite(n->get_owner())) {
             return true;
         }
         switch (num_th_vars) {
@@ -4431,7 +4443,7 @@ namespace smt {
             theory_id th_id     = l->get_id();
 
             for (enode * parent : enode::parents(n)) {
-                app* p = parent->get_expr();
+                app* p = parent->get_owner();
                 family_id fid = p->get_family_id();
                 if (fid != th_id && fid != m.get_basic_family_id()) {
                     TRACE("is_shared", tout << enode_pp(n, *this) 
@@ -4475,7 +4487,7 @@ namespace smt {
     }
 
     bool context::get_value(enode * n, expr_ref & value) {
-        sort * s      = n->get_sort();
+        sort * s      = m.get_sort(n->get_owner());
         family_id fid = s->get_family_id();
         theory * th   = get_theory(fid);
         if (th == nullptr)

@@ -73,7 +73,7 @@ namespace euf {
         values2model(deps, mdl);
         for (auto* mb : m_solvers)
             mb->finalize_model(*mdl);
-        validate_model(*mdl);
+        // validate_model(*mdl);
     }
 
     bool solver::include_func_interp(func_decl* f) {
@@ -88,43 +88,31 @@ namespace euf {
     }
 
     void solver::collect_dependencies(user_sort& us, deps_t& deps) {
-        ptr_buffer<enode> fresh_values;
         for (enode* n : m_egraph.nodes()) {
             expr* e = n->get_expr();
-            sort* srt = e->get_sort();
+            sort* srt = m.get_sort(e);
             auto* mb = sort2solver(srt);
-            if (!mb) 
+            if (mb)
+                mb->add_dep(n, deps);
+            else
                 deps.insert(n, nullptr);
-            else if (!mb->add_dep(n, deps))
-                fresh_values.push_back(n);
             if (n->is_root() && m.is_uninterp(srt) && m.is_value(e))
                 us.register_value(e);
         }
 
-        // fresh values depend on all non-fresh values of the same sort
-        for (enode* n : fresh_values) {
-            n->mark1();
-            deps.insert(n, nullptr);
-        }
-        for (enode* n : fresh_values)
-            for (enode* r : m_egraph.nodes())
-                if (r->is_root() && r->get_sort() == n->get_sort() && !r->is_marked1())
-                    deps.add(n, r);
-        for (enode* n : fresh_values)
-            n->unmark1();
-        
         TRACE("euf",
               for (auto const& d : deps.deps()) 
                   if (d.m_value) {
-                      tout << bpp(d.m_key) << ":\n";
+                      tout << mk_bounded_pp(d.m_key->get_expr(), m) << ":\n";
                       for (auto* n : *d.m_value)
-                          tout << "   " << bpp(n) << "\n";
+                          tout << "   " << mk_bounded_pp(n->get_expr(), m) << "\n";
                   }
               );
     }
 
     void solver::dependencies2values(user_sort& us, deps_t& deps, model_ref& mdl) {
         for (enode* n : deps.top_sorted()) {
+            
             unsigned id = n->get_root_id();
             if (m_values.get(id, nullptr))
                 continue;
@@ -160,7 +148,7 @@ namespace euf {
                 }
                 continue;
             }
-            sort* srt = e->get_sort();
+            sort* srt = m.get_sort(e);
             if (m.is_uninterp(srt)) 
                 us.add(n->get_root(), srt);
             else if (auto* mbS = sort2solver(srt))
@@ -236,16 +224,13 @@ namespace euf {
             expr* e = n->get_expr();
             if (!m.is_bool(e))
                 continue;
-            if (!is_relevant(n))
+            unsigned id = n->get_root_id();
+            if (!m_values.get(id))
                 continue;
-            bool tt = l_true == s().value(n->bool_var());
-            if (tt && mdl.is_false(e)) {
-                IF_VERBOSE(0, verbose_stream() << "Failed to validate " << bpp(n) << " " << mdl(e) << "\n");
-                for (auto* arg : euf::enode_args(n))
-                    IF_VERBOSE(0, verbose_stream() << bpp(arg) << "\n" << mdl(arg->get_expr()) << "\n");
+            bool tt = m.is_true(m_values.get(id));
+            if (mdl.is_true(e) != tt) {
+                IF_VERBOSE(0, verbose_stream() << "Failed to evaluate " << id << " " << mk_bounded_pp(e, m) << " " << mdl(e) << " " << mk_bounded_pp(m_values.get(id), m) << "\n");
             }
-            if (!tt && mdl.is_true(e))
-                IF_VERBOSE(0, verbose_stream() << "Failed to validate " << bpp(n) << " " << mdl(e) << "\n");
         }
         
     }

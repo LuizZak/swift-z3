@@ -213,7 +213,7 @@ namespace q {
             qlit.neg();
         TRACE("q", tout << "project: " << proj << "\n";);
         ++m_stats.m_num_instantiations;        
-        unsigned generation = ctx.get_max_generation(proj);    
+        unsigned generation = m_qs.get_max_generation(proj);    
         m_instantiations.push_back(instantiation_t(qlit, proj, generation));
     }
 
@@ -247,8 +247,8 @@ namespace q {
             var_subst subst(m);
             result = alloc(q_body, m);
             m_q2body.insert(q, result);
-            ctx.push(new_obj_trail<q_body>(result));
-            ctx.push(insert_obj_map<quantifier, q_body*>(m_q2body, q));
+            ctx.push(new_obj_trail<euf::solver, q_body>(result));
+            ctx.push(insert_obj_map<euf::solver, quantifier, q_body*>(m_q2body, q));
             app_ref_vector& vars = result->vars;
             vars.resize(sz, nullptr);
             for (unsigned i = 0; i < sz; ++i) {
@@ -341,7 +341,7 @@ namespace q {
             if (!qb.is_free(idx))
                 continue;
             expr* v = qb.vars.get(qb.vars.size() - idx - 1);
-            sort* srt = v->get_sort();
+            sort* srt = m.get_sort(v);
             expr_ref_vector veqs(m), meqs(m);
             auto const& nodes = ctx.get_egraph().nodes();
             unsigned sz = nodes.size();
@@ -351,7 +351,7 @@ namespace q {
                 auto* n = nodes[i];
                 expr* e = n->get_expr();
                 expr* val = ctx.node2value(n);                
-                if (val && e->get_sort() == srt && !m.is_value(e) && !visited.is_marked(val)) {
+                if (val && m.get_sort(e) == srt && !m.is_value(e) && !visited.is_marked(val)) {
                     visited.mark(val);
                     veqs.push_back(m.mk_eq(v, e));
                     meqs.push_back(m.mk_eq(v, val));
@@ -484,7 +484,7 @@ namespace q {
 
     bool mbqi::next_offset(unsigned_vector& offsets, app_ref_vector const& vars, unsigned index, unsigned start) {
         auto* v = vars[index];
-        sort* srt = v->get_sort();
+        sort* srt = m.get_sort(v);
         auto const& nodes = ctx.get_egraph().nodes();
         unsigned sz = nodes.size();
         for (unsigned i = start; i < sz; ++i) {            
@@ -492,7 +492,7 @@ namespace q {
             if (n->generation() > 0)
                 return false;
             expr* e = n->get_expr();
-            if (e->get_sort() == srt && !m.is_value(e)) {
+            if (m.get_sort(e) == srt && !m.is_value(e)) {
                 offsets[index] = i;
                 return true;
             }
@@ -513,7 +513,8 @@ namespace q {
 
     bool mbqi::first_offset(unsigned_vector& offsets, app_ref_vector const& vars) {
         offsets.reset();
-        offsets.resize(vars.size(), 0);
+        for (app* v : vars) 
+            offsets.push_back(0);
         for (unsigned i = 0; i < vars.size(); ++i) 
             if (!next_offset(offsets, vars, i, 0))
                 return false;
@@ -552,7 +553,7 @@ namespace q {
     }
 
     mbp::project_plugin* mbqi::get_plugin(app* var) {
-        family_id fid = var->get_sort()->get_family_id();
+        family_id fid = m.get_sort(var)->get_family_id();
         return m_plugins.get(fid, nullptr);
     }
 

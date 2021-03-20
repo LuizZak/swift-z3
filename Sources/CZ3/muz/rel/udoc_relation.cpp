@@ -262,7 +262,8 @@ namespace datalog {
             return true;
         }
         uint64_t n, sz;
-        if (dl.is_numeral(e, n) && dl.try_get_size(e->get_sort(), sz)) {
+        ast_manager& m = get_ast_manager();
+        if (dl.is_numeral(e, n) && dl.try_get_size(m.get_sort(e), sz)) {
             num_bits = 0;
             while (sz > 0) ++num_bits, sz = sz/2;
             r = rational(n, rational::ui64());

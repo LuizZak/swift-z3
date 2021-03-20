@@ -55,10 +55,10 @@ class sym_expr {
 public:
     ~sym_expr() { if (m_expr) m_expr->dec_ref(); }
     expr_ref accept(expr* e);
-    static sym_expr* mk_char(expr_ref& t) { return alloc(sym_expr, t_char, t, t, t->get_sort(), nullptr); }
+    static sym_expr* mk_char(expr_ref& t) { return alloc(sym_expr, t_char, t, t, t.get_manager().get_sort(t), nullptr); }
     static sym_expr* mk_char(ast_manager& m, expr* t) { expr_ref tr(t, m); return mk_char(tr); }
     static sym_expr* mk_pred(expr_ref& t, sort* s) { return alloc(sym_expr, t_pred, t, t, s, nullptr); }
-    static sym_expr* mk_range(expr_ref& lo, expr_ref& hi) { return alloc(sym_expr, t_range, lo, hi, hi->get_sort(), nullptr); }
+    static sym_expr* mk_range(expr_ref& lo, expr_ref& hi) { return alloc(sym_expr, t_range, lo, hi, lo.get_manager().get_sort(hi), nullptr); }
     static sym_expr* mk_not(ast_manager& m, sym_expr* e) { expr_ref f(m); e->inc_ref(); return alloc(sym_expr, t_not, f, f, e->get_sort(), e); }
     void inc_ref() { ++m_ref;  }
     void dec_ref() { --m_ref; if (m_ref == 0) dealloc(this); }
@@ -209,10 +209,6 @@ class seq_rewriter {
     br_status mk_seq_unit(expr* e, expr_ref& result);
     br_status mk_seq_concat(expr* a, expr* b, expr_ref& result);
     br_status mk_seq_length(expr* a, expr_ref& result);
-    expr_ref mk_len(rational const& offset, expr_ref_vector const& xs);
-    bool extract_pop_suffix(expr_ref_vector const& as, expr* b, expr* c, expr_ref& result);
-    bool extract_push_offset(expr_ref_vector const& as, expr* b, expr* c, expr_ref& result);
-    bool extract_push_length(expr_ref_vector& as, expr* b, expr* c, expr_ref& result);
     br_status mk_seq_extract(expr* a, expr* b, expr* c, expr_ref& result);
     br_status mk_seq_contains(expr* a, expr* b, expr_ref& result);
     br_status mk_seq_at(expr* a, expr* b, expr_ref& result);
@@ -277,7 +273,6 @@ class seq_rewriter {
     expr_ref minus_one() { return expr_ref(m_autil.mk_int(-1), m()); }
 
     bool is_suffix(expr* s, expr* offset, expr* len);
-    bool is_prefix(expr* s, expr* offset, expr* len);
     bool sign_is_determined(expr* len, sign& s);
 
     bool set_empty(unsigned sz, expr* const* es, bool all, expr_ref_pair_vector& eqs);
@@ -285,13 +280,9 @@ class seq_rewriter {
     bool reduce_subsequence(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
     bool reduce_by_length(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
     bool reduce_itos(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
-    bool reduce_eq_empty(expr* l, expr* r, expr_ref& result);    
+    bool reduce_eq_empty(expr* l, expr* r, expr_ref& result);
     bool min_length(expr_ref_vector const& es, unsigned& len);
-    bool min_length(expr* e, unsigned& len);
-    bool max_length(expr* e, rational& len);
-    lbool eq_length(expr* x, expr* y);
     expr* concat_non_empty(expr_ref_vector& es);
-    bool reduce_by_char(expr_ref& r, expr* ch, unsigned depth);
 
     bool is_string(unsigned n, expr* const* es, zstring& s) const;
 
@@ -352,8 +343,6 @@ public:
     bool reduce_eq(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& new_eqs, bool& change);
 
     bool reduce_contains(expr* a, expr* b, expr_ref_vector& disj);
-
-    expr_ref mk_length(expr* s);
 
     void add_seqs(expr_ref_vector const& ls, expr_ref_vector const& rs, expr_ref_pair_vector& new_eqs);
 

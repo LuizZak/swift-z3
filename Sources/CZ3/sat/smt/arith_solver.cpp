@@ -32,12 +32,20 @@ namespace arith {
     {
         m_solver = alloc(lp::lar_solver);
 
-        lp().updt_params(ctx.s().params());
+        smt_params_helper lpar(ctx.s().params());
         lp().settings().set_resource_limit(m_resource_limit);
+        lp().settings().simplex_strategy() = static_cast<lp::simplex_strategy_enum>(lpar.arith_simplex_strategy());
         lp().settings().bound_propagation() = bound_prop_mode::BP_NONE != propagation_mode();
+        lp().settings().enable_hnf() = lpar.arith_enable_hnf();
+        lp().settings().print_external_var_name() = lpar.arith_print_ext_var_names();
+        lp().set_track_pivoted_rows(lpar.arith_bprop_on_pivoted_rows());
+        lp().settings().report_frequency = lpar.arith_rep_freq();
+        lp().settings().print_statistics = lpar.arith_print_stats();
+        lp().settings().cheap_eqs() = lpar.arith_propagate_eqs();
+        lp().set_cut_strategy(get_config().m_arith_branch_cut_ratio);
         lp().settings().int_run_gcd_test() = get_config().m_arith_gcd_test;
         lp().settings().set_random_seed(get_config().m_random_seed);
-        
+
         m_lia = alloc(lp::int_solver, *m_solver.get());
     }
 
@@ -70,7 +78,7 @@ namespace arith {
         }
 
         // clone rows into m_solver, m_nla, m_lia
-        // NOT_IMPLEMENTED_YET();
+        NOT_IMPLEMENTED_YET();
 
         return result;        
     }
@@ -305,12 +313,12 @@ namespace arith {
         expr* e2 = n2->get_expr();
         if (m.is_ite(e1) || m.is_ite(e2))
             return;
-        if (e1->get_sort() != e2->get_sort())
+        if (m.get_sort(e1) != m.get_sort(e2))
             return;
         reset_evidence();
-        for (auto ev : e)
+        for (auto const& ev : e)
             set_evidence(ev.ci(), m_core, m_eqs);
-        auto* jst = euf::th_explain::propagate(*this, m_core, m_eqs, n1, n2);
+        auto* jst = euf::th_propagation::mk(*this, m_core, m_eqs);
         ctx.propagate(n1, n2, jst->to_index());
     }
 
@@ -415,7 +423,7 @@ namespace arith {
             if (b.first == UINT_MAX || (is_lower ? b.second < v : b.second > v)) {
                 TRACE("arith", tout << "tighter bound " << tv.to_string() << "\n";);
                 m_history.push_back(vec[ti]);
-                ctx.push(history_trail<constraint_bound>(vec, ti, m_history));
+                ctx.push(history_trail<euf::solver, constraint_bound>(vec, ti, m_history));
                 b.first = ci;
                 b.second = v;
             }
@@ -604,7 +612,7 @@ namespace arith {
             SASSERT("integer variables should have integer values: " && (!a.is_int(o) || r.is_int() || m.limit().is_canceled()));
             if (a.is_int(o) && !r.is_int()) 
                 r = floor(r);
-            value = a.mk_numeral(r, o->get_sort());
+            value = a.mk_numeral(r, m.get_sort(o));
         }
         else if (a.is_arith_expr(o)) {
             expr_ref_vector args(m);
@@ -618,16 +626,12 @@ namespace arith {
             ctx.get_rewriter()(value);
         }
         else {
-            value = mdl.get_fresh_value(o->get_sort());
+            UNREACHABLE();
         }
-        mdl.register_value(value);
         values.set(n->get_root_id(), value);
     }
 
-    bool solver::add_dep(euf::enode* n, top_sort<euf::enode>& dep) {
-        theory_var v = n->get_th_var(get_id());
-        if (v == euf::null_theory_var && !a.is_arith_expr(n->get_expr()))
-            return false;
+    void solver::add_dep(euf::enode* n, top_sort<euf::enode>& dep) {
         expr* e = n->get_expr();
         if (a.is_arith_expr(e) && to_app(e)->get_num_args() > 0) {
             for (auto* arg : euf::enode_args(n))
@@ -636,7 +640,6 @@ namespace arith {
         else {
             dep.insert(n, nullptr); 
         }
-        return true;
     }
 
     void solver::push_core() {
@@ -715,7 +718,7 @@ namespace arith {
         set_evidence(ci4, m_core, m_eqs);
         enode* x = var2enode(v1);
         enode* y = var2enode(v2);
-        auto* jst = euf::th_explain::propagate(*this, m_core, m_eqs, x, y);
+        auto* jst = euf::th_propagation::mk(*this, m_core, m_eqs);
         ctx.propagate(x, y, jst->to_index());
     }
 
@@ -762,7 +765,7 @@ namespace arith {
 
     void solver::updt_unassigned_bounds(theory_var v, int inc) {
         TRACE("arith_verbose", tout << "v" << v << " " << m_unassigned_bounds[v] << " += " << inc << "\n";);
-        ctx.push(vector_value_trail<unsigned, false>(m_unassigned_bounds, v));
+        ctx.push(vector_value_trail<euf::solver, unsigned, false>(m_unassigned_bounds, v));
         m_unassigned_bounds[v] += inc;
     }
 
@@ -789,7 +792,7 @@ namespace arith {
     void solver::init_model() {
         if (m.inc() && m_solver.get() && get_num_vars() > 0) {
             TRACE("arith", display(tout << "update variable values\n"););
-            ctx.push(value_trail<bool>(m_model_is_initialized));
+            ctx.push(value_trail<euf::solver, bool>(m_model_is_initialized));
             m_model_is_initialized = true;
             lp().init_model();
         }
@@ -892,7 +895,7 @@ namespace arith {
         }
 
         if (m_assume_eq_candidates.size() > old_sz)
-            ctx.push(restore_size_trail<std::pair<theory_var, theory_var>, false>(m_assume_eq_candidates, old_sz));
+            ctx.push(restore_size_trail<euf::solver, std::pair<theory_var, theory_var>, false>(m_assume_eq_candidates, old_sz));
 
         return delayed_assume_eqs();
     }
@@ -901,7 +904,7 @@ namespace arith {
         if (m_assume_eq_head == m_assume_eq_candidates.size())
             return false;
 
-        ctx.push(value_trail<unsigned>(m_assume_eq_head));
+        ctx.push(value_trail<euf::solver, unsigned>(m_assume_eq_head));
         while (m_assume_eq_head < m_assume_eq_candidates.size()) {
             std::pair<theory_var, theory_var> const& p = m_assume_eq_candidates[m_assume_eq_head];
             theory_var v1 = p.first;
@@ -969,9 +972,6 @@ namespace arith {
 
         TRACE("arith", ctx.display(tout););
 
-        if (!check_delayed_eqs()) 
-            return sat::check_result::CR_CONTINUE;
-
         switch (check_lia()) {
         case l_true:
             break;
@@ -1030,7 +1030,7 @@ namespace arith {
                 rational c1(0);
                 m_nla->am().set(r1, c1.to_mpq());
                 m_nla->am().add(r, r1, r);
-                for (lp::lar_term::ival arg : term) {
+                for (auto const& arg : term) {
                     auto wi = lp().column2tv(arg.column());
                     c1 = arg.coeff() * wcoeff;
                     if (wi.is_term()) {
@@ -1065,19 +1065,6 @@ namespace arith {
             TRACE("arith", tout << "status treated as inconclusive: " << status << "\n";);
             return l_undef;
         }
-    }
-
-    bool solver::check_delayed_eqs() {
-        for (auto p : m_delayed_eqs) {
-            auto const& e = p.first;
-            if (p.second)
-                new_eq_eh(e);
-            else if (is_eq(e.v1(), e.v2())) {
-                mk_diseq_axiom(e);
-                return false;
-            }
-        }
-        return true;
     }
 
     lbool solver::check_lia() {
@@ -1116,7 +1103,7 @@ namespace arith {
             ++m_stats.m_gomory_cuts;
             // m_explanation implies term <= k
             reset_evidence();
-            for (auto ev : m_explanation)
+            for (auto const& ev : m_explanation)
                 set_evidence(ev.ci(), m_core, m_eqs);
             // The call mk_bound() can set the m_infeasible_column in lar_solver
             // so the explanation is safer to take before this call.
@@ -1154,7 +1141,7 @@ namespace arith {
             add_clause(m_core2);
         }
         else {
-            auto* jst = euf::th_explain::propagate(*this, core, eqs, lit);
+            auto* jst = euf::th_propagation::mk(*this, core, eqs);
             ctx.propagate(lit, jst->to_index());
         }
     }
@@ -1176,7 +1163,7 @@ namespace arith {
 
         ++m_num_conflicts;
         ++m_stats.m_conflicts;
-        for (auto ev : m_explanation)
+        for (auto const& ev : m_explanation)
             set_evidence(ev.ci(), m_core, m_eqs);
         TRACE("arith",
             tout << "Lemma - " << (is_conflict ? "conflict" : "propagation") << "\n";
@@ -1313,7 +1300,7 @@ namespace arith {
 
     void solver::term2coeffs(lp::lar_term const& term, u_map<rational>& coeffs, rational const& coeff) {
         TRACE("arith", lp().print_term(term, tout) << "\n";);
-        for (lp::lar_term::ival ti : term) {
+        for (const auto& ti : term) {
             theory_var w;
             auto tv = lp().column2tv(ti.column());
             if (tv.is_term()) {
@@ -1432,7 +1419,7 @@ namespace arith {
     }
 
     void solver::get_antecedents(literal l, sat::ext_justification_idx idx, literal_vector& r, bool probing) {
-        auto& jst = euf::th_explain::from_index(idx);
+        auto& jst = euf::th_propagation::from_index(idx);
         ctx.get_antecedents(l, jst, r, probing);
     }
 

@@ -23,21 +23,21 @@ Author:
 
 namespace bv {
 
-    class solver::add_var_pos_trail : public trail {
+    class solver::add_var_pos_trail : public trail<euf::solver> {
         solver::atom* m_atom;
     public:
         add_var_pos_trail(solver::atom* a) :m_atom(a) {}
-        void undo() override {
+        void undo(euf::solver& euf) override {
             SASSERT(m_atom->m_occs);
             m_atom->m_occs = m_atom->m_occs->m_next;
         }
     };
 
-    class solver::add_eq_occurs_trail : public trail {
+    class solver::add_eq_occurs_trail : public trail<euf::solver> {
         atom* m_atom;
     public:
         add_eq_occurs_trail(atom* a) :m_atom(a) {}
-        void undo() override {
+        void undo(euf::solver& euf) override {
             SASSERT(m_atom->m_eqs);
             m_atom->m_eqs = m_atom->m_eqs->m_next;
             if (m_atom->m_eqs)  
@@ -45,12 +45,12 @@ namespace bv {
         }
     };    
 
-    class solver::del_eq_occurs_trail : public trail {
+    class solver::del_eq_occurs_trail : public trail<euf::solver> {
         atom* m_atom;
         eq_occurs* m_node;
     public:
         del_eq_occurs_trail(atom* a, eq_occurs* n) : m_atom(a), m_node(n) {}
-        void undo() override {
+        void undo(euf::solver& euf) override {
             if (m_node->m_next)
                 m_node->m_next->m_prev = m_node;
             if (m_node->m_prev) 
@@ -71,12 +71,12 @@ namespace bv {
         ctx.push(del_eq_occurs_trail(a, occ));
     }
 
-    class solver::mk_atom_trail : public trail {
+    class solver::mk_atom_trail : public trail<euf::solver> {
         solver& th;
         sat::bool_var m_var;
     public:
         mk_atom_trail(sat::bool_var v, solver& th) : th(th), m_var(v) {}
-        void undo() override {
+        void undo(euf::solver& euf) override {
             solver::atom* a = th.get_bv2a(m_var);
             a->~atom();
             th.erase_bv2a(m_var);
@@ -276,9 +276,7 @@ namespace bv {
 
     void solver::register_true_false_bit(theory_var v, unsigned idx) {
         SASSERT(s().value(m_bits[v][idx]) != l_undef);
-        sat::literal l = m_bits[v][idx];
-        SASSERT(l == mk_true() || ~l == mk_true());
-        bool is_true = l == mk_true();
+        bool is_true = (s().value(m_bits[v][idx]) == l_true);
         zero_one_bits& bits = m_zero_one_bits[v];
         bits.push_back(zero_one_bit(v, idx, is_true));
     }
@@ -311,7 +309,7 @@ namespace bv {
 
     void solver::set_bit_eh(theory_var v, literal l, unsigned idx) {
         SASSERT(m_bits[v][idx] == l);
-        if (l.var() == mk_true().var()) 
+        if (s().value(l) != l_undef && s().lvl(l) == 0) 
             register_true_false_bit(v, idx);
         else {
             atom* b = mk_atom(l.var());
@@ -356,14 +354,6 @@ namespace bv {
         return get_bv_size(var2enode(v));
     }
 
-    sat::literal solver::mk_true() {
-        if (m_true == sat::null_literal) {
-            ctx.push(value_trail<sat::literal>(m_true));
-            m_true = ctx.internalize(m.mk_true(), false, false, false);
-        }
-        return m_true;
-    }
-
     void solver::internalize_num(app* a) {
         numeral val;
         unsigned sz = 0;
@@ -375,7 +365,7 @@ namespace bv {
         m_bb.num2bits(val, sz, bits);
         SASSERT(bits.size() == sz);
         SASSERT(m_bits[v].empty());
-        sat::literal true_literal = mk_true();
+        sat::literal true_literal = ctx.internalize(m.mk_true(), false, false, false);
         for (unsigned i = 0; i < sz; i++) {
             expr* l = bits.get(i);
             SASSERT(m.is_true(l) || m.is_false(l));
@@ -403,7 +393,7 @@ namespace bv {
     void solver::assert_bv2int_axiom(app* n) {
         expr* k = nullptr;        
         VERIFY(bv.is_bv2int(n, k));
-        SASSERT(bv.is_bv_sort(k->get_sort()));
+        SASSERT(bv.is_bv_sort(m.get_sort(k)));
         expr_ref_vector k_bits(m);
         euf::enode* k_enode = expr2enode(k);
         get_bits(k_enode, k_bits);

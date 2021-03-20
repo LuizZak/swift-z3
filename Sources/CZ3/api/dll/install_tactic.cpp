@@ -15,7 +15,7 @@
 #include "sat/sat_solver/inc_sat_solver.h"
 #include "sat/tactic/sat_tactic.h"
 #include "smt/tactic/ctx_solver_simplify_tactic.h"
-#include "smt/tactic/smt_tactic_core.h"
+#include "smt/tactic/smt_tactic.h"
 #include "smt/tactic/unit_subsumption_tactic.h"
 #include "tactic/aig/aig_tactic.h"
 #include "tactic/arith/add_bounds_tactic.h"
@@ -87,7 +87,6 @@
 #include "tactic/smtlogics/qfuf_tactic.h"
 #include "tactic/smtlogics/qfufbv_tactic.h"
 #include "tactic/smtlogics/quant_tactics.h"
-#include "tactic/smtlogics/smt_tactic.h"
 #include "tactic/tactic.h"
 #include "tactic/ufbv/macro_finder_tactic.h"
 #include "tactic/ufbv/quasi_macros_tactic.h"
@@ -112,6 +111,7 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("sat", "(try to) solve goal using a SAT solver.", mk_sat_tactic(m, p));
   ADD_TACTIC_CMD("sat-preprocess", "Apply SAT solver preprocessing procedures (bounded resolution, Boolean constant propagation, 2-SAT, subsumption, subsumption resolution).", mk_sat_preprocessor_tactic(m, p));
   ADD_TACTIC_CMD("ctx-solver-simplify", "apply solver-based contextual simplification rules.", mk_ctx_solver_simplify_tactic(m, p));
+  ADD_TACTIC_CMD("smt", "apply a SAT based SMT solver.", mk_smt_tactic(m, p));
   ADD_TACTIC_CMD("psmt", "builtin strategy for SMT tactic in parallel.", mk_parallel_smt_tactic(m, p));
   ADD_TACTIC_CMD("unit-subsume-simplify", "unit subsumption simplification.", mk_unit_subsumption_tactic(m, p));
   ADD_TACTIC_CMD("aig", "simplify Boolean structure using AIGs.", mk_aig_tactic());
@@ -196,7 +196,6 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("lra", "builtin strategy for solving LRA problems.", mk_lra_tactic(m, p));
   ADD_TACTIC_CMD("lia", "builtin strategy for solving LIA problems.", mk_lia_tactic(m, p));
   ADD_TACTIC_CMD("lira", "builtin strategy for solving LIRA problems.", mk_lira_tactic(m, p));
-  ADD_TACTIC_CMD("smt", "apply a SAT based SMT solver.", mk_smt_tactic(m, p));
   ADD_TACTIC_CMD("skip", "do nothing tactic.", mk_skip_tactic());
   ADD_TACTIC_CMD("fail", "always fail tactic.", mk_fail_tactic());
   ADD_TACTIC_CMD("fail-if-undecided", "fail if goal is undecided.", mk_fail_if_undecided_tactic());

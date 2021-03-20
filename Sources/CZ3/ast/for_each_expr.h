@@ -203,7 +203,7 @@ public:
         bool operator!=(iterator const& other) const;
     };
     subterms_postorder(expr_ref_vector const& es);
-    subterms_postorder(expr_ref const& e);
+    subterms_postorder(expr_ref& e);
     iterator begin();
     iterator end();
 };

@@ -31,10 +31,6 @@ Revision History:
 #include "util/statistics.h"
 #include "util/params.h"
 
-namespace pb {
-    class solver;
-}
-
 namespace sat {
     class solver;
 
@@ -54,7 +50,7 @@ namespace sat {
     };
 
     class simplifier {
-        friend class pb::solver;
+        friend class ba_solver;
         friend class elim_vars;
         solver &               s;
         unsigned               m_num_calls;

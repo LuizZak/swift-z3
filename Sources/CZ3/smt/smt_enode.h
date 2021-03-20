@@ -21,7 +21,6 @@ Revision History:
 #include "util/id_var_list.h"
 #include "util/approx_set.h"
 #include "ast/ast.h"
-#include "ast/ast_pp.h"
 #include "smt/smt_types.h"
 #include "smt/smt_eq_justification.h"
 
@@ -166,15 +165,19 @@ namespace smt {
 
         void del_eh(ast_manager & m, bool update_children_parent = true);
         
+        app * get_owner() const { return m_owner; }
         app * get_expr() const { return m_owner; }
 
         unsigned get_owner_id() const { return m_owner->get_id(); }
         unsigned get_expr_id() const { return m_owner->get_id(); }
 
-        func_decl * get_decl() const { return m_owner->get_decl(); }
-        unsigned get_decl_id() const { return m_owner->get_decl()->get_decl_id(); }
+        func_decl * get_decl() const {
+            return m_owner->get_decl();
+        }
 
-        sort* get_sort() const { return m_owner->get_sort(); }
+        unsigned get_decl_id() const {
+            return m_owner->get_decl()->get_decl_id();
+        }
 
         unsigned hash() const {
             return m_owner->hash();
@@ -453,7 +456,6 @@ namespace smt {
         void reset();
     };
 
-    inline mk_pp pp(enode* n, ast_manager& m) { return mk_pp(n->get_expr(), m); }
 };
 
 

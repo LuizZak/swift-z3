@@ -56,8 +56,8 @@ public:
     }
 };
 
-template<typename S, typename T>
-class ast2ast_trail : public trail {
+template<typename Ctx, typename S, typename T>
+class ast2ast_trail : public trail<Ctx> {
     ast2ast_trailmap<S,T>& m_map;
 public:
     ast2ast_trail(ast2ast_trailmap<S,T>& m, S* s, T* t) : 
@@ -65,7 +65,7 @@ public:
         m.insert(s,t);
     }
 
-    void undo() override {
+    void undo(Ctx& ctx) override {
         m_map.pop();
     }    
 };

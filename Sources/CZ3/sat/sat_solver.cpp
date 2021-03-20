@@ -328,19 +328,14 @@ namespace sat {
     }
 
     void solver::set_eliminated(bool_var v, bool f) { 
-        if (m_eliminated[v] == f)
-            return;
-        if (!f) 
+        if (m_eliminated[v] && !f) 
             reset_var(v, m_external[v], m_decision[v]);
-        else if (f && m_ext)
-            m_ext->set_eliminated(v);
         m_eliminated[v] = f; 
     }
 
 
     clause* solver::mk_clause(unsigned num_lits, literal * lits, sat::status st) {
         m_model_is_current = false;
-            
         for (unsigned i = 0; i < num_lits; i++) 
             VERIFY(!was_eliminated(lits[i]));
         
@@ -1029,7 +1024,7 @@ namespace sat {
                     return false;
             } while (m_qhead < m_trail.size());
 
-            if (m_ext && !is_probing()) 
+            if (m_ext) 
                 m_ext->unit_propagate();            
         }
         if (m_inconsistent)
@@ -1347,8 +1342,17 @@ namespace sat {
                 m_conflicts_since_restart = 0;
                 m_restart_threshold = m_config.m_restart_initial;
             }
-
-            lbool is_sat = search();
+            lbool is_sat = l_undef;
+            while (is_sat == l_undef && !should_cancel()) {
+                if (inconsistent()) is_sat = resolve_conflict_core();
+                else if (should_propagate()) propagate(true);
+                else if (do_cleanup(false)) continue;
+                else if (should_gc()) do_gc();
+                else if (should_rephase()) do_rephase();
+                else if (should_restart()) do_restart(!m_config.m_restart_fast);
+                else if (should_simplify()) do_simplify();
+                else if (!decide()) is_sat = final_check();
+            }
             log_stats();
             return is_sat;
         }
@@ -1678,9 +1682,6 @@ namespace sat {
             case PS_BASIC_CACHING:
                 phase = m_phase[next];
                 break;
-            case PS_FROZEN:
-                phase = m_best_phase[next];
-                break;
             case PS_SAT_CACHING:
                 if (m_search_state == s_unsat) {
                     phase = m_phase[next];
@@ -1706,12 +1707,6 @@ namespace sat {
     }
 
     lbool solver::bounded_search() {
-        flet<bool> _disable_simplify(m_simplify_enabled, false);
-        flet<bool> _restart_enabled(m_restart_enabled, false);
-        return search();
-    }
-
-    lbool solver::basic_search() {
         lbool is_sat = l_undef;
         while (is_sat == l_undef && !should_cancel()) {
             if (inconsistent()) is_sat = resolve_conflict_core();
@@ -1719,30 +1714,16 @@ namespace sat {
             else if (do_cleanup(false)) continue;
             else if (should_gc()) do_gc();
             else if (should_rephase()) do_rephase();
-            else if (should_restart()) { if (!m_restart_enabled) return l_undef; do_restart(!m_config.m_restart_fast); }
-            else if (should_simplify()) do_simplify();
+            else if (should_restart()) return l_undef;
             else if (!decide()) is_sat = final_check();
         }
         return is_sat;
     }
 
-    lbool solver::search() {
-        if (!m_ext || !m_ext->tracking_assumptions())
-            return basic_search();
-        while (true) {
-            pop_to_base_level();
-            reinit_assumptions();
-            lbool r = basic_search();
-            if (r != l_false) 
-                return r;
-            if (!m_ext->should_research(m_core))
-                return r;
-        }
-    }
-
     bool solver::should_propagate() const {        
         return !inconsistent() && m_qhead < m_trail.size();
     }
+
 
     lbool solver::final_check() {
         if (m_ext) {
@@ -1812,7 +1793,6 @@ namespace sat {
             add_assumption(lit);
             assign_scoped(lit);
         }
-
         m_search_lvl = scope_lvl(); 
         SASSERT(m_search_lvl == 1);
     }
@@ -1828,13 +1808,17 @@ namespace sat {
     void solver::reset_assumptions() {
         m_assumptions.reset();
         m_assumption_set.reset();
-        m_ext_assumption_set.reset();
     }
 
     void solver::add_assumption(literal lit) {
         m_assumption_set.insert(lit);
         m_assumptions.push_back(lit);
         set_external(lit.var());
+    }
+
+    void solver::pop_assumption() {
+        VERIFY(m_assumptions.back() == m_assumption_set.pop());
+        m_assumptions.pop_back();
     }
 
     void solver::reassert_min_core() {
@@ -1865,10 +1849,7 @@ namespace sat {
                 if (inconsistent()) break;
                 assign_scoped(lit);
             }
-            init_ext_assumptions();
-
-            if (!inconsistent()) 
-                propagate(false);
+            if (!inconsistent()) propagate(false);
             TRACE("sat",
                   tout << "consistent: " << !inconsistent() << "\n";
                   for (literal a : m_assumptions) {
@@ -1884,23 +1865,12 @@ namespace sat {
         }
     }
 
-    void solver::init_ext_assumptions() {
-        if (m_ext && m_ext->tracking_assumptions()) {
-            m_ext_assumption_set.reset();
-            unsigned trail_size = m_trail.size();
-            if (!inconsistent())
-                m_ext->add_assumptions();
-            for (unsigned i = trail_size; i < m_trail.size(); ++i)
-                m_ext_assumption_set.insert(m_trail[i]);
-        }
-    }
-
     bool solver::tracking_assumptions() const {
-        return !m_assumptions.empty() || !m_user_scope_literals.empty() || (m_ext && m_ext->tracking_assumptions());
+        return !m_assumptions.empty() || !m_user_scope_literals.empty();
     }
 
     bool solver::is_assumption(literal l) const {
-        return tracking_assumptions() && (m_assumption_set.contains(l) || m_ext_assumption_set.contains(l));
+        return tracking_assumptions() && m_assumption_set.contains(l);
     }
 
     void solver::set_activity(bool_var v, unsigned new_act) {
@@ -1941,8 +1911,7 @@ namespace sat {
         m_next_simplify           = m_config.m_simplify_delay;
         m_min_d_tk                = 1.0;
         m_search_lvl              = 0;
-        if (m_learned.size() <= 2*m_clauses.size())
-            m_conflicts_since_gc      = 0;
+        m_conflicts_since_gc      = 0;
         m_restart_next_out        = 0;
         m_asymm_branch.init_search();
         m_stopwatch.reset();
@@ -1958,7 +1927,7 @@ namespace sat {
     }
 
     bool solver::should_simplify() const {
-        return m_conflicts_since_init >= m_next_simplify && m_simplify_enabled;
+        return m_conflicts_since_init >= m_next_simplify;
     }
     /**
        \brief Apply all simplifications.
@@ -2102,7 +2071,6 @@ namespace sat {
             if (!was_eliminated(v)) {
                 m_model[v] = value(v);
                 m_phase[v] = value(v) == l_true;
-                m_best_phase[v] = value(v) == l_true;
             }
         }
         TRACE("sat_mc_bug", m_mc.display(tout););
@@ -2305,7 +2273,7 @@ namespace sat {
         IF_VERBOSE(30, display_status(verbose_stream()););
         TRACE("sat", tout << "restart " << restart_level(to_base) << "\n";);
         pop_reinit(restart_level(to_base));
-        set_next_restart();        
+        set_next_restart();
     }
 
     unsigned solver::restart_level(bool to_base) {
@@ -2879,8 +2847,6 @@ namespace sat {
     }
 
     void solver::updt_phase_of_vars() {
-        if (m_config.m_phase == PS_FROZEN)
-            return;
         unsigned from_lvl = m_conflict_lvl;
         unsigned head = from_lvl == 0 ? 0 : m_scopes[from_lvl - 1].m_trail_lim;
         unsigned sz   = m_trail.size();
@@ -2945,8 +2911,6 @@ namespace sat {
             break;
         case PS_ALWAYS_FALSE:
             for (auto& p : m_phase) p = false;
-            break;
-        case PS_FROZEN:
             break;
         case PS_BASIC_CACHING:
             switch (m_rephase_lim % 4) {
@@ -3615,6 +3579,7 @@ namespace sat {
     void solver::unassign_vars(unsigned old_sz, unsigned new_lvl) {
         SASSERT(old_sz <= m_trail.size());
         SASSERT(m_replay_assign.empty());
+        unsigned i = m_trail.size();
         for (unsigned i = m_trail.size(); i-- > old_sz; ) {
             literal l  = m_trail[i];
             bool_var v = l.var();
@@ -3811,14 +3776,6 @@ namespace sat {
         }
     }
 
-    void solver::move_to_front(bool_var b) {
-        if (b >= num_vars())
-            return;
-        bool_var next = m_case_split_queue.min_var();
-        auto next_act = m_activity[next];
-        set_activity(b, next_act + 1);
-    }
-
     // -----------------------
     //
     // Iterators
@@ -4007,18 +3964,17 @@ namespace sat {
 
     void solver::display_wcnf(std::ostream & out, unsigned sz, literal const* lits, unsigned const* weights) const {
         unsigned max_weight = 0;
-        for (unsigned i = 0; i < sz; ++i) 
-            max_weight += weights[i];
+        for (unsigned i = 0; i < sz; ++i) {
+            max_weight = std::max(max_weight, weights[i]);
+        }
         ++max_weight;
-
-        if (m_ext)
-            throw default_exception("wcnf is only supported for pure CNF problems");
 
         out << "p wcnf " << num_vars() << " " << num_clauses() + sz << " " << max_weight << "\n";
         out << "c soft " << sz << "\n";
 
-        for (literal lit : m_trail) 
+        for (literal lit : m_trail) {
             out << max_weight << " " << dimacs_lit(lit) << " 0\n";
+        }
         unsigned l_idx = 0;
         for (watch_list const& wlist : m_watches) {
             literal l = ~to_literal(l_idx);

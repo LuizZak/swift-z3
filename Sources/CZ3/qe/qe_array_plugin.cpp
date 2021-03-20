@@ -92,7 +92,7 @@ namespace qe {
                 for (unsigned i = 0; i < sz; ++i) {
                     expr_ref save(m);
                     save = lhs = args[i].get();                    
-                    args[i] = arith.mk_numeral(rational(0), lhs->get_sort());
+                    args[i] = arith.mk_numeral(rational(0), m.get_sort(lhs));
                     rhs = arith.mk_uminus(arith.mk_add(args.size(), args.c_ptr()));
                     if (arith.is_mul(lhs, e1, e2) && 
                         arith.is_numeral(e1, r) &&
@@ -165,7 +165,7 @@ namespace qe {
                 expr_ref store_B_i_t(m);
 
                 unsigned num_args = args[0].size();
-                B = m.mk_fresh_const("B", A->get_sort());
+                B = m.mk_fresh_const("B", m.get_sort(A));
                 ptr_buffer<expr> args2;
                 args2.push_back(B);
                 for (unsigned i = 0; i < num_args; ++i) {
@@ -232,7 +232,7 @@ namespace qe {
                 for (unsigned i = args.size(); i > 0; ) {
                     --i;
                     args2.reset();
-                    w = m.mk_fresh_const("w", args[i].back()->get_sort());
+                    w = m.mk_fresh_const("w", m.get_sort(args[i].back()));
                     args2.push_back(store_T);
                     args2.append(args[i]);
                     
@@ -264,16 +264,21 @@ namespace qe {
         bool is_array_app_of(app* a, unsigned& idx, expr* t, decl_kind k, vector<ptr_vector<expr> >& args) {
             if (m_ctx.is_var(a, idx)) {
                 contains_app& contains_v = m_ctx.contains(idx);
-                if (args.empty() || contains_v(t)) 
+                if (args.empty() || contains_v(t)) {
                     return false;
-                for (auto const& vs : args)
-                    for (auto v : vs)
-                        if (contains_v(v))
+                }
+                for (unsigned i = 0; i < args.size(); ++i) {
+                    for (unsigned j = 0; j < args[i].size(); ++j) {
+                        if (contains_v(args[i][j])) {
                             return false;
+                        }
+                    }
+                }
                 return true;
             }            
-            if (!is_app_of(a, m_fid, k)) 
+            if (!is_app_of(a, m_fid, k)) {
                 return false;
+            }
             args.push_back(ptr_vector<expr>());
             for (unsigned i = 1; i < a->get_num_args(); ++i) {
                 args.back().push_back(a->get_arg(i));

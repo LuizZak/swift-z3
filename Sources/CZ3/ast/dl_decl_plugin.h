@@ -180,7 +180,7 @@ namespace datalog {
         }
 
         bool is_finite_sort(expr* e) const { 
-            return is_finite_sort(e->get_sort()); 
+            return is_finite_sort(m.get_sort(e)); 
         }
 
         bool is_rule_sort(sort* s) const { 

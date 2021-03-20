@@ -48,10 +48,10 @@ namespace datalog {
         for (unsigned i = 0; i < sz; ++i) {
             expr* a = p1->get_arg(i);
             expr* b = p2->get_arg(i);
-            SASSERT(a->get_sort() == b->get_sort());
+            SASSERT(m.get_sort(a) == m.get_sort(b));
             m_sub1.push_back(a);
             m_sub2.push_back(b);
-            args.push_back(m.mk_var(m_idx++, a->get_sort()));
+            args.push_back(m.mk_var(m_idx++, m.get_sort(a)));
         }
         pred = m.mk_app(p1->get_decl(), args.size(), args.c_ptr());
     }
@@ -67,7 +67,7 @@ namespace datalog {
         bool_vector valid(sorts.size(), true);
         for (unsigned i = 0; i < sub.size(); ++i) {
             expr* e = sub[i];
-            sort* s = e->get_sort();
+            sort* s = m.get_sort(e);
             expr_ref w(m.mk_var(i, s), m);
             if (is_var(e)) {
                 unsigned v = to_var(e)->get_idx();
@@ -80,14 +80,14 @@ namespace datalog {
                     }
                     else {
                         SASSERT(revsub[v].get());
-                        SASSERT(revsub[v]->get_sort() == s);
+                        SASSERT(m.get_sort(revsub[v].get()) == s);
                         conjs.push_back(m.mk_eq(revsub[v].get(), w));    
                     }
                 }
             }
             else {
                 SASSERT(m.is_value(e));
-                SASSERT(e->get_sort() == w->get_sort());
+                SASSERT(m.get_sort(e) == m.get_sort(w));
                 conjs.push_back(m.mk_eq(e, w));
             }
         }

@@ -57,8 +57,9 @@ mpbq_manager::~mpbq_manager() {
 }
 
 void mpbq_manager::reset(mpbq_vector & v) {
-    for (auto & e : v) 
-        reset(e);
+    unsigned sz = v.size();
+    for (unsigned i = 0; i < sz; i++)
+        reset(v[i]);
     v.reset();
 }
 
@@ -390,25 +391,23 @@ std::string mpbq_manager::to_string(mpbq const & a) {
     return buffer.str();
 }
 
-std::ostream& mpbq_manager::display(std::ostream & out, mpbq const & a) {
+void mpbq_manager::display(std::ostream & out, mpbq const & a) {
     out << m_manager.to_string(a.m_num);
     if (a.m_k > 0)
         out << "/2";
     if (a.m_k > 1)
         out << "^" << a.m_k;
-    return out;
 }
 
-std::ostream& mpbq_manager::display_pp(std::ostream & out, mpbq const & a) {
+void mpbq_manager::display_pp(std::ostream & out, mpbq const & a) {
     out << m_manager.to_string(a.m_num);
     if (a.m_k > 0)
         out << "/2";
     if (a.m_k > 1)
         out << "<sup>" << a.m_k << "</sup>";
-    return out;
 }
 
-std::ostream& mpbq_manager::display_smt2(std::ostream & out, mpbq const & a, bool decimal) {
+void mpbq_manager::display_smt2(std::ostream & out, mpbq const & a, bool decimal) {
     if (a.m_k == 0) {
         m_manager.display_smt2(out, a.m_num, decimal);
     }
@@ -422,12 +421,12 @@ std::ostream& mpbq_manager::display_smt2(std::ostream & out, mpbq const & a, boo
         if (decimal) out << ".0";
         out << "))";
     }
-    return out;
 }
 
-std::ostream& mpbq_manager::display_decimal(std::ostream & out, mpbq const & a, unsigned prec) {
+void mpbq_manager::display_decimal(std::ostream & out, mpbq const & a, unsigned prec) {
     if (is_int(a)) {
-        return out << m_manager.to_string(a.m_num);
+        out << m_manager.to_string(a.m_num);
+        return;
     }
     mpz two(2);
     mpz ten(10);
@@ -456,16 +455,17 @@ std::ostream& mpbq_manager::display_decimal(std::ostream & out, mpbq const & a, 
     m_manager.del(n1);
     m_manager.del(v1);
     m_manager.del(two_k);
-    return out;
 }
 
-std::ostream& mpbq_manager::display_decimal(std::ostream & out, mpbq const & a, mpbq const & b, unsigned prec) {
+void mpbq_manager::display_decimal(std::ostream & out, mpbq const & a, mpbq const & b, unsigned prec) {
     mpz two(2);
     mpz ten(10);
     mpz two_k1, two_k2;
     mpz n1, v1, n2, v2;
-    if (m_manager.is_neg(a.m_num) != m_manager.is_neg(b.m_num)) 
-        return out << "?";
+    if (m_manager.is_neg(a.m_num) != m_manager.is_neg(b.m_num)) {
+        out << "?";
+        return;
+    }
     if (m_manager.is_neg(a.m_num))
         out << "-";
     m_manager.set(v1, a.m_num);
@@ -512,7 +512,6 @@ std::ostream& mpbq_manager::display_decimal(std::ostream & out, mpbq const & a, 
     m_manager.del(v2);
     m_manager.del(two_k1);
     m_manager.del(two_k2);
-    return out;
 }
 
 bool mpbq_manager::to_mpbq(mpq const & q, mpbq & bq) {

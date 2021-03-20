@@ -191,7 +191,7 @@ struct check_logic::imp {
             m_ints        = true;
             m_arrays      = true;
             m_reals       = true;
-            m_quantifiers = true; // some QF_SLIA benchmarks are miss-classified
+            m_quantifiers = false;
         }
         else if (logic == "QF_FD") {
             m_bvs         = true;
@@ -273,7 +273,7 @@ struct check_logic::imp {
     void operator()(var * n) {
         if (!m_quantifiers)
             fail("logic does not support quantifiers");
-        check_sort(n->get_sort());
+        check_sort(m.get_sort(n));
     }
 
     bool is_int(expr * t) {
@@ -345,7 +345,7 @@ struct check_logic::imp {
     }
 
     bool is_arith(expr * t) const {
-        return t->get_sort()->get_family_id() == m_a_util.get_family_id();
+        return m.get_sort(t)->get_family_id() == m_a_util.get_family_id();
     }
 
     bool is_offset(app * t) {
@@ -425,7 +425,7 @@ struct check_logic::imp {
     }
 
     void operator()(app * n) {
-        sort * s = n->get_sort();
+        sort * s = m.get_sort(n);
         check_sort(s);
         func_decl * f = n->get_decl();
         family_id fid = f->get_family_id();

@@ -31,6 +31,7 @@ extern "C" {
         to_stats_ref(s).display_smt2(buffer);
         std::string result = buffer.str();
         // Hack for removing the trailing '\n'
+        result = buffer.str();
         SASSERT(result.size() > 0);
         result.resize(result.size()-1);
         return mk_c(c)->mk_external_string(std::move(result));

@@ -3,7 +3,7 @@ Copyright (c) 2020 Microsoft Corporation
 
 Module Name:
 
-    array_solver.cpp
+    array_solver.h
 
 Abstract:
 
@@ -101,16 +101,54 @@ namespace array {
             else if (!turn[idx] && add_interface_equalities())
                 return sat::check_result::CR_CONTINUE;
         }
-        if (m_delay_qhead < m_axiom_trail.size()) 
-            return sat::check_result::CR_CONTINUE;
-            
-        // validate_check();
         return sat::check_result::CR_DONE;
     }
 
     void solver::pop_core(unsigned n) {
         th_euf_solver::pop_core(n);
         m_var_data.resize(get_num_vars());
+    }
+
+    std::ostream& solver::display(std::ostream& out) const {
+        if (get_num_vars() > 0)
+            out << "array\n";
+        for (unsigned i = 0; i < get_num_vars(); ++i) {
+            auto& d = get_var_data(i);
+            out << var2enode(i)->get_expr_id() << " " << mk_bounded_pp(var2expr(i), m, 2) << "\n";
+            display_info(out, "parent lambdas", d.m_parent_lambdas);
+            display_info(out, "parent select",  d.m_parent_selects);
+            display_info(out, "lambdas",        d.m_lambdas);
+        }
+        return out;
+    }
+
+    std::ostream& solver::display_info(std::ostream& out, char const* id, euf::enode_vector const& v) const {
+        if (v.empty())
+            return out;
+        out << id << ": ";
+        for (euf::enode* p : v)
+            out << mk_bounded_pp(p->get_expr(), m, 2) << " ";
+        out << "\n";
+        return out;
+    }
+
+    std::ostream& solver::display_justification(std::ostream& out, sat::ext_justification_idx idx) const { return out; }
+    std::ostream& solver::display_constraint(std::ostream& out, sat::ext_constraint_idx idx) const { return out; }
+
+    void solver::collect_statistics(statistics& st) const {
+        st.update("array store",        m_stats.m_num_store_axiom);
+        st.update("array sel/store",    m_stats.m_num_select_store_axiom);
+        st.update("array sel/const",    m_stats.m_num_select_const_axiom);
+        st.update("array sel/map",      m_stats.m_num_select_map_axiom);
+        st.update("array sel/as array", m_stats.m_num_select_as_array_axiom);
+        st.update("array sel/lambda",   m_stats.m_num_select_lambda_axiom);
+        st.update("array def/map",      m_stats.m_num_default_map_axiom);
+        st.update("array def/const",    m_stats.m_num_default_const_axiom);
+        st.update("array def/store",    m_stats.m_num_default_store_axiom);
+        st.update("array ext ax",       m_stats.m_num_extensionality_axiom);
+        st.update("array cong ax",      m_stats.m_num_congruence_axiom);        
+        st.update("array exp ax2",      m_stats.m_num_select_store_axiom_delayed);
+        st.update("array splits",       m_stats.m_num_eq_splits);
     }
 
     euf::th_solver* solver::clone(euf::solver& dst_ctx) {
@@ -138,7 +176,7 @@ namespace array {
             return false;
         force_push();
         bool prop = false;
-        ctx.push(value_trail<unsigned>(m_qhead));
+        ctx.push(value_trail<euf::solver, unsigned>(m_qhead));
         for (; m_qhead < m_axiom_trail.size() && !s().inconsistent(); ++m_qhead)
             if (propagate_axiom(m_qhead))
                 prop = true;
@@ -148,7 +186,6 @@ namespace array {
     void solver::merge_eh(theory_var v1, theory_var v2, theory_var, theory_var) {
         euf::enode* n1 = var2enode(v1);
         euf::enode* n2 = var2enode(v2);
-        TRACE("array", tout << "merge: " << ctx.bpp(n1) << " == " << ctx.bpp(n2) << "\n";);
         SASSERT(n1->get_root() == n2->get_root());
         SASSERT(v1 == find(v1));
         expr* e1 = n1->get_expr();
@@ -169,12 +206,12 @@ namespace array {
 
     void solver::add_parent_select(theory_var v_child, euf::enode* select) {
         SASSERT(a.is_select(select->get_expr()));
-        SASSERT(select->get_arg(0)->get_sort() == var2expr(v_child)->get_sort());
+        SASSERT(m.get_sort(select->get_arg(0)->get_expr()) == m.get_sort(var2expr(v_child)));
+
         v_child = find(v_child);
         ctx.push_vec(get_var_data(v_child).m_parent_selects, select);
         euf::enode* child = var2enode(v_child);
-        TRACE("array", tout << "v" << v_child << " - " << ctx.bpp(select) << " " << ctx.bpp(child) << " prop: " << should_prop_upward(get_var_data(v_child)) << "\n";);
-        if (can_beta_reduce(child)) 
+        if (can_beta_reduce(child) && child != select->get_arg(0))
             push_axiom(select_axiom(select, child));
     }
 
@@ -223,9 +260,7 @@ namespace array {
         expr* e = var2expr(v);
         if (!a.is_array(e))
             return;
-        
         auto& d = get_var_data(v);
-
         for (euf::enode* lambda : d.m_parent_lambdas)
             propagate_select_axioms(d, lambda);
     }
@@ -234,7 +269,7 @@ namespace array {
         auto& d = get_var_data(find(v));
         if (d.m_prop_upward)
             return;
-        ctx.push(reset_flag_trail(d.m_prop_upward));
+        ctx.push(reset_flag_trail<euf::solver>(d.m_prop_upward));
         d.m_prop_upward = true;
         if (should_prop_upward(d))
             propagate_parent_select_axioms(v);

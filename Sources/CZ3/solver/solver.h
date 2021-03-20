@@ -111,16 +111,6 @@ public:
         for (expr* e : ts) assert_expr(e);
     }
 
-    virtual void set_phase(expr* e) = 0;
-    virtual void move_to_front(expr* e) = 0; 
-
-    class phase { public: virtual ~phase() {} };
-    
-    virtual phase* get_phase() = 0;
-
-    virtual void set_phase(phase* p) = 0;
-
-
     void assert_expr(ptr_vector<expr> const& ts) { 
         for (expr* e : ts) assert_expr(e);
     }

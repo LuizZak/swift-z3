@@ -532,8 +532,8 @@ namespace smt {
                     r.m_graph.find_shortest_zero_edge_path(i, j, timestamp, r);
                     r.m_graph.find_shortest_zero_edge_path(j, i, timestamp, r);
                     literal_vector const& lits = r.m_explanation;
-                    TRACE("special_relations", ctx.display_literals_verbose(tout << mk_pp(x->get_expr(), m) << " = " << mk_pp(y->get_expr(), m) << "\n", lits) << "\n";);
-                    IF_VERBOSE(20, ctx.display_literals_verbose(verbose_stream() << mk_pp(x->get_expr(), m) << " = " << mk_pp(y->get_expr(), m) << "\n", lits) << "\n";);
+                    TRACE("special_relations", ctx.display_literals_verbose(tout << mk_pp(x->get_owner(), m) << " = " << mk_pp(y->get_owner(), m) << "\n", lits) << "\n";);
+                    IF_VERBOSE(20, ctx.display_literals_verbose(verbose_stream() << mk_pp(x->get_owner(), m) << " = " << mk_pp(y->get_owner(), m) << "\n", lits) << "\n";);
                     eq_justification js(ctx.mk_justification(ext_theory_eq_propagation_justification(get_id(), ctx.get_region(), lits.size(), lits.c_ptr(), 0, nullptr, 
                                                                                                      x, y)));
                     ctx.assign_eq(x, y, js);
@@ -739,8 +739,7 @@ namespace smt {
     bool theory_special_relations::disconnected(graph const& g, dl_var u, dl_var v) const {
         s_integer val_u = g.get_assignment(u);
         s_integer val_v = g.get_assignment(v);
-        if (val_u == val_v) 
-            return u != v;
+        if (val_u == val_v) return u != v;
         if (val_u < val_v) {
             std::swap(u, v);
             std::swap(val_u, val_v);
@@ -945,8 +944,8 @@ namespace smt {
                 atom& a = *ap;
                 if (!a.phase()) continue;
                 SASSERT(ctx.get_assignment(a.var()) == l_true);
-                expr* x = get_enode(a.v1())->get_root()->get_expr();
-                expr* y = get_enode(a.v2())->get_root()->get_expr();
+                expr* x = get_enode(a.v1())->get_root()->get_owner();
+                expr* y = get_enode(a.v2())->get_root()->get_owner();
                 expr* cb = connected_body;
                 expr* args[5] = { x, y, A, S, cb };
                 connected_body = m.mk_app(nextf, 5, args);
@@ -1016,7 +1015,7 @@ namespace smt {
 
         return
             g.is_enabled(edge) &&
-            g.get_assignment(g.get_source(edge)) - s_integer(1) == g.get_assignment(g.get_target(edge));
+            g.get_assignment(g.get_source(edge)) + s_integer(1) == g.get_assignment(g.get_target(edge));
     }
 
     bool theory_special_relations::is_strict_neighbour_edge(graph const& g, edge_id e) const {

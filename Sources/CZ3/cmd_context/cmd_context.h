@@ -160,18 +160,6 @@ public:
     virtual void updt_params(params_ref const& p) = 0;
 };
 
-class ast_context_params : public context_params { 
-    ast_manager* m_manager { nullptr };
-public:
-    /**
-       \brief Create an AST manager using this configuration.
-    */
-    ast_manager * mk_ast_manager();
-
-    void set_foreign_manager(ast_manager* m) { m_manager = m; }
-    bool owns_manager() const { return m_manager != nullptr; }
-};
-
 class cmd_context : public progress_callback, public tactic_manager, public ast_printer_context {
 public:
     enum status {
@@ -191,10 +179,8 @@ public:
         ~scoped_watch() { m_ctx.m_watch.stop(); }
     };
 
-    
-
 protected:
-    ast_context_params                  m_params;
+    context_params               m_params;
     bool                         m_main_ctx;
     symbol                       m_logic;
     bool                         m_interactive_mode;

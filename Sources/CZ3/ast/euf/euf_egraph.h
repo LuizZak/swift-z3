@@ -74,7 +74,7 @@ namespace euf {
     
     class egraph {        
 
-        typedef ptr_vector<trail> trail_stack;
+        typedef ptr_vector<trail<egraph> > trail_stack;
 
         struct to_merge {
             enode* a, * b;
@@ -148,8 +148,6 @@ namespace euf {
         unsigned_vector        m_scopes;
         enode_vector           m_expr2enode;
         enode*                 m_tmp_eq { nullptr };
-        enode*                 m_tmp_node { nullptr };
-        unsigned               m_tmp_node_capacity { 0 };
         enode_vector           m_nodes;
         expr_ref_vector        m_exprs;
         vector<enode_vector>   m_decl2enodes;
@@ -167,8 +165,6 @@ namespace euf {
         enode_vector           m_todo;
         stats                  m_stats;
         bool                   m_uses_congruence { false };
-        std::function<void(enode*,enode*)>     m_on_merge;
-        std::function<void(enode*)>            m_on_make;
         std::function<void(expr*,expr*,expr*)> m_used_eq;
         std::function<void(app*,app*)>         m_used_cc;  
         std::function<void(std::ostream&, void*)>   m_display_justification;
@@ -222,7 +218,6 @@ namespace euf {
         egraph(ast_manager& m);
         ~egraph();
         enode* find(expr* f) const { return m_expr2enode.get(f->get_id(), nullptr); }
-        enode* find(expr* f, unsigned n, enode* const* args);
         enode* mk(expr* f, unsigned generation, unsigned n, enode *const* args);
         enode_vector const& enodes_of(func_decl* f);
         void push() { ++m_num_scopes; }
@@ -252,8 +247,6 @@ namespace euf {
         */
         bool are_diseq(enode* a, enode* b) const;
 
-        enode * get_enode_eq_to(func_decl * f, unsigned num_args, enode * const * args) { UNREACHABLE(); return nullptr; }
-
         /**
            \brief Maintain and update cursor into propagated consequences.
            The result of get_literal() is a pair (n, is_eq)
@@ -268,17 +261,12 @@ namespace euf {
         void       next_literal() { force_push();  SASSERT(m_new_lits_qhead < m_new_lits.size()); m_new_lits_qhead++; }
         void       next_th_eq() { force_push(); SASSERT(m_new_th_eqs_qhead < m_new_th_eqs.size()); m_new_th_eqs_qhead++; }
 
-        void set_lbl_hash(enode* n);
-
-
         void add_th_var(enode* n, theory_var v, theory_id id);
         void set_th_propagates_diseqs(theory_id id);
         void set_merge_enabled(enode* n, bool enable_merge);
         void set_value(enode* n, lbool value);
         void set_bool_var(enode* n, unsigned v) { n->set_bool_var(v); }
 
-        void set_on_merge(std::function<void(enode* root,enode* other)>& on_merge) { m_on_merge = on_merge; }
-        void set_on_make(std::function<void(enode* n)>& on_make) { m_on_make = on_make; }
         void set_used_eq(std::function<void(expr*,expr*,expr*)>& used_eq) { m_used_eq = used_eq; }
         void set_used_cc(std::function<void(app*,app*)>& used_cc) { m_used_cc = used_cc; }
         void set_display_justification(std::function<void (std::ostream&, void*)> & d) { m_display_justification = d; }
@@ -290,12 +278,7 @@ namespace euf {
         void explain(ptr_vector<T>& justifications);
         template <typename T>
         void explain_eq(ptr_vector<T>& justifications, enode* a, enode* b);
-        template <typename T>
-        unsigned explain_diseq(ptr_vector<T>& justifications, enode* a, enode* b);
         enode_vector const& nodes() const { return m_nodes; }
-
-        ast_manager& get_manager() { return m; }
-
         void invariant();
         void copy_from(egraph const& src, std::function<void*(void*)>& copy_justification);
         struct e_pp {
@@ -309,7 +292,7 @@ namespace euf {
             egraph const& g;
             enode* n;
             b_pp(egraph const& g, enode* n) : g(g), n(n) {}
-            std::ostream& display(std::ostream& out) const { return n ? (out << n->get_expr_id() << ": " << mk_bounded_pp(n->get_expr(), g.m)) : out << "null"; }
+            std::ostream& display(std::ostream& out) const { return out << n->get_expr_id() << ": " << mk_bounded_pp(n->get_expr(), g.m); }
         };
         b_pp bpp(enode* n) const { return b_pp(*this, n); }
         std::ostream& display(std::ostream& out) const; 

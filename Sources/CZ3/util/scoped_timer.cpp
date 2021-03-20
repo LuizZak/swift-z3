@@ -34,7 +34,7 @@ Revision History:
 #endif
 
 struct scoped_timer_state {
-    std::thread m_thread;
+    std::thread * m_thread { nullptr };
     std::timed_mutex m_mutex;
     event_handler * eh;
     unsigned ms;
@@ -82,11 +82,9 @@ private:
 public:
     imp(unsigned ms, event_handler * eh) {
         workers.lock();
-        bool new_worker = false;
         if (available_workers.empty()) {
             workers.unlock();
             s = new scoped_timer_state;
-            new_worker = true;
             ++num_workers;
         } 
         else {
@@ -98,8 +96,8 @@ public:
         s->eh = eh;
         s->m_mutex.lock();
         s->work = 1;
-        if (new_worker) {
-            s->m_thread = std::thread(thread_func, s);
+        if (!s->m_thread) {
+            s->m_thread = new std::thread(thread_func, s);
         } 
         else {
             s->cv.notify_one();
@@ -148,7 +146,8 @@ void scoped_timer::finalize() {
 
         for (auto w : cleanup_workers) {
             ++deleted;
-            w->m_thread.join();
+            w->m_thread->join();
+            delete w->m_thread;
             delete w;
         }
     }

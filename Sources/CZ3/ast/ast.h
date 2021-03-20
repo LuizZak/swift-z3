@@ -668,8 +668,6 @@ protected:
 
     expr(ast_kind k):ast(k) {}
 public:
-
-    sort* get_sort() const;
 };
 
 // -----------------------------------
@@ -721,7 +719,6 @@ public:
     unsigned get_size() const { return get_obj_size(get_num_args()); }
     expr * const * begin() const { return m_args; }
     expr * const * end() const { return m_args + m_num_args; }
-    sort * _get_sort() const { return get_decl()->get_range(); }
 
     unsigned get_depth() const { return flags()->m_depth; }
     bool is_ground() const { return flags()->m_ground; }
@@ -810,7 +807,7 @@ class var : public expr {
     var(unsigned idx, sort * s):expr(AST_VAR), m_idx(idx), m_sort(s) {}
 public:
     unsigned get_idx() const { return m_idx; }
-    sort * _get_sort() const { return m_sort; }
+    sort * get_sort() const { return m_sort; }
     unsigned get_size() const { return get_obj_size(); }
 };
 
@@ -866,7 +863,7 @@ public:
     symbol const & get_decl_name(unsigned idx) const { return get_decl_names()[idx]; }
     expr * get_expr() const { return m_expr; }
 
-    sort * _get_sort() const { return m_sort; }
+    sort * get_sort() const { return m_sort; }
 
     unsigned get_depth() const { return m_depth; }
 
@@ -966,7 +963,6 @@ class ast_translation;
 
 class ast_table : public chashtable<ast*, obj_ptr_hash<ast>, ast_eq_proc> {
 public:
-    ast_table() : chashtable({}, {}, 512 * 1024, 8 * 1024) {}
     void push_erase(ast * n);
     ast* pop_erase();
 };
@@ -1395,13 +1391,14 @@ inline bool has_labels(expr const * n) {
     else return false;
 }
 
+sort * get_sort(expr const * n);
 
 class basic_recognizers {
     family_id m_fid;
 public:
     basic_recognizers(family_id fid):m_fid(fid) {}
     bool is_bool(sort const * s) const { return is_sort_of(s, m_fid, BOOL_SORT); }
-    bool is_bool(expr const * n) const { return is_bool(n->get_sort()); }
+    bool is_bool(expr const * n) const { return is_bool(get_sort(n)); }
     bool is_or(expr const * n) const { return is_app_of(n, m_fid, OP_OR); }
     bool is_implies(expr const * n) const { return is_app_of(n, m_fid, OP_IMPLIES); }
     bool is_and(expr const * n) const { return is_app_of(n, m_fid, OP_AND); }
@@ -1736,6 +1733,7 @@ protected:
     }
 
 public:
+    sort * get_sort(expr const * n) const { return ::get_sort(n); }
     void check_sort(func_decl const * decl, unsigned num_args, expr * const * args) const;
     void check_sorts_core(ast const * n) const;
     bool check_sorts(ast const * n) const;
@@ -2193,9 +2191,6 @@ public:
     app * mk_xor(expr * lhs, expr * rhs) { return mk_app(m_basic_family_id, OP_XOR, lhs, rhs); }
     app * mk_ite(expr * c, expr * t, expr * e) { return mk_app(m_basic_family_id, OP_ITE, c, t, e); }
     app * mk_xor(unsigned num_args, expr * const * args) { return mk_app(m_basic_family_id, OP_XOR, num_args, args); }
-    app * mk_xor(ptr_buffer<expr> const& args) { return mk_xor(args.size(), args.c_ptr()); }
-    app * mk_xor(ptr_vector<expr> const& args) { return mk_xor(args.size(), args.c_ptr()); }
-    app * mk_xor(ref_buffer<expr, ast_manager> const& args) { return mk_xor(args.size(), args.c_ptr()); }
     app * mk_or(unsigned num_args, expr * const * args) { return mk_app(m_basic_family_id, OP_OR, num_args, args); }
     app * mk_and(unsigned num_args, expr * const * args) { return mk_app(m_basic_family_id, OP_AND, num_args, args); }
     app * mk_or(expr * arg1, expr * arg2) { return mk_app(m_basic_family_id, OP_OR, arg1, arg2); }
@@ -2314,7 +2309,7 @@ public:
     bool has_fact(proof const * p) const {
         SASSERT(is_proof(p));
         unsigned n = p->get_num_args();
-        return n > 0 && p->get_arg(n - 1)->get_sort() != m_proof_sort;
+        return n > 0 && get_sort(p->get_arg(n - 1)) != m_proof_sort;
     }
     expr * get_fact(proof const * p) const { SASSERT(is_proof(p)); SASSERT(has_fact(p)); return p->get_arg(p->get_num_args() - 1); }
     
@@ -2459,12 +2454,6 @@ typedef obj_ref<app, ast_manager>        app_ref;
 typedef obj_ref<var,ast_manager>         var_ref;
 typedef app_ref proof_ref;
 
-inline expr_ref operator~(expr_ref const & e) {
-    if (e.m().is_not(e))
-        return expr_ref(to_app(e)->get_arg(0), e.m());
-    return expr_ref(e.m().mk_not(e), e.m());
-}
-
 // -----------------------------------
 //
 // ast_vector (smart pointer vector)
@@ -2608,8 +2597,11 @@ public:
     }
 
     void reset() {
-        for (ast * a : m_to_unmark) 
-            reset_mark(a);
+        ast * const * it  = m_to_unmark.c_ptr();
+        ast * const * end = it + m_to_unmark.size();
+        for (; it != end; ++it) {
+            reset_mark(*it);
+        }
         m_to_unmark.reset();
     }
 

@@ -64,7 +64,7 @@ namespace fpa {
             m.inc_ref(e);
             m.inc_ref(res);
 
-            ctx.push(insert_ref2_map<ast_manager, expr, expr>(m, m_conversions, e, res.get()));
+            ctx.push(insert_ref2_map<euf::solver, ast_manager, expr, expr>(m, m_conversions, e, res.get()));
         }
         return res;
     }
@@ -203,7 +203,7 @@ namespace fpa {
                     add_units(mk_side_conditions());
                 }
                 else 
-                    add_unit(eq_internalize(m_converter.unwrap(wrapped, n->get_sort()), n));                
+                    add_unit(eq_internalize(m_converter.unwrap(wrapped, m.get_sort(n)), n));                
             }
         }
         else if (is_app(n) && to_app(n)->get_family_id() == get_id()) {
@@ -295,7 +295,7 @@ namespace fpa {
             expr* a = values.get(n->get_arg(0)->get_root_id());
             expr* b = values.get(n->get_arg(1)->get_root_id());
             expr* c = values.get(n->get_arg(2)->get_root_id());
-            value = m_converter.bv2fpa_value(e->get_sort(), a, b, c);
+            value = m_converter.bv2fpa_value(m.get_sort(e), a, b, c);
         }
         else if (m_fpa_util.is_bv2rm(e)) {
             SASSERT(n->num_args() == 1);
@@ -307,38 +307,33 @@ namespace fpa {
             value = m_fpa_util.mk_round_toward_zero();
         else if (m_fpa_util.is_float(e) && is_wrapped()) {
             expr* a = values.get(expr2enode(wrapped)->get_root_id());
-            value = m_converter.bv2fpa_value(e->get_sort(), a);
+            value = m_converter.bv2fpa_value(m.get_sort(e), a);
         }
         else {
             SASSERT(m_fpa_util.is_float(e));
-            unsigned ebits = m_fpa_util.get_ebits(e->get_sort());
-            unsigned sbits = m_fpa_util.get_sbits(e->get_sort());
+            unsigned ebits = m_fpa_util.get_ebits(m.get_sort(e));
+            unsigned sbits = m_fpa_util.get_sbits(m.get_sort(e));
             value = m_fpa_util.mk_pzero(ebits, sbits);
         }
         values.set(n->get_root_id(), value);
     }
 
-    bool solver::add_dep(euf::enode* n, top_sort<euf::enode>& dep) {
+    void solver::add_dep(euf::enode* n, top_sort<euf::enode>& dep) {
         expr* e = n->get_expr();
         if (m_fpa_util.is_fp(e)) {
             SASSERT(n->num_args() == 3);
             for (enode* arg : euf::enode_args(n))
                 dep.add(n, arg);
-            return true;
         }
         else if (m_fpa_util.is_bv2rm(e)) {
             SASSERT(n->num_args() == 1);
             dep.add(n, n->get_arg(0));
-            return true;
         }
         else if (m_fpa_util.is_rm(e) || m_fpa_util.is_float(e)) {
             euf::enode* wrapped = expr2enode(m_converter.wrap(e));
             if (wrapped)
                 dep.add(n, wrapped);
-            return nullptr != wrapped;
         }
-        else 
-            return false;
     }
 
     std::ostream& solver::display(std::ostream& out) const {

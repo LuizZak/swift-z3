@@ -204,7 +204,7 @@ struct solver::imp {
         // variable representing the term.
         svector<polynomial::var> vars;
         rational den(1);
-        for (lp::lar_term::ival kv : t) {
+        for (const auto& kv : t) {
             vars.push_back(lp2nl(kv.column().index()));
             den = lcm(den, denominator(kv.coeff()));
         }
@@ -234,11 +234,6 @@ struct solver::imp {
     nlsat::anum_manager& am() {
         return m_nlsat->am();
     }
-
-    void updt_params(params_ref& p) {
-        m_params.append(p);
-    }
-
 
     std::ostream& display(std::ostream& out) const {
         for (auto m : m_nla_core.emons()) {
@@ -279,10 +274,6 @@ nlsat::anum const& solver::value(lp::var_index v) const {
 
 nlsat::anum_manager& solver::am() {
     return m_imp->am();
-}
-
-void solver::updt_params(params_ref& p) {
-    m_imp->updt_params(p);
 }
 
 }

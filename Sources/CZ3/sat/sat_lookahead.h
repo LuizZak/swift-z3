@@ -23,10 +23,6 @@ Notes:
 #include "util/small_object_allocator.h"
 #include "sat/sat_elim_eqs.h"
 
-namespace pb {
-    class solver;
-};
-
 namespace sat {
 
     struct pp_prefix {
@@ -70,7 +66,7 @@ namespace sat {
         reslimit   m_rlimit;
 
         friend class ccc;
-        friend class pb::solver;
+        friend class ba_solver;
 
         struct config {
             double   m_dl_success;

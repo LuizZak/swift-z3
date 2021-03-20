@@ -217,7 +217,7 @@ public:
                             return;
                         }
                         else if (l == u) {
-                            new_def = m_util.mk_numeral(l, v->get_sort());
+                            new_def = m_util.mk_numeral(l, m.get_sort(v));
                         }
                         else {
                             // l < u
@@ -312,7 +312,7 @@ public:
                         return;
                     }
                     else if (l == u) {
-                        new_def = m_util.mk_numeral(l, v->get_sort());
+                        new_def = m_util.mk_numeral(l, m.get_sort(v));
                     }
                     else {
                         // 0 <= l <= v <= u

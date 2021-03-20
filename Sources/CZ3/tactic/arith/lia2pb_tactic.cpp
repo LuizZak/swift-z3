@@ -134,7 +134,7 @@ class lia2pb_tactic : public tactic {
                     }
                 }
                 else {
-                    sort * s = n->get_sort();
+                    sort * s = m_owner.m.get_sort(n);
                     if (s->get_family_id() == m_owner.m_util.get_family_id())
                         throw_failed(n);
                 }
@@ -270,7 +270,7 @@ class lia2pb_tactic : public tactic {
             expr_ref   new_curr(m);
             proof_ref  new_pr(m);
             unsigned size = g->size();
-            for (unsigned idx = 0; !g->inconsistent() && idx < size; idx++) {
+            for (unsigned idx = 0; idx < size; idx++) {
                 expr * curr = g->form(idx);
                 expr_dependency * dep = nullptr;
                 m_rw(curr, new_curr, new_pr);

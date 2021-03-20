@@ -293,7 +293,7 @@ namespace datalog {
                         sub[j] = vl;
                     }
                     else {
-                        sub[j] = m.mk_var(j, sub[j]->get_sort());
+                        sub[j] = m.mk_var(j, m.get_sort(sub[j].get()));
                     }
                 }
                 svector<std::pair<unsigned, unsigned> > positions;
@@ -435,7 +435,7 @@ namespace datalog {
                             rule_vars[to_var(arg)->get_idx()] = 0;
                         }
                         else {
-                            sort* srt = arg->get_sort();
+                            sort* srt = m.get_sort(arg);
                             args.push_back(m.mk_var(rule_vars.size()+num_vars, srt));
                             conjs.push_back(m.mk_eq(args.back(), arg));
                             ++num_vars;
@@ -604,7 +604,7 @@ namespace datalog {
             expr_ref_vector binding(m);
             ptr_vector<sort> arg_sorts;
             for (unsigned i = 0; i < args.size(); ++i) {
-                arg_sorts.push_back(args[i]->get_sort());
+                arg_sorts.push_back(m.get_sort(args[i]));
             }
             for (unsigned i = 0; i < vars.size(); ++i) {
                 if (vars[i]) {
@@ -811,7 +811,7 @@ namespace datalog {
             datatype_util dtu(m);
             ptr_vector<sort> sorts;
             func_decl* p = r.get_decl();
-            ptr_vector<func_decl> const& succs  = *dtu.get_datatype_constructors(path->get_sort());
+            ptr_vector<func_decl> const& succs  = *dtu.get_datatype_constructors(m.get_sort(path));
             // populate substitution of bound variables.
             r.get_vars(m, sorts);
             sub.reset();
@@ -928,11 +928,11 @@ namespace datalog {
                     ptr_vector<sort> q_sorts;
                     vector<symbol> names;
                     for (unsigned i = 0; i < vars.size(); ++i) {
-                        q_sorts.push_back(vars[i]->get_sort());
+                        q_sorts.push_back(m.get_sort(vars[i].get()));
                         names.push_back(symbol(i+1));
                     }
                     vars.push_back(path_var);
-                    q_sorts.push_back(path_var->get_sort());
+                    q_sorts.push_back(m.get_sort(path_var));
                     names.push_back(symbol("path"));
                     SASSERT(names.size() == q_sorts.size());
                     SASSERT(vars.size() == names.size());
@@ -1039,7 +1039,7 @@ namespace datalog {
         proof_ref get_proof(model_ref& md, app* trace, app* path) {
             datatype_util dtu(m);
             rule_manager& rm = b.m_ctx.get_rule_manager();
-            sort* trace_sort = trace->get_sort();
+            sort* trace_sort = m.get_sort(trace);
             func_decl* p = m_sort2pred.find(trace_sort);
             datalog::rule_vector const& rules = b.m_rules.get_predicate_rules(p);
             ptr_vector<func_decl> const& cnstrs = *dtu.get_datatype_constructors(trace_sort);
@@ -1226,7 +1226,7 @@ namespace datalog {
                         sub[j] = vl;
                     }
                     else {
-                        sub[j] = m.mk_var(j, sub[j]->get_sort());
+                        sub[j] = m.mk_var(j, m.get_sort(sub[j].get()));
                     }
                 }
                 svector<std::pair<unsigned, unsigned> > positions;

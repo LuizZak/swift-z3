@@ -58,7 +58,7 @@ literal_vector collect_induction_literals::pre_select() {
     }
     TRACE("induction", ctx.display(tout << "literal index: " << m_literal_index << "\n" << result << "\n"););
 
-    ctx.push_trail(value_trail<unsigned>(m_literal_index));
+    ctx.push_trail(value_trail<context, unsigned>(m_literal_index));
     m_literal_index = ctx.assigned_literals().size();
     return result;
 }
@@ -113,14 +113,14 @@ bool induction_lemmas::viable_induction_sort(sort* s) {
 }
 
 bool induction_lemmas::viable_induction_parent(enode* p, enode* n) {
-    app* o = p->get_expr();
+    app* o = p->get_owner();
     return 
         m_rec.is_defined(o) ||
         m_dt.is_constructor(o);
 }
 
 bool induction_lemmas::viable_induction_children(enode* n) {
-    app* e = n->get_expr();
+    app* e = n->get_owner();
     if (m.is_value(e))
         return false;
     if (e->get_decl()->is_skolem())
@@ -136,7 +136,7 @@ bool induction_lemmas::viable_induction_children(enode* n) {
 
 bool induction_lemmas::viable_induction_term(enode* p, enode* n) {
     return 
-        viable_induction_sort(n->get_expr()->get_sort()) &&
+        viable_induction_sort(m.get_sort(n->get_owner())) &&
         viable_induction_parent(p, n) &&
         viable_induction_children(n);
 }
@@ -201,7 +201,7 @@ induction_lemmas::induction_positions_t induction_lemmas::induction_positions2(e
 }
 
 void induction_lemmas::initialize_levels(enode* n) {
-    expr_ref tmp(n->get_expr(), m);
+    expr_ref tmp(n->get_owner(), m);
     m_depth2terms.reset();
     m_depth2terms.resize(get_depth(tmp) + 1);
     m_ts++;
@@ -221,7 +221,7 @@ induction_lemmas::induction_combinations_t induction_lemmas::induction_combinati
     if (pos.size() > 6) {
         induction_positions_t r;
         for (auto const& p : pos) {
-            if (is_uninterp_const(p.first->get_expr()))
+            if (is_uninterp_const(p.first->get_owner()))
                 r.push_back(p);
         }
         result.push_back(r);
@@ -239,7 +239,7 @@ induction_lemmas::induction_combinations_t induction_lemmas::induction_combinati
     for (auto const& pos : result) {
         std::cout << "position\n";
         for (auto const& p : pos) {
-            std::cout << mk_pp(p.first->get_expr(), m) << ":" << p.second << "\n";
+            std::cout << mk_pp(p.first->get_owner(), m) << ":" << p.second << "\n";
         }
     }
     return result;
@@ -252,7 +252,7 @@ bool induction_lemmas::positions_dont_overlap(induction_positions_t const& posit
     auto mark = [&](expr* n) { m_marks[n->get_id()] = m_ts; };
     auto is_marked = [&](expr* n) { return m_marks[n->get_id()] == m_ts; };
     for (auto p : positions) 
-        mark(p.first->get_expr());
+        mark(p.first->get_owner());
     // no term used for induction contains a subterm also used for induction.    
     for (auto const& terms : m_depth2terms) {
         for (app* t : terms) {
@@ -277,11 +277,11 @@ bool induction_lemmas::positions_dont_overlap(induction_positions_t const& posit
  */
 void induction_lemmas::mk_hypothesis_substs(unsigned depth, expr* x, cond_substs_t& subst) {
     expr_ref_vector conds(m);
-    mk_hypothesis_substs_rec(depth, x->get_sort(), x, conds, subst);
+    mk_hypothesis_substs_rec(depth, m.get_sort(x), x, conds, subst);
 }
 
 void induction_lemmas::mk_hypothesis_substs_rec(unsigned depth, sort* s, expr* y, expr_ref_vector& conds, cond_substs_t& subst) {
-    sort* ys = y->get_sort();
+    sort* ys = m.get_sort(y);
     for (func_decl* c : *m_dt.get_datatype_constructors(ys)) {
         func_decl* is_c = m_dt.get_constructor_recognizer(c);
         conds.push_back(m.mk_app(is_c, y));
@@ -417,7 +417,7 @@ bool induction_lemmas::operator()(literal lit) {
     for (enode* n : induction_positions(r)) {
         expr* t = n->get_owner();
         if (is_uninterp_const(t)) { // for now, to avoid overlapping terms
-            sort* s = t->get_sort();
+            sort* s = m.get_sort(t);
             expr_ref sk(m.mk_fresh_const("sk", s), m);
             sks.push_back(sk);
             rep.insert(t, sk);
@@ -456,11 +456,11 @@ void induction_lemmas::apply_induction(literal lit, induction_positions_t const 
     
     unsigned i = 0;
     for (auto const& p : positions) {
-        expr* t = p.first->get_expr()->get_arg(p.second);
+        expr* t = p.first->get_owner()->get_arg(p.second);
         if (term2skolem.contains(t))
             continue;
         if (i == sks.size()) {
-            sk = m.mk_fresh_const("sk", t->get_sort());
+            sk = m.mk_fresh_const("sk", m.get_sort(t));
             sks.push_back(sk);
         }
         else {
@@ -500,7 +500,7 @@ void induction_lemmas::apply_induction(literal lit, induction_positions_t const 
             expr* arg = to_app(t)->get_arg(i);
             found = false;
             for (auto const& p : positions) {
-                if (p.first->get_expr() == t && p.second == i) {
+                if (p.first->get_owner() == t && p.second == i) {
                     args.push_back(term2skolem[arg]);
                     found = true;
                     break;
@@ -558,10 +558,10 @@ induction::induction(context& ctx, ast_manager& m):
 // TBD: use smt_arith_value to also include state from arithmetic solver
 void induction::init_values() {
     for (enode* n : ctx.enodes()) 
-        if (m.is_value(n->get_expr())) 
+        if (m.is_value(n->get_owner())) 
             for (enode* r : *n) 
                 if (r != n) {
-                    vs.set_value(r->get_expr(), n->get_expr());
+                    vs.set_value(r->get_owner(), n->get_owner());
                 }
 }
 

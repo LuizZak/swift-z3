@@ -72,8 +72,8 @@ namespace {
             VERIFY (is_partial_eq (p));
             SASSERT (m_arr_u.is_array (m_lhs) &&
                      m_arr_u.is_array (m_rhs) &&
-                m_lhs->get_sort() == m_rhs->get_sort());
-            unsigned arity = get_array_arity(m_lhs->get_sort());
+                     m.get_sort(m_lhs) == m.get_sort(m_rhs));
+            unsigned arity = get_array_arity(m.get_sort(m_lhs));
             for (unsigned i = 2; i < p->get_num_args (); i += arity) {
                 SASSERT(arity + i <= p->get_num_args());
                 expr_ref_vector vec(m);
@@ -93,14 +93,14 @@ namespace {
             m_arr_u (m) {
             SASSERT (m_arr_u.is_array (lhs) &&
                      m_arr_u.is_array (rhs) &&
-                     lhs->get_sort() == rhs->get_sort());
+                     m.get_sort(lhs) == m.get_sort(rhs));
             ptr_vector<sort> sorts;
-            sorts.push_back (m_lhs->get_sort ());
-            sorts.push_back (m_rhs->get_sort ());
+            sorts.push_back (m.get_sort (m_lhs));
+            sorts.push_back (m.get_sort (m_rhs));
             for (auto const& v : diff_indices) {
-                SASSERT(v.size() == get_array_arity(m_lhs->get_sort()));
+                SASSERT(v.size() == get_array_arity(m.get_sort(m_lhs)));
                 for (expr* e : v)
-                    sorts.push_back (e->get_sort());
+                    sorts.push_back (m.get_sort(e));
             }
             m_decl = m.mk_func_decl (symbol (PARTIAL_EQ), sorts.size (), sorts.c_ptr (), m.mk_bool_sort ());
         }
@@ -131,7 +131,7 @@ namespace {
                     std::swap (lhs, rhs);
                 }
                 // lhs = (...(store (store rhs i0 v0) i1 v1)...)
-                sort* val_sort = get_array_range (lhs->get_sort());
+                sort* val_sort = get_array_range (m.get_sort (lhs));
                 for (expr_ref_vector const& diff : m_diff_indices) {
                     ptr_vector<expr> store_args;
                     store_args.push_back (rhs);
@@ -311,7 +311,7 @@ namespace mbp {
                 // if a_new is select on m_v, introduce new constant
                 if (m_arr_u.is_select (a) &&
                     (args.get (0) == m_v || m_has_stores_v.is_marked (args.get (0)))) {
-                    sort* val_sort = get_array_range (m_v->get_sort());
+                    sort* val_sort = get_array_range (m.get_sort (m_v));
                     app_ref val_const (m.mk_fresh_const ("sel", val_sort), m);
                     m_aux_vars.push_back (val_const);
                     // extend M to include val_const
@@ -804,7 +804,7 @@ namespace mbp {
         expr* reduce_core (app *a) {
             if (!m_arr_u.is_store (a->get_arg (0))) return a;
             expr* array = a->get_arg(0);
-            unsigned arity = get_array_arity(array->get_sort());
+            unsigned arity = get_array_arity(m.get_sort(array));
 
             expr* const* js = a->get_args() + 1;
 
@@ -1015,7 +1015,7 @@ namespace mbp {
             if (sel_terms.empty ()) return;
 
             expr* v = sel_terms.get (0)->get_arg (0); // array variable
-            sort* v_sort = v->get_sort ();
+            sort* v_sort = m.get_sort (v);
             sort* val_sort = get_array_range (v_sort);
             unsigned arity = get_array_arity(v_sort);
             bool is_numeric = true;
@@ -1083,7 +1083,7 @@ namespace mbp {
                 for (expr * x : m_idxs[0].idx) {
                     std::stringstream name;
                     name << "get" << (i++);
-                    acc.push_back(mk_accessor_decl(m, symbol(name.str()), type_ref(x->get_sort())));
+                    acc.push_back(mk_accessor_decl(m, symbol(name.str()), type_ref(m.get_sort(x))));
                 }
                 constructor_decl* constrs[1] = { mk_constructor_decl(symbol("tuple"), symbol("is-tuple"), acc.size(), acc.c_ptr()) };
                 datatype::def* dts = mk_datatype_decl(dt, symbol("tuple"), 0, nullptr, 1, constrs);
@@ -1257,7 +1257,7 @@ namespace mbp {
             if (s == m_var->x()) {
                 expr_ref result(t, m);
                 expr_ref_vector args(m);
-                sort* range = get_array_range(s->get_sort());
+                sort* range = get_array_range(m.get_sort(s));
                 for (unsigned i = 0; i < idxs.size(); ++i) {
                     app_ref var(m), sel(m);
                     expr_ref val(m);
@@ -1409,14 +1409,14 @@ namespace mbp {
         obj_map<sort, app_ref_vector*> m_arrays;
 
         void add_index_sort(expr* n) {
-            sort* s = n->get_sort();
+            sort* s = m.get_sort(n);
             if (!m_indices.contains(s)) {
                 m_indices.insert(s, alloc(app_ref_vector, m));
             }
         }
 
         void add_array(app* n) {
-            sort* s = n->get_sort();
+            sort* s = m.get_sort(n);
             app_ref_vector* vs = nullptr;
             if (!m_arrays.find(s, vs)) {
                 vs = alloc(app_ref_vector, m);
@@ -1427,7 +1427,7 @@ namespace mbp {
 
         app_ref_vector* is_index(expr* n) {
             app_ref_vector* result = nullptr;
-            m_indices.find(n->get_sort(), result);
+            m_indices.find(m.get_sort(n), result);
             return result;
         }
 
@@ -1559,7 +1559,7 @@ namespace mbp {
                 lits.push_back(m.mk_eq(a1, a2));
             }
             else {
-                sort* s = store->get_arg(indices.size() + 1)->get_sort();
+                sort* s = m.get_sort(store->get_arg(indices.size() + 1));
                 for (app* idx : *m_indices[s]) {
                     indices.push_back(idx);
                     assert_store_select(indices, store, mdl, tg, lits);

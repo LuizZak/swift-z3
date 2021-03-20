@@ -194,7 +194,7 @@ namespace smt {
                     break;
                 }
             }
-            else if (e_internalized(k) && m.are_distinct(v, get_enode(k)->get_root()->get_expr())) {
+            else if (e_internalized(k) && m.are_distinct(v, get_enode(k)->get_root()->get_owner())) {
                 to_delete.push_back(k);
             }
             else if (get_assignment(mk_diseq(k, v)) == l_true) {
@@ -305,7 +305,7 @@ namespace smt {
             }
             else {
                 if (!pushed) pushed = true, push();                
-                expr_ref c(m.mk_fresh_const("v", v->get_sort()), m);
+                expr_ref c(m.mk_fresh_const("v", m.get_sort(v)), m);
                 expr_ref eq(m.mk_eq(c, v), m);
                 assert_expr(eq);
                 vars.push_back(c);
@@ -318,7 +318,7 @@ namespace smt {
             }
             else {
                 if (!pushed) pushed = true, push();                
-                expr_ref c(m.mk_fresh_const("a", a->get_sort()), m);
+                expr_ref c(m.mk_fresh_const("a", m.get_sort(a)), m);
                 expr_ref eq(m.mk_eq(c, a), m);
                 assert_expr(eq);
                 assumptions.push_back(c);                
