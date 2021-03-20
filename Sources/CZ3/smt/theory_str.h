@@ -86,14 +86,14 @@ public:
 class theory_str_contain_pair_bool_map_t : public obj_pair_map<expr, expr, expr*> {};
 
 template<typename Ctx>
-class binary_search_trail : public trail {
+class binary_search_trail : public trail<Ctx> {
     obj_map<expr, ptr_vector<expr> > & target;
     expr * entry;
 public:
     binary_search_trail(obj_map<expr, ptr_vector<expr> > & target, expr * entry) :
         target(target), entry(entry) {}
     ~binary_search_trail() override {}
-    void undo() override {
+    void undo(Ctx & ctx) override {
         TRACE("t_str_binary_search", tout << "in binary_search_trail::undo()" << std::endl;);
         if (target.contains(entry)) {
             if (!target[entry].empty()) {
@@ -332,6 +332,7 @@ class theory_str : public theory {
         }
     };
 
+    typedef trail_stack<theory_str> th_trail_stack;
     typedef union_find<theory_str> th_union_find;
 
     typedef map<rational, expr*, obj_hash<rational>, default_eq<rational> > rational_map;
@@ -508,6 +509,10 @@ protected:
 
     obj_map<expr, ptr_vector<expr> > string_chars; // S --> [S_0, S_1, ...] for character terms S_i
 
+    svector<char> char_set;
+    std::map<char, int>  charSetLookupTable;
+    int           charSetSize;
+
     obj_pair_map<expr, expr, expr*> concat_astNode_map;
 
     // all (str.to-int) and (int.to-str) terms
@@ -524,8 +529,8 @@ protected:
     // cache mapping each string S to Length(S)
     obj_map<expr, app*> length_ast_map;
 
-    trail_stack m_trail_stack;
-    trail_stack m_library_aware_trail_stack;
+    th_trail_stack m_trail_stack;
+    th_trail_stack m_library_aware_trail_stack;
     th_union_find m_find;
     theory_var get_var(expr * n) const;
     expr * get_eqc_next(expr * n);
@@ -535,11 +540,13 @@ protected:
     expr_ref_vector fixed_length_subterm_trail; // trail for subterms generated *in the subsolver*
     expr_ref_vector fixed_length_assumptions; // cache of boolean terms to assert *into the subsolver*, unsat core is a subset of these
     obj_map<expr, rational> fixed_length_used_len_terms; // constraints used in generating fixed length model
-    obj_map<expr, expr_ref_vector* > var_to_char_subterm_map; // maps a var to a list of character terms *in the subsolver*
-    obj_map<expr, expr_ref_vector* > uninterpreted_to_char_subterm_map; // maps an "uninterpreted" string term to a list of character terms *in the subsolver*
+    obj_map<expr, ptr_vector<expr> > var_to_char_subterm_map; // maps a var to a list of character terms *in the subsolver*
+    obj_map<expr, ptr_vector<expr> > uninterpreted_to_char_subterm_map; // maps an "uninterpreted" string term to a list of character terms *in the subsolver*
     obj_map<expr, std::tuple<rational, expr*, expr*>> fixed_length_lesson; //keep track of information for the lesson
     unsigned preprocessing_iteration_count; // number of attempts we've made to solve by preprocessing length information
     obj_map<expr, zstring> candidate_model;
+
+    expr_ref_vector bitvector_character_constants; // array-indexed map of bv.mk_numeral terms
     
     stats m_stats;
 
@@ -605,9 +612,6 @@ protected:
     void instantiate_axiom_Replace(enode * e);
     void instantiate_axiom_str_to_int(enode * e);
     void instantiate_axiom_int_to_str(enode * e);
-    void instantiate_axiom_is_digit(enode * e);
-    void instantiate_axiom_str_to_code(enode * e);
-    void instantiate_axiom_str_from_code(enode * e);
 
     void add_persisted_axiom(expr * a);
 
@@ -749,7 +753,7 @@ protected:
     lbool fixed_length_model_construction(expr_ref_vector formulas, expr_ref_vector &precondition,
             expr_ref_vector& free_variables,
             obj_map<expr, zstring> &model, expr_ref_vector &cex);
-    bool fixed_length_reduce_string_term(smt::kernel & subsolver, expr * term, expr_ref_vector & term_chars, expr_ref & cex);
+    bool fixed_length_reduce_string_term(smt::kernel & subsolver, expr * term, ptr_vector<expr> & term_chars, expr_ref & cex);
     bool fixed_length_get_len_value(expr * e, rational & val);
     bool fixed_length_reduce_eq(smt::kernel & subsolver, expr_ref lhs, expr_ref rhs, expr_ref & cex);
     bool fixed_length_reduce_diseq(smt::kernel & subsolver, expr_ref lhs, expr_ref rhs, expr_ref & cex);
@@ -762,6 +766,7 @@ protected:
     bool fixed_length_reduce_regex_membership(smt::kernel & subsolver, expr_ref f, expr_ref & cex, bool polarity);
 
     void dump_assignments();
+    void initialize_charset();
 
     void check_variable_scope();
     void recursive_check_variable_scope(expr * ex);
@@ -791,7 +796,7 @@ public:
 
     bool overlapping_variables_detected() const { return loopDetected; }
 
-    trail_stack& get_trail_stack() { return m_trail_stack; }
+    th_trail_stack& get_trail_stack() { return m_trail_stack; }
     void merge_eh(theory_var, theory_var, theory_var v1, theory_var v2) {}
     void after_merge_eh(theory_var r1, theory_var r2, theory_var v1, theory_var v2) { }
     void unmerge_eh(theory_var v1, theory_var v2) {}

@@ -1093,11 +1093,11 @@ namespace smt {
         return lits;
     }
 
-    class theory_pb::negate_ineq : public trail {
+    class theory_pb::negate_ineq : public trail<context> {
         ineq& c;
     public:
         negate_ineq(ineq& c): c(c) {}
-        void undo() override {
+        void undo(context& ctx) override {
             c.negate();
         }
     };
@@ -1111,9 +1111,9 @@ namespace smt {
     void theory_pb::assign_ineq(ineq& c, bool is_true) {
         m_mpz_trail.push_back(c.m_max_sum);
         m_mpz_trail.push_back(c.m_min_sum);
-        ctx.push_trail(scoped_value_trail<scoped_mpz, scoped_mpz_vector>(c.m_max_sum, m_mpz_trail));
-        ctx.push_trail(scoped_value_trail<scoped_mpz, scoped_mpz_vector>(c.m_min_sum, m_mpz_trail));
-        ctx.push_trail(value_trail<unsigned>(c.m_nfixed));
+        ctx.push_trail(scoped_value_trail<context, scoped_mpz, scoped_mpz_vector>(c.m_max_sum, m_mpz_trail));
+        ctx.push_trail(scoped_value_trail<context, scoped_mpz, scoped_mpz_vector>(c.m_min_sum, m_mpz_trail));
+        ctx.push_trail(value_trail<context, unsigned>(c.m_nfixed));
 
         SASSERT(c.is_ge());
         unsigned sz = c.size();
@@ -1437,13 +1437,13 @@ namespace smt {
         c.m_min_sum.reset();
     }
 
-    class theory_pb::unwatch_ge : public trail {
+    class theory_pb::unwatch_ge : public trail<context> {
         theory_pb& pb;
         ineq&      c;
     public:
         unwatch_ge(theory_pb& p, ineq& c): pb(p), c(c) {}
         
-        void undo() override {
+        void undo(context& ctx) override {
             for (unsigned i = 0; i < c.watch_size(); ++i) {
                 pb.unwatch_literal(c.lit(i), &c);
             }
@@ -2355,7 +2355,7 @@ namespace smt {
     }
 
     model_value_proc * theory_pb::mk_value(enode * n, model_generator & mg) {
-        app* a = n->get_expr();
+        app* a = n->get_owner();
         pb_model_value_proc* p = alloc(pb_model_value_proc, a);
         for (unsigned i = 0; i < a->get_num_args(); ++i) {
             p->add(ctx.get_enode(a->get_arg(i)));

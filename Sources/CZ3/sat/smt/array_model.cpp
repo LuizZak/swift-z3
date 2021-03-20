@@ -22,10 +22,10 @@ Author:
 namespace array {
     
     
-    bool solver::add_dep(euf::enode* n, top_sort<euf::enode>& dep) { 
+    void solver::add_dep(euf::enode* n, top_sort<euf::enode>& dep) { 
         if (!a.is_array(n->get_expr())) {
             dep.insert(n, nullptr);
-            return true;
+            return;
         }
         for (euf::enode* p : euf::enode_parents(n)) {
             if (a.is_default(p->get_expr())) {
@@ -41,14 +41,13 @@ namespace array {
         for (euf::enode* k : euf::enode_class(n)) 
             if (a.is_const(k->get_expr()))
                 dep.add(n, k->get_arg(0));    
-        return true;
     }
 
 
     void solver::add_value(euf::enode* n, model& mdl, expr_ref_vector& values) {
         SASSERT(a.is_array(n->get_expr()));
         ptr_vector<expr> args;
-        sort* srt = n->get_sort();
+        sort* srt = m.get_sort(n->get_expr());
         unsigned arity = get_array_arity(srt);
         func_decl * f    = mk_aux_decl_for_array_sort(m, srt);
         func_interp * fi = alloc(func_interp, m, arity);

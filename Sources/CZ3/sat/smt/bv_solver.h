@@ -124,7 +124,7 @@ namespace bv {
             eq_occurs* m_first;
         public:
             eq_occurs_it(eq_occurs* c) : m_first(c) {}
-            eq_occurs const& operator*() { return *m_first; }
+            eq_occurs operator*() { return *m_first; }
             eq_occurs_it& operator++() { m_first = m_first->m_next; return *this; }
             eq_occurs_it operator++(int) { eq_occurs_it tmp = *this; ++*this; return tmp; }
             bool operator==(eq_occurs_it const& other) const { return m_first == other.m_first; }
@@ -204,7 +204,6 @@ namespace bv {
         svector<propagation_item>  m_prop_queue;
         unsigned_vector            m_prop_queue_lim;
         unsigned                   m_prop_queue_head { 0 };
-        sat::literal               m_true { sat::null_literal };
 
         // internalize
         void insert_bv2a(bool_var bv, atom * a) { m_bool_var2atom.setx(bv, a, 0); }
@@ -295,7 +294,6 @@ namespace bv {
         bool propagate_bits(var_pos entry);
         bool propagate_eq_occurs(eq_occurs const& occ);
         numeral const& power2(unsigned i) const;
-        sat::literal mk_true();
 
 
         // invariants
@@ -359,7 +357,7 @@ namespace bv {
         void merge_eh(theory_var, theory_var, theory_var v1, theory_var v2);
         void after_merge_eh(theory_var r1, theory_var r2, theory_var v1, theory_var v2) { SASSERT(check_zero_one_bits(r1)); }
         void unmerge_eh(theory_var v1, theory_var v2);
-        trail_stack& get_trail_stack();
+        trail_stack<euf::solver>& get_trail_stack();
 
         // diagnostics
         std::ostream& display(std::ostream& out, theory_var v) const;        

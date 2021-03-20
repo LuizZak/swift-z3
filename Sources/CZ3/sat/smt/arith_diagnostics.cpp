@@ -23,7 +23,13 @@ namespace arith {
 
     
     std::ostream& solver::display(std::ostream& out) const { 
-        lp().display(out);
+            out << lp().constraints();
+            lp().print_terms(out);
+            // the tableau
+            lp().pp(out).print();
+            for (unsigned j = 0; j < lp().number_of_vars(); j++) {
+                lp().print_column_info(j, out);
+            }
         
         if (m_nla) {
             m_nla->display(out);
@@ -63,7 +69,7 @@ namespace arith {
     }
 
     std::ostream& solver::display_justification(std::ostream& out, sat::ext_justification_idx idx) const { 
-        return euf::th_explain::from_index(idx).display(out);
+        return euf::th_propagation::from_index(idx).display(out);
     }
 
     std::ostream& solver::display_constraint(std::ostream& out, sat::ext_constraint_idx idx) const { 

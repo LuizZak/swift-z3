@@ -158,10 +158,6 @@ namespace {
         void assert_expr_core(expr * t) override {
             m_context.assert_expr(t);
         }
-        void set_phase(expr* e) override { m_context.set_phase(e); }
-        phase* get_phase() override { return m_context.get_phase(); }
-        void set_phase(phase* p) override { m_context.set_phase(p); }
-        void move_to_front(expr* e) override { m_context.move_to_front(e); }
 
         void assert_expr_core2(expr * t, expr * a) override {
             if (m_name2assertion.contains(a)) {

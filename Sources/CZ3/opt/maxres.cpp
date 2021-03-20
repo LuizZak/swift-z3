@@ -62,7 +62,6 @@ Notes:
 #include "smt/smt_solver.h"
 #include "opt/opt_context.h"
 #include "opt/opt_params.hpp"
-#include "opt/opt_lns.h"
 #include "opt/maxsmt.h"
 #include "opt/maxres.h"
 
@@ -83,18 +82,6 @@ private:
             memset(this, 0, sizeof(*this));
         }
     };
-
-    struct lns_maxres : public lns_context {
-        maxres& i;
-        lns_maxres(maxres& i) :i(i) {}
-        ~lns_maxres() override {}
-        void update_model(model_ref& mdl) override { i.update_assignment(mdl); }
-        void relax_cores(vector<expr_ref_vector> const& cores) override { i.relax_cores(cores); }
-        rational cost(model& mdl) override { return i.cost(mdl); }
-        rational weight(expr* e) override { return i.m_asm2weight[e]; }
-        expr_ref_vector const& soft() override { return i.m_asms; }
-    };
-
     unsigned         m_index;
     stats            m_stats;
     expr_ref_vector  m_B;
@@ -107,8 +94,6 @@ private:
     strategy_t       m_st;
     rational         m_max_upper;    
     model_ref        m_csmodel;
-    lns_maxres       m_lnsctx;
-    lns              m_lns;
     unsigned         m_correction_set_size;
     bool             m_found_feasible_optimum;
     bool             m_hill_climb;             // prefer large weight soft clauses for cores
@@ -122,9 +107,9 @@ private:
                                                // this option is disabled if SAT core is used.
     bool             m_pivot_on_cs;            // prefer smaller correction set to core.
     bool             m_dump_benchmarks;        // display benchmarks (into wcnf format)
-    bool             m_enable_lns { false };   // enable LNS improvements
-    unsigned         m_lns_conflicts { 1000 }; // number of conflicts used for LNS improvement
+
     
+
     std::string      m_trace_id;
     typedef ptr_vector<expr> exprs;
 
@@ -139,8 +124,6 @@ public:
         m_mus(c.get_solver()),
         m_trail(m),
         m_st(st),
-        m_lnsctx(*this),
-        m_lns(s(), m_lnsctx),
         m_correction_set_size(0),
         m_found_feasible_optimum(false),
         m_hill_climb(true),
@@ -218,7 +201,6 @@ public:
         if (!init()) return l_undef;
         is_sat = init_local();
         trace();
-        improve_model();
         if (is_sat != l_true) return is_sat;
         while (m_lower < m_upper) {
             TRACE("opt_verbose", 
@@ -518,15 +500,13 @@ public:
         for (auto const & c : cores) {
             process_unsat(c.m_core, c.m_weight);
         }
-        improve_model(m_model);
     }
 
     void update_model(expr* def, expr* value) {
         SASSERT(is_uninterp_const(def));        
-        if (m_csmodel) 
-            m_csmodel->register_decl(to_app(def)->get_decl(), (*m_csmodel)(value));
-        if (m_model)
-            m_model->register_decl(to_app(def)->get_decl(), (*m_model)(value));
+        if (m_csmodel) {
+            m_csmodel->register_decl(to_app(def)->get_decl(), (*m_csmodel)(value));            
+        }
     }
     
     void process_unsat(exprs const& core, rational w) {
@@ -746,49 +726,11 @@ public:
             fml = m.mk_and(b_i1, cls);
             update_model(asum, fml);
         }
-        fml = m.mk_or(cs);
+        fml = m.mk_or(cs.size(), cs.c_ptr());
         add(fml);
     }
 
-    void improve_model() {
-        if (!m_enable_lns)
-            return;
-        model_ref mdl;
-        s().get_model(mdl);
-        if (mdl)
-            update_assignment(mdl);
-    }
-
-
-
-    void improve_model(model_ref& mdl) {
-        if (!m_enable_lns) 
-            return;
-        flet<bool> _disable_lns(m_enable_lns, false);
-        m_lns.climb(mdl);
-    }
-
-    void relax_cores(vector<expr_ref_vector> const& cores) {
-        vector<weighted_core> wcores;
-        for (auto & core : cores) {
-            exprs _core(core.size(), core.c_ptr());
-            wcores.push_back(weighted_core(_core, core_weight(_core)));
-            remove_soft(_core, m_asms);
-            split_core(_core);  
-        }
-        process_unsat(wcores);
-    }
-
-    rational cost(model& mdl) {
-        rational upper(0);
-        for (soft& s : m_soft) 
-            if (!mdl.is_true(s.s)) 
-                upper += s.weight;                    
-        return upper;
-    }
-
     void update_assignment(model_ref & mdl) {
-        improve_model(mdl);
         mdl->set_model_completion(true);
         unsigned correction_set_size = 0;
         for (expr* a : m_asms) {
@@ -803,7 +745,14 @@ public:
 
         TRACE("opt_verbose", tout << *mdl;);
 
-        rational upper = cost(*mdl);
+        rational upper(0);
+
+        for (soft& s : m_soft) {
+            TRACE("opt", tout << s.s << ": " << (*mdl)(s.s) << " " << s.weight << "\n";);
+            if (!mdl->is_true(s.s)) {
+                upper += s.weight;
+            }
+        }
 
         if (upper > m_upper) {
             TRACE("opt", tout << "new upper: " << upper << " vs existing upper: " << m_upper << "\n";);
@@ -869,8 +818,6 @@ public:
         m_pivot_on_cs =             p.maxres_pivot_on_correction_set();
         m_wmax =                    p.maxres_wmax();
         m_dump_benchmarks =         p.dump_benchmarks();
-        m_enable_lns =              p.enable_lns(); 
-        m_lns_conflicts =           p.lns_conflicts();
     }
 
     lbool init_local() {

@@ -24,7 +24,6 @@ Notes:
 
 #include <queue>
 #include <fstream>
-#include <algorithm>
 
 #include "util/scoped_ptr_vector.h"
 #include "muz/spacer/spacer_manager.h"
@@ -187,7 +186,7 @@ public:
     }
 };
 
-struct lemma_lt_proc {
+struct lemma_lt_proc : public std::binary_function<lemma*, lemma *, bool> {
     bool operator() (lemma *a, lemma *b) {
         return (a->level () < b->level ()) ||
             (a->level () == b->level () &&
@@ -730,11 +729,11 @@ inline std::ostream &operator<<(std::ostream &out, pob const &p) {
     return p.display(out);
 }
 
-struct pob_lt_proc {
+struct pob_lt_proc : public std::binary_function<const pob*, const pob*, bool> {
     bool operator() (const pob *pn1, const pob *pn2) const;
 };
 
-struct pob_gt_proc {
+struct pob_gt_proc : public std::binary_function<const pob*, const pob*, bool> {
     bool operator() (const pob *n1, const pob *n2) const {
         return pob_lt_proc()(n2, n1);
     }

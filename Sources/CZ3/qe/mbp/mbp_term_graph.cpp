@@ -42,7 +42,7 @@ namespace mbp {
     namespace {
         struct sort_lt_proc {
             bool operator()(const expr* a, const expr *b) const {
-                return a->get_sort()->get_id() < b->get_sort()->get_id();
+                return get_sort(a)->get_id() < get_sort(b)->get_id();
             }
         };
     }
@@ -266,7 +266,7 @@ namespace mbp {
         expr *a = nullptr, *b = nullptr;
         // deal with equality using sort of range
         if (m.is_eq (lit, a, b)) {
-            return a->get_sort()->get_family_id();
+            return get_sort (a)->get_family_id();
         }
         // extract family_id of top level app
         else if (is_app(lit)) {
@@ -919,9 +919,9 @@ namespace mbp {
             unsigned i = 0;
             unsigned sz = reps.size();
             while (i < sz) {
-                sort* last_sort = res.get(i)->get_sort();
+                sort* last_sort = get_sort(reps.get(i));
                 unsigned j = i + 1;
-                while (j < sz && last_sort == reps.get(j)->get_sort()) {++j;}
+                while (j < sz && last_sort == get_sort(reps.get(j))) {++j;}
                 if (j - i == 2) {
                     expr_ref d(m);
                     d = mk_neq(m, reps.get(i), reps.get(i+1));
@@ -1044,7 +1044,7 @@ namespace mbp {
             expr_ref_vector result(m);
             for (term *t : m_tg.m_terms) {
                 expr* e = t->get_expr();
-                if (e->get_sort()->get_family_id() != fid) continue;
+                if (m.get_sort(e)->get_family_id() != fid) continue;
                 for (term * p : term::parents(t->get_root())) {
                     expr* pe = p->get_expr();
                     if (!is_app(pe)) continue;

@@ -20,12 +20,14 @@ Notes:
 #pragma once
 
 #include "util/params.h"
+class ast_manager;
 
 class context_params {
     void set_bool(bool & opt, char const * param, char const * value);
     void set_uint(unsigned & opt, char const * param, char const * value);
 
     unsigned    m_rlimit { 0 };
+    ast_manager* m_manager { nullptr };
 
 public:
     bool        m_auto_config { true };
@@ -42,7 +44,6 @@ public:
     bool        m_smtlib2_compliant { false }; // it must be here because it enable/disable the use of coercions in the ast_manager.
     unsigned    m_timeout { UINT_MAX } ;
     bool        m_statistics { false };
-    bool        m_unicode { true };
 
     unsigned rlimit() const { return m_rlimit; }
     context_params();
@@ -58,7 +59,7 @@ public:
     /**
        \brief Goodies for extracting parameters for creating a solver object.
     */
-    void get_solver_params(params_ref & p, bool & proofs_enabled, bool & models_enabled, bool & unsat_core_enabled);
+    void get_solver_params(ast_manager const & m, params_ref & p, bool & proofs_enabled, bool & models_enabled, bool & unsat_core_enabled);
 
     static void collect_solver_param_descrs(param_descrs & d);
 
@@ -69,7 +70,13 @@ public:
     */
     params_ref merge_default_params(params_ref const & p);
 
+    /**
+       \brief Create an AST manager using this configuration.
+    */
+    ast_manager * mk_ast_manager();
 
+    void set_foreign_manager(ast_manager* m) { m_manager = m; }
+    bool owns_manager() const { return m_manager != nullptr; }
 };
 
 

@@ -550,6 +550,7 @@ namespace qe {
 
         void nnf_and_or(bool is_and, app* a, bool p) {
             m_args.reset();
+            unsigned num_args = a->get_num_args();
             expr_ref tmp(m);
             bool visited = true;
             for (expr* arg : *a) {
@@ -1160,7 +1161,7 @@ namespace qe {
             expr* y = x;
             expr_abstract(m, 0, 1, &y, fml, result);            
             symbol X(x->get_decl()->get_name());
-            sort* s = x->get_sort();
+            sort* s = m.get_sort(x);
             result = m.mk_exists(1, &s, &X, result);
             return result;
         }
@@ -1271,7 +1272,8 @@ namespace qe {
     }
 
     bool i_solver_context::has_plugin(app* x) {
-        family_id fid = x->get_sort()->get_family_id();
+        ast_manager& m = get_manager();
+        family_id fid = m.get_sort(x)->get_family_id();
         return 
             0 <= fid && 
             fid < static_cast<int>(m_plugins.size()) &&
@@ -1279,8 +1281,9 @@ namespace qe {
     }
     
     qe_solver_plugin& i_solver_context::plugin(app* x) {
+        ast_manager& m = get_manager();
         SASSERT(has_plugin(x));
-        return *(m_plugins[x->get_sort()->get_family_id()]);               
+        return *(m_plugins[m.get_sort(x)->get_family_id()]);               
     }
 
     void i_solver_context::mk_atom(expr* e, bool p, expr_ref& result) {
@@ -1307,7 +1310,7 @@ namespace qe {
     typedef ref_vector_ptr_hash<expr, ast_manager> expr_ref_vector_hash;
     typedef ref_vector_ptr_eq<expr, ast_manager>   expr_ref_vector_eq;
     typedef hashtable<expr_ref_vector*, expr_ref_vector_hash, expr_ref_vector_eq> clause_table;
-    typedef value_trail<unsigned> _value_trail;
+    typedef value_trail<smt::context, unsigned> _value_trail;
 
 
     class quant_elim_plugin : public i_solver_context {
@@ -1656,9 +1659,10 @@ namespace qe {
                 return false;
             }
 
-            unsigned_vector& vec = m_partition.back();
-            for (auto v : vec)
-                vars.push_back(m_current->free_var(v));
+            unsigned_vector& vec = m_partition.back();;
+            for (unsigned i = 0; i < vec.size(); ++i) {
+                vars.push_back(m_current->free_var(vec[i]));
+            }
             m_partition.pop_back();
             return true;
         }
@@ -2071,7 +2075,7 @@ namespace qe {
                 for (unsigned i = 0; i < num_vars; ++i) {
                     contains_app contains_x(m, vars[i]);
                     if (contains_x(fml)) {
-                        sorts.push_back(vars[i]->get_sort());
+                        sorts.push_back(m.get_sort(vars[i]));
                         names.push_back(vars[i]->get_decl()->get_name());
                         free_vars.push_back(vars[i]);
                     }

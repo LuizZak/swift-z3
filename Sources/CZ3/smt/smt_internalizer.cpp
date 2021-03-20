@@ -315,7 +315,7 @@ namespace smt {
             assert_default(n, pr);
             return;
         }
-        sort * s = n->get_arg(0)->get_sort();
+        sort * s = m.get_sort(n->get_arg(0));
         sort_ref u(m.mk_fresh_sort("distinct-elems"), m);
         func_decl_ref f(m.mk_fresh_func_decl("distinct-aux-f", "", 1, &s, u), m);
         for (expr * arg : *n) {
@@ -340,8 +340,6 @@ namespace smt {
     void context::ensure_internalized(expr* e) {
         if (!e_internalized(e)) 
             internalize(e, false);
-        if (is_app(e) && !m.is_bool(e))
-            internalize_term(to_app(e));
     }
 
     /**
@@ -356,8 +354,9 @@ namespace smt {
 
     void context::internalize(expr* const* exprs, unsigned num_exprs, bool gate_ctx) {
         internalize_deep(exprs, num_exprs);
-        for (unsigned i = 0; i < num_exprs; ++i) 
+        for (unsigned i = 0; i < num_exprs; ++i) {
             internalize_rec(exprs[i], gate_ctx);
+        }
     }
 
     void context::internalize_rec(expr * n, bool gate_ctx) {
@@ -449,7 +448,7 @@ namespace smt {
         d.set_eq_flag();
         TRACE("internalize", tout << mk_pp(n, m) << " " << literal(v, false) << "\n";);
         
-        sort * s    = n->get_arg(0)->get_sort();
+        sort * s    = m.get_sort(n->get_arg(0));
         theory * th = m_theories.get_plugin(s->get_family_id());
         if (th)
             th->internalize_eq_eh(n, v);
@@ -583,7 +582,7 @@ namespace smt {
         if (e_internalized(q)) {
             return;
         }
-        app_ref lam_name(m.mk_fresh_const("lambda", q->get_sort()), m);
+        app_ref lam_name(m.mk_fresh_const("lambda", m.get_sort(q)), m);
         app_ref eq(m), lam_app(m);
         expr_ref_vector vars(m);
         vars.push_back(lam_name);
@@ -702,13 +701,13 @@ namespace smt {
     /**
        \brief Trail object to disable the m_merge_tf flag of an enode.
     */
-    class set_merge_tf_trail : public trail {
+    class set_merge_tf_trail : public trail<context> {
         enode * m_node;
     public:
         set_merge_tf_trail(enode * n):
             m_node(n) {
         }
-        void undo() override {
+        void undo(context & ctx) override {
             m_node->m_merge_tf = false;
         }
     };
@@ -748,15 +747,13 @@ namespace smt {
        variable. The flag m_enode is true for a Boolean variable v,
        if there is an enode n associated with it.
     */
-    class set_enode_flag_trail : public trail {
-        context& ctx;
+    class set_enode_flag_trail : public trail<context> {
         bool_var m_var;
     public:
-        set_enode_flag_trail(context& ctx, bool_var v):
-            ctx(ctx),
+        set_enode_flag_trail(bool_var v):
             m_var(v) {
         }
-        void undo() override {
+        void undo(context & ctx) override {
             bool_var_data & data = ctx.m_bdata[m_var];
             data.reset_enode_flag();
         }
@@ -773,7 +770,7 @@ namespace smt {
         bool_var_data & data = m_bdata[v];
         if (!data.is_enode()) {
             if (!is_new_var)
-                push_trail(set_enode_flag_trail(*this, v));
+                push_trail(set_enode_flag_trail(v));
             data.set_enode_flag();
         }
     }
@@ -1684,7 +1681,7 @@ namespace smt {
     /**
        \brief Trail for add_th_var
     */
-    class add_th_var_trail : public trail {
+    class add_th_var_trail : public trail<context> {
         enode *    m_enode;
         theory_id  m_th_id;
 #ifdef Z3DEBUG
@@ -1698,7 +1695,7 @@ namespace smt {
             SASSERT(m_th_var != null_theory_var);
         }
         
-        void undo() override {
+        void undo(context & ctx) override {
             theory_var v = m_enode->get_th_var(m_th_id);
             SASSERT(v != null_theory_var);
             SASSERT(m_th_var == v);
@@ -1712,7 +1709,7 @@ namespace smt {
     /**
        \brief Trail for replace_th_var
     */
-    class replace_th_var_trail : public trail {
+    class replace_th_var_trail : public trail<context> {
         enode *    m_enode;
         unsigned   m_th_id:8;
         unsigned   m_old_th_var:24;
@@ -1723,7 +1720,7 @@ namespace smt {
             m_old_th_var(old_var) {
         }
         
-        void undo() override {
+        void undo(context & ctx) override {
             SASSERT(m_enode->get_th_var(m_th_id) != null_theory_var);
             m_enode->replace_th_var(m_old_th_var, m_th_id);
         }
@@ -1765,7 +1762,7 @@ namespace smt {
             SASSERT(th->get_enode(old_v) != n); // this varialbe is not owned by n
             SASSERT(n->get_root()->get_th_var(th_id) != null_theory_var); // the root has also a variable in its var-list.
             n->replace_th_var(v, th_id);
-            push_trail(replace_th_var_trail( n, th_id, old_v));
+            push_trail(replace_th_var_trail(n, th_id, old_v));
             push_new_th_eq(th_id, v, old_v);
         }
         SASSERT(th->is_attached_to_var(n));

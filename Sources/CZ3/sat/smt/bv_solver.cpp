@@ -24,26 +24,26 @@ Author:
 
 namespace bv {
 
-    class solver::bit_trail : public trail {
+    class solver::bit_trail : public trail<euf::solver> {
         solver& s;
         solver::var_pos vp;
         sat::literal lit;
     public:
         bit_trail(solver& s, var_pos vp) : s(s), vp(vp), lit(s.m_bits[vp.first][vp.second]) {}
 
-        void undo() override {
+        virtual void undo(euf::solver& euf) {
             s.m_bits[vp.first][vp.second] = lit;
         }
     };
 
-    class solver::bit_occs_trail : public trail {
+    class solver::bit_occs_trail : public trail<euf::solver> {
         atom& a;
         var_pos_occ* m_occs;
 
     public:
         bit_occs_trail(solver& s, atom& a): a(a), m_occs(a.m_occs) {}
         
-        void undo() override {
+        virtual void undo(euf::solver& euf) {
             a.m_occs = m_occs;
         }
     };
@@ -354,6 +354,23 @@ namespace bv {
         sat::literal_vector lits;
         switch (c.m_kind) {
         case bv_justification::kind_t::eq2bit:
+            ++s_count;
+//            std::cout << "eq2bit " << s_count << "\n";
+#if 0
+            if (s_count == 1899) {
+                std::cout << "eq2bit " << mk_bounded_pp(var2expr(c.m_v1), m) << " == " << mk_bounded_pp(var2expr(c.m_v2), m) << "\n";
+                std::cout << mk_bounded_pp(literal2expr(~c.m_antecedent), m, 4) << "\n";
+                std::cout << mk_bounded_pp(literal2expr(c.m_consequent), m, 4) << "\n";
+                std::cout << literal2expr(c.m_consequent) << "\n";
+#if 0
+                solver_ref slv = mk_smt2_solver(m, ctx.s().params());
+                slv->assert_expr(eq);
+                slv->assert_expr(literal2expr(c.m_antecedent));
+                slv->assert_expr(literal2expr(~c.m_consequent));
+                slv->display(std::cout) << "(check-sat)\n";
+#endif
+            }
+#endif
             lits.push_back(~leq);
             lits.push_back(~c.m_antecedent);
             lits.push_back(c.m_consequent);
@@ -396,13 +413,13 @@ namespace bv {
         if (m_prop_queue_head == m_prop_queue.size())
             return false;
         force_push();
-        ctx.push(value_trail<unsigned>(m_prop_queue_head));
+        ctx.push(value_trail<euf::solver, unsigned>(m_prop_queue_head));
         for (; m_prop_queue_head < m_prop_queue.size() && !s().inconsistent(); ++m_prop_queue_head) {
             auto const p = m_prop_queue[m_prop_queue_head];
             if (p.m_atom) {
                 for (auto vp : *p.m_atom)
                     propagate_bits(vp);
-                for (eq_occurs const& eq : p.m_atom->eqs()) 
+                for (auto const& eq : p.m_atom->eqs()) 
                     propagate_eq_occurs(eq);                
             }
             else 
@@ -542,7 +559,7 @@ namespace bv {
             SASSERT(l2.var() == l.var());
             VERIFY(l2.var() == l.var());
             sat::literal r2 = (l.sign() == l2.sign()) ? r : ~r;
-            ctx.push(vector2_value_trail<bits_vector, sat::literal>(m_bits, vp.first, vp.second));
+            ctx.push(vector2_value_trail<euf::solver, bits_vector, sat::literal>(m_bits, vp.first, vp.second));
             m_bits[vp.first][vp.second] = r2;
             set_bit_eh(vp.first, r2, vp.second);
         }
@@ -674,7 +691,7 @@ namespace bv {
             result->m_bool_var2atom.setx(i, new_a, nullptr);
             for (auto vp : *a)
                 new_a->m_occs = new (result->get_region()) var_pos_occ(vp.first, vp.second, new_a->m_occs);
-            for (eq_occurs const& occ : a->eqs()) {
+            for (auto const& occ : a->eqs()) {
                 expr* e = occ.m_node->get_expr();
                 expr_ref e2(tr(e), tr.to());
                 euf::enode* n = ctx.get_enode(e2);
@@ -716,7 +733,7 @@ namespace bv {
         values[n->get_root_id()] = bv.mk_numeral(val, m_bits[v].size());
     }
 
-    trail_stack& solver::get_trail_stack() {
+    trail_stack<euf::solver>& solver::get_trail_stack() {
         return ctx.get_trail_stack();
     }
 

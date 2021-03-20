@@ -31,8 +31,12 @@ void tbv_manager::debug_alloc() {
 
 tbv_manager::~tbv_manager() {    
     DEBUG_CODE(
-        for (auto t : allocated_tbvs)
-            TRACE("doc", tout << "dangling: " << t << "\n";););
+        ptr_vector<tbv>::iterator it = allocated_tbvs.begin();
+        ptr_vector<tbv>::iterator end = allocated_tbvs.end();
+        for (; it != end; ++it) {
+            std::cout << "dangling: " << (*it) << "\n";
+            TRACE("doc", tout << "dangling: " << (*it) << "\n";);
+        });
 }
 
 void tbv_manager::reset() {

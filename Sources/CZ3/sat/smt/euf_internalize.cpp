@@ -92,7 +92,6 @@ namespace euf {
             m_args.push_back(m_egraph.find(to_app(e)->get_arg(i)));
         if (root && internalize_root(to_app(e), sign, m_args))
             return false;
-        SASSERT(!get_enode(e));
         if (auto* s = expr2solver(e)) 
             s->internalize(e, m_is_redundant);        
         else 
@@ -109,15 +108,15 @@ namespace euf {
         if (m.is_bool(e))
             attach_lit(literal(si.add_bool_var(e), false), e);
 
-        if (!m.is_bool(e) && e->get_sort()->get_family_id() != null_family_id) {
+        if (!m.is_bool(e) && m.get_sort(e)->get_family_id() != null_family_id) {
             auto* e_ext = expr2solver(e);
-            auto* s_ext = sort2solver(e->get_sort());
+            auto* s_ext = sort2solver(m.get_sort(e));
             if (s_ext && s_ext != e_ext)
-                s_ext->apply_sort_cnstr(n, e->get_sort());
+                s_ext->apply_sort_cnstr(n, m.get_sort(e));
         }
         expr* a = nullptr, * b = nullptr;                   
-        if (m.is_eq(e, a, b) && a->get_sort()->get_family_id() != null_family_id) {
-            auto* s_ext = sort2solver(a->get_sort());
+        if (m.is_eq(e, a, b) && m.get_sort(a)->get_family_id() != null_family_id) {
+            auto* s_ext = sort2solver(m.get_sort(a));
             if (s_ext)
                 s_ext->eq_internalized(n);
         }
@@ -128,7 +127,6 @@ namespace euf {
         sat::bool_var v = lit.var();       
         s().set_external(v);
         s().set_eliminated(v, false);   
-
 
         if (lit.sign()) {
             v = si.add_bool_var(e);
@@ -197,7 +195,7 @@ namespace euf {
         else {
             // g(f(x_i)) = x_i
             // f(x_1) = a + .... + f(x_n) = a >= 2
-            sort* srt = e->get_arg(0)->get_sort();
+            sort* srt = m.get_sort(e->get_arg(0));
             SASSERT(!m.is_bool(srt));
             sort_ref u(m.mk_fresh_sort("distinct-elems"), m);
             sort* u_ptr = u.get();
@@ -244,7 +242,7 @@ namespace euf {
         }
         else {
             // dist-f(x_1) = v_1 & ... & dist-f(x_n) = v_n
-            sort* srt = e->get_arg(0)->get_sort();
+            sort* srt = m.get_sort(e->get_arg(0));
             SASSERT(!m.is_bool(srt));
             sort_ref u(m.mk_fresh_sort("distinct-elems"), m);
             func_decl_ref f(m.mk_fresh_func_decl("dist-f", "", 1, &srt, u), m);
@@ -267,18 +265,17 @@ namespace euf {
         sat::status st = sat::status::th(m_is_redundant, m.get_basic_family_id());
         expr* c = nullptr, * th = nullptr, * el = nullptr;
         if (!m.is_bool(e) && m.is_ite(e, c, th, el)) {
-            expr_ref eq_th = mk_eq(e, th);
+            app* a = to_app(e);
+            expr_ref eq_th = mk_eq(a, th);
             sat::literal lit_th = mk_literal(eq_th);
             if (th == el) {
                 s().add_clause(1, &lit_th, st);
             }
             else {
                 sat::bool_var v = si.to_bool_var(c);
-                VERIFY(v != sat::null_bool_var);
-                VERIFY(s().is_external(v));
                 SASSERT(v != sat::null_bool_var);
-                VERIFY(!s().was_eliminated(v));
-                expr_ref eq_el = mk_eq(e, el);
+
+                expr_ref eq_el = mk_eq(a, el);
 
                 sat::literal lit_el = mk_literal(eq_el);
                 literal lits1[2] = { literal(v, true),  lit_th };
@@ -390,25 +387,4 @@ namespace euf {
             r = m.mk_eq(e1, e2);
         return r;
     }
-
-    unsigned solver::get_max_generation(expr* e) const {
-        unsigned g = 0;
-        expr_fast_mark1 mark;
-        m_todo.push_back(e);
-        while (!m_todo.empty()) {
-            e = m_todo.back();
-            m_todo.pop_back();
-            if (mark.is_marked(e))
-                continue;
-            mark.mark(e);
-            euf::enode* n = m_egraph.find(e);
-            if (n) 
-                g = std::max(g, n->generation());
-            else if (is_app(e)) 
-                for (expr* arg : *to_app(e))
-                    m_todo.push_back(arg);
-        }
-        return g;
-    }
-
 }

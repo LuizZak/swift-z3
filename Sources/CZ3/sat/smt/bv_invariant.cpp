@@ -70,14 +70,12 @@ namespace bv {
         bits[0].resize(bv_sz, false);
         bits[1].resize(bv_sz, false);
 
-        sat::literal_vector assigned;
         theory_var curr = v;
         do {
             literal_vector const& lits = m_bits[curr];
             for (unsigned i = 0; i < lits.size(); i++) {
                 literal l = lits[i];
-                if (l.var() == mk_true().var()) {
-                    assigned.push_back(l);
+                if (s().value(l) != l_undef) {
                     unsigned is_true = s().value(l) == l_true;
                     if (bits[!is_true][i]) {
                         // expect a conflict later on.
@@ -93,9 +91,7 @@ namespace bv {
         } while (curr != v);
 
         zero_one_bits const& _bits = m_zero_one_bits[v];
-        if (_bits.size() != num_bits)
-            std::cout << v << " " << _bits.size() << " " << num_bits << "\n";
-        VERIFY(_bits.size() == num_bits);
+        SASSERT(_bits.size() == num_bits);
         bool_vector already_found;
         already_found.resize(bv_sz, false);
         for (auto& zo : _bits) {

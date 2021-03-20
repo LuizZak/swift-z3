@@ -34,14 +34,14 @@ namespace smt {
     }
 
     void theory_array_base::add_weak_var(theory_var v) {
-        ctx.push_trail(push_back_vector<svector<theory_var>>(m_array_weak_trail));
+        ctx.push_trail(push_back_vector<context, svector<theory_var>>(m_array_weak_trail));
         m_array_weak_trail.push_back(v);
     }
 
     void theory_array_base::found_unsupported_op(expr * n) {
         if (!ctx.get_fparams().m_array_fake_support && !m_found_unsupported_op) {
             TRACE("array", tout << mk_ll_pp(n, m) << "\n";);            
-            ctx.push_trail(value_trail<bool>(m_found_unsupported_op));
+            ctx.push_trail(value_trail<context, bool>(m_found_unsupported_op));
             m_found_unsupported_op = true;
         }
     }
@@ -59,7 +59,7 @@ namespace smt {
     }
 
     app * theory_array_base::mk_default(expr * a) {
-        sort * s = a->get_sort();
+        sort * s = m.get_sort(a);
         unsigned num_params = get_dimension(s);
         parameter const* params = s->get_info()->get_parameters();
         return m.mk_app(get_family_id(), OP_ARRAY_DEFAULT, num_params, params, 1, & a);
@@ -94,7 +94,7 @@ namespace smt {
     }
 
     void theory_array_base::assert_store_axiom1_core(enode * e) {
-        app * n           = e->get_expr();
+        app * n           = e->get_owner();
         SASSERT(is_store(n));
         ptr_buffer<expr> sel_args;
         unsigned num_args = n->get_num_args();
@@ -134,7 +134,7 @@ namespace smt {
     */
     void theory_array_base::assert_store_axiom2_core(enode * store, enode * select) {
         TRACE("array", tout << "generating axiom2: #" << store->get_owner_id() << " #" << select->get_owner_id() << "\n";
-              tout << mk_bounded_pp(store->get_expr(), m) << "\n" << mk_bounded_pp(select->get_expr(), m) << "\n";);
+              tout << mk_bounded_pp(store->get_owner(), m) << "\n" << mk_bounded_pp(select->get_owner(), m) << "\n";);
         SASSERT(is_store(store));
         SASSERT(is_select(select));
         SASSERT(store->get_num_args() == 1 + select->get_num_args());
@@ -144,12 +144,12 @@ namespace smt {
         enode * const * is = select->get_args() + 1;
         enode * const * js = store->get_args() + 1;
         unsigned num_args = select->get_num_args() - 1;
-        sel1_args.push_back(store->get_expr());
-        sel2_args.push_back(a->get_expr());
+        sel1_args.push_back(store->get_owner());
+        sel2_args.push_back(a->get_owner());
 
         for (unsigned i = 0; i < num_args; i++) {
-            sel1_args.push_back(is[i]->get_expr());
-            sel2_args.push_back(is[i]->get_expr());
+            sel1_args.push_back(is[i]->get_owner());
+            sel2_args.push_back(is[i]->get_owner());
         }
 
         expr_ref sel1(m), sel2(m);
@@ -179,14 +179,14 @@ namespace smt {
                 conseq_expr = ctx.bool_var2expr(conseq.var());
             }
 
-            literal ante = mk_eq(idx1->get_expr(), idx2->get_expr(), true);
+            literal ante = mk_eq(idx1->get_owner(), idx2->get_owner(), true);
             ctx.mark_as_relevant(ante);
             // ctx.force_phase(ante);
             ctx.add_rel_watch(~ante, conseq_expr);
             // ctx.mark_as_relevant(conseq_expr);
             TRACE("array", tout << "asserting axiom2: " << ante << "\n";);
             TRACE("array_map_bug", tout << "axiom2:\n";
-                  tout << mk_ismt2_pp(idx1->get_expr(), m) << "\n=\n" << mk_ismt2_pp(idx2->get_expr(), m);
+                  tout << mk_ismt2_pp(idx1->get_owner(), m) << "\n=\n" << mk_ismt2_pp(idx2->get_owner(), m);
                   tout << "\nimplies\n" << mk_ismt2_pp(conseq_expr, m) << "\n";);
             if (m.has_trace_stream()) {
                 app_ref body(m);
@@ -264,7 +264,7 @@ namespace smt {
         for (enode* parent : r1->get_const_parents()) {
             if (parent->is_cgr() &&
                 ctx.is_relevant(parent) &&
-                is_select(parent->get_expr()) &&
+                is_select(parent->get_owner()) &&
                 parent->get_arg(0)->get_root() == r1) {
                 m_array_value.insert(parent);
             }
@@ -274,7 +274,7 @@ namespace smt {
             enode * other;
             if (parent->is_cgr() && 
                 ctx.is_relevant(parent) &&
-                is_select(parent->get_expr()) &&
+                is_select(parent->get_owner()) &&
                 parent->get_arg(0)->get_root() == r2 &&
                 m_array_value.find(parent, other)) {
                 
@@ -313,11 +313,11 @@ namespace smt {
 
    
     void theory_array_base::assert_extensionality_core(enode * n1, enode * n2) {
-        app * e1        = n1->get_expr();
-        app * e2        = n2->get_expr();
+        app * e1        = n1->get_owner();
+        app * e2        = n2->get_owner();
 
         func_decl_ref_vector * funcs = nullptr;
-        sort *                     s = e1->get_sort();
+        sort *                     s = m.get_sort(e1);
 
         VERIFY(m_sort2skolem.find(s, funcs));
 
@@ -351,9 +351,9 @@ namespace smt {
        \brief assert n1 = n2 => forall vars . (n1 vars) = (n2 vars)
      */
     void theory_array_base::assert_congruent_core(enode * n1, enode * n2) {
-        app * e1        = n1->get_expr();
-        app * e2        = n2->get_expr();
-        sort* s         = e1->get_sort();
+        app * e1        = n1->get_owner();
+        app * e2        = n2->get_owner();
+        sort* s         = m.get_sort(e1);
         unsigned dimension = get_array_arity(s);
         literal n1_eq_n2 = mk_eq(e1, e2, true);
         ctx.mark_as_relevant(n1_eq_n2);
@@ -430,7 +430,7 @@ namespace smt {
             m_extensionality_todo.reset();
             m_congruent_todo.reset();
             if (!ctx.get_fparams().m_array_weak && has_propagate_up_trail()) {
-                ctx.push_trail(value_trail<unsigned>(m_array_weak_head));
+                ctx.push_trail(value_trail<context, unsigned>(m_array_weak_head));
                 for (; m_array_weak_head < m_array_weak_trail.size(); ++m_array_weak_head) {
                     set_prop_upward(m_array_weak_trail[m_array_weak_head]);
                 }                
@@ -564,15 +564,15 @@ namespace smt {
             TRACE("array_bug", tout << "mk_interface_eqs: processing: v" << *it1 << "\n";);
             theory_var  v1 = *it1;
             enode *     n1 = get_enode(v1);
-            sort *      s1 = n1->get_expr()->get_sort();
+            sort *      s1 = m.get_sort(n1->get_owner());
             sbuffer<theory_var>::iterator it2 = it1;
             ++it2;
             for (; it2 != end1; ++it2) {
                 theory_var v2 = *it2;
                 enode *    n2 = get_enode(v2);
-                sort *     s2 = n2->get_expr()->get_sort();
+                sort *     s2 = m.get_sort(n2->get_owner());
                 if (s1 == s2 && !ctx.is_diseq(n1, n2)) {
-                    app * eq  = mk_eq_atom(n1->get_expr(), n2->get_expr());
+                    app * eq  = mk_eq_atom(n1->get_owner(), n2->get_owner());
                     if (!ctx.b_internalized(eq) || !ctx.is_relevant(eq)) {
                         result++;
                         ctx.internalize(eq, true);
@@ -624,7 +624,7 @@ namespace smt {
 
 
     void theory_array_base::set_default(theory_var v, enode* n) {
-        TRACE("array", tout << "set default: " << v << " " << pp(n, m) << "\n";);
+        TRACE("array", tout << "set default: " << v << " " << mk_pp(n->get_owner(), m) << "\n";);
         v = mg_find(v);
         if (m_defaults[v] == 0) {
             m_defaults[v] = n;
@@ -672,8 +672,8 @@ namespace smt {
                 m_defaults[u] = m_defaults[v];
             }
             CTRACE("array", m_defaults[v], 
-                   tout << pp(m_defaults[v]->get_root(), m) << "\n";
-                   tout << pp(m_defaults[u]->get_root(), m) << "\n";
+                   tout << mk_pp(m_defaults[v]->get_root()->get_owner(), m) << "\n";
+                   tout << mk_pp(m_defaults[u]->get_root()->get_owner(), m) << "\n";
                   );
 
             // NB. it may be the case that m_defaults[u] != m_defaults[v]
@@ -748,7 +748,7 @@ namespace smt {
 
                 mg_merge(v, get_representative(w));
                                 
-                TRACE("array", tout << "merge: " << pp(n, m) << " " << v << " " << w << "\n";);
+                TRACE("array", tout << "merge: " << mk_pp(n->get_owner(), m) << " " << v << " " << w << "\n";);
             }
             else if (is_const(n)) {
                 set_default(v, n->get_arg(0));
@@ -983,7 +983,7 @@ namespace smt {
         SASSERT(ctx.is_relevant(n));
         theory_var v       = n->get_th_var(get_id());
         SASSERT(v != null_theory_var);
-        sort * s           = n->get_expr()->get_sort();
+        sort * s           = m.get_sort(n->get_owner());
         enode * else_val_n = get_default(v);
         array_value_proc * result = nullptr;
 
@@ -1008,7 +1008,7 @@ namespace smt {
                     // The implementation should not assume a fresh value is created for 
                     // the else_val if the range is finite
 
-                    TRACE("array", tout << pp(n, m) << " " << mk_pp(range, m) << " " << range->is_infinite() << "\n";);
+                    TRACE("array", tout << mk_pp(n->get_owner(), m) << " " << mk_pp(range, m) << " " << range->is_infinite() << "\n";);
                     if (range->is_infinite())
                         else_val = TAG(void*, mg.mk_extra_fresh_value(range), 1);
                     else
@@ -1038,14 +1038,14 @@ namespace smt {
             }
         }
         TRACE("array", 
-              tout << pp(n->get_root(), m) << "\n";
+              tout << mk_pp(n->get_root()->get_owner(), m) << "\n";
               if (sel_set) {
                   for (enode* s : *sel_set) {
-                      tout << "#" << s->get_root()->get_expr_id() << " " << pp(s, m) << "\n";
+                      tout << "#" << s->get_root()->get_owner()->get_id() << " " << mk_pp(s->get_owner(), m) << "\n";
                   }
               }
               if (else_val_n) {
-                  tout << "else: " << pp(else_val_n, m) << "\n";
+                  tout << "else: " << mk_pp(else_val_n->get_owner(), m) << "\n";
               });
         return result;
     }

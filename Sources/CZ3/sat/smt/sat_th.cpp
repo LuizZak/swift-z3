@@ -45,7 +45,7 @@ namespace euf {
                 if (!visit(arg))
                     goto loop;
             }
-            if (!visited(e) && !post_visit(e, sign, root && a == e))
+            if (!post_visit(e, sign, root && a == e))
                 return false;
             m_stack.pop_back();
         }
@@ -65,7 +65,7 @@ namespace euf {
         return ctx.get_region();
     }
 
-    trail_stack& th_euf_solver::get_trail_stack() {
+    trail_stack<euf::solver>& th_euf_solver::get_trail_stack() {
         return ctx.get_trail_stack();
     }
 
@@ -225,78 +225,55 @@ namespace euf {
         return ctx.s().rand()();
     }
 
-    size_t th_explain::get_obj_size(unsigned num_lits, unsigned num_eqs) {
-        return sat::constraint_base::obj_size(sizeof(th_explain) + sizeof(sat::literal) * num_lits + sizeof(enode_pair) * num_eqs);
+    size_t th_propagation::get_obj_size(unsigned num_lits, unsigned num_eqs) {
+        return sat::constraint_base::obj_size(sizeof(th_propagation) + sizeof(sat::literal) * num_lits + sizeof(enode_pair) * num_eqs);
     }
 
-    th_explain::th_explain(unsigned n_lits, sat::literal const* lits, unsigned n_eqs, enode_pair const* eqs, sat::literal c, enode_pair const& p) {
-        m_consequent = c;
-        m_eq = p;
+    th_propagation::th_propagation(unsigned n_lits, sat::literal const* lits, unsigned n_eqs, enode_pair const* eqs) {
         m_num_literals = n_lits;
         m_num_eqs = n_eqs;
-        m_literals = reinterpret_cast<literal*>(reinterpret_cast<char*>(this) + sizeof(th_explain));
+        m_literals = reinterpret_cast<literal*>(reinterpret_cast<char*>(this) + sizeof(th_propagation));
         for (unsigned i = 0; i < n_lits; ++i)
             m_literals[i] = lits[i];
-        m_eqs = reinterpret_cast<enode_pair*>(reinterpret_cast<char*>(this) + sizeof(th_explain) + sizeof(literal) * n_lits);
+        m_eqs = reinterpret_cast<enode_pair*>(reinterpret_cast<char*>(this) + sizeof(th_propagation) + sizeof(literal) * n_lits);
         for (unsigned i = 0; i < n_eqs; ++i)
-            m_eqs[i] = eqs[i];       
- 
+            m_eqs[i] = eqs[i];        
     }
 
-    th_explain* th_explain::mk(th_euf_solver& th, unsigned n_lits, sat::literal const* lits, unsigned n_eqs, enode_pair const* eqs, sat::literal c, enode* x, enode* y) {
+    th_propagation* th_propagation::mk(th_euf_solver& th, sat::literal_vector const& lits, enode_pair_vector const& eqs) {
+        return mk(th, lits.size(), lits.c_ptr(), eqs.size(), eqs.c_ptr());
+    }
+
+    th_propagation* th_propagation::mk(th_euf_solver& th, unsigned n_lits, sat::literal const* lits, unsigned n_eqs, enode_pair const* eqs) {
         region& r = th.ctx.get_region();
         void* mem = r.allocate(get_obj_size(n_lits, n_eqs));
         sat::constraint_base::initialize(mem, &th);
-        return new (sat::constraint_base::ptr2mem(mem)) th_explain(n_lits, lits, n_eqs, eqs, c, enode_pair(x, y));
+        return new (sat::constraint_base::ptr2mem(mem)) th_propagation(n_lits, lits, n_eqs, eqs);
     }
 
-    th_explain* th_explain::propagate(th_euf_solver& th, sat::literal_vector const& lits, enode_pair_vector const& eqs, sat::literal consequent) {
-        return mk(th, lits.size(), lits.c_ptr(), eqs.size(), eqs.c_ptr(), consequent, nullptr, nullptr);
+    th_propagation* th_propagation::mk(th_euf_solver& th, enode_pair_vector const& eqs) {
+        return mk(th, 0, nullptr, eqs.size(), eqs.c_ptr());
     }
 
-    th_explain* th_explain::propagate(th_euf_solver& th, sat::literal_vector const& lits, enode_pair_vector const& eqs, euf::enode* x, euf::enode* y) {
-        return mk(th, lits.size(), lits.c_ptr(), eqs.size(), eqs.c_ptr(), sat::null_literal, x, y);
+    th_propagation* th_propagation::mk(th_euf_solver& th, sat::literal lit) {
+        return mk(th, 1, &lit, 0, nullptr);
     }
 
-    th_explain* th_explain::propagate(th_euf_solver& th, sat::literal lit, euf::enode* x, euf::enode* y) {
-        return mk(th, 1, &lit, 0, nullptr, sat::null_literal, x, y);
-    }
-
-    th_explain* th_explain::conflict(th_euf_solver& th, sat::literal_vector const& lits, enode_pair_vector const& eqs) {
-        return conflict(th, lits.size(), lits.c_ptr(), eqs.size(), eqs.c_ptr());
-    }
-
-    th_explain* th_explain::conflict(th_euf_solver& th, unsigned n_lits, sat::literal const* lits, unsigned n_eqs, enode_pair const* eqs) {
-        return mk(th, n_lits, lits, n_eqs, eqs, sat::null_literal, nullptr, nullptr);
-    }
-
-    th_explain* th_explain::conflict(th_euf_solver& th, enode_pair_vector const& eqs) {
-        return conflict(th, 0, nullptr, eqs.size(), eqs.c_ptr());
-    }
-
-    th_explain* th_explain::conflict(th_euf_solver& th, sat::literal lit) {
-        return conflict(th, 1, &lit, 0, nullptr);
-    }
-
-    th_explain* th_explain::conflict(th_euf_solver& th, sat::literal lit, euf::enode* x, euf::enode* y) {
+    th_propagation* th_propagation::mk(th_euf_solver& th, sat::literal lit, euf::enode* x, euf::enode* y) {
         enode_pair eq(x, y);
-        return conflict(th, 1, &lit, 1, &eq);
+        return mk(th, 1, &lit, 1, &eq);
     }
 
-    th_explain* th_explain::conflict(th_euf_solver& th, euf::enode* x, euf::enode* y) {
+    th_propagation* th_propagation::mk(th_euf_solver& th, euf::enode* x, euf::enode* y) {
         enode_pair eq(x, y);
-        return conflict(th, 0, nullptr, 1, &eq);
+        return mk(th, 0, nullptr, 1, &eq);
     }
 
-    std::ostream& th_explain::display(std::ostream& out) const {
-        for (auto lit : euf::th_explain::lits(*this))
+    std::ostream& th_propagation::display(std::ostream& out) const {
+        for (auto lit : euf::th_propagation::lits(*this))
             out << lit << " ";
-        for (auto eq : euf::th_explain::eqs(*this))
+        for (auto eq : euf::th_propagation::eqs(*this))
             out << eq.first->get_expr_id() << " == " << eq.second->get_expr_id() << " ";
-        if (m_consequent != sat::null_literal)
-            out << "--> " << m_consequent;
-        if (m_eq.first != nullptr)
-            out << "--> " << m_eq.first->get_expr_id() << " == " << m_eq.second->get_expr_id();
         return out;
     }
 

@@ -3,7 +3,7 @@ Copyright (c) 2020 Microsoft Corporation
 
 Module Name:
 
-    q_solver.cpp
+    a_solver.cpp
 
 Abstract:
 
@@ -15,22 +15,18 @@ Author:
 
 --*/
 
-#include "ast/ast_util.h"
-#include "ast/well_sorted.h"
 #include "ast/rewriter/var_subst.h"
-#include "ast/normal_forms/pull_quant.h"
 #include "sat/smt/q_solver.h"
 #include "sat/smt/euf_solver.h"
 #include "sat/smt/sat_th.h"
-
+#include "ast/normal_forms/pull_quant.h"
+#include "ast/well_sorted.h"
 
 namespace q {
 
     solver::solver(euf::solver& ctx, family_id fid) :
         th_euf_solver(ctx, ctx.get_manager().get_family_name(fid), fid),
-        m_mbqi(ctx,  *this),
-        m_ematch(ctx, *this),
-        m_expanded(ctx.get_manager())
+        m_mbqi(ctx,  *this)
     {
     }
 
@@ -38,52 +34,33 @@ namespace q {
         expr* e = bool_var2expr(l.var());
         if (!is_forall(e) && !is_exists(e))
             return;
-        quantifier* q = to_quantifier(e);
-
-        auto const& exp = expand(q);
-        if (exp.size() > 1) {
-            for (expr* e : exp) 
-                add_clause(~l, ctx.internalize(e, l.sign(), false, false));                    
-            return;
-        }
-
         if (l.sign() == is_forall(e)) 
-            add_clause(~l, skolemize(q));
-        else {
+            add_clause(~l, skolemize(to_quantifier(e)));        
+        else {            
+            // add_clause(~l, specialize(to_quantifier(e)));
             ctx.push_vec(m_universal, l);
-            if (ctx.get_config().m_ematching)
-                m_ematch.add(q);
         }
         m_stats.m_num_quantifier_asserts++;
     }
 
     sat::check_result solver::check() {
-        if (ctx.get_config().m_ematching && m_ematch())
-            return sat::check_result::CR_CONTINUE;
-
         if (ctx.get_config().m_mbqi) {
             switch (m_mbqi()) {
             case l_true:  return sat::check_result::CR_DONE;
             case l_false: return sat::check_result::CR_CONTINUE;
-            case l_undef: break;
+            case l_undef: return sat::check_result::CR_GIVEUP;
             }
         }
         return sat::check_result::CR_GIVEUP;
     }
 
     std::ostream& solver::display(std::ostream& out) const {
-        m_ematch.display(out);
         return out;
     }
 
-    std::ostream& solver::display_constraint(std::ostream& out, sat::ext_constraint_idx idx) const {
-        return m_ematch.display_constraint(out, idx);
-    }    
-
     void solver::collect_statistics(statistics& st) const {
-        st.update("q asserts", m_stats.m_num_quantifier_asserts);
+        st.update("quantifier asserts", m_stats.m_num_quantifier_asserts);
         m_mbqi.collect_statistics(st);
-        m_ematch.collect_statistics(st);
     }
 
     euf::th_solver* solver::clone(euf::solver& ctx) {
@@ -92,7 +69,7 @@ namespace q {
     }
 
     bool solver::unit_propagate() {
-        return ctx.get_config().m_ematching && m_ematch.propagate(false);
+        return false;
     }
 
     euf::theory_var solver::mk_var(euf::enode* n) {
@@ -173,7 +150,7 @@ namespace q {
         m.inc_ref(q_flat);
         m.inc_ref(q);
         m_flat.insert(q, q_flat);
-        ctx.push(insert_ref2_map<ast_manager, quantifier, quantifier>(m, m_flat, q, q_flat));
+        ctx.push(insert_ref2_map<euf::solver, ast_manager, quantifier, quantifier>(m, m_flat, q, q_flat));
         return q_flat;
     }
 
@@ -181,14 +158,14 @@ namespace q {
         if (!m_unit_table.empty())
             return;
         for (euf::enode* n : ctx.get_egraph().nodes()) {
-            if (!n->interpreted() && !m.is_uninterp(n->get_expr()->get_sort()))
+            if (!n->interpreted() && !m.is_uninterp(m.get_sort(n->get_expr())))
                 continue;
             expr* e = n->get_expr();
-            sort* s = e->get_sort();
+            sort* s = m.get_sort(e);
             if (m_unit_table.contains(s))
                 continue;
             m_unit_table.insert(s, e);
-            ctx.push(insert_map<obj_map<sort, expr*>, sort*>(m_unit_table, s));
+            ctx.push(insert_map<euf::solver, obj_map<sort, expr*>, sort*>(m_unit_table, s));
         }
     }
 
@@ -203,70 +180,28 @@ namespace q {
         expr* val = mdl.get_some_value(s);
         m.inc_ref(val);
         m.inc_ref(s);
-        ctx.push(insert_ref2_map<ast_manager, sort, expr>(m, m_unit_table, s, val));
+        ctx.push(insert_ref2_map<euf::solver, ast_manager, sort, expr>(m, m_unit_table, s, val));
         return val;
     }
 
-    expr_ref_vector const& solver::expand(quantifier* q) {
-        m_expanded.reset();
-        if (is_forall(q)) 
-            flatten_and(q->get_expr(), m_expanded);
-        else if (is_exists(q)) 
-            flatten_or(q->get_expr(), m_expanded);
-        else
-            UNREACHABLE();
-
-        if (m_expanded.size() > 1) {
-            for (unsigned i = m_expanded.size(); i-- > 0; ) {
-                expr_ref tmp(m.update_quantifier(q, m_expanded.get(i)), m);
-                ctx.get_rewriter()(tmp);
-                m_expanded[i] = tmp;
-            }
-            return m_expanded;
+    unsigned solver::get_max_generation(expr* e) const {
+        unsigned g = 0;
+        expr_fast_mark1 mark;
+        m_todo.push_back(e);
+        while (!m_todo.empty()) {
+            e = m_todo.back();
+            m_todo.pop_back();
+            if (mark.is_marked(e))
+                continue;
+            mark.mark(e);
+            euf::enode* n = ctx.get_egraph().find(e);
+            if (n) 
+                g = std::max(g, n->generation());
+            else if (is_app(e)) 
+                for (expr* arg : *to_app(e))
+                    m_todo.push_back(arg);
         }
-
-#if 0
-        m_expanded.reset();
-        m_expanded2.reset();
-        if (is_forall(q)) 
-            flatten_or(q->get_expr(), m_expanded2);
-        else if (is_exists(q)) 
-            flatten_and(q->get_expr(), m_expanded2);
-        else
-            UNREACHABLE();
-        for (unsigned i = m_expanded2.size(); i-- > 0; ) {
-            expr* lit = m_expanded2.get(i);
-            if (!is_ground(lit) && is_and(lit) && is_forall(q)) {
-
-                // get free vars of lit
-                // create fresh predicate over free vars
-                // replace in expanded, pack and push on m_expanded
-                
-                expr_ref p(m);
-                // TODO introduce fresh p.
-                flatten_and(lit, m_expanded);
-                for (unsigned i = m_expanded.size(); i-- > 0; ) {
-                    tmp = m.mk_or(m.mk_not(p), m_expanded.get(i));
-                    expr_ref tmp(m.update_quantifier(q, tmp), m);
-                    ctx.get_rewriter()(tmp);
-                    m_expanded[i] = tmp;
-                }
-                m_expanded2[i] = p;
-                tmp = m.mk_or(m_expanded2);
-                expr_ref tmp(m.update_quantifier(q, tmp), m);
-                ctx.get_rewriter()(tmp);                
-                m_expanded.push_back(tmp);
-                return m_expanded;
-            }
-        }
-#endif
-        m_expanded.reset();
-        m_expanded.push_back(q);
-        return m_expanded;
-    }
-
-    void solver::get_antecedents(sat::literal l, sat::ext_justification_idx idx, sat::literal_vector& r, bool probing) {
-        m_ematch.get_antecedents(l, idx, r, probing);
+        return g;
     }
 
 }

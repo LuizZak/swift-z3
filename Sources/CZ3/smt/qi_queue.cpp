@@ -98,8 +98,8 @@ namespace smt {
         m_parser.add_var("cs_factor");
     }
 
-    q::quantifier_stat * qi_queue::set_values(quantifier * q, app * pat, unsigned generation, unsigned min_top_generation, unsigned max_top_generation, float cost) {
-        q::quantifier_stat * stat     = m_qm.get_stat(q);
+    quantifier_stat * qi_queue::set_values(quantifier * q, app * pat, unsigned generation, unsigned min_top_generation, unsigned max_top_generation, float cost) {
+        quantifier_stat * stat     = m_qm.get_stat(q);
         m_vals[COST]               = cost;
         m_vals[MIN_TOP_GENERATION] = static_cast<float>(min_top_generation);
         m_vals[MAX_TOP_GENERATION] = static_cast<float>(max_top_generation);
@@ -120,7 +120,7 @@ namespace smt {
     }
 
     float qi_queue::get_cost(quantifier * q, app * pat, unsigned generation, unsigned min_top_generation, unsigned max_top_generation) {
-        q::quantifier_stat * stat = set_values(q, pat, generation, min_top_generation, max_top_generation, 0);
+        quantifier_stat * stat = set_values(q, pat, generation, min_top_generation, max_top_generation, 0);
         float r = m_evaluator(m_cost_function, m_vals.size(), m_vals.c_ptr());
         stat->update_max_cost(r);
         return r;
@@ -140,7 +140,7 @@ namespace smt {
               tout << "new instance of " << q->get_qid() << ", weight " << q->get_weight()
               << ", generation: " << generation << ", scope_level: " << m_context.get_scope_level() << ", cost: " << cost << "\n";
               for (unsigned i = 0; i < f->get_num_args(); i++) {
-                  tout << "#" << f->get_arg(i)->get_expr_id() << " d:" << f->get_arg(i)->get_expr()->get_depth() << " ";
+                  tout << "#" << f->get_arg(i)->get_owner_id() << " d:" << f->get_arg(i)->get_owner()->get_depth() << " ";
               }
               tout << "\n";);
         TRACE("new_entries_bug", tout << "[qi:insert]\n";);
@@ -206,7 +206,7 @@ namespace smt {
                 
         TRACE("qi_queue_profile", tout << q->get_qid() << ", gen: " << generation << " " << *f << " cost: " << ent.m_cost << "\n";);
 
-        q::quantifier_stat * stat = m_qm.get_stat(q);
+        quantifier_stat * stat = m_qm.get_stat(q);
 
         if (m_checker.is_sat(q->get_expr(), num_bindings, bindings)) {
             TRACE("checker", tout << "instance already satisfied\n";);
@@ -221,10 +221,8 @@ namespace smt {
 
         STRACE("instance", tout << "### " << static_cast<void*>(f) <<", " << q->get_qid()  << "\n";);
 
-        auto* ebindings = m_subst(q, num_bindings);
-        for (unsigned i = 0; i < num_bindings; ++i)
-            ebindings[i] = bindings[i]->get_expr();
-        expr_ref instance = m_subst();
+        expr_ref instance(m);
+        m_subst(q, num_bindings, bindings, instance);
 
         TRACE("qi_queue", tout << "new instance:\n" << mk_pp(instance, m) << "\n";);
         TRACE("qi_queue_instance", tout << "new instance:\n" << mk_pp(instance, m) << "\n";);
@@ -271,7 +269,7 @@ namespace smt {
         if (m.proofs_enabled()) {
             expr_ref_vector bindings_e(m);
             for (unsigned i = 0; i < num_bindings; ++i) {
-                bindings_e.push_back(bindings[i]->get_expr());
+                bindings_e.push_back(bindings[i]->get_owner());
             }
             app * bare_lemma    = m.mk_or(m.mk_not(q), instance);
             proof * qi_pr       = m.mk_quant_inst(bare_lemma, num_bindings, bindings_e.c_ptr());

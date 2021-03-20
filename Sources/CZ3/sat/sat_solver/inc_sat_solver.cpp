@@ -215,11 +215,9 @@ public:
             r = m_solver.check(m_asms.size(), m_asms.c_ptr());
         }
         catch (z3_exception& ex) {
-            IF_VERBOSE(1, verbose_stream() << "exception: " << ex.msg() << "\n";);
-            if (m.inc()) {
-                reason_set = true;
-                set_reason_unknown(std::string("(sat.giveup ") + ex.msg() + ')');
-            }
+            IF_VERBOSE(10, verbose_stream() << "exception: " << ex.msg() << "\n";);
+            reason_set = true;
+            set_reason_unknown(std::string("(sat.giveup ") + ex.msg() + ')');
             r = l_undef;            
         }
         switch (r) {
@@ -294,33 +292,6 @@ public:
             m_asms_lim.pop_back();
             --n;
         }
-    }
-
-    void set_phase(expr* e) override { 
-        bool is_not = m.is_not(e, e);
-        sat::bool_var b = m_map.to_bool_var(e);
-        if (b != sat::null_bool_var)
-            m_solver.set_phase(sat::literal(b, is_not));
-    }
-
-    class sat_phase : public phase, public sat::literal_vector {};
-
-    phase* get_phase() override { 
-        sat_phase* p = alloc(sat_phase);
-        for (unsigned v = m_solver.num_vars(); v-- > 0; ) {
-            p->push_back(sat::literal(v, !m_solver.get_phase(v)));
-        }
-        return p;
-    }
-    void set_phase(phase* p) override { 
-        for (auto lit : *static_cast<sat_phase*>(p))
-            m_solver.set_phase(lit);
-    }
-    void move_to_front(expr* e) override { 
-        m.is_not(e, e);
-        sat::bool_var b = m_map.to_bool_var(e);
-        if (b != sat::null_bool_var)
-            m_solver.move_to_front(b);
     }
 
     unsigned get_scope_level() const override {
@@ -854,7 +825,7 @@ private:
             SASSERT(value.size() == 1);
             val = value[0].sign() ? m.mk_not(v) : v;
         }
-        else if (is_uninterp_const(v) && bvutil.is_bv_sort(v->get_sort())) {
+        else if (is_uninterp_const(v) && bvutil.is_bv_sort(m.get_sort(v))) {
             SASSERT(value.size() == bvutil.get_bv_size(v));
             if (m_exps.empty()) {
                 m_exps.push_back(rational::one());

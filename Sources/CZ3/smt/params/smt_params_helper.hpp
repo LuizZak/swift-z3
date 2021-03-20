@@ -78,7 +78,6 @@ struct smt_params_helper {
     d.insert("arith.nl.grobner_cnfl_to_report", CPK_UINT, "grobner's maximum number of conflicts to report", "1","smt");
     d.insert("arith.nl.gr_q", CPK_UINT, "grobner's quota", "10","smt");
     d.insert("arith.nl.grobner_subs_fixed", CPK_UINT, "0 - no subs, 1 - substitute, 2 - substitute fixed zeros only", "2","smt");
-    d.insert("arith.nl.delay", CPK_UINT, "number of calls to final check before invoking bounded nlsat check", "500","smt");
     d.insert("arith.propagate_eqs", CPK_BOOL, "propagate (cheap) equalities", "true","smt");
     d.insert("arith.propagation_mode", CPK_UINT, "0 - no propagation, 1 - propagate existing literals, 2 - refine finite bounds", "1","smt");
     d.insert("arith.reflect", CPK_BOOL, "reflect arithmetical operators to the congruence closure", "true","smt");
@@ -112,6 +111,7 @@ struct smt_params_helper {
     d.insert("core.validate", CPK_BOOL, "[internal] validate unsat core produced by SMT context. This option is intended for debugging", "false","smt");
     d.insert("seq.split_w_len", CPK_BOOL, "enable splitting guided by length constraints", "true","smt");
     d.insert("seq.validate", CPK_BOOL, "enable self-validation of theory axioms created by seq theory", "false","smt");
+    d.insert("seq.use_unicode", CPK_BOOL, "dev flag (not for users) enable unicode semantics", "false","smt");
     d.insert("str.strong_arrangements", CPK_BOOL, "assert equivalences instead of implications when generating string arrangement axioms", "true","smt");
     d.insert("str.aggressive_length_testing", CPK_BOOL, "prioritize testing concrete length values over generating more options", "false","smt");
     d.insert("str.aggressive_value_testing", CPK_BOOL, "prioritize testing concrete string constant values over generating more options", "false","smt");
@@ -208,7 +208,6 @@ struct smt_params_helper {
   unsigned arith_nl_grobner_cnfl_to_report() const { return p.get_uint("arith.nl.grobner_cnfl_to_report", g, 1u); }
   unsigned arith_nl_gr_q() const { return p.get_uint("arith.nl.gr_q", g, 10u); }
   unsigned arith_nl_grobner_subs_fixed() const { return p.get_uint("arith.nl.grobner_subs_fixed", g, 2u); }
-  unsigned arith_nl_delay() const { return p.get_uint("arith.nl.delay", g, 500u); }
   bool arith_propagate_eqs() const { return p.get_bool("arith.propagate_eqs", g, true); }
   unsigned arith_propagation_mode() const { return p.get_uint("arith.propagation_mode", g, 1u); }
   bool arith_reflect() const { return p.get_bool("arith.reflect", g, true); }
@@ -242,6 +241,7 @@ struct smt_params_helper {
   bool core_validate() const { return p.get_bool("core.validate", g, false); }
   bool seq_split_w_len() const { return p.get_bool("seq.split_w_len", g, true); }
   bool seq_validate() const { return p.get_bool("seq.validate", g, false); }
+  bool seq_use_unicode() const { return p.get_bool("seq.use_unicode", g, false); }
   bool str_strong_arrangements() const { return p.get_bool("str.strong_arrangements", g, true); }
   bool str_aggressive_length_testing() const { return p.get_bool("str.aggressive_length_testing", g, false); }
   bool str_aggressive_value_testing() const { return p.get_bool("str.aggressive_value_testing", g, false); }
