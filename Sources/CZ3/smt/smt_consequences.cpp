@@ -194,7 +194,7 @@ namespace smt {
                     break;
                 }
             }
-            else if (e_internalized(k) && m.are_distinct(v, get_enode(k)->get_root()->get_owner())) {
+            else if (e_internalized(k) && m.are_distinct(v, get_enode(k)->get_root()->get_expr())) {
                 to_delete.push_back(k);
             }
             else if (get_assignment(mk_diseq(k, v)) == l_true) {
@@ -282,18 +282,21 @@ namespace smt {
         m_var2val.reset();
         m_var2orig.reset();
         m_assumption2orig.reset();
+        bool pushed = false;
         struct scoped_level {
             context& c;
+            bool& pushed;
             unsigned lvl;
-            scoped_level(context& c):
-                c(c), lvl(c.get_scope_level()) {}
+            scoped_level(context& c, bool& pushed):
+                c(c), pushed(pushed), lvl(c.get_scope_level()) {}
             ~scoped_level() {
-                if (c.get_scope_level() > lvl)
-                    c.pop_scope(c.get_scope_level() - lvl);
+                if (c.get_scope_level() > lvl + pushed) 
+                    c.pop_scope(c.get_scope_level() - lvl - pushed);
+                if (pushed)
+                    c.pop(1);
             }
         };
-        scoped_level _lvl(*this);
-        bool pushed = false;
+        scoped_level _lvl(*this, pushed);
 
         for (expr* v : vars0) {
             if (is_uninterp_const(v)) {
@@ -302,7 +305,7 @@ namespace smt {
             }
             else {
                 if (!pushed) pushed = true, push();                
-                expr_ref c(m.mk_fresh_const("v", m.get_sort(v)), m);
+                expr_ref c(m.mk_fresh_const("v", v->get_sort()), m);
                 expr_ref eq(m.mk_eq(c, v), m);
                 assert_expr(eq);
                 vars.push_back(c);
@@ -315,7 +318,7 @@ namespace smt {
             }
             else {
                 if (!pushed) pushed = true, push();                
-                expr_ref c(m.mk_fresh_const("a", m.get_sort(a)), m);
+                expr_ref c(m.mk_fresh_const("a", a->get_sort()), m);
                 expr_ref eq(m.mk_eq(c, a), m);
                 assert_expr(eq);
                 assumptions.push_back(c);                
@@ -328,6 +331,7 @@ namespace smt {
         }
 
         lbool is_sat = check(assumptions.size(), assumptions.c_ptr());
+
         if (is_sat != l_true) {
             TRACE("context", tout << is_sat << "\n";);
             return is_sat;

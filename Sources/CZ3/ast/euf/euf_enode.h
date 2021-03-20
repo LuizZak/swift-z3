@@ -18,6 +18,7 @@ Author:
 #include "util/vector.h"
 #include "util/id_var_list.h"
 #include "util/lbool.h"
+#include "util/approx_set.h"
 #include "ast/ast.h"
 #include "ast/euf/euf_justification.h"
 
@@ -26,6 +27,7 @@ Author:
 namespace euf {
 
     class enode;
+    class egraph;
 
     typedef ptr_vector<enode> enode_vector;
     typedef std::pair<enode*,enode*> enode_pair;
@@ -45,20 +47,24 @@ namespace euf {
         bool          m_commutative{ false };
         bool          m_update_children{ false };
         bool          m_interpreted{ false };
-        bool          m_merge_enabled{ true };
-        bool          m_is_equality{ false };
-        lbool         m_value;
-        unsigned      m_bool_var { UINT_MAX };
-        unsigned      m_class_size{ 1 };
-        unsigned      m_table_id{ UINT_MAX };        
+        bool          m_merge_enabled{ true }; 
+        bool          m_is_equality{ false };   // Does the expression represent an equality
+        lbool         m_value;                  // Assignment by SAT solver for Boolean node
+        unsigned      m_bool_var { UINT_MAX };  // SAT solver variable associated with Boolean node
+        unsigned      m_class_size{ 1 };        // Size of the equivalence class if the enode is the root.
+        unsigned      m_table_id{ UINT_MAX };       
+        unsigned      m_generation { 0 };       // Tracks how many quantifier instantiation rounds were needed to generate this enode.
         enode_vector  m_parents;
-        enode* m_next{ nullptr };
-        enode* m_root{ nullptr };
-        enode* m_target{ nullptr };
-        enode* m_cg { nullptr };
+        enode* m_next   { nullptr };
+        enode* m_root   { nullptr };
+        enode* m_target { nullptr };
+        enode* m_cg     { nullptr };
         th_var_list   m_th_vars;
         justification m_justification;
         unsigned      m_num_args{ 0 };
+        signed char         m_lbl_hash { -1 };  // It is different from -1, if enode is used in a pattern
+        approx_set          m_lbls;
+        approx_set          m_plbls;
         enode* m_args[0];
 
         friend class enode_args;
@@ -72,13 +78,14 @@ namespace euf {
             return sizeof(enode) + num_args * sizeof(enode*);
         }
 
-        static enode* mk(region& r, expr* f, unsigned num_args, enode* const* args) {
+        static enode* mk(region& r, expr* f, unsigned generation, unsigned num_args, enode* const* args) {
             SASSERT(num_args <= (is_app(f) ? to_app(f)->get_num_args() : 0));
             void* mem = r.allocate(get_enode_size(num_args));
             enode* n = new (mem) enode();
             n->m_expr = f;
             n->m_next = n;
             n->m_root = n;
+            n->m_generation = generation, 
             n->m_commutative = num_args == 2 && is_app(f) && to_app(f)->get_decl()->is_commutative();
             n->m_num_args = num_args;
             n->m_merge_enabled = true;
@@ -91,6 +98,20 @@ namespace euf {
 
         static enode* mk_tmp(region& r, unsigned num_args) {
             void* mem = r.allocate(get_enode_size(num_args));
+            enode* n = new (mem) enode();
+            n->m_expr = nullptr;
+            n->m_next = n;
+            n->m_root = n;
+            n->m_commutative = true;
+            n->m_num_args = 2;
+            n->m_merge_enabled = true;
+            for (unsigned i = 0; i < num_args; ++i) 
+                n->m_args[i] = nullptr;            
+            return n;
+        }    
+
+        static enode* mk_tmp(unsigned num_args) {
+            void* mem = memory::allocate(get_enode_size(num_args));
             enode* n = new (mem) enode();
             n->m_expr = nullptr;
             n->m_next = n;
@@ -136,14 +157,20 @@ namespace euf {
         lbool value() const { return m_value;  }
         unsigned bool_var() const { return m_bool_var; }
         bool is_cgr() const { return this == m_cg; }
+        enode* get_cg() const { return m_cg; }
         bool commutative() const { return m_commutative; }
         void mark_interpreted() { SASSERT(num_args() == 0); m_interpreted = true; }
         bool merge_enabled() const { return m_merge_enabled; }
+        bool merge_tf() const { return merge_enabled() && (class_size() > 1 || num_parents() > 0 || num_args() > 0); }
 
         enode* get_arg(unsigned i) const { SASSERT(i < num_args()); return m_args[i]; }        
         unsigned hash() const { return m_expr->hash(); }
+
         unsigned get_table_id() const { return m_table_id; }
         void     set_table_id(unsigned t) { m_table_id = t; }
+
+        unsigned generation() const { return m_generation; }
+        unsigned class_generation();
 
         void mark1() { m_mark1 = true; }
         void unmark1() { m_mark1 = false; }
@@ -172,11 +199,24 @@ namespace euf {
         bool is_root() const { return m_root == this; }
         enode* get_root() const { return m_root; }
         expr*  get_expr() const { return m_expr; }
+        sort*  get_sort() const { return m_expr->get_sort(); }
         app*  get_app() const { return to_app(m_expr); }
         func_decl* get_decl() const { return is_app(m_expr) ? to_app(m_expr)->get_decl() : nullptr; }
         unsigned get_expr_id() const { return m_expr->get_id(); }
         unsigned get_root_id() const { return m_root->m_expr->get_id(); }
         bool children_are_roots() const;
+        enode* get_next() const { return m_next; }
+
+        bool has_lbl_hash() const { return m_lbl_hash >= 0; }
+        unsigned char get_lbl_hash() const { 
+            SASSERT(m_lbl_hash >= 0 && static_cast<unsigned>(m_lbl_hash) < approx_set_traits<unsigned long long>::capacity);
+            return static_cast<unsigned char>(m_lbl_hash);
+        }
+        approx_set & get_lbls() { return m_lbls; }        
+        approx_set & get_plbls() { return m_plbls; }        
+        const approx_set & get_lbls() const { return m_lbls; }        
+        const approx_set & get_plbls() const { return m_plbls; }
+
 
         theory_var get_th_var(theory_id id) const { return m_th_vars.find(id); }
         theory_var get_closest_th_var(theory_id id) const;

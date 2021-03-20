@@ -43,7 +43,7 @@ namespace smt {
             return;
         numeral const & val = lower_bound(v).get_rational();
         value_sort_pair key(val, is_int_src(v));
-        TRACE("arith_eq", tout << mk_pp(get_enode(v)->get_owner(), get_manager()) << " = " << val << "\n";);
+        TRACE("arith_eq", tout << mk_pp(get_enode(v)->get_expr(), get_manager()) << " = " << val << "\n";);
         theory_var v2;
         if (m_fixed_var_table.find(key, v2)) {
             if (v2 < static_cast<int>(get_num_vars()) && is_fixed(v2) && lower_bound(v2).get_rational() == val) {
@@ -319,10 +319,11 @@ namespace smt {
     void theory_arith<Ext>::propagate_eq_to_core(theory_var x, theory_var y, antecedents& antecedents) {
         // Ignore equality if variables are already known to be equal.
         ast_manager& m = get_manager();
+        (void)m;
         if (is_equal(x, y))
             return;
         // I doesn't make sense to propagate an equality (to the core) of variables of different sort.
-        if (m.get_sort(var2expr(x)) != m.get_sort(var2expr(y))) {
+        if (var2expr(x)->get_sort() != var2expr(y)->get_sort()) {
             TRACE("arith", tout << mk_pp(var2expr(x), m) << " = " << mk_pp(var2expr(y), m) << "\n";);
             return;
         }
@@ -348,10 +349,10 @@ namespace smt {
                   tout << "\n";
               } 
               for (auto const& p : eqs) {
-                  tout << mk_pp(p.first->get_owner(), m) << " = " << mk_pp(p.second->get_owner(), m) << "\n";
+                  tout << mk_pp(p.first->get_expr(), m) << " = " << mk_pp(p.second->get_expr(), m) << "\n";
               } 
               tout << " ==> ";
-              tout << mk_pp(_x->get_owner(), m) << " = " << mk_pp(_y->get_owner(), m) << "\n";
+              tout << mk_pp(_x->get_expr(), m) << " = " << mk_pp(_y->get_expr(), m) << "\n";
               );
         ctx.assign_eq(_x, _y, eq_justification(js));
     }

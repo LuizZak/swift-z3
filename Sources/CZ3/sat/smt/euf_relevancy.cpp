@@ -57,6 +57,8 @@ namespace euf {
         m_relevant_expr_ids.reset();
         bool_vector visited;
         ptr_vector<expr> todo;
+        if (!relevancy_enabled())
+            return true;
         if (!m_dual_solver)
             return true;
         if (!(*m_dual_solver)(s()))
@@ -81,7 +83,7 @@ namespace euf {
             if (!is_app(e))
                 continue;
             expr* c = nullptr, *th = nullptr, *el = nullptr;
-            if (m.is_ite(e, c, th, el)) {
+            if (m.is_ite(e, c, th, el) && get_enode(c)) {
                 sat::literal lit = expr2literal(c);
                 todo.push_back(c);
                 switch (s().value(lit)) {

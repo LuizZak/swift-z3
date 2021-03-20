@@ -23,12 +23,12 @@ Notes:
 #include "ast/bv_decl_plugin.h"
 #include "ast/datatype_decl_plugin.h"
 #include "ast/ast_pp.h"
+#include "ast/rewriter/enum2bv_rewriter.h"
 #include "model/model_smt2_pp.h"
 #include "tactic/tactic.h"
 #include "tactic/generic_model_converter.h"
-#include "solver/solver_na2as.h"
-#include "ast/rewriter/enum2bv_rewriter.h"
 #include "tactic/fd_solver/enum2bv_solver.h"
+#include "solver/solver_na2as.h"
 
 class enum2bv_solver : public solver_na2as {
     ast_manager&     m;
@@ -89,6 +89,10 @@ public:
     void set_progress_callback(progress_callback * callback) override { m_solver->set_progress_callback(callback);  }
     void collect_statistics(statistics & st) const override { m_solver->collect_statistics(st); }
     void get_unsat_core(expr_ref_vector & r) override { m_solver->get_unsat_core(r); }
+    void set_phase(expr* e) override { m_solver->set_phase(e); }
+    phase* get_phase() override { return m_solver->get_phase(); }
+    void set_phase(phase* p) override { m_solver->set_phase(p); }
+    void move_to_front(expr* e) override { m_solver->move_to_front(e); }
     void get_model_core(model_ref & mdl) override { 
         m_solver->get_model(mdl);
         if (mdl) {

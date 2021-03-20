@@ -220,6 +220,7 @@ namespace sat {
                 frames.pop_back();
             }
         }
+
         for (unsigned i = 0; i < m_solver.num_vars(); ++i) {
             if (roots[i] == null_literal) {
                 roots[i] = literal(i, false);

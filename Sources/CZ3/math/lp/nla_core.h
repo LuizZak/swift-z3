@@ -150,6 +150,11 @@ class core {
     };
     stats                    m_stats;
     friend class new_lemma;
+
+    unsigned m_nlsat_delay { 50 };
+    unsigned m_nlsat_fails { 0 };
+    bool should_run_bounded_nlsat();
+    lbool bounded_nlsat();
 public:
     var_eqs<emonics>         m_evars;
     lp::lar_solver&          m_lar_solver;
@@ -178,6 +183,9 @@ private:
     bool                     m_cautious_patching;
     lpvar                    m_patched_var;
     monic const*             m_patched_monic;      
+
+    void check_weighted(unsigned sz, std::pair<unsigned, std::function<void(void)>>* checks);
+
 public:    
     void insert_to_refine(lpvar j);
     void erase_from_to_refine(lpvar j);

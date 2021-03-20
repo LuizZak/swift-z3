@@ -291,9 +291,9 @@ namespace qel {
             if (m.is_eq(e, lhs, rhs) && trivial_solve(lhs, rhs, e, vs, ts)) {
                 return true;
             }
-            family_id fid = get_sort(e)->get_family_id();
+            family_id fid = e->get_sort()->get_family_id();
             if (m.is_eq(e, lhs, rhs)) {
-                fid = get_sort(lhs)->get_family_id();
+                fid = lhs->get_sort()->get_family_id();
             }
             auto* p = m_solvers.get_plugin(fid);
             if (p) {
@@ -615,7 +615,7 @@ namespace qel {
         }
 
         bool is_unconstrained(var* x, expr* t, unsigned i, expr_ref_vector const& conjs) {
-            sort* s = m.get_sort(x);
+            sort* s = x->get_sort();
             if (!m.is_fully_interp(s) || !s->get_num_elements().is_infinite()) return false;
             bool occ = occurs_var(x->get_idx(), t);
             for (unsigned j = 0; !occ && j < conjs.size(); ++j) {
@@ -1421,7 +1421,7 @@ namespace fm {
             fm & m_owner;
             forbidden_proc(fm & o):m_owner(o) {}
             void operator()(::var * n) {
-                if (m_owner.is_var(n) && m_owner.m.get_sort(n)->get_family_id() == m_owner.m_util.get_family_id()) {
+                if (m_owner.is_var(n) && n->get_sort()->get_family_id() == m_owner.m_util.get_family_id()) {
                     m_owner.m_forbidden_set.insert(n->get_idx());
                 }
             }
@@ -2307,7 +2307,7 @@ public:
         ptr_vector<sort> sorts;
         svector<symbol> names;
         for (unsigned i = 0; i < vars.size(); ++i) {
-            sorts.push_back(m.get_sort(vars[i].get()));
+            sorts.push_back(vars[i]->get_sort());
             names.push_back(vars[i]->get_decl()->get_name());
         }
         q = m.mk_exists(vars.size(), sorts.c_ptr(), names.c_ptr(), tmp, 1, qe_lite);

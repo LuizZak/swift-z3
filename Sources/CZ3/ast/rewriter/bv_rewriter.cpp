@@ -31,7 +31,6 @@ void bv_rewriter::updt_local_params(params_ref const & _p) {
     m_bit2bool = p.bit2bool();
     m_blast_eq_value = p.blast_eq_value();
     m_split_concat_eq = p.split_concat_eq();
-    m_bvnot2arith = p.bvnot2arith();
     m_bvnot_simpl = p.bv_not_simpl();
     m_bv_sort_ac = p.bv_sort_ac();
     m_mkbv2num = _p.get_bool("mkbv2num", false);
@@ -1986,14 +1985,6 @@ br_status bv_rewriter::mk_bv_not(expr * arg, expr_ref & result) {
         return BR_REWRITE2;
     }
 
-    if (m_bvnot2arith) {
-        // (bvnot x) --> (bvsub -1 x)
-        bv_size = get_bv_size(arg);
-        rational minus_one = (rational::power_of_two(bv_size) - numeral(1));
-        result = m_util.mk_bv_sub(m_util.mk_numeral(minus_one, bv_size), arg);
-        return BR_REWRITE1;
-    }
-
     if (m_bvnot_simpl) {
         expr *s(nullptr), *t(nullptr);
         if (m_util.is_bv_mul(arg, s, t)) {
@@ -2302,16 +2293,15 @@ br_status bv_rewriter::mk_bit2bool(expr * lhs, expr * rhs, expr_ref & result) {
         return BR_DONE;
     }
 
-    if (m().is_ite(lhs)) {
-        result = m().mk_ite(to_app(lhs)->get_arg(0),
-                            m().mk_eq(to_app(lhs)->get_arg(1), rhs),
-                            m().mk_eq(to_app(lhs)->get_arg(2), rhs));
+    expr* a = nullptr, *b = nullptr, *c = nullptr;
+    if (m().is_ite(lhs, a, b, c)) {
+        result = m().mk_ite(a, m().mk_eq(b, rhs), m().mk_eq(c, rhs));
         return BR_REWRITE2;
     }
-
-    if (m_util.is_bv_not(lhs)) {
+    
+    if (m_util.is_bv_not(lhs, a)) {
         SASSERT(v.is_one() || v.is_zero());
-        result = m().mk_eq(to_app(lhs)->get_arg(0), mk_numeral(numeral(1) - v, 1));
+        result = m().mk_eq(a, mk_numeral(numeral(1) - v, 1));
         return BR_REWRITE1;
     }
 
@@ -2322,11 +2312,9 @@ br_status bv_rewriter::mk_bit2bool(expr * lhs, expr * rhs, expr_ref & result) {
 
     if (m_util.is_bv_or(lhs)) {
         ptr_buffer<expr> new_args;
-        unsigned num = to_app(lhs)->get_num_args();
-        for (unsigned i = 0; i < num; i++) {
-            new_args.push_back(m().mk_eq(to_app(lhs)->get_arg(i), bit1));
-        }
-        result = m().mk_or(new_args.size(), new_args.c_ptr());
+        for (expr* arg : *to_app(lhs))
+            new_args.push_back(m().mk_eq(arg, bit1));
+        result = m().mk_or(new_args);
         if (is_one) {
             return BR_REWRITE2;
         }
@@ -2339,12 +2327,10 @@ br_status bv_rewriter::mk_bit2bool(expr * lhs, expr * rhs, expr_ref & result) {
 
     if (m_util.is_bv_xor(lhs)) {
         ptr_buffer<expr> new_args;
-        unsigned num = to_app(lhs)->get_num_args();
-        for (unsigned i = 0; i < num; i++) {
-            new_args.push_back(m().mk_eq(to_app(lhs)->get_arg(i), bit1));
-        }
+        for (expr* arg : *to_app(lhs))
+            new_args.push_back(m().mk_eq(arg, bit1));
         // TODO: bool xor is not flat_assoc... must fix that.
-        result = m().mk_xor(new_args.size(), new_args.c_ptr());
+        result = m().mk_xor(new_args);
         if (is_one) {
             return BR_REWRITE2;
         }
@@ -2381,7 +2367,7 @@ br_status bv_rewriter::mk_blast_eq_value(expr * lhs, expr * rhs, expr_ref & resu
                                      mk_numeral(bit0 ? 0 : 1, 1)));
         div(v, two, v);
     }
-    result = m().mk_and(new_args.size(), new_args.c_ptr());
+    result = m().mk_and(new_args);
     return BR_REWRITE3;
 }
 
@@ -2447,7 +2433,7 @@ br_status bv_rewriter::mk_eq_concat(expr * lhs, expr * rhs, expr_ref & result) {
     }
     SASSERT(i1 == 0 && i2 == 0);
     SASSERT(new_eqs.size() >= 1);
-    result = m().mk_and(new_eqs.size(), new_eqs.c_ptr());
+    result = m().mk_and(new_eqs);
     return BR_REWRITE3;
 }
 
@@ -2615,6 +2601,13 @@ br_status bv_rewriter::mk_eq_core(expr * lhs, expr * rhs, expr_ref & result) {
         swapped = true;
         std::swap(lhs, rhs);
     }
+
+#if 0
+    if (!gcd_test(lhs, rhs)) {
+        result = m().mk_false();
+        return BR_DONE;
+    }
+#endif        
 
     br_status st;
     if (m_bit2bool) {

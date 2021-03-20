@@ -27,6 +27,7 @@ struct smt_params_helper {
     d.insert("delay_units_threshold", CPK_UINT, "maximum number of learned unit clauses before restarting, ignored if delay_units is false", "32","smt");
     d.insert("pull_nested_quantifiers", CPK_BOOL, "pull nested quantifiers", "false","smt");
     d.insert("refine_inj_axioms", CPK_BOOL, "refine injectivity axioms", "true","smt");
+    d.insert("candidate_models", CPK_BOOL, "create candidate models even when quantifier or theory reasoning is incomplete", "false","smt");
     d.insert("max_conflicts", CPK_UINT, "maximum number of conflicts before giving up.", "4294967295","smt");
     d.insert("restart.max", CPK_UINT, "maximal number of restarts.", "4294967295","smt");
     d.insert("cube_depth", CPK_UINT, "cube depth.", "1","smt");
@@ -56,7 +57,6 @@ struct smt_params_helper {
     d.insert("bv.watch_diseq", CPK_BOOL, "use watch lists instead of eager axioms for bit-vectors", "false","smt");
     d.insert("bv.delay", CPK_BOOL, "delay internalize expensive bit-vector operations", "true","smt");
     d.insert("arith.random_initial_value", CPK_BOOL, "use random initial values in the simplex-based procedure for linear arithmetic", "false","smt");
-    d.insert("arith.cheap_eqs", CPK_BOOL, "false - do not run, true - run cheap equality heuristic", "true","smt");
     d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "6","smt");
     d.insert("arith.nl", CPK_BOOL, "(incomplete) nonlinear arithmetic support based on Groebner basis and interval propagation, relevant only if smt.arith.solver=2", "true","smt");
     d.insert("arith.nl.nra", CPK_BOOL, "call nra_solver when incremental lianirization does not produce a lemma, this option is ignored when arith.nl=false, relevant only if smt.arith.solver=6", "true","smt");
@@ -78,6 +78,7 @@ struct smt_params_helper {
     d.insert("arith.nl.grobner_cnfl_to_report", CPK_UINT, "grobner's maximum number of conflicts to report", "1","smt");
     d.insert("arith.nl.gr_q", CPK_UINT, "grobner's quota", "10","smt");
     d.insert("arith.nl.grobner_subs_fixed", CPK_UINT, "0 - no subs, 1 - substitute, 2 - substitute fixed zeros only", "2","smt");
+    d.insert("arith.nl.delay", CPK_UINT, "number of calls to final check before invoking bounded nlsat check", "500","smt");
     d.insert("arith.propagate_eqs", CPK_BOOL, "propagate (cheap) equalities", "true","smt");
     d.insert("arith.propagation_mode", CPK_UINT, "0 - no propagation, 1 - propagate existing literals, 2 - refine finite bounds", "1","smt");
     d.insert("arith.reflect", CPK_BOOL, "reflect arithmetical operators to the congruence closure", "true","smt");
@@ -90,7 +91,6 @@ struct smt_params_helper {
     d.insert("arith.auto_config_simplex", CPK_BOOL, "force simplex solver in auto_config", "false","smt");
     d.insert("arith.rep_freq", CPK_UINT, "the report frequency, in how many iterations print the cost and other info", "0","smt");
     d.insert("arith.min", CPK_BOOL, "minimize cost", "false","smt");
-    d.insert("arith.bounded_expansion", CPK_BOOL, "box variables used in branch and bound into bound assumptions", "false","smt");
     d.insert("arith.print_stats", CPK_BOOL, "print statistic", "false","smt");
     d.insert("arith.simplex_strategy", CPK_UINT, "simplex strategy for the solver", "0","smt");
     d.insert("arith.enable_hnf", CPK_BOOL, "enable hnf (Hermite Normal Form) cuts", "true","smt");
@@ -112,7 +112,6 @@ struct smt_params_helper {
     d.insert("core.validate", CPK_BOOL, "[internal] validate unsat core produced by SMT context. This option is intended for debugging", "false","smt");
     d.insert("seq.split_w_len", CPK_BOOL, "enable splitting guided by length constraints", "true","smt");
     d.insert("seq.validate", CPK_BOOL, "enable self-validation of theory axioms created by seq theory", "false","smt");
-    d.insert("seq.use_unicode", CPK_BOOL, "dev flag (not for users) enable unicode semantics", "false","smt");
     d.insert("str.strong_arrangements", CPK_BOOL, "assert equivalences instead of implications when generating string arrangement axioms", "true","smt");
     d.insert("str.aggressive_length_testing", CPK_BOOL, "prioritize testing concrete length values over generating more options", "false","smt");
     d.insert("str.aggressive_value_testing", CPK_BOOL, "prioritize testing concrete string constant values over generating more options", "false","smt");
@@ -158,6 +157,7 @@ struct smt_params_helper {
   unsigned delay_units_threshold() const { return p.get_uint("delay_units_threshold", g, 32u); }
   bool pull_nested_quantifiers() const { return p.get_bool("pull_nested_quantifiers", g, false); }
   bool refine_inj_axioms() const { return p.get_bool("refine_inj_axioms", g, true); }
+  bool candidate_models() const { return p.get_bool("candidate_models", g, false); }
   unsigned max_conflicts() const { return p.get_uint("max_conflicts", g, 4294967295u); }
   unsigned restart_max() const { return p.get_uint("restart.max", g, 4294967295u); }
   unsigned cube_depth() const { return p.get_uint("cube_depth", g, 1u); }
@@ -187,7 +187,6 @@ struct smt_params_helper {
   bool bv_watch_diseq() const { return p.get_bool("bv.watch_diseq", g, false); }
   bool bv_delay() const { return p.get_bool("bv.delay", g, true); }
   bool arith_random_initial_value() const { return p.get_bool("arith.random_initial_value", g, false); }
-  bool arith_cheap_eqs() const { return p.get_bool("arith.cheap_eqs", g, true); }
   unsigned arith_solver() const { return p.get_uint("arith.solver", g, 6u); }
   bool arith_nl() const { return p.get_bool("arith.nl", g, true); }
   bool arith_nl_nra() const { return p.get_bool("arith.nl.nra", g, true); }
@@ -209,6 +208,7 @@ struct smt_params_helper {
   unsigned arith_nl_grobner_cnfl_to_report() const { return p.get_uint("arith.nl.grobner_cnfl_to_report", g, 1u); }
   unsigned arith_nl_gr_q() const { return p.get_uint("arith.nl.gr_q", g, 10u); }
   unsigned arith_nl_grobner_subs_fixed() const { return p.get_uint("arith.nl.grobner_subs_fixed", g, 2u); }
+  unsigned arith_nl_delay() const { return p.get_uint("arith.nl.delay", g, 500u); }
   bool arith_propagate_eqs() const { return p.get_bool("arith.propagate_eqs", g, true); }
   unsigned arith_propagation_mode() const { return p.get_uint("arith.propagation_mode", g, 1u); }
   bool arith_reflect() const { return p.get_bool("arith.reflect", g, true); }
@@ -221,7 +221,6 @@ struct smt_params_helper {
   bool arith_auto_config_simplex() const { return p.get_bool("arith.auto_config_simplex", g, false); }
   unsigned arith_rep_freq() const { return p.get_uint("arith.rep_freq", g, 0u); }
   bool arith_min() const { return p.get_bool("arith.min", g, false); }
-  bool arith_bounded_expansion() const { return p.get_bool("arith.bounded_expansion", g, false); }
   bool arith_print_stats() const { return p.get_bool("arith.print_stats", g, false); }
   unsigned arith_simplex_strategy() const { return p.get_uint("arith.simplex_strategy", g, 0u); }
   bool arith_enable_hnf() const { return p.get_bool("arith.enable_hnf", g, true); }
@@ -243,7 +242,6 @@ struct smt_params_helper {
   bool core_validate() const { return p.get_bool("core.validate", g, false); }
   bool seq_split_w_len() const { return p.get_bool("seq.split_w_len", g, true); }
   bool seq_validate() const { return p.get_bool("seq.validate", g, false); }
-  bool seq_use_unicode() const { return p.get_bool("seq.use_unicode", g, false); }
   bool str_strong_arrangements() const { return p.get_bool("str.strong_arrangements", g, true); }
   bool str_aggressive_length_testing() const { return p.get_bool("str.aggressive_length_testing", g, false); }
   bool str_aggressive_value_testing() const { return p.get_bool("str.aggressive_value_testing", g, false); }

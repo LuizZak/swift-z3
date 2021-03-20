@@ -342,7 +342,7 @@ br_status arith_rewriter::is_separated(expr* arg1, expr* arg2, op_kind kind, exp
     }
 
     SASSERT(r1 == r2);
-    expr_ref zero(m_util.mk_numeral(rational(0), m().get_sort(arg1)), m());
+    expr_ref zero(m_util.mk_numeral(rational(0), arg1->get_sort()), m());
 
     if (r1.is_zero() && m_util.is_mul(arg1)) {
         expr_ref_buffer eqs(m());
@@ -480,10 +480,12 @@ expr * arith_rewriter::reduce_power(expr * arg, bool is_eq) {
         if (m_util.is_power(arg, arg0, arg1) && m_util.is_numeral(arg1, k) && k.is_int() &&
             ((is_eq && k > rational(1)) || (!is_eq && k > rational(2)))) {
             if (is_eq || !k.is_even()) {
+                if (m_util.is_int(arg0))
+                    arg0 = m_util.mk_to_real(arg0);
                 new_args.push_back(arg0);
             }
             else {
-                new_args.push_back(m_util.mk_power(arg0, m_util.mk_numeral(rational(2), m_util.is_int(arg))));
+                new_args.push_back(m_util.mk_power(arg0, m_util.mk_real(2)));
             }
         }
         else {
@@ -929,7 +931,7 @@ br_status arith_rewriter::mk_div_core(expr * arg1, expr * arg2, expr_ref & resul
         if (m_util.is_irrational_algebraic_numeral(arg2) && m_util.is_numeral(arg1))
             return mk_div_rat_irrat(arg1, arg2, result);
     }
-    set_curr_sort(m().get_sort(arg1));
+    set_curr_sort(arg1->get_sort());
     numeral v1, v2;
     bool is_int;
     if (m_util.is_numeral(arg2, v2, is_int)) {
@@ -990,7 +992,7 @@ br_status arith_rewriter::mk_idivides(unsigned k, expr * arg, expr_ref & result)
 }
 
 br_status arith_rewriter::mk_idiv_core(expr * arg1, expr * arg2, expr_ref & result) {
-    set_curr_sort(m().get_sort(arg1));
+    set_curr_sort(arg1->get_sort());
     numeral v1, v2;
     bool is_int;
     if (m_util.is_numeral(arg1, v1, is_int) && m_util.is_numeral(arg2, v2, is_int) && !v2.is_zero()) {
@@ -1042,7 +1044,6 @@ br_status arith_rewriter::mk_idiv_core(expr * arg1, expr * arg2, expr_ref & resu
     } 
     return BR_FAILED;
 }
- 
 
 //  
 // implement div ab ac = floor( ab / ac) = floor (b / c) = div b c 
@@ -1141,7 +1142,7 @@ static rational symmod(rational const& a, rational const& b) {
 }
     
 br_status arith_rewriter::mk_mod_core(expr * arg1, expr * arg2, expr_ref & result) {
-    set_curr_sort(m().get_sort(arg1));
+    set_curr_sort(arg1->get_sort());
     numeral v1, v2;
     bool is_int;
     if (m_util.is_numeral(arg1, v1, is_int) && m_util.is_numeral(arg2, v2, is_int) && !v2.is_zero()) {
@@ -1202,7 +1203,7 @@ br_status arith_rewriter::mk_mod_core(expr * arg1, expr * arg2, expr_ref & resul
 }
 
 br_status arith_rewriter::mk_rem_core(expr * arg1, expr * arg2, expr_ref & result) {
-    set_curr_sort(m().get_sort(arg1));
+    set_curr_sort(arg1->get_sort());
     numeral v1, v2;
     bool is_int;
     if (m_util.is_numeral(arg1, v1, is_int) && m_util.is_numeral(arg2, v2, is_int) && !v2.is_zero()) {
@@ -1244,6 +1245,23 @@ br_status arith_rewriter::mk_rem_core(expr * arg1, expr * arg2, expr_ref & resul
         return BR_REWRITE3;
     }
     return BR_FAILED;
+}
+
+expr* arith_rewriter_core::coerce(expr* x, sort* s) {
+    if (m_util.is_int(x) && m_util.is_real(s))
+        return m_util.mk_to_real(x);
+    if (m_util.is_real(x) && m_util.is_int(s))
+        return m_util.mk_to_int(x);
+    return x;
+}
+
+app* arith_rewriter_core::mk_power(expr* x, rational const& r, sort* s) { 
+    SASSERT(r.is_unsigned() && r.is_pos());
+    bool is_int = m_util.is_int(x);
+    app* y = m_util.mk_power(x, m_util.mk_numeral(r, is_int));
+    if (m_util.is_int(s))
+        y = m_util.mk_to_int(y);
+    return y;
 }
 
 br_status arith_rewriter::mk_power_core(expr * arg1, expr * arg2, expr_ref & result) {
@@ -1446,6 +1464,9 @@ br_status arith_rewriter::mk_to_int_core(expr * arg, expr_ref & result) {
                 real_args.push_back(c);
             }
         }
+        if (real_args.empty() && m_util.is_power(arg))
+            return BR_FAILED;
+        
         if (real_args.empty()) {
             result = m().mk_app(get_fid(), to_app(arg)->get_decl()->get_decl_kind(), int_args.size(), int_args.c_ptr());
             return BR_REWRITE1;

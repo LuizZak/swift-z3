@@ -54,6 +54,7 @@ struct evaluator_cfg : public default_rewriter_cfg {
     array_util                      m_ar;
     arith_util                      m_au;
     fpa_util                        m_fpau;
+    datatype::util                  m_dt;
     unsigned long long              m_max_memory;
     unsigned                        m_max_steps;
     bool                            m_model_completion;
@@ -80,6 +81,7 @@ struct evaluator_cfg : public default_rewriter_cfg {
         m_ar(m),
         m_au(m),
         m_fpau(m),
+        m_dt(m),
         m_pinned(m) {
         bool flat = true;
         m_b_rw.set_flat(flat);
@@ -147,9 +149,8 @@ struct evaluator_cfg : public default_rewriter_cfg {
     br_status reduce_app(func_decl * f, unsigned num, expr * const * args, expr_ref & result, proof_ref & result_pr) {
         auto st = reduce_app_core(f, num, args, result, result_pr);
         CTRACE("model_evaluator", st != BR_FAILED, 
-               tout << f->get_name() << " ";
-               for (unsigned i = 0; i < num; ++i) tout << mk_pp(args[i], m) << " ";
-               tout << "\n";
+               tout << f->get_name() << "\n";
+               for (unsigned i = 0; i < num; ++i) tout << mk_pp(args[i], m) << "\n";
                tout << result << "\n";);
                
         return st;
@@ -196,7 +197,7 @@ struct evaluator_cfg : public default_rewriter_cfg {
             if (k == OP_EQ) {
                 // theory dispatch for =
                 SASSERT(num == 2);
-                sort* s = m.get_sort(args[0]);
+                sort* s = args[0]->get_sort();
                 family_id s_fid = s->get_family_id();
                 if (s_fid == m_a_rw.get_fid())
                     st = m_a_rw.mk_eq_core(args[0], args[1], result);
@@ -284,7 +285,7 @@ struct evaluator_cfg : public default_rewriter_cfg {
         if (m_array_as_stores &&
             m_ar.is_array(val) &&
             extract_array_func_interp(val, stores, else_case, _unused)) {
-            sort* srt = m.get_sort(val);
+            sort* srt = val->get_sort();
             val = m_ar.mk_const_array(srt, else_case);
             for (unsigned i = stores.size(); i-- > 0; ) {
                 expr_ref_vector args(m);
@@ -352,6 +353,7 @@ struct evaluator_cfg : public default_rewriter_cfg {
             if (f_ui) {
                 fi = m_model.get_func_interp(f_ui); 
             }
+
             if (!fi) {
                 result = m_au.mk_numeral(rational(0), f->get_range());
                 return BR_DONE;
@@ -400,7 +402,7 @@ struct evaluator_cfg : public default_rewriter_cfg {
             if (m.are_equal(else1, else2)) {
                 // no op
             }
-            else if (m.are_distinct(else1, else2) && !(m.get_sort(else1)->get_info()->get_num_elements().is_finite())) {
+            else if (m.are_distinct(else1, else2) && !(else1->get_sort()->get_info()->get_num_elements().is_finite())) {
                 result = m.mk_false();
                 return BR_DONE;
             }

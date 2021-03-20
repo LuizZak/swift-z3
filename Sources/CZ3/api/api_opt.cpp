@@ -105,7 +105,8 @@ extern "C" {
         Z3_TRY;
         LOG_Z3_optimize_maximize(c, o, t);
         RESET_ERROR_CODE();
-        CHECK_VALID_AST(t,0);        
+        CHECK_VALID_AST(t, 0);        
+        CHECK_IS_EXPR(t, 0);
         return to_optimize_ptr(o)->add_objective(to_app(t), true);
         Z3_CATCH_RETURN(0);
     }
@@ -114,7 +115,8 @@ extern "C" {
         Z3_TRY;
         LOG_Z3_optimize_minimize(c, o, t);
         RESET_ERROR_CODE();
-        CHECK_VALID_AST(t,0);        
+        CHECK_VALID_AST(t, 0);  
+        CHECK_IS_EXPR(t, 0);      
         return to_optimize_ptr(o)->add_objective(to_app(t), false);
         Z3_CATCH_RETURN(0);
     }
@@ -166,7 +168,7 @@ extern "C" {
                     mk_c(c)->handle_exception(ex);
                 }
                 r = l_undef;
-                if (ex.msg() == std::string("canceled") && !mk_c(c)->m().inc()) {
+                if (!mk_c(c)->m().inc()) {
                     to_optimize_ptr(o)->set_reason_unknown(ex.msg());
                 }
                 else {
@@ -197,7 +199,7 @@ extern "C" {
 
     Z3_string Z3_API Z3_optimize_get_reason_unknown(Z3_context c, Z3_optimize o) {
         Z3_TRY;
-        LOG_Z3_optimize_to_string(c, o);
+        LOG_Z3_optimize_get_reason_unknown(c, o);
         RESET_ERROR_CODE();
         return mk_c(c)->mk_external_string(to_optimize_ptr(o)->reason_unknown());
         Z3_CATCH_RETURN("");
@@ -431,6 +433,31 @@ extern "C" {
         }
         RETURN_Z3(of_ast_vector(v));
         Z3_CATCH_RETURN(nullptr);
+    }
+
+    static void optimize_on_model(opt::on_model_t& o, model_ref& m) {
+        auto model_eh = (void(*)(void*)) o.on_model;
+        Z3_model_ref * m_ref = (Z3_model_ref*) o.m;
+        m_ref->m_model = m.get();
+        model_eh(o.user_context);
+    }
+
+    void Z3_API Z3_optimize_register_model_eh(
+        Z3_context   c, 
+        Z3_optimize  o, 
+        Z3_model     m,
+        void*        user_context,
+        Z3_model_eh  model_eh) {
+        Z3_TRY;
+
+        std::function<void(opt::on_model_t&, model_ref&)> _model_eh = optimize_on_model;
+        opt::on_model_t ctx;
+        ctx.c = c;
+        ctx.m = m;
+        ctx.user_context = user_context;
+        ctx.on_model = (void*)model_eh;
+        to_optimize_ptr(o)->register_on_model(ctx, _model_eh);
+        Z3_CATCH;
     }
 
 

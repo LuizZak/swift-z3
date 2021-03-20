@@ -24,26 +24,26 @@ Author:
 
 namespace bv {
 
-    class solver::bit_trail : public trail<euf::solver> {
+    class solver::bit_trail : public trail {
         solver& s;
         solver::var_pos vp;
         sat::literal lit;
     public:
         bit_trail(solver& s, var_pos vp) : s(s), vp(vp), lit(s.m_bits[vp.first][vp.second]) {}
 
-        virtual void undo(euf::solver& euf) {
+        void undo() override {
             s.m_bits[vp.first][vp.second] = lit;
         }
     };
 
-    class solver::bit_occs_trail : public trail<euf::solver> {
+    class solver::bit_occs_trail : public trail {
         atom& a;
         var_pos_occ* m_occs;
 
     public:
         bit_occs_trail(solver& s, atom& a): a(a), m_occs(a.m_occs) {}
         
-        virtual void undo(euf::solver& euf) {
+        void undo() override {
             a.m_occs = m_occs;
         }
     };
@@ -341,14 +341,15 @@ namespace bv {
     void solver::log_drat(bv_justification const& c) {
         // introduce dummy literal for equality.
         sat::literal leq(s().num_vars() + 1, false);
-        expr* e1 = var2expr(c.m_v1);
-        expr* e2 = var2expr(c.m_v2);
-        expr_ref eq(m.mk_eq(e1, e2), m);
-        ctx.get_drat().def_begin('e', eq->get_id(), std::string("="));
-        ctx.get_drat().def_add_arg(e1->get_id());
-        ctx.get_drat().def_add_arg(e2->get_id());
-        ctx.get_drat().def_end();
-        ctx.get_drat().bool_def(leq.var(), eq->get_id());
+        expr_ref eq(m);
+        if (c.m_kind != bv_justification::kind_t::bit2ne) {
+            expr* e1 = var2expr(c.m_v1);
+            expr* e2 = var2expr(c.m_v2);
+            eq = m.mk_eq(e1, e2);       
+            ctx.drat_eq_def(leq, eq);
+        }
+
+        static unsigned s_count = 0;
 
         sat::literal_vector lits;
         switch (c.m_kind) {
@@ -395,13 +396,13 @@ namespace bv {
         if (m_prop_queue_head == m_prop_queue.size())
             return false;
         force_push();
-        ctx.push(value_trail<euf::solver, unsigned>(m_prop_queue_head));
+        ctx.push(value_trail<unsigned>(m_prop_queue_head));
         for (; m_prop_queue_head < m_prop_queue.size() && !s().inconsistent(); ++m_prop_queue_head) {
             auto const p = m_prop_queue[m_prop_queue_head];
             if (p.m_atom) {
                 for (auto vp : *p.m_atom)
                     propagate_bits(vp);
-                for (auto const& eq : p.m_atom->eqs()) 
+                for (eq_occurs const& eq : p.m_atom->eqs()) 
                     propagate_eq_occurs(eq);                
             }
             else 
@@ -541,7 +542,7 @@ namespace bv {
             SASSERT(l2.var() == l.var());
             VERIFY(l2.var() == l.var());
             sat::literal r2 = (l.sign() == l2.sign()) ? r : ~r;
-            ctx.push(vector2_value_trail<euf::solver, bits_vector, sat::literal>(m_bits, vp.first, vp.second));
+            ctx.push(vector2_value_trail<bits_vector, sat::literal>(m_bits, vp.first, vp.second));
             m_bits[vp.first][vp.second] = r2;
             set_bit_eh(vp.first, r2, vp.second);
         }
@@ -673,7 +674,7 @@ namespace bv {
             result->m_bool_var2atom.setx(i, new_a, nullptr);
             for (auto vp : *a)
                 new_a->m_occs = new (result->get_region()) var_pos_occ(vp.first, vp.second, new_a->m_occs);
-            for (auto const& occ : a->eqs()) {
+            for (eq_occurs const& occ : a->eqs()) {
                 expr* e = occ.m_node->get_expr();
                 expr_ref e2(tr(e), tr.to());
                 euf::enode* n = ctx.get_enode(e2);
@@ -692,7 +693,6 @@ namespace bv {
     bool solver::is_blocked(literal l, sat::ext_constraint_idx) { return false; }
     bool solver::check_model(sat::model const& m) const { return true; }
     void solver::finalize_model(model& mdl) {}
-    unsigned solver::max_var(unsigned w) const { return w; }
 
     void solver::add_value(euf::enode* n, model& mdl, expr_ref_vector& values) {
         SASSERT(bv.is_bv(n->get_expr()));
@@ -716,7 +716,7 @@ namespace bv {
         values[n->get_root_id()] = bv.mk_numeral(val, m_bits[v].size());
     }
 
-    trail_stack<euf::solver>& solver::get_trail_stack() {
+    trail_stack& solver::get_trail_stack() {
         return ctx.get_trail_stack();
     }
 

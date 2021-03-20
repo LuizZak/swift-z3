@@ -19,7 +19,7 @@ Author:
 #include "ast/ast_ll_pp.h"
 #include "sat/sat_solver.h"
 #include "sat/smt/sat_smt.h"
-#include "sat/smt/ba_solver.h"
+#include "sat/smt/pb_solver.h"
 #include "sat/smt/bv_solver.h"
 #include "sat/smt/euf_solver.h"
 #include "sat/smt/array_solver.h"
@@ -27,21 +27,27 @@ Author:
 #include "sat/smt/q_solver.h"
 #include "sat/smt/fpa_solver.h"
 #include "sat/smt/dt_solver.h"
+#include "sat/smt/recfun_solver.h"
 
 namespace euf {
+
+    std::ostream& clause_pp::display(std::ostream& out) const {
+        for (auto lit : lits)
+            out << s.literal2expr(lit) << " ";
+        return out;
+    }
 
     solver::solver(ast_manager& m, sat::sat_internalizer& si, params_ref const& p) :
         extension(symbol("euf"), m.mk_family_id("euf")),
         m(m),
         si(si),
         m_egraph(m),
-        m_trail(*this),
+        m_trail(),
         m_rewriter(m),
         m_unhandled_functions(m),
         m_lookahead(nullptr),
         m_to_m(&m),
         m_to_si(&si),
-        m_reinit_exprs(m),
         m_values(m)
     {
         updt_params(p);
@@ -96,14 +102,17 @@ namespace euf {
             return ext;
         if (fid == m.get_basic_family_id())
             return nullptr;
+        if (fid == m.get_user_sort_family_id())
+            return nullptr;
         pb_util pb(m);
         bv_util bvu(m);
         array_util au(m);
         fpa_util fpa(m);
         arith_util arith(m);
         datatype_util dt(m);
+        recfun::util rf(m);
         if (pb.get_family_id() == fid)
-            ext = alloc(sat::ba_solver, *this, fid);
+            ext = alloc(pb::solver, *this, fid);
         else if (bvu.get_family_id() == fid)
             ext = alloc(bv::solver, *this, fid);
         else if (au.get_family_id() == fid)
@@ -114,6 +123,8 @@ namespace euf {
             ext = alloc(arith::solver, *this, fid);
         else if (dt.get_family_id() == fid)
             ext = alloc(dt::solver, *this, fid);
+        else if (rf.get_family_id() == fid)
+            ext = alloc(recfun::solver, *this);
         
         if (ext) 
             add_solver(ext);        
@@ -137,8 +148,10 @@ namespace euf {
     void solver::unhandled_function(func_decl* f) {
         if (m_unhandled_functions.contains(f))
             return;
+        if (m.is_model_value(f))
+            return;
         m_unhandled_functions.push_back(f);
-        m_trail.push(push_back_vector<solver, func_decl_ref_vector>(m_unhandled_functions));
+        m_trail.push(push_back_vector<func_decl_ref_vector>(m_unhandled_functions));
         IF_VERBOSE(0, verbose_stream() << mk_pp(f, m) << " not handled\n");
     }
 
@@ -205,25 +218,25 @@ namespace euf {
             log_antecedents(l, r);
     }
 
-    void solver::get_antecedents(literal l, th_propagation& jst, literal_vector& r, bool probing) {
-        for (auto lit : euf::th_propagation::lits(jst))
+    void solver::get_antecedents(literal l, th_explain& jst, literal_vector& r, bool probing) {
+        for (auto lit : euf::th_explain::lits(jst))
             r.push_back(lit);
-        for (auto eq : euf::th_propagation::eqs(jst))
+        for (auto eq : euf::th_explain::eqs(jst))
             add_antecedent(eq.first, eq.second);
 
-        if (!probing && use_drat()) {
-            literal_vector lits;
-            for (auto lit : euf::th_propagation::lits(jst))
-                lits.push_back(~lit);
-            lits.push_back(l);
-            get_drat().add(lits, sat::status::th(m_is_redundant, jst.ext().get_id()));
-            for (auto eq : euf::th_propagation::eqs(jst))
-                IF_VERBOSE(0, verbose_stream() << "drat-log with equalities is TBD " << eq.first->get_expr_id() << "\n");
-        }
+        if (!probing && use_drat()) 
+            log_justification(l, jst);
     }
 
     void solver::add_antecedent(enode* a, enode* b) {
         m_egraph.explain_eq<size_t>(m_explain, a, b);
+    }
+
+    void solver::add_diseq_antecedent(enode* a, enode* b) {
+        sat::bool_var v = get_egraph().explain_diseq(m_explain, a, b);
+        SASSERT(v == sat::null_bool_var || s().value(v) == l_false);
+        if (v != sat::null_bool_var) 
+            m_explain.push_back(to_ptr(sat::literal(v, false)));
     }
 
     bool solver::propagate(enode* a, enode* b, ext_justification_idx idx) {
@@ -266,6 +279,11 @@ namespace euf {
         }
     }
 
+    void solver::set_eliminated(bool_var v) {
+        si.uncache(literal(v, false));
+        si.uncache(literal(v, true));
+    }
+
     void solver::asserted(literal l) {
         expr* e = m_bool_var2expr.get(l.var(), nullptr);
         if (!e) {
@@ -290,7 +308,7 @@ namespace euf {
             euf::enode* nb = n->get_arg(1);
             m_egraph.merge(na, nb, c);
         }
-        else if (n->merge_enabled()) {
+        else if (n->merge_tf()) {
             euf::enode* nb = sign ? mk_false() : mk_true();
             m_egraph.merge(n, nb, c);
         }
@@ -374,6 +392,8 @@ namespace euf {
         m_explain.reset();
         m_egraph.explain_eq<size_t>(m_explain, e.child(), e.root());
         m_egraph.end_explain();
+        if (m_egraph.uses_congruence())
+            return false;
         for (auto p : m_explain) {
             if (is_literal(p))
                 return false;
@@ -381,6 +401,8 @@ namespace euf {
             size_t idx = get_justification(p);
             auto* ext = sat::constraint_base::to_extension(idx);                
             if (ext->get_id() != e.id())
+                return false;
+            if (ext->enable_self_propagate())
                 return false;
         }
         return true;
@@ -418,12 +440,14 @@ namespace euf {
     }
 
     sat::check_result solver::check() { 
+        ++m_stats.m_final_checks;
         TRACE("euf", s().display(tout););
         bool give_up = false;
         bool cont = false;
 
         if (!init_relevancy())
             give_up = true;
+
 
         for (auto* e : m_solvers) {
             if (!m.inc())
@@ -466,10 +490,13 @@ namespace euf {
             e->pop(n);
         si.pop(n);
         m_egraph.pop(n);
-        scope const & s = m_scopes[m_scopes.size() - n];
-        for (unsigned i = m_var_trail.size(); i-- > s.m_var_lim; )
-            m_bool_var2expr[m_var_trail[i]] = nullptr;
-        m_var_trail.shrink(s.m_var_lim);        
+        scope const & sc = m_scopes[m_scopes.size() - n];
+        for (unsigned i = m_var_trail.size(); i-- > sc.m_var_lim; ) {
+            bool_var v = m_var_trail[i];
+            m_bool_var2expr[v] = nullptr;
+            s().set_non_external(v);
+        }
+        m_var_trail.shrink(sc.m_var_lim);        
         m_scopes.shrink(m_scopes.size() - n);
         SASSERT(m_egraph.num_scopes() == m_scopes.size());
         TRACE("euf_verbose", display(tout << "pop to: " << m_scopes.size() << "\n"););
@@ -478,7 +505,7 @@ namespace euf {
     void solver::user_push() {
         push();
         if (m_dual_solver)
-            m_dual_solver->push();
+            m_dual_solver->push();        
     }
 
     void solver::user_pop(unsigned n) {
@@ -488,10 +515,11 @@ namespace euf {
     }
 
     void solver::start_reinit(unsigned n) {
-        m_reinit_exprs.reset();
+        m_reinit.reset();
         for (sat::bool_var v : s().get_vars_to_reinit()) {
             expr* e = bool_var2expr(v);
-            m_reinit_exprs.push_back(e);
+            if (e)
+                m_reinit.push_back(reinit_t(expr_ref(e, m), get_enode(e)?get_enode(e)->generation():0, v));
         }
     }
 
@@ -501,8 +529,7 @@ namespace euf {
     * and replaying internalization.
     */
     void solver::finish_reinit() {
-        SASSERT(s().get_vars_to_reinit().size() == m_reinit_exprs.size());
-        if (s().get_vars_to_reinit().empty())
+        if (m_reinit.empty())
             return;
 
         struct scoped_set_replay {
@@ -518,26 +545,23 @@ namespace euf {
         scoped_set_replay replay(*this);
         scoped_suspend_rlimit suspend_rlimit(m.limit());
 
-        unsigned i = 0;
-        for (sat::bool_var v : s().get_vars_to_reinit()) {
-            expr* e = m_reinit_exprs.get(i++);
-            if (e)
-                replay.m.insert(e, v);
-        }
-        if (replay.m.empty())
-            return;
+        for (auto const& t : m_reinit) 
+            replay.m.insert(std::get<0>(t), std::get<2>(t));
         
         TRACE("euf", for (auto const& kv : replay.m) tout << kv.m_value << "\n";);
-        for (auto const& kv : replay.m) {
-            TRACE("euf", tout << "replay: " << kv.m_value << " " << mk_bounded_pp(kv.m_key, m) << "\n";);
+        for (auto const& t : m_reinit) {
+            expr_ref e          = std::get<0>(t);
+            unsigned generation = std::get<1>(t);
+            sat::bool_var v     = std::get<2>(t);
+            scoped_generation _sg(*this, generation);
+            TRACE("euf", tout << "replay: " << v << " " << mk_bounded_pp(e, m) << "\n";);
             sat::literal lit;
-            expr* e = kv.m_key;
             if (si.is_bool_op(e)) 
                 lit = literal(replay.m[e], false);
             else 
-                lit = si.internalize(kv.m_key, true);
-            VERIFY(lit.var() == kv.m_value);
-            attach_lit(lit, kv.m_key);            
+                lit = si.internalize(e, true);
+            VERIFY(lit.var() == v);
+            attach_lit(lit, e);            
         }
         TRACE("euf", display(tout << "replay done\n"););
     }
@@ -552,6 +576,26 @@ namespace euf {
             e->simplify();
         if (m_ackerman)
             m_ackerman->propagate();
+    }
+    
+    bool solver::should_research(sat::literal_vector const& core) {
+        bool result = false;
+        for (auto* e : m_solvers)
+            if (e->should_research(core))
+                result = true;
+        return result;
+    }
+
+    void solver::add_assumptions() {
+        for (auto* e : m_solvers)
+            e->add_assumptions();
+    }
+
+    bool solver::tracking_assumptions() {
+        for (auto* e : m_solvers)
+            if (e->tracking_assumptions())
+                return true;
+        return false;
     }
 
     void solver::clauses_modifed() {
@@ -643,6 +687,7 @@ namespace euf {
         for (auto* e : m_solvers)
             e->collect_statistics(st);
         st.update("euf ackerman", m_stats.m_ackerman);
+        st.update("euf final check", m_stats.m_final_checks);
     }
 
     enode* solver::copy(solver& dst_ctx, enode* src_n) {
@@ -692,6 +737,13 @@ namespace euf {
         finish_reinit();
         for (auto* e : m_solvers)
             e->pop_reinit();
+
+#if 0
+        for (enode* n : m_egraph.nodes()) {
+            if (n->bool_var() != sat::null_bool_var && s().is_free(n->bool_var()))
+                std::cout << "has free " << n->bool_var() << "\n";
+        }
+#endif
     }
 
     bool solver::validate() { 
@@ -724,19 +776,11 @@ namespace euf {
         return true;
     }
 
-    unsigned solver::max_var(unsigned w) const { 
+    void solver::gc_vars(unsigned num_vars) {
         for (auto* e : m_solvers)
-            w = e->max_var(w);
-        for (unsigned sz = m_bool_var2expr.size(); sz > w && sz-- > 0; ) {
-            expr* n = m_bool_var2expr[sz];
-            if (n && m.is_bool(n)) {
-                w = std::max(w, sz);
-                break;
-            }           
-        }
-        return w; 
+            e->gc_vars(num_vars);
     }
-
+    
     double solver::get_reward(literal l, ext_constraint_idx idx, sat::literal_occs_fun& occs) const {
         auto* ext = sat::constraint_base::to_extension(idx);
         SASSERT(ext);        

@@ -140,9 +140,9 @@ extern "C" {
 
     static void init_solver_core(Z3_context c, Z3_solver _s) {
         Z3_solver_ref * s = to_solver(_s);
-        bool proofs_enabled, models_enabled, unsat_core_enabled;
+        bool proofs_enabled = true, models_enabled = true, unsat_core_enabled = false;
         params_ref p = s->m_params;
-        mk_c(c)->params().get_solver_params(mk_c(c)->m(), p, proofs_enabled, models_enabled, unsat_core_enabled);
+        mk_c(c)->params().get_solver_params(p, proofs_enabled, models_enabled, unsat_core_enabled);
         s->m_solver = (*(s->m_solver_factory))(mk_c(c)->m(), p, proofs_enabled, models_enabled, unsat_core_enabled, s->m_logic);
         
         param_descrs r;
@@ -876,7 +876,7 @@ extern "C" {
         solver::push_eh_t _push = push_eh;
         solver::pop_eh_t _pop = pop_eh;
         solver::fresh_eh_t _fresh = [&](void * user_ctx, ast_manager& m, solver::context_obj*& _ctx) {
-            context_params params;
+            ast_context_params params;
             params.set_foreign_manager(&m);
             auto* ctx = alloc(api::context, &params, false);
             _ctx = alloc(api_context_obj, ctx);

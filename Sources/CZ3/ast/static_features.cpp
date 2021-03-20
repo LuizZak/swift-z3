@@ -18,6 +18,7 @@ Revision History:
 --*/
 #include "ast/static_features.h"
 #include "ast/ast_pp.h"
+#include "ast/for_each_expr.h"
 
 static_features::static_features(ast_manager & m):
     m(m),
@@ -171,7 +172,7 @@ void static_features::update_core(expr * e) {
     
     // even if a benchmark does not contain any theory interpreted function decls, we still have to install
     // the theory if the benchmark contains constants or function applications of an interpreted sort.
-    sort * s      = m.get_sort(e);
+    sort * s      = e->get_sort();
     if (!m.is_uninterp(s))
         mark_theory(s->get_family_id());
     
@@ -192,7 +193,7 @@ void static_features::update_core(expr * e) {
                     acc_num(arg);
                     // Must check whether arg is diff logic or not.
                     // Otherwise, problem can be incorrectly tagged as diff logic.
-                    sort * arg_s = m.get_sort(arg); 
+                    sort * arg_s = arg->get_sort(); 
                     family_id fid_arg = arg_s->get_family_id();
                     if (fid_arg == m_afid) {
                         m_num_arith_terms++;
@@ -262,7 +263,7 @@ void static_features::update_core(expr * e) {
             if (!is_arith_expr(to_app(e)->get_arg(0)))
                 m_num_simple_eqs++;
         }
-        sort * s      = m.get_sort(to_app(e)->get_arg(0));
+        sort * s      = to_app(e)->get_arg(0)->get_sort();
         if (!m.is_uninterp(s)) {
             family_id fid = s->get_family_id();
             if (fid != null_family_id && fid != m_bfid)
@@ -280,7 +281,7 @@ void static_features::update_core(expr * e) {
     if (is_app(e) && to_app(e)->get_family_id() == m_srfid) 
         m_has_sr = true;
     if (!m_has_arrays && m_arrayutil.is_array(e)) 
-        check_array(m.get_sort(e));
+        check_array(e->get_sort());
     if (!m_has_ext_arrays && m_arrayutil.is_array(e) && 
         !m_arrayutil.is_select(e) && !m_arrayutil.is_store(e)) 
         m_has_ext_arrays = true;
@@ -301,7 +302,6 @@ void static_features::update_core(expr * e) {
                 m_num_interpreted_constants++;
         }
         if (fid == m_afid) {
-            // std::cout << mk_pp(e, m) << "\n";
             switch (to_app(e)->get_decl_kind()) {
             case OP_MUL:
                 if (!is_numeral(to_app(e)->get_arg(0)) || to_app(e)->get_num_args() > 2) {
@@ -323,7 +323,7 @@ void static_features::update_core(expr * e) {
             m_num_uninterpreted_exprs++;
             if (to_app(e)->get_num_args() == 0) {
                 m_num_uninterpreted_constants++;
-                sort * s      = m.get_sort(e);
+                sort * s      = e->get_sort();
                 if (!m.is_uninterp(s)) {
                     family_id fid = s->get_family_id();
                     if (fid != null_family_id && fid != m_bfid)
@@ -350,7 +350,7 @@ void static_features::update_core(expr * e) {
         }
         if (!_is_eq && !_is_gate) {
             for (expr * arg : *to_app(e)) {
-                sort * arg_s = m.get_sort(arg); 
+                sort * arg_s = arg->get_sort(); 
                 if (!m.is_uninterp(arg_s)) {
                     family_id fid_arg = arg_s->get_family_id();
                     if (fid_arg != fid && fid_arg != null_family_id) {
@@ -405,11 +405,13 @@ void static_features::process(expr * e, bool form_ctx, bool or_and_ctx, bool ite
         return;
     }    
     if (stack_depth > m_max_stack_depth) {
+        for (expr* arg : subterms(expr_ref(e, m)))
+            if (get_depth(arg) <= 3 || is_quantifier(arg)) 
+                process(arg, form_ctx, or_and_ctx, ite_ctx, stack_depth-10);
         return;
     }
     mark(e);
     update_core(e);
-
 
     if (is_quantifier(e)) {
         expr * body = to_quantifier(e)->get_expr();
@@ -444,11 +446,8 @@ void static_features::process(expr * e, bool form_ctx, bool or_and_ctx, bool ite
     unsigned or_and_depth = 0;
     unsigned ite_depth = 0;
 
-    unsigned num_args = to_app(e)->get_num_args();
-    for (unsigned i = 0; i < num_args; i++) {
-        expr * arg = to_app(e)->get_arg(i);
-        if (m.is_not(arg))
-            arg = to_app(arg)->get_arg(0);
+    for (expr* arg : *to_app(e)) {
+        m.is_not(arg, arg);
         process(arg, form_ctx_new, or_and_ctx_new, ite_ctx_new, stack_depth+1);
         depth        = std::max(depth, get_depth(arg));
         if (form_ctx_new)

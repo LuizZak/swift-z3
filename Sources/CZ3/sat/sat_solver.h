@@ -19,11 +19,19 @@ Revision History:
 #pragma once
 
 #include <cmath>
+#include "util/var_queue.h"
+#include "util/params.h"
+#include "util/statistics.h"
+#include "util/stopwatch.h"
+#include "util/ema.h"
+#include "util/trace.h"
+#include "util/rlimit.h"
+#include "util/scoped_ptr_vector.h"
+#include "util/scoped_limit_trail.h"
 #include "sat/sat_types.h"
 #include "sat/sat_clause.h"
 #include "sat/sat_watched.h"
 #include "sat/sat_justification.h"
-#include "sat/sat_var_queue.h"
 #include "sat/sat_extension.h"
 #include "sat/sat_config.h"
 #include "sat/sat_cleaner.h"
@@ -38,14 +46,10 @@ Revision History:
 #include "sat/sat_parallel.h"
 #include "sat/sat_local_search.h"
 #include "sat/sat_solver_core.h"
-#include "util/params.h"
-#include "util/statistics.h"
-#include "util/stopwatch.h"
-#include "util/ema.h"
-#include "util/trace.h"
-#include "util/rlimit.h"
-#include "util/scoped_ptr_vector.h"
-#include "util/scoped_limit_trail.h"
+
+namespace pb {
+    class solver;
+};
 
 namespace sat {
 
@@ -182,6 +186,7 @@ namespace sat {
         scoped_ptr<solver>      m_clone; // for debugging purposes
         literal_vector          m_assumptions;      // additional assumptions during check
         literal_set             m_assumption_set;   // set of enabled assumptions
+        literal_set             m_ext_assumption_set;   // set of enabled assumptions
         literal_vector          m_core;             // unsat core
 
         unsigned                m_par_id;        
@@ -209,7 +214,7 @@ namespace sat {
         friend class probing;
         friend class simplifier;
         friend class scc;
-        friend class ba_solver;
+        friend class pb::solver;
         friend class anf_simplifier;
         friend class cut_simplifier;
         friend class parallel;
@@ -287,6 +292,7 @@ namespace sat {
         bool propagate_bin_clause(literal l1, literal l2);
         clause * mk_ter_clause(literal * lits, status st);
         bool attach_ter_clause(clause & c, status st);
+        bool propagate_ter_clause(clause& c);
         clause * mk_nary_clause(unsigned num_lits, literal * lits, status st);
         bool has_variables_to_reinit(clause const& c) const;
         bool has_variables_to_reinit(literal l1, literal l2) const;
@@ -351,7 +357,9 @@ namespace sat {
         bool was_eliminated(bool_var v) const { return m_eliminated[v]; }
         void set_eliminated(bool_var v, bool f) override;
         bool was_eliminated(literal l) const { return was_eliminated(l.var()); }
-        void set_phase(literal l) override { m_phase[l.var()] = !l.sign(); }
+        void set_phase(literal l) override { if (l.var() < num_vars()) m_best_phase[l.var()] = m_phase[l.var()] = !l.sign(); }
+        bool_var get_phase(bool_var b) { return m_phase.get(b, false); }
+        void move_to_front(bool_var b);
         unsigned scope_lvl() const { return m_scope_lvl; }
         unsigned search_lvl() const { return m_search_lvl; }
         bool  at_search_lvl() const { return m_scope_lvl == m_search_lvl; }
@@ -375,7 +383,7 @@ namespace sat {
             }
         }
         void update_assign(literal l, justification j) {
-            if (lvl(l) > j.level())
+            if (j.level() == 0) 
                 m_justification[l.var()] = j;
         }
         void assign_unit(literal l) { assign(l, justification(0)); }
@@ -494,9 +502,13 @@ namespace sat {
         unsigned m_num_checkpoints { 0 };
         double   m_min_d_tk { 0 } ;
         unsigned m_next_simplify { 0 };
+        bool     m_simplify_enabled { true };
+        bool     m_restart_enabled { true };
         bool decide();
         bool_var next_var();
         lbool bounded_search();
+        lbool basic_search();
+        lbool search();
         lbool final_check();
         void init_search();
         
@@ -509,8 +521,8 @@ namespace sat {
         void resolve_weighted();
         void reset_assumptions();
         void add_assumption(literal lit);
-        void pop_assumption();
         void reinit_assumptions();
+        void init_ext_assumptions();
         bool tracking_assumptions() const;
         bool is_assumption(literal l) const;
         bool should_simplify() const;
@@ -651,14 +663,11 @@ namespace sat {
         void reinit_clauses(unsigned old_sz);
 
         literal_vector m_user_scope_literals;
+        vector<svector<bool_var>> m_free_var_freeze;
         literal_vector m_aux_literals;
         svector<bin_clause> m_user_bin_clauses;
-        void gc_lit(clause_vector& clauses, literal lit);
-        void gc_bin(literal lit);
-        void gc_var(bool_var v);
 
-        bool_var max_var(clause_vector& clauses, bool_var v);
-        bool_var max_var(bool learned, bool_var v);
+        void gc_vars(bool_var max_var);
 
         // -----------------------
         //
@@ -669,6 +678,7 @@ namespace sat {
         void set_should_simplify() { m_next_simplify = m_conflicts_since_init; }
         bool_var_vector const& get_vars_to_reinit() const { return m_vars_to_reinit;  }
         bool is_probing() const { return m_is_probing; }
+        bool is_free(bool_var v) const { return m_free_vars.contains(v); }
 
     public:
         void user_push() override;

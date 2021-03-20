@@ -43,7 +43,7 @@ expr_ref func_decl_replace::operator()(expr* e) {
                 if (m_cache.find(arg, d)) {
                     m_args.push_back(d);
                     arg_differs |= arg != d;
-                    SASSERT(m.get_sort(arg) == m.get_sort(d));
+                    SASSERT(arg->get_sort() == d->get_sort());
                 }
                 else {
                     m_todo.push_back(arg);
@@ -53,7 +53,7 @@ expr_ref func_decl_replace::operator()(expr* e) {
                 if (arg_differs) {
                     b = m.mk_app(c->get_decl(), m_args.size(), m_args.c_ptr());
                     m_refs.push_back(b);
-                    SASSERT(m.get_sort(a) == m.get_sort(b));
+                    SASSERT(a->get_sort() == b->get_sort());
                 } else {
                     b = a;
                 }

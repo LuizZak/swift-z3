@@ -39,9 +39,11 @@ DEFINE_TYPE(Z3_rcf_num);
 /** \defgroup capi C API */
 /*@{*/
 
-/** @name Types
-    @{
+/** @name Types */
 
+///@{
+
+/**
    Most of the types in the C API are opaque pointers.
 
    - \c Z3_config: configuration object used to initialize logical contexts.
@@ -423,12 +425,12 @@ typedef enum
    - Z3_OP_PR_GOAL: Proof for a fact (tagged as goal) asserted by the user.
 
    - Z3_OP_PR_MODUS_PONENS: Given a proof for p and a proof for (implies p q), produces a proof for q.
-       \nicebox{
+
           T1: p
           T2: (implies p q)
           [mp T1 T2]: q
-          }
-          The second antecedents may also be a proof for (iff p q).
+
+     The second antecedents may also be a proof for (iff p q).
 
    - Z3_OP_PR_REFLEXIVITY: A proof for (R t t), where R is a reflexive relation. This proof object has no antecedents.
         The only reflexive relations that are used are
@@ -451,9 +453,7 @@ typedef enum
        }
 
    - Z3_OP_PR_TRANSITIVITY_STAR: Condensed transitivity proof. 
-     It combines several symmetry and transitivity proofs.
-
-          Example:
+     It combines several symmetry and transitivity proofs. Example:
           \nicebox{
           T1: (R a b)
           T2: (R c b)
@@ -469,35 +469,36 @@ typedef enum
           antecedent (R a b) as an edge between a and b.
 
    - Z3_OP_PR_MONOTONICITY: Monotonicity proof object.
-          \nicebox{
+
           T1: (R t_1 s_1)
           ...
           Tn: (R t_n s_n)
           [monotonicity T1 ... Tn]: (R (f t_1 ... t_n) (f s_1 ... s_n))
-          }
-          Remark: if t_i == s_i, then the antecedent Ti is suppressed.
-          That is, reflexivity proofs are suppressed to save space.
+
+     Remark: if t_i == s_i, then the antecedent Ti is suppressed.
+     That is, reflexivity proofs are suppressed to save space.
 
    - Z3_OP_PR_QUANT_INTRO: Given a proof for (~ p q), produces a proof for (~ (forall (x) p) (forall (x) q)).
 
-       T1: (~ p q)
-       [quant-intro T1]: (~ (forall (x) p) (forall (x) q))
+         T1: (~ p q)
+        [quant-intro T1]: (~ (forall (x) p) (forall (x) q))
 
    - Z3_OP_PR_BIND: Given a proof p, produces a proof of lambda x . p, where x are free variables in p.
-       T1: f
-       [proof-bind T1] forall (x) f
+
+          T1: f
+         [proof-bind T1] forall (x) f
 
    - Z3_OP_PR_DISTRIBUTIVITY: Distributivity proof object.
           Given that f (= or) distributes over g (= and), produces a proof for
-
+          \nicebox{
           (= (f a (g c d))
              (g (f a c) (f a d)))
-
+          }
           If f and g are associative, this proof also justifies the following equality:
-
+          \nicebox{
           (= (f (g a b) (g c d))
              (g (f a c) (f a d) (f b c) (f b d)))
-
+          }
           where each f and g can have arbitrary number of arguments.
 
           This proof object has no antecedents.
@@ -506,16 +507,13 @@ typedef enum
 
    - Z3_OP_PR_AND_ELIM: Given a proof for (and l_1 ... l_n), produces a proof for l_i
 
-       \nicebox{
-       T1: (and l_1 ... l_n)
-       [and-elim T1]: l_i
-       }
+        T1: (and l_1 ... l_n)
+        [and-elim T1]: l_i
+
    - Z3_OP_PR_NOT_OR_ELIM: Given a proof for (not (or l_1 ... l_n)), produces a proof for (not l_i).
 
-       \nicebox{
-       T1: (not (or l_1 ... l_n))
-       [not-or-elim T1]: (not l_i)
-       }
+         T1: (not (or l_1 ... l_n))
+         [not-or-elim T1]: (not l_i)
 
    - Z3_OP_PR_REWRITE: A proof for a local rewriting step (= t s).
           The head function symbol of t is interpreted.
@@ -524,8 +522,6 @@ typedef enum
           The conclusion of a rewrite rule is either an equality (= t s),
           an equivalence (iff t s), or equi-satisfiability (~ t s).
           Remark: if f is bool, then = is iff.
-
-
           Examples:
           \nicebox{
           (= (+ x 0) x)
@@ -543,7 +539,6 @@ typedef enum
    - Z3_OP_PR_PULL_QUANT: A proof for (iff (f (forall (x) q(x)) r) (forall (x) (f (q x) r))). This proof object has no antecedents.
 
    - Z3_OP_PR_PUSH_QUANT: A proof for:
-
        \nicebox{
           (iff (forall (x_1 ... x_m) (and p_1[x_1 ... x_m] ... p_n[x_1 ... x_m]))
                (and (forall (x_1 ... x_m) p_1[x_1 ... x_m])
@@ -573,16 +568,15 @@ typedef enum
 
    - Z3_OP_PR_LEMMA:
 
-       \nicebox{
           T1: false
           [lemma T1]: (or (not l_1) ... (not l_n))
-          }
-          This proof object has one antecedent: a hypothetical proof for false.
-          It converts the proof in a proof for (or (not l_1) ... (not l_n)),
-          when T1 contains the open hypotheses: l_1, ..., l_n.
-          The hypotheses are closed after an application of a lemma.
-          Furthermore, there are no other open hypotheses in the subtree covered by
-          the lemma.
+
+      This proof object has one antecedent: a hypothetical proof for false.
+      It converts the proof in a proof for (or (not l_1) ... (not l_n)),
+      when T1 contains the open hypotheses: l_1, ..., l_n.
+      The hypotheses are closed after an application of a lemma.
+      Furthermore, there are no other open hypotheses in the subtree covered by
+      the lemma.
 
    - Z3_OP_PR_UNIT_RESOLUTION:
        \nicebox{
@@ -615,7 +609,6 @@ typedef enum
           Remark: if f is bool, then = is iff.
 
    - Z3_OP_PR_DEF_AXIOM: Proof object used to justify Tseitin's like axioms:
-
           \nicebox{
           (or (not (and p q)) p)
           (or (not (and p q)) q)
@@ -675,31 +668,33 @@ typedef enum
        [def-intro]: (= n e)
 
    - Z3_OP_PR_APPLY_DEF:
-       [apply-def T1]: F ~ n
-       F is 'equivalent' to n, given that T1 is a proof that
-       n is a name for F.
+
+        [apply-def T1]: F ~ n
+
+     F is 'equivalent' to n, given that T1 is a proof that
+     n is a name for F.
 
    - Z3_OP_PR_IFF_OEQ:
+
        T1: (iff p q)
        [iff~ T1]: (~ p q)
 
    - Z3_OP_PR_NNF_POS: Proof for a (positive) NNF step. Example:
-       \nicebox{
+
           T1: (not s_1) ~ r_1
           T2: (not s_2) ~ r_2
           T3: s_1 ~ r_1'
           T4: s_2 ~ r_2'
-          [nnf-pos T1 T2 T3 T4]: (~ (iff s_1 s_2)
-                                    (and (or r_1 r_2') (or r_1' r_2)))
-          }
+          [nnf-pos T1 T2 T3 T4]: (~ (iff s_1 s_2) (and (or r_1 r_2') (or r_1' r_2)))
+
        The negation normal form steps NNF_POS and NNF_NEG are used in the following cases:
        (a) When creating the NNF of a positive force quantifier.
-        The quantifier is retained (unless the bound variables are eliminated).
-        Example
-        \nicebox{
-           T1: q ~ q_new
-           [nnf-pos T1]: (~ (forall (x T) q) (forall (x T) q_new))
-        }
+       The quantifier is retained (unless the bound variables are eliminated).
+       Example
+
+            T1: q ~ q_new
+            [nnf-pos T1]: (~ (forall (x T) q) (forall (x T) q_new))
+
        (b) When recursively creating NNF over Boolean formulas, where the top-level
        connective is changed during NNF conversion. The relevant Boolean connectives
        for NNF_POS are 'implies', 'iff', 'xor', 'ite'.
@@ -708,61 +703,59 @@ typedef enum
 
 
    - Z3_OP_PR_NNF_NEG: Proof for a (negative) NNF step. Examples:
-          \nicebox{
+
           T1: (not s_1) ~ r_1
           ...
           Tn: (not s_n) ~ r_n
-         [nnf-neg T1 ... Tn]: (not (and s_1 ... s_n)) ~ (or r_1 ... r_n)
-      and
+          [nnf-neg T1 ... Tn]: (not (and s_1 ... s_n)) ~ (or r_1 ... r_n)
+
+          and
+
           T1: (not s_1) ~ r_1
           ...
           Tn: (not s_n) ~ r_n
-         [nnf-neg T1 ... Tn]: (not (or s_1 ... s_n)) ~ (and r_1 ... r_n)
-      and
+          [nnf-neg T1 ... Tn]: (not (or s_1 ... s_n)) ~ (and r_1 ... r_n)
+
+          and
+
           T1: (not s_1) ~ r_1
           T2: (not s_2) ~ r_2
           T3: s_1 ~ r_1'
           T4: s_2 ~ r_2'
-         [nnf-neg T1 T2 T3 T4]: (~ (not (iff s_1 s_2))
+          [nnf-neg T1 T2 T3 T4]: (~ (not (iff s_1 s_2))
                                    (and (or r_1 r_2) (or r_1' r_2')))
-       }
 
    - Z3_OP_PR_SKOLEMIZE: Proof for:
 
-          \nicebox{
           [sk]: (~ (not (forall x (p x y))) (not (p (sk y) y)))
           [sk]: (~ (exists x (p x y)) (p (sk y) y))
-          }
 
-          This proof object has no antecedents.
+     This proof object has no antecedents.
 
    - Z3_OP_PR_MODUS_PONENS_OEQ: Modus ponens style rule for equi-satisfiability.
-       \nicebox{
+
           T1: p
           T2: (~ p q)
           [mp~ T1 T2]: q
-          }
 
-    - Z3_OP_PR_TH_LEMMA: Generic proof for theory lemmas.
-
-         The theory lemma function comes with one or more parameters.
-         The first parameter indicates the name of the theory.
-         For the theory of arithmetic, additional parameters provide hints for
-         checking the theory lemma.
-         The hints for arithmetic are:
+   - Z3_OP_PR_TH_LEMMA: Generic proof for theory lemmas.
+     The theory lemma function comes with one or more parameters.
+     The first parameter indicates the name of the theory.
+     For the theory of arithmetic, additional parameters provide hints for
+     checking the theory lemma.
+     The hints for arithmetic are:
 
          - farkas - followed by rational coefficients. Multiply the coefficients to the
            inequalities in the lemma, add the (negated) inequalities and obtain a contradiction.
 
          - triangle-eq - Indicates a lemma related to the equivalence:
-         \nicebox{
+
             (iff (= t1 t2) (and (<= t1 t2) (<= t2 t1)))
-         }
 
          - gcd-test - Indicates an integer linear arithmetic lemma that uses a gcd test.
 
 
-    - Z3_OP_PR_HYPER_RESOLVE: Hyper-resolution rule.
+   - Z3_OP_PR_HYPER_RESOLVE: Hyper-resolution rule.
 
         The premises of the rules is a sequence of clauses.
         The first clause argument is the main clause of the rule.
@@ -802,32 +795,32 @@ typedef enum
         of literal positions from the main clause and side clause.
 
 
-      - Z3_OP_RA_STORE: Insert a record into a relation.
+   - Z3_OP_RA_STORE: Insert a record into a relation.
         The function takes \c n+1 arguments, where the first argument is the relation and the remaining \c n elements
         correspond to the \c n columns of the relation.
 
-      - Z3_OP_RA_EMPTY: Creates the empty relation.
+   - Z3_OP_RA_EMPTY: Creates the empty relation.
 
-      - Z3_OP_RA_IS_EMPTY: Tests if the relation is empty.
+   - Z3_OP_RA_IS_EMPTY: Tests if the relation is empty.
 
-      - Z3_OP_RA_JOIN: Create the relational join.
+   - Z3_OP_RA_JOIN: Create the relational join.
 
-      - Z3_OP_RA_UNION: Create the union or convex hull of two relations.
+   - Z3_OP_RA_UNION: Create the union or convex hull of two relations.
         The function takes two arguments.
 
-      - Z3_OP_RA_WIDEN: Widen two relations.
+   - Z3_OP_RA_WIDEN: Widen two relations.
         The function takes two arguments.
 
-      - Z3_OP_RA_PROJECT: Project the columns (provided as numbers in the parameters).
+   - Z3_OP_RA_PROJECT: Project the columns (provided as numbers in the parameters).
         The function takes one argument.
 
-      - Z3_OP_RA_FILTER: Filter (restrict) a relation with respect to a predicate.
+   - Z3_OP_RA_FILTER: Filter (restrict) a relation with respect to a predicate.
         The first argument is a relation.
         The second argument is a predicate with free de-Bruijn indices
         corresponding to the columns of the relation.
         So the first column in the relation has index 0.
 
-      - Z3_OP_RA_NEGATION_FILTER: Intersect the first relation with respect to negation
+   - Z3_OP_RA_NEGATION_FILTER: Intersect the first relation with respect to negation
         of the second relation (the function takes two arguments).
         Logically, the specification can be described by a function
 
@@ -838,157 +831,157 @@ typedef enum
         x on the columns c1, d1, .., cN, dN.
 
 
-      - Z3_OP_RA_RENAME: rename columns in the relation.
+   - Z3_OP_RA_RENAME: rename columns in the relation.
         The function takes one argument.
         The parameters contain the renaming as a cycle.
 
-      - Z3_OP_RA_COMPLEMENT: Complement the relation.
+   - Z3_OP_RA_COMPLEMENT: Complement the relation.
 
-      - Z3_OP_RA_SELECT: Check if a record is an element of the relation.
+   - Z3_OP_RA_SELECT: Check if a record is an element of the relation.
         The function takes \c n+1 arguments, where the first argument is a relation,
         and the remaining \c n arguments correspond to a record.
 
-      - Z3_OP_RA_CLONE: Create a fresh copy (clone) of a relation.
+   - Z3_OP_RA_CLONE: Create a fresh copy (clone) of a relation.
         The function is logically the identity, but
         in the context of a register machine allows
         for #Z3_OP_RA_UNION to perform destructive updates to the first argument.
 
 
-      - Z3_OP_FD_LT: A less than predicate over the finite domain Z3_FINITE_DOMAIN_SORT.
+   - Z3_OP_FD_LT: A less than predicate over the finite domain Z3_FINITE_DOMAIN_SORT.
 
-      - Z3_OP_LABEL: A label (used by the Boogie Verification condition generator).
+   - Z3_OP_LABEL: A label (used by the Boogie Verification condition generator).
                      The label has two parameters, a string and a Boolean polarity.
                      It takes one argument, a formula.
 
-      - Z3_OP_LABEL_LIT: A label literal (used by the Boogie Verification condition generator).
+   - Z3_OP_LABEL_LIT: A label literal (used by the Boogie Verification condition generator).
                      A label literal has a set of string parameters. It takes no arguments.
 
-      - Z3_OP_DT_CONSTRUCTOR: datatype constructor.
+   - Z3_OP_DT_CONSTRUCTOR: datatype constructor.
 
-      - Z3_OP_DT_RECOGNISER: datatype recognizer.
+   - Z3_OP_DT_RECOGNISER: datatype recognizer.
 
-      - Z3_OP_DT_IS: datatype recognizer.
+   - Z3_OP_DT_IS: datatype recognizer.
 
-      - Z3_OP_DT_ACCESSOR: datatype accessor.
+   - Z3_OP_DT_ACCESSOR: datatype accessor.
 
-      - Z3_OP_DT_UPDATE_FIELD: datatype field update.
+   - Z3_OP_DT_UPDATE_FIELD: datatype field update.
 
-      - Z3_OP_PB_AT_MOST: Cardinality constraint.
+   - Z3_OP_PB_AT_MOST: Cardinality constraint.
               E.g., x + y + z <= 2
 
-      - Z3_OP_PB_AT_LEAST: Cardinality constraint.
+   - Z3_OP_PB_AT_LEAST: Cardinality constraint.
               E.g., x + y + z >= 2
 
-      - Z3_OP_PB_LE: Generalized Pseudo-Boolean cardinality constraint.
+   - Z3_OP_PB_LE: Generalized Pseudo-Boolean cardinality constraint.
               Example  2*x + 3*y <= 4
 
-      - Z3_OP_PB_GE: Generalized Pseudo-Boolean cardinality constraint.
+   - Z3_OP_PB_GE: Generalized Pseudo-Boolean cardinality constraint.
               Example  2*x + 3*y + 2*z >= 4
 
-      - Z3_OP_PB_EQ: Generalized Pseudo-Boolean equality constraint.
+   - Z3_OP_PB_EQ: Generalized Pseudo-Boolean equality constraint.
               Example  2*x + 1*y + 2*z + 1*u = 4
 
-       - Z3_OP_SPECIAL_RELATION_LO: A relation that is a total linear order
+   - Z3_OP_SPECIAL_RELATION_LO: A relation that is a total linear order
 
-       - Z3_OP_SPECIAL_RELATION_PO: A relation that is a partial order
+   - Z3_OP_SPECIAL_RELATION_PO: A relation that is a partial order
 
-       - Z3_OP_SPECIAL_RELATION_PLO: A relation that is a piecewise linear order
+   - Z3_OP_SPECIAL_RELATION_PLO: A relation that is a piecewise linear order
 
-       - Z3_OP_SPECIAL_RELATION_TO: A relation that is a tree order
+   - Z3_OP_SPECIAL_RELATION_TO: A relation that is a tree order
 
-       - Z3_OP_SPECIAL_RELATION_TC: Transitive closure of a relation
+   - Z3_OP_SPECIAL_RELATION_TC: Transitive closure of a relation
 
-       - Z3_OP_SPECIAL_RELATION_TRC: Transitive reflexive closure of a relation
+   - Z3_OP_SPECIAL_RELATION_TRC: Transitive reflexive closure of a relation
 
-      - Z3_OP_FPA_RM_NEAREST_TIES_TO_EVEN: Floating-point rounding mode RNE
+   - Z3_OP_FPA_RM_NEAREST_TIES_TO_EVEN: Floating-point rounding mode RNE
 
-      - Z3_OP_FPA_RM_NEAREST_TIES_TO_AWAY: Floating-point rounding mode RNA
+   - Z3_OP_FPA_RM_NEAREST_TIES_TO_AWAY: Floating-point rounding mode RNA
 
-      - Z3_OP_FPA_RM_TOWARD_POSITIVE: Floating-point rounding mode RTP
+   - Z3_OP_FPA_RM_TOWARD_POSITIVE: Floating-point rounding mode RTP
 
-      - Z3_OP_FPA_RM_TOWARD_NEGATIVE: Floating-point rounding mode RTN
+   - Z3_OP_FPA_RM_TOWARD_NEGATIVE: Floating-point rounding mode RTN
 
-      - Z3_OP_FPA_RM_TOWARD_ZERO: Floating-point rounding mode RTZ
+   - Z3_OP_FPA_RM_TOWARD_ZERO: Floating-point rounding mode RTZ
 
-      - Z3_OP_FPA_NUM: Floating-point value
+   - Z3_OP_FPA_NUM: Floating-point value
 
-      - Z3_OP_FPA_PLUS_INF: Floating-point +oo
+   - Z3_OP_FPA_PLUS_INF: Floating-point +oo
 
-      - Z3_OP_FPA_MINUS_INF: Floating-point -oo
+   - Z3_OP_FPA_MINUS_INF: Floating-point -oo
 
-      - Z3_OP_FPA_NAN: Floating-point NaN
+   - Z3_OP_FPA_NAN: Floating-point NaN
 
-      - Z3_OP_FPA_PLUS_ZERO: Floating-point +zero
+   - Z3_OP_FPA_PLUS_ZERO: Floating-point +zero
 
-      - Z3_OP_FPA_MINUS_ZERO: Floating-point -zero
+   - Z3_OP_FPA_MINUS_ZERO: Floating-point -zero
 
-      - Z3_OP_FPA_ADD: Floating-point addition
+   - Z3_OP_FPA_ADD: Floating-point addition
 
-      - Z3_OP_FPA_SUB: Floating-point subtraction
+   - Z3_OP_FPA_SUB: Floating-point subtraction
 
-      - Z3_OP_FPA_NEG: Floating-point negation
+   - Z3_OP_FPA_NEG: Floating-point negation
 
-      - Z3_OP_FPA_MUL: Floating-point multiplication
+   - Z3_OP_FPA_MUL: Floating-point multiplication
 
-      - Z3_OP_FPA_DIV: Floating-point division
+   - Z3_OP_FPA_DIV: Floating-point division
 
-      - Z3_OP_FPA_REM: Floating-point remainder
+   - Z3_OP_FPA_REM: Floating-point remainder
 
-      - Z3_OP_FPA_ABS: Floating-point absolute value
+   - Z3_OP_FPA_ABS: Floating-point absolute value
 
-      - Z3_OP_FPA_MIN: Floating-point minimum
+   - Z3_OP_FPA_MIN: Floating-point minimum
 
-      - Z3_OP_FPA_MAX: Floating-point maximum
+   - Z3_OP_FPA_MAX: Floating-point maximum
 
-      - Z3_OP_FPA_FMA: Floating-point fused multiply-add
+   - Z3_OP_FPA_FMA: Floating-point fused multiply-add
 
-      - Z3_OP_FPA_SQRT: Floating-point square root
+   - Z3_OP_FPA_SQRT: Floating-point square root
 
-      - Z3_OP_FPA_ROUND_TO_INTEGRAL: Floating-point round to integral
+   - Z3_OP_FPA_ROUND_TO_INTEGRAL: Floating-point round to integral
 
-      - Z3_OP_FPA_EQ: Floating-point equality
+   - Z3_OP_FPA_EQ: Floating-point equality
 
-      - Z3_OP_FPA_LT: Floating-point less than
+   - Z3_OP_FPA_LT: Floating-point less than
 
-      - Z3_OP_FPA_GT: Floating-point greater than
+   - Z3_OP_FPA_GT: Floating-point greater than
 
-      - Z3_OP_FPA_LE: Floating-point less than or equal
+   - Z3_OP_FPA_LE: Floating-point less than or equal
 
-      - Z3_OP_FPA_GE: Floating-point greater than or equal
+   - Z3_OP_FPA_GE: Floating-point greater than or equal
 
-      - Z3_OP_FPA_IS_NAN: Floating-point isNaN
+   - Z3_OP_FPA_IS_NAN: Floating-point isNaN
 
-      - Z3_OP_FPA_IS_INF: Floating-point isInfinite
+   - Z3_OP_FPA_IS_INF: Floating-point isInfinite
 
-      - Z3_OP_FPA_IS_ZERO: Floating-point isZero
+   - Z3_OP_FPA_IS_ZERO: Floating-point isZero
 
-      - Z3_OP_FPA_IS_NORMAL: Floating-point isNormal
+   - Z3_OP_FPA_IS_NORMAL: Floating-point isNormal
 
-      - Z3_OP_FPA_IS_SUBNORMAL: Floating-point isSubnormal
+   - Z3_OP_FPA_IS_SUBNORMAL: Floating-point isSubnormal
 
-      - Z3_OP_FPA_IS_NEGATIVE: Floating-point isNegative
+   - Z3_OP_FPA_IS_NEGATIVE: Floating-point isNegative
 
-      - Z3_OP_FPA_IS_POSITIVE: Floating-point isPositive
+   - Z3_OP_FPA_IS_POSITIVE: Floating-point isPositive
 
-      - Z3_OP_FPA_FP: Floating-point constructor from 3 bit-vectors
+   - Z3_OP_FPA_FP: Floating-point constructor from 3 bit-vectors
 
-      - Z3_OP_FPA_TO_FP: Floating-point conversion (various)
+   - Z3_OP_FPA_TO_FP: Floating-point conversion (various)
 
-      - Z3_OP_FPA_TO_FP_UNSIGNED: Floating-point conversion from unsigned bit-vector
+   - Z3_OP_FPA_TO_FP_UNSIGNED: Floating-point conversion from unsigned bit-vector
 
-      - Z3_OP_FPA_TO_UBV: Floating-point conversion to unsigned bit-vector
+   - Z3_OP_FPA_TO_UBV: Floating-point conversion to unsigned bit-vector
 
-      - Z3_OP_FPA_TO_SBV: Floating-point conversion to signed bit-vector
+   - Z3_OP_FPA_TO_SBV: Floating-point conversion to signed bit-vector
 
-      - Z3_OP_FPA_TO_REAL: Floating-point conversion to real number
+   - Z3_OP_FPA_TO_REAL: Floating-point conversion to real number
 
-      - Z3_OP_FPA_TO_IEEE_BV: Floating-point conversion to IEEE-754 bit-vector
+   - Z3_OP_FPA_TO_IEEE_BV: Floating-point conversion to IEEE-754 bit-vector
 
-      - Z3_OP_FPA_BVWRAP: (Implicitly) represents the internal bitvector-
+   - Z3_OP_FPA_BVWRAP: (Implicitly) represents the internal bitvector-
         representation of a floating-point term (used for the lazy encoding
         of non-relevant terms in theory_fpa)
 
-      - Z3_OP_FPA_BV2RM: Conversion of a 3-bit bit-vector term to a
+   - Z3_OP_FPA_BV2RM: Conversion of a 3-bit bit-vector term to a
         floating-point rounding-mode term
 
         The conversion uses the following values:
@@ -998,11 +991,11 @@ typedef enum
             3 = 011 = Z3_OP_FPA_RM_TOWARD_NEGATIVE,
             4 = 100 = Z3_OP_FPA_RM_TOWARD_ZERO.
 
-      - Z3_OP_INTERNAL: internal (often interpreted) symbol, but no additional
+   - Z3_OP_INTERNAL: internal (often interpreted) symbol, but no additional
         information is exposed. Tools may use the string representation of the
         function declaration to obtain more information.
 
-      - Z3_OP_UNINTERPRETED: kind used for uninterpreted symbols.
+   - Z3_OP_UNINTERPRETED: kind used for uninterpreted symbols.
 */
 typedef enum {
     // Basic
@@ -1389,7 +1382,7 @@ typedef enum
   def_Type('SORT',             'Z3_sort',             'Sort')
   def_Type('FUNC_DECL',        'Z3_func_decl',        'FuncDecl')
   def_Type('PATTERN',          'Z3_pattern',          'Pattern')
-  def_Type('MODEL',            'Z3_model',            'Model')
+  def_Type('MODEL',            'Z3_model',            'ModelObj')
   def_Type('LITERALS',         'Z3_literals',         'Literals')
   def_Type('CONSTRUCTOR',      'Z3_constructor',      'Constructor')
   def_Type('CONSTRUCTOR_LIST', 'Z3_constructor_list', 'ConstructorList')
@@ -1427,6 +1420,7 @@ typedef void Z3_fixed_eh(void* ctx, Z3_solver_callback cb, unsigned id, Z3_ast v
 typedef void Z3_eq_eh(void* ctx, Z3_solver_callback cb, unsigned x, unsigned y);
 typedef void Z3_final_eh(void* ctx, Z3_solver_callback cb);
 
+
 /**
    \brief A Goal is essentially a set of formulas.
    Z3 provide APIs for building strategies/tactics for solving and transforming Goals.
@@ -1445,7 +1439,7 @@ typedef enum
     Z3_GOAL_UNDER_OVER
 } Z3_goal_prec;
 
-/*@}*/
+///@}
 
 #ifdef __cplusplus
 extern "C" {
@@ -1453,7 +1447,7 @@ extern "C" {
 
     /** @name Global Parameters */
 
-    /*@{*/
+    /**@{*/
     /**
        \brief Set a global (or module) parameter.
        This setting is shared by all Z3 contexts.
@@ -1507,7 +1501,7 @@ extern "C" {
     */
     Z3_bool_opt Z3_API Z3_global_param_get(Z3_string param_id, Z3_string_ptr param_value);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Create configuration */
     /*@{*/

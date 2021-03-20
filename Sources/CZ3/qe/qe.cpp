@@ -415,7 +415,7 @@ namespace qe {
         expr_ref_vector  m_trail;          // trail for generated terms
         expr_ref_vector  m_args; 
         ptr_vector<expr> m_todo;           // stack of formulas to visit
-        bool_vector    m_pols;           // stack of polarities
+        bool_vector      m_pols;           // stack of polarities
         bool_rewriter    m_rewriter;
         
     public:
@@ -550,11 +550,9 @@ namespace qe {
 
         void nnf_and_or(bool is_and, app* a, bool p) {
             m_args.reset();
-            unsigned num_args = a->get_num_args();
             expr_ref tmp(m);
             bool visited = true;
-            for (unsigned i = 0; i < num_args; ++i) {
-                expr* arg = a->get_arg(i);
+            for (expr* arg : *a) {
                 expr* r = lookup(arg, p);
                 if (r) {
                     m_args.push_back(r);
@@ -565,12 +563,10 @@ namespace qe {
             }
             if (visited) {
                 pop();
-                if ((p && is_and) || (!p && !is_and)) {
-                    m_rewriter.mk_and(num_args, m_args.c_ptr(), tmp);
-                }
-                else {
-                    m_rewriter.mk_or(num_args, m_args.c_ptr(), tmp);
-                }
+                if (p == is_and) 
+                    tmp = mk_and(m_args);
+                else
+                    tmp = mk_or(m_args);
                 insert(a, p, tmp);
             }
         }
@@ -693,13 +689,13 @@ namespace qe {
             }
             else if (m.is_and(e) || m.is_or(e)) {
                 m_args.reset();
-                for (unsigned i = 0; i < e->get_num_args(); ++i) {
-                    if (m_cache.find(e->get_arg(i), f)) {
+                for (expr* arg : *e) {
+                    if (m_cache.find(arg, f)) {
                         m_args.push_back(f);
                     }
                     else {
                         all_visit = false;
-                        m_todo.push_back(e->get_arg(i));
+                        m_todo.push_back(arg);
                     }
                 }
                 if (all_visit) {
@@ -817,18 +813,15 @@ namespace qe {
             while (!m_todo.empty()) {
                 expr* e = m_todo.back();
                 m_todo.pop_back();
-                if (m_visited.is_marked(e)) {
+                if (m_visited.is_marked(e)) 
                     continue;
-                }
                 m_visited.mark(e, true);
-                if (!is_app(e) || !m_is_relevant(e)) {
+                if (!is_app(e) || !m_is_relevant(e)) 
                     continue;
-                }
                 app* a = to_app(e);
                 if (m.is_and(a) || m.is_or(a)) {
-                    for (unsigned i = 0; i < a->get_num_args(); ++i) {
-                        m_todo.push_back(a->get_arg(i));
-                    }
+                    for (expr* arg : *a)
+                        m_todo.push_back(arg);
                 }
                 else if (m.is_not(a, e) && is_app(e)) {
                     neg.insert(to_app(e));
@@ -1167,7 +1160,7 @@ namespace qe {
             expr* y = x;
             expr_abstract(m, 0, 1, &y, fml, result);            
             symbol X(x->get_decl()->get_name());
-            sort* s = m.get_sort(x);
+            sort* s = x->get_sort();
             result = m.mk_exists(1, &s, &X, result);
             return result;
         }
@@ -1278,8 +1271,7 @@ namespace qe {
     }
 
     bool i_solver_context::has_plugin(app* x) {
-        ast_manager& m = get_manager();
-        family_id fid = m.get_sort(x)->get_family_id();
+        family_id fid = x->get_sort()->get_family_id();
         return 
             0 <= fid && 
             fid < static_cast<int>(m_plugins.size()) &&
@@ -1287,9 +1279,8 @@ namespace qe {
     }
     
     qe_solver_plugin& i_solver_context::plugin(app* x) {
-        ast_manager& m = get_manager();
         SASSERT(has_plugin(x));
-        return *(m_plugins[m.get_sort(x)->get_family_id()]);               
+        return *(m_plugins[x->get_sort()->get_family_id()]);               
     }
 
     void i_solver_context::mk_atom(expr* e, bool p, expr_ref& result) {
@@ -1316,7 +1307,7 @@ namespace qe {
     typedef ref_vector_ptr_hash<expr, ast_manager> expr_ref_vector_hash;
     typedef ref_vector_ptr_eq<expr, ast_manager>   expr_ref_vector_eq;
     typedef hashtable<expr_ref_vector*, expr_ref_vector_hash, expr_ref_vector_eq> clause_table;
-    typedef value_trail<smt::context, unsigned> _value_trail;
+    typedef value_trail<unsigned> _value_trail;
 
 
     class quant_elim_plugin : public i_solver_context {
@@ -1665,10 +1656,9 @@ namespace qe {
                 return false;
             }
 
-            unsigned_vector& vec = m_partition.back();;
-            for (unsigned i = 0; i < vec.size(); ++i) {
-                vars.push_back(m_current->free_var(vec[i]));
-            }
+            unsigned_vector& vec = m_partition.back();
+            for (auto v : vec)
+                vars.push_back(m_current->free_var(v));
             m_partition.pop_back();
             return true;
         }
@@ -2081,7 +2071,7 @@ namespace qe {
                 for (unsigned i = 0; i < num_vars; ++i) {
                     contains_app contains_x(m, vars[i]);
                     if (contains_x(fml)) {
-                        sorts.push_back(m.get_sort(vars[i]));
+                        sorts.push_back(vars[i]->get_sort());
                         names.push_back(vars[i]->get_decl()->get_name());
                         free_vars.push_back(vars[i]);
                     }

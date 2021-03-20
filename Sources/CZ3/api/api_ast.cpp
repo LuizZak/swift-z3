@@ -142,8 +142,8 @@ extern "C" {
         var_ref_vector _vars(m);
         for (unsigned i = 0; i < n; ++i) {
             _args.push_back(to_expr(args[i]));
-            _vars.push_back(m.mk_var(n - i - 1, m.get_sort(_args.back())));
-            if (m.get_sort(_args.back()) != d->get_domain(i)) {
+            _vars.push_back(m.mk_var(n - i - 1, _args.back()->get_sort()));
+            if (_args.back()->get_sort() != d->get_domain(i)) {
                 SET_ERROR_CODE(Z3_INVALID_ARG, nullptr);            
                 return;            
             }
@@ -154,7 +154,7 @@ extern "C" {
             SET_ERROR_CODE(Z3_INVALID_ARG, nullptr);
             return;
         }
-        if (m.get_sort(abs_body) != d->get_range()) {
+        if (abs_body->get_sort() != d->get_range()) {
             SET_ERROR_CODE(Z3_INVALID_ARG, nullptr);            
             return;
         }
@@ -365,7 +365,7 @@ extern "C" {
         case AST_APP: {
             expr * e = to_expr(_a);
             // Real algebraic numbers are not considered Z3_NUMERAL_AST
-            if (is_numeral_sort(c, of_sort(mk_c(c)->m().get_sort(e))) && mk_c(c)->m().is_unique_value(e))
+            if (is_numeral_sort(c, of_sort(e->get_sort())) && mk_c(c)->m().is_unique_value(e))
                 return Z3_NUMERAL_AST;
             return Z3_APP_AST;
         }
@@ -622,7 +622,7 @@ extern "C" {
         LOG_Z3_get_sort(c, a);
         RESET_ERROR_CODE();
         CHECK_IS_EXPR(a, nullptr);
-        Z3_sort r = of_sort(mk_c(c)->m().get_sort(to_expr(a)));
+        Z3_sort r = of_sort(to_expr(a)->get_sort());
         RETURN_Z3(r);
         Z3_CATCH_RETURN(nullptr);
     }
@@ -847,7 +847,7 @@ extern "C" {
         expr * const * to   = to_exprs(num_exprs, _to);
         expr * r = nullptr;
         for (unsigned i = 0; i < num_exprs; i++) {
-            if (m.get_sort(from[i]) != m.get_sort(to[i])) {
+            if (from[i]->get_sort() != to[i]->get_sort()) {
                 SET_ERROR_CODE(Z3_SORT_ERROR, nullptr);
                 RETURN_Z3(of_expr(nullptr));
             }

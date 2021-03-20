@@ -69,9 +69,12 @@ theory * user_propagator::mk_fresh(context * new_ctx) {
 final_check_status user_propagator::final_check_eh() {
     if (!(bool)m_final_eh)
         return FC_DONE;
+    force_push();
     unsigned sz = m_prop.size();
     m_final_eh(m_user_context, this);
-    return sz == m_prop.size() ? FC_DONE : FC_CONTINUE;
+    propagate();
+    bool done = (sz == m_prop.size()) && !ctx.inconsistent();
+    return done ? FC_DONE : FC_CONTINUE;
 }
 
 void user_propagator::new_fixed_eh(theory_var v, expr* value, unsigned num_lits, literal const* jlits) {
@@ -81,7 +84,7 @@ void user_propagator::new_fixed_eh(theory_var v, expr* value, unsigned num_lits,
     if (m_fixed.contains(v))
         return;
     m_fixed.insert(v);
-    ctx.push_trail(insert_map<context, uint_set, unsigned>(m_fixed, v));
+    ctx.push_trail(insert_map<uint_set, unsigned>(m_fixed, v));
     m_id2justification.setx(v, literal_vector(num_lits, jlits), literal_vector());
     m_fixed_eh(m_user_context, this, v, value);
 }
@@ -121,7 +124,7 @@ void user_propagator::propagate() {
             m_lits.append(m_id2justification[id]);
         for (auto const& p : prop.m_eqs)
             m_eqs.push_back(enode_pair(get_enode(p.first), get_enode(p.second)));
-        DEBUG_CODE(for (auto const& p : m_eqs) SASSERT(p.first->get_root() == p.second->get_root()););
+        DEBUG_CODE(for (auto const& p : m_eqs) VERIFY(p.first->get_root() == p.second->get_root()););
 
         if (m.is_false(prop.m_conseq)) {
             js = ctx.mk_justification(
@@ -139,7 +142,7 @@ void user_propagator::propagate() {
         ++m_stats.m_num_propagations;
         ++qhead;
     }
-    ctx.push_trail(value_trail<context, unsigned>(m_qhead));
+    ctx.push_trail(value_trail<unsigned>(m_qhead));
     m_qhead = qhead;
 }
 

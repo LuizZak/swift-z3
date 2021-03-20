@@ -49,6 +49,14 @@ namespace arith {
         }
     }
 
+    // t = n^0
+    void solver::mk_power0_axioms(app* t, app* n) {
+        expr_ref p0(a.mk_power0(n, t->get_arg(1)), m);
+        literal eq = eq_internalize(n, a.mk_numeral(rational(0), a.is_int(n)));
+        add_clause(~eq, eq_internalize(t, p0));
+        add_clause(eq, eq_internalize(t, a.mk_numeral(rational(1), a.is_int(t))));
+    }
+
     // is_int(x) <=> to_real(to_int(x)) = x
     void solver::mk_is_int_axiom(expr* n) {
         expr* x = nullptr;
@@ -296,7 +304,7 @@ namespace arith {
         return lp::EQ;
     }
 
-    void solver::mk_eq_axiom(bool is_eq, euf::th_eq const& e) {
+    void solver::new_eq_eh(euf::th_eq const& e) {
         theory_var v1 = e.v1();
         theory_var v2 = e.v2();
         if (is_bool(v1))
@@ -304,26 +312,39 @@ namespace arith {
         force_push();
         expr* e1 = var2expr(v1);
         expr* e2 = var2expr(v2);
+        TRACE("arith", tout << "new eq: v" << v1 << " v" << v2 << "\n";);
         if (e1->get_id() > e2->get_id())
             std::swap(e1, e2);
             
-        if (is_eq && m.are_equal(e1, e2))
+        if (m.are_equal(e1, e2))
             return;
-        if (!is_eq && m.are_distinct(e1, e2))
-            return;       
 
-        if (is_eq) {       
-            ++m_stats.m_assert_eq;
-            euf::enode* n1 = var2enode(v1);
-            euf::enode* n2 = var2enode(v2);
-            lpvar w1 = register_theory_var_in_lar_solver(v1);
-            lpvar w2 = register_theory_var_in_lar_solver(v2);
-            auto cs = lp().add_equality(w1, w2);            
-            add_eq_constraint(cs.first, n1, n2);
-            add_eq_constraint(cs.second, n1, n2);
-            m_new_eq = true;
+        ++m_stats.m_assert_eq;
+        m_new_eq = true;
+        euf::enode* n1 = var2enode(v1);
+        euf::enode* n2 = var2enode(v2);
+        lpvar w1 = register_theory_var_in_lar_solver(v1);
+        lpvar w2 = register_theory_var_in_lar_solver(v2);
+        auto cs = lp().add_equality(w1, w2);            
+        add_eq_constraint(cs.first, n1, n2);
+        add_eq_constraint(cs.second, n1, n2);
+    }
+
+    void solver::new_diseq_eh(euf::th_eq const& e) {
+        m_delayed_eqs.push_back(std::make_pair(e, false));
+        ctx.push(push_back_vector<svector<std::pair<euf::th_eq, bool>>>(m_delayed_eqs));
+    }
+
+    void solver::mk_diseq_axiom(euf::th_eq const& e) {
+        if (is_bool(e.v1()))
             return;
-        }
+        force_push();
+        expr* e1 = var2expr(e.v1());
+        expr* e2 = var2expr(e.v2());
+        if (e1->get_id() > e2->get_id())
+            std::swap(e1, e2);
+        if (m.are_distinct(e1, e2))
+            return;       
         literal le, ge;
         if (a.is_numeral(e1))
             std::swap(e1, e2);
@@ -338,9 +359,7 @@ namespace arith {
             expr_ref zero(a.mk_numeral(rational(0), a.is_int(e1)), m);
             rewrite(diff);
             if (a.is_numeral(diff)) {
-                if (is_eq && a.is_zero(diff))
-                    return;
-                if (!is_eq && !a.is_zero(diff))
+                if (!a.is_zero(diff))
                     return;
                 if (a.is_zero(diff))
                     add_unit(eq);
@@ -396,9 +415,13 @@ namespace arith {
             expr* n = m_idiv_terms[i];
             expr* p = nullptr, * q = nullptr;
             VERIFY(a.is_idiv(n, p, q));
-            theory_var v = mk_evar(n);
+            euf::enode* np = ctx.get_enode(p);
+            euf::enode* nn = ctx.get_enode(n);
+            if (!np || !np->is_attached_to(get_id()))
+                continue;
+            if (!nn || !nn->is_attached_to(get_id()))
+                continue;
             theory_var v1 = mk_evar(p);
-
             if (!is_registered_var(v1))
                 continue;
             lp::impq r1 = get_ivalue(v1);
@@ -419,6 +442,7 @@ namespace arith {
                     TRACE("arith", tout << "unbounded " << expr_ref(n, m) << "\n";);
                     continue;
                 }
+                theory_var v = mk_evar(n);
                 if (!is_registered_var(v))
                     continue;
                 lp::impq val_v = get_ivalue(v);

@@ -94,11 +94,11 @@ namespace smt {
             }
 
             for (expr* f : m_fresh_exprs) {
-                if (m.get_sort(f) == m.get_sort(val)) {
+                if (f->get_sort() == val->get_sort()) {
                     return f;
                 }
             }
-            fresh_term = m.mk_fresh_const("sk", m.get_sort(val));
+            fresh_term = m.mk_fresh_const("sk", val->get_sort());
         }
         m_fresh_exprs.push_back(fresh_term);
         m_context->ensure_internalized(fresh_term);
@@ -112,7 +112,7 @@ namespace smt {
                 enode * n   = kv.m_key;
                 expr  * val = kv.m_value;
                 n = n->get_eq_enode_with_min_gen();
-                m_value2expr.insert(val, n->get_owner());
+                m_value2expr.insert(val, n->get_expr());
             }
         }
     }

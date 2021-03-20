@@ -4,12 +4,14 @@
 #include "util/prime_generator.h"
 #include "util/rational.h"
 #include "util/rlimit.h"
+#include "util/scoped_timer.h"
 #include "util/symbol.h"
 #include "util/trace.h"
 void mem_initialize() {
 prime_iterator::initialize();
 rational::initialize();
 initialize_rlimit();
+scoped_timer::initialize();
 initialize_symbols();
 gparams::init();
 }

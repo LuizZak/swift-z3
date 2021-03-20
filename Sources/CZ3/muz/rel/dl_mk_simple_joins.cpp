@@ -20,10 +20,10 @@ Revision History:
 #include<utility>
 #include<sstream>
 #include<limits>
-#include "muz/rel/dl_mk_simple_joins.h"
-#include "muz/rel/dl_relation_manager.h"
 #include "ast/ast_pp.h"
 #include "util/trace.h"
+#include "muz/rel/dl_mk_simple_joins.h"
+#include "muz/rel/dl_relation_manager.h"
 
 
 namespace datalog {
@@ -47,14 +47,14 @@ namespace datalog {
                being notified about it, it will surely see the decrease from length 3 to 2 which
                the threshold for rule being counted in this counter.
              */
-            unsigned    m_consumers;
-            bool        m_stratified;
-            unsigned    m_src_stratum;
+            unsigned    m_consumers { 0 };
+            bool        m_stratified { true };
+            unsigned    m_src_stratum { 0 };
         public:
             var_idx_set m_all_nonlocal_vars;
             rule_vector m_rules;
 
-            pair_info() : m_consumers(0), m_stratified(true), m_src_stratum(0) {}
+            pair_info() {}
 
             bool can_be_joined() const {
                 return m_consumers > 0;
@@ -162,7 +162,7 @@ namespace datalog {
             for (expr* arg : *t) {
                 unsigned var_idx = to_var(arg)->get_idx();
                 if (!result.get(res_ofs - var_idx)) {
-                    result[res_ofs - var_idx] = m.mk_var(next_var++, m.get_sort(arg));
+                    result[res_ofs - var_idx] = m.mk_var(next_var++, arg->get_sort());
                 }
             }
         }
@@ -246,7 +246,7 @@ namespace datalog {
 
             m_pinned.push_back(t1n);
             m_pinned.push_back(t2n);
-            TRACE("dl", tout << mk_pp(t1, m) << " " << mk_pp(t2, m) << " |-> " << t1n_ref << " " << t2n_ref << "\n";);
+            TRACE("dl_verbose", tout << mk_pp(t1, m) << " " << mk_pp(t2, m) << " |-> " << t1n_ref << " " << t2n_ref << "\n";);
             
             return app_pair(t1n, t2n);
         }
@@ -293,25 +293,28 @@ namespace datalog {
         void register_rule(rule * r) {
             rule_counter counter;
             counter.count_rule_vars(r, 1);
-            TRACE("dl", tout << "counter: "; for (auto const& kv: counter) tout << kv.m_key << ": " << kv.m_value << " "; tout << "\n";);
-
+            TRACE("dl", tout << "counter: "; for (auto const& kv: counter) tout << kv.m_key << ": " << kv.m_value << " "; tout << "\n";);            
             ptr_vector<app> & rule_content = m_rules_content.insert_if_not_there(r, ptr_vector<app>());
             SASSERT(rule_content.empty());
-
+            
             TRACE("dl", r->display(m_context, tout << "register ");); 
-
+            
             unsigned pos_tail_size = r->get_positive_tail_size();
             for (unsigned i = 0; i < pos_tail_size; i++) {
-                rule_content.push_back(r->get_tail(i));
+                app* t = r->get_tail(i);
+                if (!rule_content.contains(t))
+                    rule_content.push_back(t);
+                else
+                    m_modified_rules = true;
             }
+            pos_tail_size = rule_content.size();
             for (unsigned i = 0; i+1 < pos_tail_size; i++) {
-                app * t1 = r->get_tail(i);
+                app * t1 = rule_content[i];
                 var_idx_set t1_vars = rm.collect_vars(t1);
                 counter.count_vars(t1, -1);  //temporarily remove t1 variables from counter
                 for (unsigned j = i+1; j < pos_tail_size; j++) {
-                    app * t2 = r->get_tail(j);
-                    if (t1 == t2)
-                        continue;
+                    app * t2 = rule_content[j];
+                    SASSERT(t1 != t2);
                     counter.count_vars(t2, -1);  //temporarily remove t2 variables from counter
                     var_idx_set t2_vars = rm.collect_vars(t2);
                     t2_vars |= t1_vars;
@@ -332,7 +335,7 @@ namespace datalog {
                 var * v = to_var(arg);
                 if (v->get_idx() == var_idx) {
                     args.push_back(v);
-                    domain.push_back(m.get_sort(v));
+                    domain.push_back(v->get_sort());
                     return true;
                 }
             }
@@ -408,7 +411,7 @@ namespace datalog {
 
         void replace_edges(rule * r, const app_ref_vector & removed_tails, 
                            const app_ref_vector & added_tails0, const ptr_vector<app> & rule_content) {
-            SASSERT(removed_tails.size()>=added_tails0.size());
+            SASSERT(removed_tails.size() >= added_tails0.size());
             unsigned len = rule_content.size();
             unsigned original_len = len+removed_tails.size()-added_tails0.size();
             app_ref_vector added_tails(added_tails0); //we need a copy since we'll be modifying it
@@ -492,14 +495,16 @@ namespace datalog {
                 return;
             }
             TRACE("dl", 
-                  r->display(m_context, tout << "rule ");
                   tout << "pair: " << mk_pp(t1, m) << " " << mk_pp(t2, m) << "\n";
                   tout << mk_pp(t_new, m) << "\n";
                   tout << "all-non-local: " << m_costs[pair_key]->m_all_nonlocal_vars << "\n";
-                  for (app* a : rule_content) tout << mk_pp(a, m) << " "; tout << "\n";);
+                  tout << mk_pp(r->get_head(), m) << " :-\n";
+                  for (app* a : rule_content) tout << " " << mk_pp(a, m) << "\n";);
 
             rule_counter counter;
-            counter.count_rule_vars(r, 1);
+            for (app* t : rule_content)
+                counter.count_vars(t, +1);
+            counter.count_vars(r->get_head(), +1);
 
             func_decl * t1_pred = t1->get_decl();
             func_decl * t2_pred = t2->get_decl();
@@ -512,7 +517,6 @@ namespace datalog {
                 }
                 var_idx_set rt1_vars = rm.collect_vars(rt1);
                 counter.count_vars(rt1, -1);
-
 
                 var_idx_set t1_vars = rm.collect_vars(t1);
                 unsigned i2start = (t1_pred == t2_pred) ? (i1+1) : 0;
@@ -530,7 +534,6 @@ namespace datalog {
                     reverse_renaming(normalizer, denormalizer);
                     expr_ref new_transf(m);
                     new_transf = m_var_subst(t_new, denormalizer);
-                    var_idx_set transf_vars = rm.collect_vars(new_transf);
                     TRACE("dl", tout  << mk_pp(rt1, m) << " " << mk_pp(rt2, m) << " -> " << new_transf << "\n";);            
                     counter.count_vars(rt2, -1);
                     var_idx_set rt2_vars = rm.collect_vars(rt2);
@@ -548,18 +551,34 @@ namespace datalog {
                         denormalizer.reset();
                         reverse_renaming(normalizer2, denormalizer);
                         new_transf = m_var_subst(t_new, denormalizer);
-                        SASSERT(non_local_vars.subset_of(rm.collect_vars(new_transf)));
                         TRACE("dl", tout  << mk_pp(rt2, m) << " " << mk_pp(rt1, m) << " -> " << new_transf << "\n";);            
+                        SASSERT(non_local_vars.subset_of(rm.collect_vars(new_transf)));
                     }
                     app * new_lit = to_app(new_transf);
-                    m_pinned.push_back(new_lit);
-                    rule_content[i1] = new_lit;
-                    rule_content[i2] = rule_content.back();
-                    rule_content.pop_back();
-                    len--;                                  //here the bound of both loops changes!!!
-                    removed_tails.push_back(rt1);
-                    removed_tails.push_back(rt2);
-                    added_tails.push_back(new_lit);
+                    if (added_tails.contains(new_lit)) {
+                        if (i1 < i2)
+                            std::swap(i1, i2);
+                        if (i1 < rule_content.size()) 
+                            rule_content[i1] = rule_content.back();
+                        rule_content.pop_back();
+                        if (i2 < rule_content.size()) 
+                            rule_content[i2] = rule_content.back();
+                        rule_content.pop_back();
+                        len -= 2;
+                        removed_tails.push_back(rt1);
+                        removed_tails.push_back(rt2);
+                        counter.count_vars(new_lit, -1);
+                    }
+                    else {
+                        m_pinned.push_back(new_lit);
+                        rule_content[i1] = new_lit;
+                        rule_content[i2] = rule_content.back();
+                        rule_content.pop_back();
+                        len--;                                  //here the bound of both loops changes!!!
+                        removed_tails.push_back(rt1);
+                        removed_tails.push_back(rt2);
+                        added_tails.push_back(new_lit);
+                    }
                     // this exits the inner loop, the outer one continues in case there will 
                     // be other matches
                     break;
@@ -575,7 +594,7 @@ namespace datalog {
 
 
         cost get_domain_size(expr* e) const {
-            return get_domain_size(m.get_sort(e));
+            return get_domain_size(e->get_sort());
         }
 
         cost get_domain_size(sort* s) const {
@@ -654,10 +673,8 @@ namespace datalog {
 
 
         bool pick_best_pair(app_pair & p) {
-            app_pair best;
             bool found = false;
             cost best_cost;
-
             for (auto const& kv : m_costs) {
                 app_pair key = kv.m_key;
                 pair_info & inf = *kv.m_value;
@@ -668,14 +685,10 @@ namespace datalog {
                 if (!found || c < best_cost) {
                     found = true;
                     best_cost = c;
-                    best = key;
+                    p = key;
                 }
             }
-            if (!found) {
-                return false;
-            }
-            p = best;
-            return true;
+            return found;
         }
 
 

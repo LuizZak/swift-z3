@@ -17,11 +17,14 @@ struct opt_params {
     d.insert("solution_prefix", CPK_SYMBOL, "path prefix to dump intermediary, but non-optimal, solutions", "","opt");
     d.insert("timeout", CPK_UINT, "timeout (in milliseconds) (UINT_MAX and 0 mean no timeout)", "4294967295","opt");
     d.insert("rlimit", CPK_UINT, "resource limit (0 means no limit)", "0","opt");
-    d.insert("enable_sls", CPK_BOOL, "enable SLS tuning during weighted maxsast", "false","opt");
+    d.insert("enable_sls", CPK_BOOL, "enable SLS tuning during weighted maxsat", "false","opt");
+    d.insert("enable_lns", CPK_BOOL, "enable LNS during weighted maxsat", "false","opt");
+    d.insert("lns_conflicts", CPK_UINT, "initial conflict count for LNS search", "1000","opt");
     d.insert("enable_sat", CPK_BOOL, "enable the new SAT core for propositional constraints", "true","opt");
     d.insert("elim_01", CPK_BOOL, "eliminate 01 variables", "true","opt");
     d.insert("pp.neat", CPK_BOOL, "use neat (as opposed to less readable, but faster) pretty printer when displaying context", "true","opt");
     d.insert("pb.compile_equality", CPK_BOOL, "compile arithmetical equalities into pseudo-Boolean equality (instead of two inequalites)", "false","opt");
+    d.insert("pp.wcnf", CPK_BOOL, "print maxsat benchmark into wcnf format", "false","opt");
     d.insert("maxlex.enable", CPK_BOOL, "enable maxlex heuristic for lexicographic MaxSAT problems", "true","opt");
     d.insert("maxres.hill_climb", CPK_BOOL, "give preference for large weight cores", "true","opt");
     d.insert("maxres.add_upper_bound_block", CPK_BOOL, "restict upper bound with constraint", "false","opt");
@@ -45,10 +48,13 @@ struct opt_params {
   unsigned timeout() const { return p.get_uint("timeout", g, 4294967295u); }
   unsigned rlimit() const { return p.get_uint("rlimit", g, 0u); }
   bool enable_sls() const { return p.get_bool("enable_sls", g, false); }
+  bool enable_lns() const { return p.get_bool("enable_lns", g, false); }
+  unsigned lns_conflicts() const { return p.get_uint("lns_conflicts", g, 1000u); }
   bool enable_sat() const { return p.get_bool("enable_sat", g, true); }
   bool elim_01() const { return p.get_bool("elim_01", g, true); }
   bool pp_neat() const { return p.get_bool("pp.neat", g, true); }
   bool pb_compile_equality() const { return p.get_bool("pb.compile_equality", g, false); }
+  bool pp_wcnf() const { return p.get_bool("pp.wcnf", g, false); }
   bool maxlex_enable() const { return p.get_bool("maxlex.enable", g, true); }
   bool maxres_hill_climb() const { return p.get_bool("maxres.hill_climb", g, true); }
   bool maxres_add_upper_bound_block() const { return p.get_bool("maxres.add_upper_bound_block", g, false); }

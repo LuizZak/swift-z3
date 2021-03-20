@@ -54,8 +54,13 @@ namespace sat {
                     literal r2 = norm(roots, l2);
                     if (r1 == r2) {
                         m_solver.assign_unit(r1);
-                        if (m_solver.inconsistent())
+                        if (m_solver.inconsistent()) {
+                            ++it;
+                            for (; it != end; ++it, ++itprev)
+                                *itprev = *it;
+                            wlist.set_end(itprev);
                             return;
+                        }
                         // consume unit
                         continue;
                     }

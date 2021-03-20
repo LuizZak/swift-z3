@@ -148,36 +148,37 @@ namespace datalog {
     //
     // -----------------------------------
 
-    class context::restore_rules : public trail<context> {
+    class context::restore_rules : public trail {
+        context& ctx;
         rule_set* m_old_rules;
         void reset() {
             dealloc(m_old_rules);
             m_old_rules = nullptr;
         }
     public:
-        restore_rules(rule_set& r): m_old_rules(alloc(rule_set, r)) {}
+        restore_rules(context& ctx, rule_set& r): ctx(ctx), m_old_rules(alloc(rule_set, r)) {}
 
         ~restore_rules() override {}
 
-        void undo(context& ctx) override {
+        void undo() override {
             ctx.replace_rules(*m_old_rules);
             reset();
         }
     };
 
     template<typename Ctx, typename Vec>
-    class restore_vec_size_trail : public trail<Ctx> {
+    class restore_vec_size_trail : public trail {
         Vec& m_vector;
         unsigned m_old_size;
     public:
         restore_vec_size_trail(Vec& v): m_vector(v), m_old_size(v.size()) {}
         ~restore_vec_size_trail() override {}
-        void undo(Ctx& ctx) override { m_vector.shrink(m_old_size); }
+        void undo() override { m_vector.shrink(m_old_size); }
     };
 
     void context::push() {
         m_trail.push_scope();
-        m_trail.push(restore_rules(m_rule_set));
+        m_trail.push(restore_rules(*this, m_rule_set));
         m_trail.push(restore_vec_size_trail<context,expr_ref_vector>(m_rule_fmls));
         m_trail.push(restore_vec_size_trail<context,expr_ref_vector>(m_background));
     }
@@ -209,7 +210,7 @@ namespace datalog {
         m_contains_p(*this),
         m_rule_properties(m, m_rule_manager, *this, m_contains_p),
         m_transf(*this),
-        m_trail(*this),
+        m_trail(),
         m_pinned(m),
         m_bind_variables(m),
         m_rule_set(*this),
@@ -368,10 +369,14 @@ namespace datalog {
     }
 
     context::finite_element context::get_constant_number(relation_sort srt, uint64_t el) {
-        sort_domain & dom0 = get_sort_domain(srt);
-        SASSERT(dom0.get_kind()==SK_UINT64);
-        uint64_sort_domain & dom = static_cast<uint64_sort_domain &>(dom0);
-        return dom.get_number(el);
+        
+        sort_domain & dom0 = get_sort_domain(srt);     
+        if (dom0.get_kind() == SK_SYMBOL) 
+            return (finite_element)(el);
+        else {
+            uint64_sort_domain & dom = static_cast<uint64_sort_domain &>(dom0);
+            return dom.get_number(el);
+        }
     }
 
     void context::print_constant_name(relation_sort srt, uint64_t num, std::ostream & out)
@@ -778,13 +783,13 @@ namespace datalog {
             else if (is_var(e) && m.is_bool(e)) {
                 m_engine_type = SPACER_ENGINE;
             }
-            else if (dt.is_datatype(m.get_sort(e))) {
+            else if (dt.is_datatype(e->get_sort())) {
                 m_engine_type = SPACER_ENGINE;
             }
-            else if (is_large_bv(m.get_sort(e))) {
+            else if (is_large_bv(e->get_sort())) {
                 m_engine_type = SPACER_ENGINE;
             }
-            else if (!m.get_sort(e)->get_num_elements().is_finite()) {
+            else if (!e->get_sort()->get_num_elements().is_finite()) {
                 m_engine_type = SPACER_ENGINE;
             }
             else if (ar.is_array(e)) {
@@ -820,6 +825,12 @@ namespace datalog {
         }
         else if (e == symbol("ddnf")) {
             m_engine_type = DDNF_ENGINE;
+        }
+        else if (e == symbol("auto-config")) {
+            
+        }
+        else {
+            throw default_exception("unsupported datalog engine type");
         }
 
         if (m_engine_type == LAST_ENGINE) {

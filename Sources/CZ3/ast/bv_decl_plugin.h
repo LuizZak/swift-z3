@@ -300,7 +300,7 @@ public:
     bool is_zero(expr const * e) const;
     bool is_one(expr const* e) const;
     bool is_bv_sort(sort const * s) const;
-    bool is_bv(expr const* e) const {  return is_bv_sort(get_sort(e)); }
+    bool is_bv(expr const* e) const {  return is_bv_sort(e->get_sort()); }
 
     bool is_concat(expr const * e) const { return is_app_of(e, get_fid(), OP_CONCAT); }
     bool is_extract(func_decl const * f) const { return is_decl_of(f, get_fid(), OP_EXTRACT); }
@@ -352,6 +352,8 @@ public:
     bool is_sign_ext(expr const * e) const { return is_app_of(e, get_fid(), OP_SIGN_EXT); }
     bool is_bv_umul_no_ovfl(expr const* e) const { return is_app_of(e, get_fid(), OP_BUMUL_NO_OVFL); }
 
+    MATCH_UNARY(is_bv_not);
+
     MATCH_BINARY(is_bv_add);
     MATCH_BINARY(is_bv_mul);
     MATCH_BINARY(is_bv_sle);
@@ -398,7 +400,7 @@ public:
         SASSERT(is_bv_sort(s));
         return static_cast<unsigned>(s->get_parameter(0).get_int());
     }
-    unsigned get_bv_size(expr const * n) const { return get_bv_size(m_manager.get_sort(n)); }
+    unsigned get_bv_size(expr const * n) const { return get_bv_size(n->get_sort()); }
     unsigned get_int2bv_size(parameter const& p);
 
 
@@ -409,6 +411,7 @@ public:
         return m_manager.mk_app(get_fid(), OP_EXTRACT, 2, params, 1, &n);
     }
     app * mk_concat(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_CONCAT, num, args);  }
+    app * mk_concat(expr_ref_vector const& es) { return m_manager.mk_app(get_fid(), OP_CONCAT, es.size(), es.c_ptr());  }
     app * mk_bv_or(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_BOR, num, args);  }
     app * mk_bv_and(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_BAND, num, args);  }
     app * mk_bv_xor(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_BXOR, num, args);  }

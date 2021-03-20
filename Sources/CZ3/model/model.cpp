@@ -63,7 +63,7 @@ void model::updt_params(params_ref const & p) {
 
 void model::copy_const_interps(model const & source) {
     for (auto const& kv : source.m_interp) 
-        register_decl(kv.m_key, kv.m_value);
+        register_decl(kv.m_key, kv.m_value.second);
 }
 
 void model::copy_func_interps(model const & source) {
@@ -125,6 +125,10 @@ expr * model::get_fresh_value(sort * s) {
     return get_factory(s)->get_fresh_value(s);
 }
 
+void model::register_value(expr* e) {
+    get_factory(e->get_sort())->register_value(e);
+}
+
 bool model::get_some_values(sort * s, expr_ref& v1, expr_ref& v2) {
     return get_factory(s)->get_some_values(s, v1, v2);
 }
@@ -168,12 +172,14 @@ model * model::translate(ast_translation & translator) const {
 
     // Translate const interps
     for (auto const& kv : m_interp) {
-        res->register_decl(translator(kv.m_key), translator(kv.m_value));
+        func_decl_ref d(translator(kv.m_key), translator.to());
+        expr_ref v(translator(kv.m_value.second), translator.to());
+        res->register_decl(d, v);
     }
     // Translate func interps
     for (auto const& kv : m_finterp) {
-        func_interp * fi = kv.m_value;
-        res->register_decl(translator(kv.m_key), fi->translate(translator));
+        func_interp* fi = kv.m_value->translate(translator);
+        res->register_decl(translator(kv.m_key), fi);
     }
 
     // Translate usort interps
@@ -201,6 +207,7 @@ struct model::top_sort : public ::top_sort<func_decl> {
     {
         params_ref p;
         p.set_bool("elim_ite", false);
+        p.set_bool("ite_extra_rules", true);
         m_rewrite.updt_params(p);
     }
 
@@ -265,7 +272,7 @@ void model::collect_deps(top_sort& ts) {
         ts.insert(kv.m_key, collect_deps(ts, kv.m_value));
     }
     for (auto const& kv : m_interp) {
-        ts.insert(kv.m_key, collect_deps(ts, kv.m_value));
+        ts.insert(kv.m_key, collect_deps(ts, kv.m_value.second));
     }
 }
 
@@ -451,8 +458,10 @@ expr_ref model::cleanup_expr(top_sort& ts, expr* e, unsigned current_partition) 
                 // only expand auxiliary definitions that occur once.
                 if (can_inline_def(ts, f)) {
                     fi = get_func_interp(f);
-                    new_t = fi->get_array_interp(f);
-                    TRACE("model", tout << "array interpretation:" << new_t << "\n";);
+                    if (fi) {
+                        new_t = fi->get_array_interp(f);
+                        TRACE("model", tout << "array interpretation:" << new_t << "\n";);
+                    }
                 }
             }
 
@@ -479,6 +488,7 @@ expr_ref model::cleanup_expr(top_sort& ts, expr* e, unsigned current_partition) 
             }
             
             if (t != new_t.get()) trail.push_back(new_t);
+            CTRACE("model", (t != new_t.get()), tout << mk_bounded_pp(t, m) << " " << new_t << "\n";);
             todo.pop_back();
             cache.insert(t, new_t);
             break;

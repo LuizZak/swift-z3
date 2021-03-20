@@ -22,19 +22,23 @@ Revision History:
 #include "util/scoped_timer.h"
 #include "util/mutex.h"
 #include "util/util.h"
+#include <atomic>
 #include <chrono>
 #include <climits>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <vector>
+#ifndef _WINDOWS
+#include <pthread.h>
+#endif
 
 struct scoped_timer_state {
-    std::thread * m_thread { nullptr };
+    std::thread m_thread;
     std::timed_mutex m_mutex;
     event_handler * eh;
     unsigned ms;
-    int work;
+    std::atomic<int> work;
     std::condition_variable_any cv;
 };
 
@@ -78,9 +82,11 @@ private:
 public:
     imp(unsigned ms, event_handler * eh) {
         workers.lock();
+        bool new_worker = false;
         if (available_workers.empty()) {
             workers.unlock();
             s = new scoped_timer_state;
+            new_worker = true;
             ++num_workers;
         } 
         else {
@@ -92,8 +98,8 @@ public:
         s->eh = eh;
         s->m_mutex.lock();
         s->work = 1;
-        if (!s->m_thread) {
-            s->m_thread = new std::thread(thread_func, s);
+        if (new_worker) {
+            s->m_thread = std::thread(thread_func, s);
         } 
         else {
             s->cv.notify_one();
@@ -102,6 +108,8 @@ public:
 
     ~imp() {
         s->m_mutex.unlock();
+        while (s->work == 1)
+            std::this_thread::yield();
     }
 };
 
@@ -114,6 +122,16 @@ scoped_timer::scoped_timer(unsigned ms, event_handler * eh) {
     
 scoped_timer::~scoped_timer() {
     dealloc(m_imp);
+}
+
+void scoped_timer::initialize() {
+#ifndef _WINDOWS
+    static bool pthread_atfork_set = false;
+    if (!pthread_atfork_set) {
+        pthread_atfork(finalize, nullptr, nullptr);
+        pthread_atfork_set = true;
+    }
+#endif
 }
 
 void scoped_timer::finalize() {
@@ -130,9 +148,9 @@ void scoped_timer::finalize() {
 
         for (auto w : cleanup_workers) {
             ++deleted;
-            w->m_thread->join();
-            delete w->m_thread;
+            w->m_thread.join();
             delete w;
         }
     }
+    num_workers = 0;
 }

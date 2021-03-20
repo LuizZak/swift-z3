@@ -30,6 +30,7 @@ Notes:
 #include "ast/rewriter/seq_rewriter.h"
 #include "ast/rewriter/rewriter_def.h"
 #include "ast/rewriter/var_subst.h"
+#include "ast/rewriter/expr_safe_replace.h"
 #include "ast/expr_substitution.h"
 #include "ast/ast_smt2_pp.h"
 #include "ast/ast_pp.h"
@@ -50,6 +51,7 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
     recfun_rewriter     m_rec_rw;
     arith_util          m_a_util;
     bv_util             m_bv_util;
+    expr_ref_vector     m_pinned;
     unsigned long long  m_max_memory; // in bytes
     unsigned            m_max_steps;
     bool                m_pull_cheap_ite;
@@ -173,7 +175,7 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
             if (k == OP_EQ) {
                 // theory dispatch for =
                 SASSERT(num == 2);
-                family_id s_fid = m().get_sort(args[0])->get_family_id();
+                family_id s_fid = args[0]->get_sort()->get_family_id();
                 if (s_fid == m_a_rw.get_fid())
                     st = m_a_rw.mk_eq_core(args[0], args[1], result);
                 else if (s_fid == m_bv_rw.get_fid())
@@ -197,7 +199,7 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
             }
             if (k == OP_ITE) {
                 SASSERT(num == 3);
-                family_id s_fid = m().get_sort(args[1])->get_family_id();
+                family_id s_fid = args[1]->get_sort()->get_family_id();
                 if (s_fid == m_bv_rw.get_fid())
                     st = m_bv_rw.mk_ite_core(args[0], args[1], args[2], result);
                 if (st != BR_FAILED)
@@ -346,16 +348,16 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
         family_id fid = t->get_family_id();
         if (fid == m_a_rw.get_fid()) {
             switch (t->get_decl_kind()) {
-            case OP_ADD: n = m_a_util.mk_numeral(rational::zero(), m().get_sort(t)); return true;
-            case OP_MUL: n = m_a_util.mk_numeral(rational::one(), m().get_sort(t)); return true;
+            case OP_ADD: n = m_a_util.mk_numeral(rational::zero(), t->get_sort()); return true;
+            case OP_MUL: n = m_a_util.mk_numeral(rational::one(), t->get_sort()); return true;
             default:
                 return false;
             }
         }
         if (fid == m_bv_rw.get_fid()) {
             switch (t->get_decl_kind()) {
-            case OP_BADD: n = m_bv_util.mk_numeral(rational::zero(), m().get_sort(t)); return true;
-            case OP_BMUL: n = m_bv_util.mk_numeral(rational::one(), m().get_sort(t)); return true;
+            case OP_BADD: n = m_bv_util.mk_numeral(rational::zero(), t->get_sort()); return true;
+            case OP_BMUL: n = m_bv_util.mk_numeral(rational::one(), t->get_sort()); return true;
             default:
                 return false;
             }
@@ -586,11 +588,11 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
             decl_kind k = f->get_decl_kind();
             if (k == OP_EQ) {
                 SASSERT(num == 2);
-                fid = m().get_sort(args[0])->get_family_id();
+                fid = args[0]->get_sort()->get_family_id();
             }
             else if (k == OP_ITE) {
                 SASSERT(num == 3);
-                fid = m().get_sort(args[1])->get_family_id();
+                fid = args[1]->get_sort()->get_family_id();
             }
         }
         app_ref tmp(m());
@@ -663,6 +665,20 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
         return result;
     }
 
+    void apply_subst(ptr_buffer<expr>& patterns) {
+        if (!m_subst)
+            return;
+        expr_ref tmp(m());
+        expr_safe_replace rep(m());
+        for (auto kv : m_subst->sub())
+            rep.insert(kv.m_key, kv.m_value);
+        for (unsigned i = 0; i < patterns.size(); ++i) {
+            rep(patterns[i], tmp);
+            m_pinned.push_back(tmp);
+            patterns[i] = tmp;
+        }
+    }
+
 
     bool reduce_quantifier(quantifier * old_q,
                            expr * new_body,
@@ -721,16 +737,19 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
             remove_duplicates(new_patterns_buf);
             remove_duplicates(new_no_patterns_buf);
 
+            apply_subst(new_patterns_buf);
+
             q1 = m().update_quantifier(old_q,
                                        new_patterns_buf.size(), new_patterns_buf.c_ptr(), new_no_patterns_buf.size(), new_no_patterns_buf.c_ptr(),
                                        new_body);
+            m_pinned.reset();
             TRACE("reduce_quantifier", tout << mk_ismt2_pp(old_q, m()) << "\n----->\n" << mk_ismt2_pp(q1, m()) << "\n";);
             SASSERT(is_well_sorted(m(), q1));
             if (m().proofs_enabled() && q1 != old_q) {
                 p1 = m().mk_rewrite(old_q, q1);
             }
         }
-        SASSERT(m().get_sort(old_q) == m().get_sort(q1));
+        SASSERT(old_q->get_sort() == q1->get_sort());
         result = elim_unused_vars(m(), q1, params_ref());
 
 
@@ -743,7 +762,7 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
                 p2 = m().mk_elim_unused_vars(q1, result);
             result_pr = m().mk_transitivity(p1, p2);
         }
-        SASSERT(m().get_sort(old_q) == m().get_sort(result));
+        SASSERT(old_q->get_sort() == result->get_sort());
         return true;
     }
 
@@ -760,6 +779,7 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
         m_rec_rw(m),
         m_a_util(m),
         m_bv_util(m),
+        m_pinned(m),
         m_used_dependencies(m),
         m_subst(nullptr) {
         updt_local_params(p);

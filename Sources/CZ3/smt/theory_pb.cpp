@@ -436,6 +436,7 @@ namespace smt {
     theory_pb::theory_pb(context& ctx):
         theory(ctx, ctx.get_manager().mk_family_id("pb")),
         m_params(ctx.get_fparams()),
+        m_mpz_trail(m_mpz_mgr),
         pb(ctx.get_manager()),
         m_restart_lim(3),
         m_restart_inc(0),
@@ -701,6 +702,8 @@ namespace smt {
     }
 
     void theory_pb::unwatch_literal(literal lit, ineq* c) {
+        if (static_cast<unsigned>(lit.var()) >= m_var_infos.size())
+            return;
         ptr_vector<ineq>* ineqs = m_var_infos[lit.var()].m_lit_watch[lit.sign()];
         if (ineqs) {
             remove(*ineqs, c);        
@@ -1090,11 +1093,11 @@ namespace smt {
         return lits;
     }
 
-    class theory_pb::negate_ineq : public trail<context> {
+    class theory_pb::negate_ineq : public trail {
         ineq& c;
     public:
         negate_ineq(ineq& c): c(c) {}
-        void undo(context& ctx) override {
+        void undo() override {
             c.negate();
         }
     };
@@ -1106,9 +1109,11 @@ namespace smt {
        and/or relatively few compared to number of argumets.
      */
     void theory_pb::assign_ineq(ineq& c, bool is_true) {
-        ctx.push_trail(value_trail<context, scoped_mpz>(c.m_max_sum));
-        ctx.push_trail(value_trail<context, scoped_mpz>(c.m_min_sum));
-        ctx.push_trail(value_trail<context, unsigned>(c.m_nfixed));
+        m_mpz_trail.push_back(c.m_max_sum);
+        m_mpz_trail.push_back(c.m_min_sum);
+        ctx.push_trail(scoped_value_trail<scoped_mpz, scoped_mpz_vector>(c.m_max_sum, m_mpz_trail));
+        ctx.push_trail(scoped_value_trail<scoped_mpz, scoped_mpz_vector>(c.m_min_sum, m_mpz_trail));
+        ctx.push_trail(value_trail<unsigned>(c.m_nfixed));
 
         SASSERT(c.is_ge());
         unsigned sz = c.size();
@@ -1432,13 +1437,13 @@ namespace smt {
         c.m_min_sum.reset();
     }
 
-    class theory_pb::unwatch_ge : public trail<context> {
+    class theory_pb::unwatch_ge : public trail {
         theory_pb& pb;
         ineq&      c;
     public:
         unwatch_ge(theory_pb& p, ineq& c): pb(p), c(c) {}
         
-        void undo(context& ctx) override {
+        void undo() override {
             for (unsigned i = 0; i < c.watch_size(); ++i) {
                 pb.unwatch_literal(c.lit(i), &c);
             }
@@ -2350,7 +2355,7 @@ namespace smt {
     }
 
     model_value_proc * theory_pb::mk_value(enode * n, model_generator & mg) {
-        app* a = n->get_owner();
+        app* a = n->get_expr();
         pb_model_value_proc* p = alloc(pb_model_value_proc, a);
         for (unsigned i = 0; i < a->get_num_args(); ++i) {
             p->add(ctx.get_enode(a->get_arg(i)));

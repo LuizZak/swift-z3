@@ -39,6 +39,8 @@ protected:
     decl_kind add_decl_kind() const { return OP_BADD; }
     decl_kind mul_decl_kind() const { return OP_BMUL; }
     bool use_power() const { return false; }
+    app* mk_power(expr* x, rational const& r, sort* s) { UNREACHABLE(); return nullptr; }
+    expr* coerce(expr* x, sort* s) { UNREACHABLE(); return nullptr; }
     decl_kind power_decl_kind() const { UNREACHABLE(); return static_cast<decl_kind>(UINT_MAX); }
 
 public:
@@ -56,7 +58,6 @@ class bv_rewriter : public poly_rewriter<bv_rewriter_core> {
     bool       m_mkbv2num;
     bool       m_ite2id;
     bool       m_split_concat_eq;
-    bool       m_bvnot2arith;
     bool       m_bv_sort_ac;
     bool       m_extract_prop;
     bool       m_bvnot_simpl;
