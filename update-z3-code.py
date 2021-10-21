@@ -5,6 +5,7 @@ import subprocess
 import sys
 import stat
 
+from platform import system
 from typing import List, Optional, Callable
 from pathlib import Path
 
@@ -55,7 +56,7 @@ def git_rmtree(path: os.PathLike) -> None:
 
         try:
             func(path)  # Will scream if still not possible to delete.
-        except Exception as ex:
+        except Exception:
             raise
 
     return shutil.rmtree(path, False, onerror)
@@ -88,8 +89,13 @@ FILES_TO_REMOVE=[
     'CMakeLists.txt',
     'README',
     'database.smt',
+    'database.smt2',
     '*.cmake.in',
     '*.pyg',
+    '*.in',
+    '*.txt',
+    'xor_solver.d',
+    '*.disabled',
 ]
 "List of file patterns to remove. Searches recursively on all folders. Removal happens relative to Z3_DEST_PATH."
 
@@ -112,7 +118,10 @@ def update_z3_code(tag: Optional[str], force: bool) -> int:
         git('clone', Z3_REPO, z3_clone_path)
         git('checkout', tag, cwd=temp_path)
     
-    run('python', Path('scripts').joinpath('mk_make.py'), cwd=z3_clone_path)
+    if system() == 'Windows':
+        run('python', Path('scripts').joinpath('mk_make.py'), '-x', cwd=z3_clone_path)
+    else:
+        run('python', Path('scripts').joinpath('mk_make.py'), cwd=z3_clone_path)
 
     z3_src_path = path(temp_path, 'z3', 'src')
     include_backup_path = path(temp_path, 'include')
@@ -135,10 +144,13 @@ def update_z3_code(tag: Optional[str], force: bool) -> int:
     print('Removing extraneous files...')
 
     for folder in FOLDERS_TO_REMOVE:
-        shutil.rmtree(path(Z3_DEST_PATH, folder))
+        folder_path = path(Z3_DEST_PATH, folder)
+        print(f'rm {folder_path}')
+        shutil.rmtree(folder_path)
     
     for file_pattern in FILES_TO_REMOVE:
         for file in Z3_DEST_PATH.rglob(file_pattern):
+            print(f'rm {file}')
             os.remove(file)
 
     print("Success!")
