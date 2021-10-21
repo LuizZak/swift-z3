@@ -21,7 +21,7 @@ Notes:
 #ifndef Z3_H_API
 #define Z3_H_API
 
-#include "../api/z3.h"
+#include "../z3/api/z3.h"
 
 #endif
 
