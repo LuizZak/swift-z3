@@ -8,15 +8,16 @@ import stat
 from platform import system
 from typing import List, Optional, Callable
 from pathlib import Path
+from os import PathLike
 
 # -----
 # Utility functions
 # -----
 
-def echo_call(*args: List[str]):
-    print('>', *list(args))
+def echo_call(bin: PathLike | str, *args: str):
+    print('>', str(bin), *args)
 
-def run(bin_name: str, *args: List[str], cwd: str | None=None, echo: bool = True, silent: bool = False):
+def run(bin_name: str, *args: str, cwd: str | Path | None=None, echo: bool = True, silent: bool = False):
     if echo:
         echo_call(bin_name, *args)
     
@@ -25,22 +26,19 @@ def run(bin_name: str, *args: List[str], cwd: str | None=None, echo: bool = True
     else:
         subprocess.check_call([bin_name] + list(args), cwd=cwd)
 
-def git(*args: List[str], cwd: str | None=None, echo: bool = True):
-    run('git', *args, cwd=cwd, echo=echo)
+def git(command: str, *args: str, cwd: str | Path | None=None, echo: bool = True):
+    run('git', command, *args, cwd=cwd, echo=echo)
 
-def git_output(*args: List[str], cwd: str | None=None, echo: bool = True) -> str:
+def git_output(*args: str, cwd: str | None=None, echo: bool = True) -> str:
     if echo:
         echo_call('git', *args)
 
     return subprocess.check_output(['git'] + list(args), cwd=cwd).decode('UTF8')
 
-def path(root: Path | str, *args: List[Path]) -> Path:
-    if root is Path:
-        return root.joinpath(*args)
-    
+def path(root: PathLike | str, *args: PathLike | str) -> Path:
     return Path(root).joinpath(*args)
 
-def cwd_path(*args: List[Path]) -> Path:
+def cwd_path(*args: PathLike | str) -> Path:
     return path(Path.cwd(), *args)
 
 # From: https://github.com/gitpython-developers/GitPython/blob/ea43defd777a9c0751fc44a9c6a622fc2dbd18a0/git/util.py#L101
@@ -99,18 +97,15 @@ FILES_TO_REMOVE=[
 ]
 "List of file patterns to remove. Searches recursively on all folders. Removal happens relative to Z3_DEST_PATH."
 
-def update_z3_code(tag: Optional[str], force: bool) -> int:
-    if (not force) and len(git_output('status', '--porcelain', echo=False).strip()) > 0:
-        print("Current git repo's state is not committed! Please commit and try again.")
-        return 1
-    
+
+def clone_repo(tag: str | None):
     print('Creating temporary path folder ./temp...')
     
     temp_path = cwd_path(TEMP_FOLDER_NAME)
     if temp_path.exists():
         git_rmtree(temp_path)
     
-    z3_clone_path = path(temp_path, 'z3')
+    z3_clone_path = str(path(temp_path, 'z3').absolute())
     
     if tag is None:
         git('clone', Z3_REPO, '--depth=1', z3_clone_path)
@@ -118,19 +113,21 @@ def update_z3_code(tag: Optional[str], force: bool) -> int:
         git('clone', Z3_REPO, z3_clone_path)
         git('checkout', tag, cwd=temp_path)
     
+    return temp_path, z3_clone_path
+
+
+def run_post_clone(clone_path: Path):
     if system() == 'Windows':
-        run('python', Path('scripts').joinpath('mk_make.py'), '-x', cwd=z3_clone_path)
+        run('python', str(Path('scripts').joinpath('mk_make.py')), '-x', cwd=clone_path)
     else:
-        run('python', Path('scripts').joinpath('mk_make.py'), cwd=z3_clone_path)
+        run('python', str(Path('scripts').joinpath('mk_make.py')), cwd=clone_path)
 
-    z3_src_path = path(temp_path, 'z3', 'src')
-    include_backup_path = path(temp_path, 'include')
-    include_target_path = path(CZ3_SOURCES_PATH, 'include')
-
+def backup_includes(include_target_path: Path, include_backup_path: Path):
     print(f'Backing up {include_target_path}...')
 
     shutil.copytree(include_target_path, include_backup_path)
 
+def copy_z3_files(include_target_path: Path, include_backup_path: Path, src_path: Path):
     print('Copying over Z3 files...')
 
     if Z3_DEST_PATH.exists():
@@ -138,9 +135,10 @@ def update_z3_code(tag: Optional[str], force: bool) -> int:
     if include_target_path.exists():
         shutil.rmtree(include_target_path)
     
-    shutil.copytree(z3_src_path, Z3_DEST_PATH)
+    shutil.copytree(src_path, Z3_DEST_PATH)
     shutil.copytree(include_backup_path, include_target_path)
 
+def remove_extraneous_files():
     print('Removing extraneous files...')
 
     for folder in FOLDERS_TO_REMOVE:
@@ -152,6 +150,23 @@ def update_z3_code(tag: Optional[str], force: bool) -> int:
         for file in Z3_DEST_PATH.rglob(file_pattern):
             print(f'rm {file}')
             os.remove(file)
+
+
+def update_z3_code(tag: Optional[str], force: bool) -> int:
+    if (not force) and len(git_output('status', '--porcelain', echo=False).strip()) > 0:
+        print("Current git repo's state is not committed! Please commit and try again.")
+        return 1
+    
+    temp_path, z3_clone_path = clone_repo(tag)
+
+    z3_src_path = path(temp_path, 'z3', 'src')
+    include_backup_path = path(temp_path, 'include')
+    include_target_path = path(CZ3_SOURCES_PATH, 'include')
+
+    run_post_clone(z3_clone_path)
+    backup_includes(include_target_path, include_backup_path)
+    copy_z3_files(include_target_path, include_backup_path, z3_src_path)
+    remove_extraneous_files()
 
     print("Success!")
 
