@@ -6,7 +6,7 @@ import sys
 import stat
 
 from platform import system
-from typing import List, Optional, Callable
+from typing import Optional, Callable
 from pathlib import Path
 from os import PathLike
 
@@ -111,7 +111,7 @@ def clone_repo(tag: str | None):
         git('clone', Z3_REPO, '--depth=1', z3_clone_path)
     else:
         git('clone', Z3_REPO, z3_clone_path)
-        git('checkout', tag, cwd=temp_path)
+        git('checkout', tag, cwd=z3_clone_path)
     
     return temp_path, z3_clone_path
 
