@@ -361,6 +361,8 @@ void log_Z3_mk_string(Z3_context a0, Z3_string a1);
 #define LOG_Z3_mk_string(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_string(_ARG0, _ARG1); }
 void log_Z3_mk_lstring(Z3_context a0, unsigned a1, Z3_string a2);
 #define LOG_Z3_mk_lstring(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_lstring(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_u32string(Z3_context a0, unsigned a1, unsigned const * a2);
+#define LOG_Z3_mk_u32string(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_u32string(_ARG0, _ARG1, _ARG2); }
 void log_Z3_is_string(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_is_string(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_is_string(_ARG0, _ARG1); }
 void log_Z3_get_string(Z3_context a0, Z3_ast a1);

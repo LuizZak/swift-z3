@@ -342,9 +342,7 @@ namespace sat {
     clause* solver::mk_clause(unsigned num_lits, literal * lits, sat::status st) {
         m_model_is_current = false;
             
-        for (unsigned i = 0; i < num_lits; i++) 
-            VERIFY(!was_eliminated(lits[i]));
-        
+
         DEBUG_CODE({
                 for (unsigned i = 0; i < num_lits; i++) {
                     CTRACE("sat", was_eliminated(lits[i]), tout << lits[i] << " was eliminated\n";);
@@ -1893,7 +1891,6 @@ namespace sat {
     void solver::init_ext_assumptions() {
         if (m_ext && m_ext->tracking_assumptions()) {
             m_ext_assumption_set.reset();
-            unsigned trail_size = m_trail.size();
             if (!inconsistent())
                 m_ext->add_assumptions(m_ext_assumption_set);
         }

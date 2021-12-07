@@ -1050,6 +1050,12 @@ public:
     */
     virtual bool is_value(app * a) const { return false; }
 
+
+    /**
+       \brief return true if the expression can be used as a model value.
+     */
+    virtual bool is_model_value(app* a) const { return is_value(a); }
+
     /**
        \brief Return true if \c a is a unique plugin value.
        The following property should hold for unique theory values:
@@ -1399,6 +1405,7 @@ inline bool has_labels(expr const * n) {
 class some_value_proc {
 public:
     virtual expr * operator()(sort * s) = 0;
+    virtual ~some_value_proc() = default;
 };
 
 // -----------------------------------

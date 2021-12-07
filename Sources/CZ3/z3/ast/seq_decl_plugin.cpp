@@ -705,6 +705,17 @@ bool seq_decl_plugin::is_value(app* e) const {
     }
 }
 
+bool seq_decl_plugin::is_model_value(app* e) const {
+    if (is_app_of(e, m_family_id, OP_SEQ_EMPTY)) 
+        return true;
+    if (is_app_of(e, m_family_id, OP_STRING_CONST)) 
+        return true;
+    if (is_app_of(e, m_family_id, OP_SEQ_UNIT) &&
+        m_manager->is_value(e->get_arg(0))) 
+        return true;
+    return false;
+}
+
 bool seq_decl_plugin::are_equal(app* a, app* b) const {
     if (a == b) return true;
     // handle concatenations
@@ -1703,7 +1714,13 @@ seq_util::rex::info seq_util::rex::info::orelse(seq_util::rex::info const& i) co
             // unsigned ite_min_length = std::min(min_length, i.min_length);
             // lbool ite_nullable = (nullable == i.nullable ? nullable : l_undef);
             // TBD: whether ite is interpreted or not depends on whether the condition is interpreted and both branches are interpreted
-            return info(false, false, false, false, normalized && i.normalized, monadic && i.monadic, singleton && i.singleton, nullable, std::min(min_length, i.min_length), std::max(star_height, i.star_height));
+            return info(false, false, false, false, 
+                normalized && i.normalized, 
+                monadic && i.monadic, 
+                singleton && i.singleton, 
+                ((nullable == l_true && i.nullable == l_true) ? l_true : ((nullable == l_false && i.nullable == l_false) ? l_false : l_undef)),
+                std::min(min_length, i.min_length), 
+                std::max(star_height, i.star_height));
         }
         else
             return i;

@@ -46,6 +46,7 @@ namespace euf {
                 value = r->get_expr();
             else
                 value = factory.get_fresh_value(srt);
+            (void)s;
             TRACE("model", tout << s.bpp(r) << " := " << value << "\n";);
             values.set(id, value);
             expr_ref_vector* vals = nullptr;
@@ -130,6 +131,7 @@ namespace euf {
 
     void solver::dependencies2values(user_sort& us, deps_t& deps, model_ref& mdl) {
         for (enode* n : deps.top_sorted()) {
+            TRACE("model", tout << bpp(n->get_root()) << "\n");
             unsigned id = n->get_root_id();
             if (m_values.get(id, nullptr))
                 continue;
