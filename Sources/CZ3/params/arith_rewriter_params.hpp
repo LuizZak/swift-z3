@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __ARITH_REWRITER_PARAMS_HPP_
-#define __ARITH_REWRITER_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct arith_rewriter_params {
@@ -40,4 +39,3 @@ struct arith_rewriter_params {
   bool eq2ineq() const { return p.get_bool("eq2ineq", g, false); }
   bool elim_rem() const { return p.get_bool("elim_rem", g, false); }
 };
-#endif

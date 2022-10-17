@@ -124,6 +124,8 @@ br_status fpa2bv_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr * co
         case OP_FPA_ABS: m_conv.mk_abs(f, num, args, result); return BR_DONE;
         case OP_FPA_MIN: m_conv.mk_min(f, num, args, result); return BR_DONE;
         case OP_FPA_MAX: m_conv.mk_max(f, num, args, result); return BR_DONE;
+        case OP_FPA_MIN_I: m_conv.mk_min_i(f, num, args, result); return BR_DONE;
+        case OP_FPA_MAX_I: m_conv.mk_max_i(f, num, args, result); return BR_DONE;
         case OP_FPA_FMA: m_conv.mk_fma(f, num, args, result); return BR_DONE;
         case OP_FPA_SQRT: m_conv.mk_sqrt(f, num, args, result); return BR_DONE;
         case OP_FPA_ROUND_TO_INTEGRAL: m_conv.mk_round_to_integral(f, num, args, result); return BR_DONE;
@@ -144,8 +146,12 @@ br_status fpa2bv_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr * co
         case OP_FPA_FP: m_conv.mk_fp(f, num, args, result); return BR_DONE;
         case OP_FPA_TO_UBV: m_conv.mk_to_ubv(f, num, args, result); return BR_DONE;
         case OP_FPA_TO_SBV: m_conv.mk_to_sbv(f, num, args, result); return BR_DONE;
+        case OP_FPA_TO_UBV_I: m_conv.mk_to_ubv_i(f, num, args, result); return BR_DONE;
+        case OP_FPA_TO_SBV_I: m_conv.mk_to_sbv_i(f, num, args, result); return BR_DONE;
         case OP_FPA_TO_REAL: m_conv.mk_to_real(f, num, args, result); return BR_DONE;
+        case OP_FPA_TO_REAL_I: m_conv.mk_to_real_i(f, num, args, result); return BR_DONE;
         case OP_FPA_TO_IEEE_BV: m_conv.mk_to_ieee_bv(f, num, args, result); return BR_DONE;
+        case OP_FPA_TO_IEEE_BV_I: m_conv.mk_to_ieee_bv_i(f, num, args, result); return BR_DONE;
 
         case OP_FPA_BVWRAP:
         case OP_FPA_BV2RM:
@@ -225,7 +231,7 @@ bool fpa2bv_rewriter_cfg::reduce_quantifier(
             new_decl_names.push_back(n);
         }
     }
-    result = m().mk_quantifier(old_q->get_kind(), new_decl_sorts.size(), new_decl_sorts.c_ptr(), new_decl_names.c_ptr(),
+    result = m().mk_quantifier(old_q->get_kind(), new_decl_sorts.size(), new_decl_sorts.data(), new_decl_names.data(),
                                new_body, old_q->get_weight(), old_q->get_qid(), old_q->get_skid(),
                                old_q->get_num_patterns(), new_patterns, old_q->get_num_no_patterns(), new_no_patterns);
     result_pr = nullptr;
@@ -286,15 +292,15 @@ expr_ref fpa2bv_rewriter::convert_atom(th_rewriter& rw, expr * e) {
 expr_ref fpa2bv_rewriter::convert_term(th_rewriter& rw, expr * e) {
     SASSERT(fu().is_rm(e) || fu().is_float(e));
     ast_manager& m = m_cfg.m();
-    
+
     expr_ref e_conv(m), res(m);
     proof_ref pr(m);
-    
+
     (*this)(e, e_conv);
-    
+
     TRACE("t_fpa_detail", tout << "term: " << mk_ismt2_pp(e, m) << std::endl;
           tout << "converted term: " << mk_ismt2_pp(e_conv, m) << std::endl;);
-    
+
     if (fu().is_rm(e)) {
         SASSERT(fu().is_bv2rm(e_conv));
         expr_ref bv_rm(m);
@@ -312,7 +318,7 @@ expr_ref fpa2bv_rewriter::convert_term(th_rewriter& rw, expr * e) {
     }
     else
         UNREACHABLE();
-    
+
     return res;
 }
 
@@ -329,7 +335,7 @@ expr_ref fpa2bv_rewriter::convert(th_rewriter& rw, expr * e) {
     ast_manager& m = m_cfg.m();
     expr_ref res(m);
     TRACE("t_fpa", tout << "converting " << mk_ismt2_pp(e, m) << std::endl;);
-    
+
     if (fu().is_fp(e))
         res = e;
     else if (m.is_bool(e))
@@ -338,10 +344,10 @@ expr_ref fpa2bv_rewriter::convert(th_rewriter& rw, expr * e) {
         res = convert_term(rw, e);
     else
         res = convert_conversion_term(rw, e);
-    
+
     TRACE("t_fpa_detail", tout << "converted; caching:" << std::endl;
           tout << mk_ismt2_pp(e, m) << std::endl << " -> " << std::endl <<
           mk_ismt2_pp(res, m) << std::endl;);
-    
+
     return res;
 }

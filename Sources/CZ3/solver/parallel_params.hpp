@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __PARALLEL_PARAMS_HPP_
-#define __PARALLEL_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct parallel_params {
@@ -35,4 +34,3 @@ struct parallel_params {
   unsigned simplify_restart_max() const { return p.get_uint("simplify.restart.max", g, 5000u); }
   unsigned simplify_inprocess_max() const { return p.get_uint("simplify.inprocess.max", g, 2u); }
 };
-#endif

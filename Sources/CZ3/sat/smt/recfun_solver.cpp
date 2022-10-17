@@ -40,7 +40,6 @@ namespace recfun {
     }
 
     void solver::reset() {
-        m_propagation_queue.reset();
         m_stats.reset();
         m_disabled_guards.reset();
         m_enabled_guards.reset();
@@ -69,8 +68,8 @@ namespace recfun {
         TRACEFN("case expansion " << e);
         SASSERT(e.m_def->is_fun_macro());
         auto & vars = e.m_def->get_vars();
-        auto lhs = e.m_lhs;
-        auto rhs = apply_args(vars, e.m_args, e.m_def->get_rhs());
+        app_ref lhs = e.m_lhs;
+        expr_ref rhs = apply_args(vars, e.m_args, e.m_def->get_rhs());
         unsigned generation = std::max(ctx.get_max_generation(lhs), ctx.get_max_generation(rhs));
         euf::solver::scoped_generation _sgen(ctx, generation + 1);
         auto eq = eq_internalize(lhs, rhs);
@@ -229,7 +228,7 @@ namespace recfun {
     }
 
     void solver::push_prop(propagation_item* p) {
-        m_propagation_queue.push_back(p);         
+        m_propagation_queue.push_back(p);        
         ctx.push(push_back_vector<scoped_ptr_vector<propagation_item>>(m_propagation_queue));        
     }
 
@@ -273,20 +272,28 @@ namespace recfun {
         if (!n) 
             n = mk_enode(e, false);
         SASSERT(!n->is_attached_to(get_id()));
-        mk_var(n);
+        euf::theory_var w = mk_var(n);
+        ctx.attach_th_var(n, this, w);
         if (u().is_defined(e) && u().has_defs()) 
             push_case_expand(e);
         return true;
     }
 
-    void solver::add_assumptions() {
+    void solver::add_assumptions(sat::literal_set& assumptions) {
         if (u().has_defs() || m_disabled_guards.empty()) {
             app_ref dlimit = m_util.mk_num_rounds_pred(m_num_rounds);
             TRACEFN("add_theory_assumption " << dlimit);
-            s().assign_scoped(mk_literal(dlimit));
-            for (auto g : m_disabled_guards)
-                s().assign_scoped(~mk_literal(g));
+            sat::literal assumption = mk_literal(dlimit); 
+            assumptions.insert(assumption);
+            s().assign_scoped(assumption);
+            for (auto g : m_disabled_guards) {
+                assumption = ~mk_literal(g);
+                assumptions.insert(assumption);
+                s().assign_scoped(assumption);
+            }
         }
+        for (expr* g : m_enabled_guards)
+            push_guard(g);
     }
     
     bool solver::should_research(sat::literal_vector const& core) {
@@ -317,16 +324,30 @@ namespace recfun {
             if (to_delete) {
                 m_disabled_guards.erase(to_delete);
                 m_enabled_guards.push_back(to_delete);
-                push_guard(to_delete);
                 IF_VERBOSE(2, verbose_stream() << "(smt.recfun :enable-guard " << mk_pp(to_delete, m) << ")\n");
             }
             else {
                 IF_VERBOSE(2, verbose_stream() << "(smt.recfun :increment-round)\n");
             }
-            for (expr* g : m_enabled_guards)
-                push_guard(g);
         }
         return found;
+    }
+
+    bool solver::is_beta_redex(euf::enode* p, euf::enode* n) const {
+        return is_defined(p) || is_case_pred(p);
+    }
+
+
+    bool solver::add_dep(euf::enode* n, top_sort<euf::enode>& dep) {
+        if (n->num_args() == 0)
+            dep.insert(n, nullptr);
+        for (auto* k : euf::enode_args(n))
+            dep.add(n, k);
+        return true;
+    }
+
+    void solver::add_value(euf::enode* n, model& mdl, expr_ref_vector& values) {
+        values.set(n->get_root_id(), n->get_root()->get_expr());
     }
     
 }

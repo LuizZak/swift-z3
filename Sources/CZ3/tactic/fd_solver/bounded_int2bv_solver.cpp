@@ -140,8 +140,18 @@ public:
         }
     }
 
+    void check_assumptions(unsigned num_assumptions, expr * const * assumptions) {
+        for (unsigned i = 0; i < num_assumptions; ++i) {
+            expr* arg = assumptions[i];
+            m.is_not(arg, arg);
+            if (!is_uninterp_const(arg))
+                throw default_exception("only propositional assumptions are supported for finite domains " + mk_pp(arg, m));
+        }
+    }
+
     lbool check_sat_core2(unsigned num_assumptions, expr * const * assumptions) override {
         flush_assertions();
+        check_assumptions(num_assumptions, assumptions);
         return m_solver->check_sat_core(num_assumptions, assumptions);
     }
 
@@ -165,8 +175,8 @@ public:
     void get_levels(ptr_vector<expr> const& vars, unsigned_vector& depth) override {
         m_solver->get_levels(vars, depth);
     }
-    expr_ref_vector get_trail() override {
-        return m_solver->get_trail();
+    expr_ref_vector get_trail(unsigned max_level) override {
+        return m_solver->get_trail(max_level);
     }
 
     model_converter* external_model_converter() const {
@@ -195,7 +205,7 @@ public:
         mc = concat(mc.get(), m_solver->get_model_converter().get());
         return mc;
     }
-    proof * get_proof() override { return m_solver->get_proof(); }
+    proof * get_proof_core() override { return m_solver->get_proof_core(); }
     std::string reason_unknown() const override { return m_solver->reason_unknown(); }
     void set_reason_unknown(char const* msg) override { m_solver->set_reason_unknown(msg); }
     void get_labels(svector<symbol> & r) override { m_solver->get_labels(r); }

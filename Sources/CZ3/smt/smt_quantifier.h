@@ -106,8 +106,7 @@ namespace smt {
 
     class quantifier_manager_plugin {
     public:
-        quantifier_manager_plugin() {}
-        virtual ~quantifier_manager_plugin() {}
+        virtual ~quantifier_manager_plugin() = default;
 
         virtual void set_manager(quantifier_manager & qm) = 0;
 

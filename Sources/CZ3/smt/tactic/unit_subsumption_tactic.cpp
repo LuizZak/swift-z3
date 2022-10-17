@@ -38,6 +38,8 @@ struct unit_subsumption_tactic : public tactic {
         m_clauses(m) {
     }
 
+    char const* name() const override { return "unit_subsumption"; }
+
     void cleanup() override {}
 
     void operator()(/* in */  goal_ref const & in, 
@@ -48,7 +50,7 @@ struct unit_subsumption_tactic : public tactic {
     }
 
     void updt_params(params_ref const& p) override {
-        m_params = p;
+        m_params.append(p);
         // m_context.updt_params(p); does not exist.
     }
     

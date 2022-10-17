@@ -37,7 +37,7 @@ namespace smt {
             return;
 
         SASSERT(is_fixed(v));
-        // WARNINING: it is not safe to use get_value(v) here, since
+        // WARNING: it is not safe to use get_value(v) here, since
         // get_value(v) may not satisfy v bounds at this point.
         if (!lower_bound(v).is_rational())
             return;
@@ -328,7 +328,6 @@ namespace smt {
             return;
         }
         context & ctx      = get_context();
-        region & r         = ctx.get_region();
         enode * _x         = get_enode(x);
         enode * _y         = get_enode(y);
         eq_vector const& eqs = antecedents.eqs();
@@ -336,24 +335,20 @@ namespace smt {
         justification * js = 
             ctx.mk_justification(
                 ext_theory_eq_propagation_justification(
-                    get_id(), r, 
-                    lits.size(), lits.c_ptr(),
-                    eqs.size(), eqs.c_ptr(),
+                    get_id(), ctx, 
+                    lits.size(), lits.data(),
+                    eqs.size(), eqs.data(),
                     _x, _y, 
                     antecedents.num_params(), antecedents.params("eq-propagate")));
         TRACE("arith_eq", tout << "detected equality: #" << _x->get_owner_id() << " = #" << _y->get_owner_id() << "\n";
               display_var(tout, x);
               display_var(tout, y); 
-              for (literal lit : lits) {
-                  ctx.display_detailed_literal(tout, lit);
-                  tout << "\n";
-              } 
-              for (auto const& p : eqs) {
-                  tout << mk_pp(p.first->get_expr(), m) << " = " << mk_pp(p.second->get_expr(), m) << "\n";
-              } 
+              for (literal lit : lits) 
+                  ctx.display_detailed_literal(tout, lit) << "\n";
+              for (auto const& p : eqs) 
+                  tout << pp(p.first, m) << " = " << pp(p.second, m) << "\n";
               tout << " ==> ";
-              tout << mk_pp(_x->get_expr(), m) << " = " << mk_pp(_y->get_expr(), m) << "\n";
-              );
+              tout << pp(_x, m) << " = " << pp(_y, m) << "\n";);
         ctx.assign_eq(_x, _y, eq_justification(js));
     }
 };

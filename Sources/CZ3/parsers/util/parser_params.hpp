@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __PARSER_PARAMS_HPP_
-#define __PARSER_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct parser_params {
@@ -20,4 +19,3 @@ struct parser_params {
   bool ignore_bad_patterns() const { return p.get_bool("ignore_bad_patterns", g, true); }
   bool error_for_visual_studio() const { return p.get_bool("error_for_visual_studio", g, false); }
 };
-#endif

@@ -56,23 +56,8 @@ using namespace smt;
 #define IS_CGR_SUPPORT true
 
 namespace {
-    // ------------------------------------
-    //
-    // Trail
-    //
-    // ------------------------------------
 
     class mam_impl;
-
-    typedef trail_stack mam_trail_stack;
-
-    typedef trail mam_trail;
-
-    template<typename T>
-    class mam_value_trail : public value_trail<T> {
-    public:
-        mam_value_trail(T & value):value_trail<T>(value) {}
-    };
 
 
     // ------------------------------------
@@ -93,7 +78,7 @@ namespace {
 
     public:
         unsigned char operator()(func_decl * lbl) {
-            unsigned lbl_id = lbl->get_decl_id();
+            unsigned lbl_id = lbl->get_small_id();
             if (lbl_id >= m_lbl2hash.size())
                 m_lbl2hash.resize(lbl_id + 1, -1);
             if (m_lbl2hash[lbl_id] == -1) {
@@ -136,7 +121,7 @@ namespace {
 
     struct instruction {
         opcode         m_opcode;
-        instruction *  m_next;
+        instruction* m_next = nullptr;
 #ifdef _PROFILE_MAM
         unsigned       m_counter; // how often it was executed
 #endif
@@ -603,7 +588,7 @@ namespace {
 
     class code_tree_manager {
         label_hasher &    m_lbl_hasher;
-        mam_trail_stack & m_trail_stack;
+        trail_stack &     m_trail_stack;
         region &          m_region;
 
         template<typename OP>
@@ -636,7 +621,7 @@ namespace {
         }
 
     public:
-        code_tree_manager(label_hasher & h, mam_trail_stack & s):
+        code_tree_manager(label_hasher & h, trail_stack & s):
             m_lbl_hasher(h),
             m_trail_stack(s),
             m_region(s.get_region()) {
@@ -761,20 +746,20 @@ namespace {
         }
 
         void set_next(instruction * instr, instruction * new_next) {
-            m_trail_stack.push(mam_value_trail<instruction*>(instr->m_next));
+            m_trail_stack.push(value_trail<instruction*>(instr->m_next));
             instr->m_next = new_next;
         }
 
         void save_num_regs(code_tree * tree) {
-            m_trail_stack.push(mam_value_trail<unsigned>(tree->m_num_regs));
+            m_trail_stack.push(value_trail<unsigned>(tree->m_num_regs));
         }
 
         void save_num_choices(code_tree * tree) {
-            m_trail_stack.push(mam_value_trail<unsigned>(tree->m_num_choices));
+            m_trail_stack.push(value_trail<unsigned>(tree->m_num_choices));
         }
 
         void insert_new_lbl_hash(filter * instr, unsigned h) {
-            m_trail_stack.push(mam_value_trail<approx_set>(instr->m_lbl_set));
+            m_trail_stack.push(value_trail<approx_set>(instr->m_lbl_set));
             instr->m_lbl_set.insert(h);
         }
     };
@@ -1014,7 +999,7 @@ namespace {
                         SASSERT(m_vars[to_var(arg)->get_idx()] != -1);
                         iregs.push_back(m_vars[to_var(arg)->get_idx()]);
                     }
-                    m_seq.push_back(m_ct_manager.mk_is_cgr(lbl, first_app_reg, num_args, iregs.c_ptr()));
+                    m_seq.push_back(m_ct_manager.mk_is_cgr(lbl, first_app_reg, num_args, iregs.data()));
                 }
                 else {
                     // Generate a BIND operation for this application.
@@ -1095,7 +1080,7 @@ namespace {
             }
             unsigned oreg        = m_tree->m_num_regs;
             m_tree->m_num_regs  += 1;
-            m_seq.push_back(m_ct_manager.mk_get_cgr(n->get_decl(), oreg, num_args, iregs.c_ptr()));
+            m_seq.push_back(m_ct_manager.mk_get_cgr(n->get_decl(), oreg, num_args, iregs.data()));
             return oreg;
         }
 
@@ -1209,7 +1194,7 @@ namespace {
                         }
                     }
                     SASSERT(joints.size() == num_args);
-                    m_seq.push_back(m_ct_manager.mk_cont(lbl, num_args, oreg, s, joints.c_ptr()));
+                    m_seq.push_back(m_ct_manager.mk_cont(lbl, num_args, oreg, s, joints.data()));
                     m_num_choices++;
                     while (!m_todo.empty())
                         linearise_core();
@@ -1233,19 +1218,16 @@ namespace {
                 linearise_multi_pattern(first_idx);
             }
 
-#ifdef Z3DEBUG
-            for (unsigned i = 0; i < m_qa->get_num_decls(); i++) {
-                CTRACE("mam_new_bug", m_vars[i] < 0, tout << mk_ismt2_pp(m_qa, m) << "\ni: " << i << " m_vars[i]: " << m_vars[i] << "\n";
-                       tout << "m_mp:\n" << mk_ismt2_pp(m_mp, m) << "\n";
-                       tout << "tree:\n" << *m_tree << "\n";
-                       );
-                SASSERT(m_vars[i] >= 0);
-            }
-#endif
+            // check that all variables are captured by pattern.
+            for (unsigned i = 0; i < m_qa->get_num_decls(); i++) 
+                if (m_vars[i] == -1) 
+                    return;
+
             SASSERT(head->m_next == 0);
+
             m_seq.push_back(m_ct_manager.mk_yield(m_qa, m_mp, m_qa->get_num_decls(), reinterpret_cast<unsigned*>(m_vars.begin())));
 
-            for (instruction * curr : m_seq) {
+            for (instruction* curr : m_seq) {
                 head->m_next = curr;
                 head = curr;
             }
@@ -1680,6 +1662,8 @@ namespace {
 
                 if (m_incompatible.empty()) {
                     // sequence starting at head is fully compatible
+                    if (!curr)
+                        return;
                     SASSERT(curr != 0);
                     SASSERT(curr->m_opcode == CHOOSE);
                     choose * first_child = static_cast<choose *>(curr);
@@ -1858,7 +1842,7 @@ namespace {
         enode_vector        m_bindings;
         enode_vector        m_args;
         backtrack_stack     m_backtrack_stack;
-        unsigned            m_top;
+        unsigned            m_top { 0 };
         const instruction * m_pc;
 
         // auxiliary temporary variables
@@ -1968,7 +1952,7 @@ namespace {
                     m_args[i] = m_registers[pc->m_iregs[i]]->get_root();
                 SASSERT(n != 0);
                 do {
-                    if (n->get_decl() == f) {
+                    if (n->get_decl() == f && n->get_num_args() == num_args) {
                         unsigned i = 0;
                         for (; i < num_args; i++) {
                             if (n->get_arg(i)->get_root() != m_args[i])
@@ -2022,33 +2006,36 @@ namespace {
                 m_backtrack_stack.resize(t->get_num_choices());
         }
 
-        void execute(code_tree * t) {
+        bool execute(code_tree * t) {
             TRACE("trigger_bug", tout << "execute for code tree:\n"; t->display(tout););
             init(t);
+#define CLEANUP  for (enode* app : t->get_candidates()) if (app->is_marked()) app->unset_mark();
             if (t->filter_candidates()) {
                 for (enode* app : t->get_candidates()) {
                     TRACE("trigger_bug", tout << "candidate\n" << mk_ismt2_pp(app->get_expr(), m) << "\n";);
                     if (!app->is_marked() && app->is_cgr()) {
-                        if (m_context.resource_limits_exceeded() || !execute_core(t, app))
-                            return;
+                        if (m_context.resource_limits_exceeded() || !execute_core(t, app)) {
+                            CLEANUP;
+                            return false;
+                        }
                         app->set_mark();
                     }
                 }
-                for (enode* app : t->get_candidates()) {
-                    if (app->is_marked())
-                        app->unset_mark();
-                }
+                CLEANUP;
+                
             }
             else {
                 for (enode* app : t->get_candidates()) {
                     TRACE("trigger_bug", tout << "candidate\n" << mk_ismt2_pp(app->get_expr(), m) << "\n";);
                     if (app->is_cgr()) {
                         TRACE("trigger_bug", tout << "is_cgr\n";);
+                        // scoped_suspend_rlimit susp(m.limit(), false);
                         if (m_context.resource_limits_exceeded() || !execute_core(t, app))
-                            return;
+                            return false;
                     }
                 }
             }
+            return true;
         }
 
         // init(t) must be invoked before execute_core
@@ -2107,7 +2094,6 @@ namespace {
         enode * n = m_registers[j2->m_reg]->get_root();
         if (n->get_num_parents() == 0)
             return nullptr;
-        unsigned num_args = n->get_num_args();
         enode_vector * v  = mk_enode_vector();
         enode_vector::const_iterator it1  = n->begin_parents();
         enode_vector::const_iterator end1 = n->end_parents();
@@ -2125,11 +2111,9 @@ namespace {
                 for (; it2 != end2; ++it2) {
                     enode * p2 = *it2;
                     if (p2->get_decl() == f &&
-                        num_args == n->get_num_args() && 
-                        num_args == p2->get_num_args() &&
                         m_context.is_relevant(p2) &&
                         p2->is_cgr() &&
-                        i < num_args && 
+                        i < p2->get_num_args() && 
                         p2->get_arg(i)->get_root() == p) {
                         v->push_back(p2);
                     }
@@ -2225,8 +2209,13 @@ namespace {
             if (curr->get_num_args() == expected_num_args && m_context.is_relevant(curr))
                 break;
         }
-        if (bp.m_it == bp.m_end)
+        if (bp.m_it == bp.m_end) {
+            if (best_v) {
+                bp.m_to_recycle = nullptr; 
+                recycle_enode_vector(best_v);
+            }
             return nullptr;
+        }
         m_top++;
         update_max_generation(*(bp.m_it), nullptr);
         return *(bp.m_it);
@@ -2321,7 +2310,10 @@ namespace {
 
     main_loop:
 
+        if (!m_pc)
+            goto backtrack;
         TRACE("mam_int", display_pc_info(tout););
+        
 #ifdef _PROFILE_MAM
         const_cast<instruction*>(m_pc)->m_counter++;
 #endif
@@ -2607,7 +2599,7 @@ namespace {
 
         case GET_CGR1:
 #define GET_CGR_COMMON()                                                                                                                                                \
-            m_n1 = m_context.get_enode_eq_to(static_cast<const get_cgr *>(m_pc)->m_label, static_cast<const get_cgr *>(m_pc)->m_num_args, m_args.c_ptr());              \
+            m_n1 = m_context.get_enode_eq_to(static_cast<const get_cgr *>(m_pc)->m_label, static_cast<const get_cgr *>(m_pc)->m_num_args, m_args.data());              \
             if (m_n1 == 0 || !m_context.is_relevant(m_n1))                                                                                                              \
                 goto backtrack;                                                                                                                                         \
             update_max_generation(m_n1, nullptr);                                                                                                                       \
@@ -2873,12 +2865,12 @@ namespace {
         ast_manager &               m;
         compiler &                  m_compiler;
         ptr_vector<code_tree>       m_trees;       // mapping: func_label -> tree
-        mam_trail_stack &           m_trail_stack;
+        trail_stack &               m_trail_stack;
 #ifdef Z3DEBUG
         context *                   m_context;
 #endif
 
-        class mk_tree_trail : public mam_trail {
+        class mk_tree_trail : public trail {
             ptr_vector<code_tree> & m_trees;
             unsigned                m_lbl_id;
         public:
@@ -2890,7 +2882,7 @@ namespace {
         };
 
     public:
-        code_tree_map(ast_manager & m, compiler & c, mam_trail_stack & s):
+        code_tree_map(ast_manager & m, compiler & c, trail_stack & s):
             m(m),
             m_compiler(c),
             m_trail_stack(s) {
@@ -2917,7 +2909,7 @@ namespace {
             SASSERT(first_idx < mp->get_num_args());
             app * p           = to_app(mp->get_arg(first_idx));
             func_decl * lbl   = p->get_decl();
-            unsigned lbl_id   = lbl->get_decl_id();
+            unsigned lbl_id   = lbl->get_small_id();
             m_trees.reserve(lbl_id+1, nullptr);
             if (m_trees[lbl_id] == nullptr) {
                 m_trees[lbl_id] = m_compiler.mk_tree(qa, mp, first_idx, false);
@@ -2946,7 +2938,7 @@ namespace {
         }
 
         code_tree * get_code_tree_for(func_decl * lbl) const {
-            unsigned lbl_id = lbl->get_decl_id();
+            unsigned lbl_id = lbl->get_small_id();
             if (lbl_id < m_trees.size())
                 return m_trees[lbl_id];
             else
@@ -3096,7 +3088,7 @@ namespace {
     protected:
         ast_manager &               m;
         bool                        m_use_filters;
-        mam_trail_stack             m_trail_stack;
+        trail_stack                 m_trail_stack;
         label_hasher                m_lbl_hasher;
         code_tree_manager           m_ct_manager;
         compiler                    m_compiler;
@@ -3139,7 +3131,7 @@ namespace {
         class add_shared_enode_trail;
         friend class add_shared_enode_trail;
 
-        class add_shared_enode_trail : public mam_trail {
+        class add_shared_enode_trail : public trail {
             mam_impl& m;
             enode * m_enode;
         public:
@@ -3176,24 +3168,24 @@ namespace {
         }
 
         bool is_plbl(func_decl * lbl) const {
-            unsigned lbl_id = lbl->get_decl_id();
+            unsigned lbl_id = lbl->get_small_id();
             return lbl_id < m_is_plbl.size() && m_is_plbl[lbl_id];
         }
         bool is_clbl(func_decl * lbl) const {
-            unsigned lbl_id = lbl->get_decl_id();
+            unsigned lbl_id = lbl->get_small_id();
             return lbl_id < m_is_clbl.size() && m_is_clbl[lbl_id];
         }
 
         void update_lbls(enode * n, unsigned elem) {
             approx_set & r_lbls = n->get_root()->get_lbls();
             if (!r_lbls.may_contain(elem)) {
-                m_trail_stack.push(mam_value_trail<approx_set>(r_lbls));
+                m_trail_stack.push(value_trail<approx_set>(r_lbls));
                 r_lbls.insert(elem);
             }
         }
 
         void update_clbls(func_decl * lbl) {
-            unsigned lbl_id = lbl->get_decl_id();
+            unsigned lbl_id = lbl->get_small_id();
             m_is_clbl.reserve(lbl_id+1, false);
             TRACE("trigger_bug", tout << "update_clbls: " << lbl->get_name() << " is already clbl: " << m_is_clbl[lbl_id] << "\n";);
             TRACE("mam_bug", tout << "update_clbls: " << lbl->get_name() << " is already clbl: " << m_is_clbl[lbl_id] << "\n";);
@@ -3219,7 +3211,7 @@ namespace {
                 enode * c            = app->get_arg(i);
                 approx_set & r_plbls = c->get_root()->get_plbls();
                 if (!r_plbls.may_contain(elem)) {
-                    m_trail_stack.push(mam_value_trail<approx_set>(r_plbls));
+                    m_trail_stack.push(value_trail<approx_set>(r_plbls));
                     r_plbls.insert(elem);
                     TRACE("trigger_bug", tout << "updating plabels of:\n" << mk_ismt2_pp(c->get_root()->get_expr(), m) << "\n";
                           tout << "new_elem: " << static_cast<unsigned>(elem) << "\n";
@@ -3233,7 +3225,7 @@ namespace {
         }
 
         void update_plbls(func_decl * lbl) {
-            unsigned lbl_id = lbl->get_decl_id();
+            unsigned lbl_id = lbl->get_small_id();
             m_is_plbl.reserve(lbl_id+1, false);
             TRACE("trigger_bug", tout << "update_plbls: " << lbl->get_name() << " is already plbl: " << m_is_plbl[lbl_id] << ", lbl_id: " << lbl_id << "\n";
                   tout << "mam: " << this << "\n";);
@@ -3668,8 +3660,8 @@ namespace {
                 recycle(t->m_todo);
                 t->m_todo = nullptr;
                 // remove both marks.
-                unmark_enodes(to_unmark->size(), to_unmark->c_ptr());
-                unmark_enodes2(to_unmark2->size(), to_unmark2->c_ptr());
+                unmark_enodes(to_unmark->size(), to_unmark->data());
+                unmark_enodes2(to_unmark2->size(), to_unmark2->data());
                 to_unmark->reset();
                 to_unmark2->reset();
             }
@@ -3755,7 +3747,7 @@ namespace {
                 app *        p     = to_app(mp->get_arg(0));
                 func_decl *  lbl   = p->get_decl();
                 if (m_context.get_num_enodes_of(lbl) > 0) {
-                    unsigned lbl_id = lbl->get_decl_id();
+                    unsigned lbl_id = lbl->get_small_id();
                     m_tmp_trees.reserve(lbl_id+1, 0);
                     if (m_tmp_trees[lbl_id] == 0) {
                         m_tmp_trees[lbl_id] = m_compiler.mk_tree(qa, mp, 0, false);
@@ -3768,7 +3760,7 @@ namespace {
             }
 
             for (func_decl * lbl : m_tmp_trees_to_delete) {
-                unsigned    lbl_id   = lbl->get_decl_id();
+                unsigned    lbl_id   = lbl->get_small_id();
                 code_tree * tmp_tree = m_tmp_trees[lbl_id];
                 SASSERT(tmp_tree != 0);
                 SASSERT(m_context.get_num_enodes_of(lbl) > 0);
@@ -3797,7 +3789,7 @@ namespace {
                 todo.pop_back();
                 if (n->is_ground()) {
                     enode * e = mk_enode(m_context, qa, n);
-                    m_trail_stack.push(add_shared_enode_trail(*this, e));
+                    m_context.push_trail(add_shared_enode_trail(*this, e));
                     m_shared_enodes.insert(e);
                 }
                 else {
@@ -3897,7 +3889,8 @@ namespace {
             TRACE("trigger_bug", tout << "match\n"; display(tout););
             for (code_tree* t : m_to_match) {
                 SASSERT(t->has_candidates());
-                m_interpreter.execute(t);
+                if (!m_interpreter.execute(t))
+                    return;
                 t->reset_candidates();
             }
             m_to_match.reset();
@@ -3974,7 +3967,7 @@ namespace {
                 unsigned h      = m_lbl_hasher(lbl);
                 TRACE("trigger_bug", tout << "lbl: " << lbl->get_name() << " is_clbl(lbl): " << is_clbl(lbl)
                       << ", is_plbl(lbl): " << is_plbl(lbl) << ", h: " << h << "\n";
-                      tout << "lbl_id: " << lbl->get_decl_id() << "\n";);
+                      tout << "lbl_id: " << lbl->get_small_id() << "\n";);
                 if (is_clbl(lbl))
                     update_lbls(n, h);
                 if (is_plbl(lbl))
@@ -4011,8 +4004,8 @@ namespace {
             approx_set   r1_lbls  = r1->get_lbls();
             approx_set & r2_lbls  = r2->get_lbls();
 
-            m_trail_stack.push(mam_value_trail<approx_set>(r2_lbls));
-            m_trail_stack.push(mam_value_trail<approx_set>(r2_plbls));
+            m_trail_stack.push(value_trail<approx_set>(r2_lbls));
+            m_trail_stack.push(value_trail<approx_set>(r2_plbls));
             r2_lbls  |= r1_lbls;
             r2_plbls |= r1_plbls;
             TRACE("mam_inc_bug",

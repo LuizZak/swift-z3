@@ -15,6 +15,8 @@ Author:
 
 Revision History:
 
+    Ported from theory_fpa by nbjorner in 2020.
+
 --*/
 
 #include "sat/smt/fpa_solver.h"
@@ -45,20 +47,18 @@ namespace fpa {
     expr_ref solver::convert(expr* e) {    
         expr_ref res(m);
         expr* ccnv;
-        TRACE("t_fpa", tout << "converting " << mk_ismt2_pp(e, m) << std::endl;);
+        TRACE("t_fpa", tout << "converting " << mk_ismt2_pp(e, m) << "\n";);
 
         if (m_conversions.find(e, ccnv)) {
             res = ccnv;
-            TRACE("t_fpa_detail", tout << "cached:" << std::endl;
-            tout << mk_ismt2_pp(e, m) << std::endl << " -> " << std::endl <<
-                mk_ismt2_pp(res, m) << std::endl;);
+            TRACE("t_fpa_detail", tout << "cached:" << "\n";
+                  tout << mk_ismt2_pp(e, m) << "\n" << " -> " << "\n" << mk_ismt2_pp(res, m) << "\n";);
         }
         else {
             res = m_rw.convert(m_th_rw, e);
 
-            TRACE("t_fpa_detail", tout << "converted; caching:" << std::endl;
-            tout << mk_ismt2_pp(e, m) << std::endl << " -> " << std::endl <<
-                mk_ismt2_pp(res, m) << std::endl;);
+            TRACE("t_fpa_detail", tout << "converted; caching:" << "\n";
+                  tout << mk_ismt2_pp(e, m) << "\n" << " -> " << "\n" << mk_ismt2_pp(res, m) << "\n";);
 
             m_conversions.insert(e, res);
             m.inc_ref(e);
@@ -81,6 +81,14 @@ namespace fpa {
         return conds;
     }
 
+    sat::check_result solver::check() {
+        SASSERT(m_converter.m_extra_assertions.empty());
+        if (unit_propagate())
+            return sat::check_result::CR_CONTINUE;
+        SASSERT(m_nodes.size() <= m_nodes_qhead);
+        return sat::check_result::CR_DONE;
+    }
+
     void solver::attach_new_th_var(enode* n) {
         theory_var v = mk_var(n);
         ctx.attach_th_var(n, this, v);
@@ -91,7 +99,10 @@ namespace fpa {
         SASSERT(m.is_bool(e));
         if (!visit_rec(m, e, sign, root, redundant))
             return sat::null_literal;
-        return expr2literal(e);
+        sat::literal lit = expr2literal(e);
+        if (sign)
+           lit.neg();
+        return lit;
     }
 
     void solver::internalize(expr* e, bool redundant) {
@@ -116,41 +127,14 @@ namespace fpa {
 
     bool solver::post_visit(expr* e, bool sign, bool root) {
         euf::enode* n = expr2enode(e);
-        app* a = to_app(e);
         SASSERT(!n || !n->is_attached_to(get_id()));
         if (!n)
             n = mk_enode(e, false);
         SASSERT(!n->is_attached_to(get_id()));
-        mk_var(n);
-        if (m.is_bool(e)) {
-            sat::literal atom(ctx.get_si().add_bool_var(e), false);
-            atom = ctx.attach_lit(atom, e);
-            sat::literal bv_atom = mk_literal(m_rw.convert_atom(m_th_rw, e));
-            sat::literal_vector conds = mk_side_conditions();
-            conds.push_back(bv_atom);
-            add_equiv_and(atom, conds);
-            if (root) {
-                if (sign)
-                    atom.neg();
-                add_unit(atom);
-            }
-        }
-        else {
-            switch (a->get_decl_kind()) {
-            case OP_FPA_TO_FP:
-            case OP_FPA_TO_UBV:
-            case OP_FPA_TO_SBV:
-            case OP_FPA_TO_REAL:
-            case OP_FPA_TO_IEEE_BV: {
-                expr_ref conv = convert(e);
-                add_unit(eq_internalize(e, conv));
-                add_units(mk_side_conditions());
-                break;
-            }
-            default: /* ignore */
-                break;
-            }
-        }
+        attach_new_th_var(n);
+        TRACE("fp", tout << "post: " << mk_bounded_pp(e, m) << "\n";);
+        m_nodes.push_back(std::tuple(n, sign, root));
+        ctx.push(push_back_trail(m_nodes));
         return true;
     }
 
@@ -162,6 +146,8 @@ namespace fpa {
         SASSERT(n->get_decl()->get_range() == s);
 
         if (is_attached_to_var(n))
+            return;
+        if (m.is_ite(n->get_expr()))
             return;
         attach_new_th_var(n);
 
@@ -178,12 +164,60 @@ namespace fpa {
         activate(owner);
     }
 
+    bool solver::unit_propagate() {
+        if (m_nodes.size() <= m_nodes_qhead)
+            return false;
+        ctx.push(value_trail<unsigned>(m_nodes_qhead));
+        for (; m_nodes_qhead < m_nodes.size(); ++m_nodes_qhead) 
+            unit_propagate(m_nodes[m_nodes_qhead]);
+        return true;
+    }
+
+    void solver::unit_propagate(std::tuple<enode*, bool, bool> const& t) {
+        auto [n, sign, root] = t;
+        expr* e = n->get_expr();
+        app* a = to_app(e);
+        if (m.is_bool(e)) {
+            sat::literal atom(ctx.get_si().add_bool_var(e), false);
+            atom = ctx.attach_lit(atom, e);
+            sat::literal bv_atom = mk_literal(m_rw.convert_atom(m_th_rw, e));
+            sat::literal_vector conds = mk_side_conditions();
+            conds.push_back(bv_atom);
+            add_equiv_and(atom, conds);
+            if (root) {
+                if (sign)
+                    atom.neg();
+                add_unit(atom);
+            }
+        }
+        else {            
+            switch (a->get_decl_kind()) {
+            case OP_FPA_TO_FP:
+            case OP_FPA_TO_UBV:
+            case OP_FPA_TO_SBV:
+            case OP_FPA_TO_REAL:
+            case OP_FPA_TO_IEEE_BV: {
+                expr_ref conv = convert(e);
+                add_unit(eq_internalize(e, conv));
+                add_units(mk_side_conditions());
+                break;
+            }
+            default: /* ignore */
+                break;
+            }
+        }
+        activate(e);
+    }
+
     void solver::activate(expr* n) {
         TRACE("t_fpa", tout << "relevant_eh for: " << mk_ismt2_pp(n, m) << "\n";);
 
         mpf_manager& mpfm = m_fpa_util.fm();
 
-        if (m_fpa_util.is_float(n) || m_fpa_util.is_rm(n)) {
+        if (m.is_ite(n)) {
+            // skip
+        }
+        else if (m_fpa_util.is_float(n) || m_fpa_util.is_rm(n)) {
             expr* a = nullptr, * b = nullptr, * c = nullptr;
             if (!m_fpa_util.is_fp(n)) {
                 app_ref wrapped = m_converter.wrap(n);
@@ -199,7 +233,11 @@ namespace fpa {
                     VERIFY(m_fpa_util.is_fp(bv_val_e, a, b, c));
                     expr* args[] = { a, b, c };
                     expr_ref cc_args(m_bv_util.mk_concat(3, args), m);
+                    // Require
+                    // wrap(n) = bvK
+                    // fp(extract(wrap(n)) = n
                     add_unit(eq_internalize(wrapped, cc_args));
+                    add_unit(eq_internalize(bv_val_e, n));
                     add_units(mk_side_conditions());
                 }
                 else 
@@ -217,26 +255,23 @@ namespace fpa {
     }
 
     void solver::ensure_equality_relation(theory_var x, theory_var y) {
+        fpa_util& fu = m_fpa_util;
         enode* e_x = var2enode(x);
         enode* e_y = var2enode(y);
-
-        TRACE("t_fpa", tout << "new eq: " << x << " = " << y << std::endl;
-        tout << mk_ismt2_pp(e_x->get_expr(), m) << std::endl << " = " << std::endl <<
-            mk_ismt2_pp(e_y->get_expr(), m) << std::endl;);
-
-        fpa_util& fu = m_fpa_util;
-
         expr* xe = e_x->get_expr();
         expr* ye = e_y->get_expr();
 
-        if (m_fpa_util.is_bvwrap(xe) || m_fpa_util.is_bvwrap(ye))
+        if (fu.is_bvwrap(xe) || fu.is_bvwrap(ye))
             return;
+
+        TRACE("t_fpa", tout << "new eq: " << x << " = " << y << "\n";
+              tout << mk_ismt2_pp(xe, m) << "\n" << " = " << "\n" << mk_ismt2_pp(ye, m) << "\n";);
 
         expr_ref xc = convert(xe);
         expr_ref yc = convert(ye);
 
-        TRACE("t_fpa_detail", tout << "xc = " << mk_ismt2_pp(xc, m) << std::endl <<
-            "yc = " << mk_ismt2_pp(yc, m) << std::endl;);
+        TRACE("t_fpa_detail", tout << "xc = " << mk_ismt2_pp(xc, m) << "\n" <<
+            "yc = " << mk_ismt2_pp(yc, m) << "\n";);
 
         expr_ref c(m);
 
@@ -286,11 +321,14 @@ namespace fpa {
         expr* e = n->get_expr();
         app_ref wrapped(m);
         expr_ref value(m);
+        
         auto is_wrapped = [&]() {
             if (!wrapped) wrapped = m_converter.wrap(e);
             return expr2enode(wrapped) != nullptr;
         };
-        if (m_fpa_util.is_fp(e)) {
+        if (m_fpa_util.is_rm_numeral(e) || m_fpa_util.is_numeral(e)) 
+            value = e;
+        else if (m_fpa_util.is_fp(e)) {
             SASSERT(n->num_args() == 3);
             expr* a = values.get(n->get_arg(0)->get_root_id());
             expr* b = values.get(n->get_arg(1)->get_root_id());
@@ -316,6 +354,7 @@ namespace fpa {
             value = m_fpa_util.mk_pzero(ebits, sbits);
         }
         values.set(n->get_root_id(), value);
+        TRACE("t_fpa", tout << ctx.bpp(n) << " := " << value << "\n";);
     }
 
     bool solver::add_dep(euf::enode* n, top_sort<euf::enode>& dep) {
@@ -346,9 +385,9 @@ namespace fpa {
         for (enode* n : ctx.get_egraph().nodes()) {
             theory_var v = n->get_th_var(m_fpa_util.get_family_id());
             if (v != -1) {
-                if (first) out << "fpa theory variables:" << std::endl;
+                if (first) out << "fpa theory variables:" << "\n";
                 out << v << " -> " <<
-                    mk_ismt2_pp(n->get_expr(), m) << std::endl;
+                    mk_ismt2_pp(n->get_expr(), m) << "\n";
                 first = false;
             }
         }
@@ -356,24 +395,24 @@ namespace fpa {
         if (first)
             return out;
 
-        out << "bv theory variables:" << std::endl;
+        out << "bv theory variables:" << "\n";
         for (enode* n : ctx.get_egraph().nodes()) {
             theory_var v = n->get_th_var(m_bv_util.get_family_id());
             if (v != -1) out << v << " -> " <<
-                mk_ismt2_pp(n->get_expr(), m) << std::endl;
+                mk_ismt2_pp(n->get_expr(), m) << "\n";
         }
 
-        out << "arith theory variables:" << std::endl;
+        out << "arith theory variables:" << "\n";
         for (enode* n : ctx.get_egraph().nodes()) {
             theory_var v = n->get_th_var(m_arith_util.get_family_id());
             if (v != -1) out << v << " -> " <<
-                mk_ismt2_pp(n->get_expr(), m) << std::endl;
+                mk_ismt2_pp(n->get_expr(), m) << "\n";
         }
 
         out << "equivalence classes:\n";
         for (enode* n : ctx.get_egraph().nodes()) {
             expr* e = n->get_expr();
-            out << n->get_root_id() << " --> " << mk_ismt2_pp(e, m) << std::endl;
+            out << n->get_root_id() << " --> " << mk_ismt2_pp(e, m) << "\n";
         }
         return out;
     }

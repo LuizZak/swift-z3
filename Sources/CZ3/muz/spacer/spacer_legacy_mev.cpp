@@ -23,7 +23,7 @@ Copyright (c) 2017 Arie Gurfinkel
 #include "ast/rewriter/expr_replacer.h"
 #include "model/model_smt2_pp.h"
 #include "ast/scoped_proof.h"
-#include "qe/qe_lite.h"
+#include "qe/lite/qe_lite.h"
 #include "muz/spacer/spacer_qe_project.h"
 #include "model/model_pp.h"
 #include "ast/rewriter/expr_safe_replace.h"
@@ -506,10 +506,10 @@ void model_evaluator::eval_array_eq(app* e, expr* arg1, expr* arg2)
     for (unsigned i = 0; i < store.size(); ++i) {
         args1.resize(1);
         args2.resize(1);
-        args1.append(store[i].size() - 1, store[i].c_ptr());
-        args2.append(store[i].size() - 1, store[i].c_ptr());
-        s1 = m_array.mk_select(args1.size(), args1.c_ptr());
-        s2 = m_array.mk_select(args2.size(), args2.c_ptr());
+        args1.append(store[i].size() - 1, store[i].data());
+        args2.append(store[i].size() - 1, store[i].data());
+        s1 = m_array.mk_select(args1.size(), args1.data());
+        s2 = m_array.mk_select(args2.size(), args2.data());
         w1 = (*m_model)(s1);
         w2 = (*m_model)(s2);
         if (w1 == w2) {

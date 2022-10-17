@@ -150,8 +150,6 @@ namespace {
             if (!first)
                 out << "\n";            
         }
-
-        ~act_case_split_queue() override {};
     };
 
     /**
@@ -325,7 +323,7 @@ namespace {
         ast_manager &     m_manager;
         ptr_vector<expr>  m_queue;
         unsigned          m_head;
-        int               m_bs_num_bool_vars; //!< Number of boolean variable before starting to search.
+        bool_var          m_bs_num_bool_vars; //!< Number of boolean variable before starting to search.
         ptr_vector<expr>  m_queue2;
         unsigned          m_head2;
         svector<scope>    m_scopes;
@@ -513,7 +511,7 @@ namespace {
         smt_params &m_params;  
         ptr_vector<expr>  m_queue;
         unsigned          m_head;
-        int               m_bs_num_bool_vars; //!< Number of boolean variable before starting to search.
+        bool_var          m_bs_num_bool_vars; //!< Number of boolean variable before starting to search.
         bool_var_act_queue m_delayed_queue;
         svector<scope>    m_scopes;
     public:
@@ -745,7 +743,7 @@ namespace {
         ast_manager &        m_manager;
         ptr_vector<expr>     m_queue;
         unsigned             m_head;
-        int                  m_bs_num_bool_vars; //!< Number of boolean variable before starting to search.
+        bool_var             m_bs_num_bool_vars; //!< Number of boolean variable before starting to search.
         svector<queue_entry> m_queue2;
         svector<scope>       m_scopes;
         unsigned             m_current_generation;
@@ -1244,8 +1242,6 @@ namespace {
                 out << "\n";
 
         }
-
-        ~theory_aware_branching_queue() override {};
     };
 }
 

@@ -71,7 +71,7 @@ void extract_clauses_and_dependencies(goal_ref const& g, expr_ref_vector& clause
             }
             SASSERT(clause.size() > 1);
             expr_ref cls(m);
-            cls = mk_or(m, clause.size(), clause.c_ptr());
+            cls = mk_or(m, clause.size(), clause.data());
             clauses.push_back(cls);
         }
     }
@@ -110,7 +110,7 @@ public:
         TRACE("solver2tactic", tout << "clauses asserted\n";);
         lbool r;
         try {
-            r = local_solver->check_sat(assumptions.size(), assumptions.c_ptr()); 
+            r = local_solver->check_sat(assumptions.size(), assumptions.data()); 
         }
         catch (...) {
             local_solver->collect_statistics(m_st);
@@ -164,6 +164,7 @@ public:
                     in->assert_expr(local_solver->get_assertion(i));
                 }
             }
+            in->set_reason_unknown(local_solver->reason_unknown());
             result.push_back(in.get());
             break;
         }
@@ -186,6 +187,8 @@ public:
     tactic * translate(ast_manager & m) override {
         return alloc(solver2tactic, m_solver->translate(m, m_params));
     }    
+
+    char const* name() const override { return "solver2tactic"; }
 };
 
 tactic* mk_solver2tactic(solver* s) { return alloc(solver2tactic, s); }

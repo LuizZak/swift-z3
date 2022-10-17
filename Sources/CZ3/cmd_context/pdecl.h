@@ -38,14 +38,14 @@ protected:
     virtual size_t obj_size() const { UNREACHABLE(); return sizeof(*this); }
     pdecl(unsigned id, unsigned num_params):m_id(id), m_num_params(num_params), m_ref_count(0) {}
     virtual void finalize(pdecl_manager & m) {}
-    virtual ~pdecl() {}
+    virtual ~pdecl() = default;
 public:
     virtual bool check_num_params(pdecl * other) const { return m_num_params == other->m_num_params; }
     unsigned get_num_params() const { return m_num_params; }
     unsigned get_id() const { return m_id; }
     unsigned get_ref_count() const { return m_ref_count; }
     unsigned hash() const { return m_id; }
-    virtual void display(std::ostream & out) const {}
+    virtual std::ostream& display(std::ostream & out) const { return out;}
     virtual void reset_cache(pdecl_manager& m) {}
 };
 
@@ -66,7 +66,6 @@ protected:
     psort(unsigned id, unsigned num_params):pdecl(id, num_params), m_inst_cache(nullptr) {}
     bool is_psort() const override { return true; }
     void finalize(pdecl_manager & m) override;
-    ~psort() override {}
     virtual void cache(pdecl_manager & m, sort * const * s, sort * r);
     virtual sort * find(sort * const * s) const;
 public:
@@ -98,7 +97,6 @@ protected:
     sort * find(sort * const * s);
     psort_decl(unsigned id, unsigned num_params, pdecl_manager & m, symbol const & n);
     void finalize(pdecl_manager & m) override;
-    ~psort_decl() override {}
 public:
     virtual sort * instantiate(pdecl_manager & m, unsigned n, sort * const * s) = 0;
     virtual sort * instantiate(pdecl_manager & m, unsigned n, unsigned const * s) { return nullptr; }
@@ -120,10 +118,9 @@ protected:
     psort_user_decl(unsigned id, unsigned num_params, pdecl_manager & m, symbol const & n, psort * p);
     size_t obj_size() const override { return sizeof(psort_user_decl); }
     void finalize(pdecl_manager & m) override;
-    ~psort_user_decl() override {}
 public:
     sort * instantiate(pdecl_manager & m, unsigned n, sort * const * s) override;
-    void display(std::ostream & out) const override;
+    std::ostream& display(std::ostream & out) const override;
 };
  
 class psort_builtin_decl : public psort_decl {
@@ -133,11 +130,10 @@ protected:
     decl_kind m_kind;
     psort_builtin_decl(unsigned id, pdecl_manager & m, symbol const & n, family_id fid, decl_kind k);
     size_t obj_size() const override { return sizeof(psort_builtin_decl); }
-    ~psort_builtin_decl() override {}
 public:
     sort * instantiate(pdecl_manager & m, unsigned n, sort * const * s) override;
     sort * instantiate(pdecl_manager & m, unsigned n, unsigned const * s) override;
-    void display(std::ostream & out) const override;
+    std::ostream& display(std::ostream & out) const override;
 };
 
 class psort_dt_decl : public psort_decl {
@@ -145,10 +141,9 @@ protected:
     friend class pdecl_manager;
     psort_dt_decl(unsigned id, unsigned num_params, pdecl_manager & m, symbol const & n);
     size_t obj_size() const override { return sizeof(psort_dt_decl); }
-    ~psort_dt_decl() override {}
 public:
     sort * instantiate(pdecl_manager & m, unsigned n, sort * const * s) override;
-    void display(std::ostream & out) const override;
+    std::ostream& display(std::ostream & out) const override;
 };
 
 
@@ -157,7 +152,7 @@ class pdatatype_decl;
 class pconstructor_decl;
 class paccessor_decl;
 
-enum ptype_kind {
+enum class ptype_kind {
     PTR_PSORT,       // psort
     PTR_REC_REF,     // recursive reference
     PTR_MISSING_REF  // a symbol, it is useful for building parsers.
@@ -171,14 +166,14 @@ class ptype {
     };
     symbol     m_missing_ref;
 public:
-    ptype():m_kind(PTR_PSORT), m_sort(nullptr) {}
-    ptype(int idx):m_kind(PTR_REC_REF), m_idx(idx) {}
-    ptype(psort * s):m_kind(PTR_PSORT), m_sort(s) {}
-    ptype(symbol const & s):m_kind(PTR_MISSING_REF), m_missing_ref(s) {}
+    ptype():m_kind(ptype_kind::PTR_PSORT), m_sort(nullptr) {}
+    ptype(int idx):m_kind(ptype_kind::PTR_REC_REF), m_idx(idx) {}
+    ptype(psort * s):m_kind(ptype_kind::PTR_PSORT), m_sort(s) {}
+    ptype(symbol const & s):m_kind(ptype_kind::PTR_MISSING_REF), m_sort(nullptr), m_missing_ref(s) {}
     ptype_kind kind() const { return m_kind; }
-    psort * get_psort() const { SASSERT(kind() == PTR_PSORT); return m_sort; }
-    int get_idx() const { SASSERT(kind() == PTR_REC_REF); return m_idx; }
-    symbol const & get_missing_ref() const { SASSERT(kind() == PTR_MISSING_REF); return m_missing_ref; }
+    psort * get_psort() const { SASSERT(kind() == ptype_kind::PTR_PSORT); return m_sort; }
+    int get_idx() const { SASSERT(kind() == ptype_kind::PTR_REC_REF); return m_idx; }
+    symbol const & get_missing_ref() const { SASSERT(kind() == ptype_kind::PTR_MISSING_REF); return m_missing_ref; }
     void display(std::ostream & out, pdatatype_decl const * const * dts) const;
 };
 
@@ -196,9 +191,8 @@ class paccessor_decl : public pdecl {
     accessor_decl * instantiate_decl(pdecl_manager & m, unsigned n, sort * const * s);
     symbol const & get_name() const { return m_name; }
     ptype const & get_type() const { return m_type; }
-    ~paccessor_decl() override {}
 public:
-    void display(std::ostream & out) const override { pdecl::display(out); }
+    std::ostream& display(std::ostream & out) const override { pdecl::display(out); return out; }
     void display(std::ostream & out, pdatatype_decl const * const * dts) const;
 };
 
@@ -217,9 +211,8 @@ class pconstructor_decl : public pdecl {
     symbol const & get_name() const { return m_name; }
     symbol const & get_recognizer_name() const { return m_recogniser_name; }
     constructor_decl * instantiate_decl(pdecl_manager & m, unsigned n, sort * const * s);
-    ~pconstructor_decl() override {}
 public:
-    void display(std::ostream & out) const override { pdecl::display(out); }
+    std::ostream& display(std::ostream & out) const override { pdecl::display(out); return out; }
     void display(std::ostream & out, pdatatype_decl const * const * dts) const;
 };
 
@@ -234,10 +227,9 @@ class pdatatype_decl : public psort_decl {
     size_t obj_size() const override { return sizeof(pdatatype_decl); }
     bool fix_missing_refs(dictionary<int> const & symbol2idx, symbol & missing);
     datatype_decl * instantiate_decl(pdecl_manager & m, unsigned n, sort * const * s);
-    ~pdatatype_decl() override {}
 public:
     sort * instantiate(pdecl_manager & m, unsigned n, sort * const * s) override;
-    void display(std::ostream & out) const override;
+    std::ostream& display(std::ostream & out) const override;
     bool has_missing_refs(symbol & missing) const;
     bool has_duplicate_accessors(symbol & repeated) const;
     bool commit(pdecl_manager& m);
@@ -255,9 +247,8 @@ class pdatatypes_decl : public pdecl {
     size_t obj_size() const override { return sizeof(pdatatypes_decl); }
     bool fix_missing_refs(symbol & missing);
     bool instantiate(pdecl_manager & m, sort * const * s);
-    ~pdatatypes_decl() override {}
 public:
-    pdatatype_decl const * const * children() const { return m_datatypes.c_ptr(); }
+    pdatatype_decl const * const * children() const { return m_datatypes.data(); }
     pdatatype_decl * const * begin() const { return m_datatypes.begin(); }
     pdatatype_decl * const * end() const { return m_datatypes.end(); }
     // commit declaration 
@@ -266,7 +257,7 @@ public:
 
 class new_datatype_eh {
 public:
-    virtual ~new_datatype_eh() {}
+    virtual ~new_datatype_eh() = default;
     virtual void operator()(sort * dt, pdecl* pd) = 0;
 };
 
@@ -289,6 +280,8 @@ class pdecl_manager {
     obj_hashtable<sort>          m_notified;
     ptr_vector<sort>             m_notified_trail;
     unsigned_vector              m_notified_lim;
+    svector<symbol>              m_datatypes_trail;
+    unsigned_vector              m_datatypes_lim;
 
     void init_list();
     void del_decl_core(pdecl * p);
@@ -319,6 +312,7 @@ public:
     sort * instantiate_datatype(psort_decl* p, symbol const& name, unsigned n, sort * const* s);
     sort * instantiate(psort * s, unsigned num, sort * const * args);
     void notify_datatype(sort *r, psort_decl* p, unsigned n, sort* const* s);
+    void notify_mk_datatype(symbol const& name);
     void push();
     void pop(unsigned n);
 

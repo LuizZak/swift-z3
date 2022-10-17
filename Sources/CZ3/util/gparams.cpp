@@ -86,13 +86,13 @@ static char const * get_new_param_name(std::string const & p) {
 template <typename T>
 class smap : public map<char const*, T, str_hash_proc, str_eq_proc> {};
 
-typedef std::function<param_descrs*(void)> lazy_descrs_t;
+typedef param_descrs* (*lazy_descrs_t)(void);
 
 class lazy_param_descrs {
     param_descrs*      m_descrs;
-    ptr_vector<lazy_descrs_t>      m_mk;
+    svector<lazy_descrs_t> m_mk;
 
-    void apply(lazy_descrs_t& f) {
+    void apply(lazy_descrs_t f) {
         param_descrs* d = f();
         if (m_descrs) {
             m_descrs->copy(*d);
@@ -104,18 +104,16 @@ class lazy_param_descrs {
     }
     
     void reset_mk() {
-        for (auto* f : m_mk) dealloc(f);
         m_mk.reset();
     }
 
 public:
-    lazy_param_descrs(lazy_descrs_t& f): m_descrs(nullptr) {
+    lazy_param_descrs(lazy_descrs_t f): m_descrs(nullptr) {
         append(f);
     }
 
     ~lazy_param_descrs() { 
-        dealloc(m_descrs);  
-        reset_mk();
+        dealloc(m_descrs);
     }
 
     param_descrs* deref() {
@@ -124,8 +122,8 @@ public:
         return m_descrs;
     }
 
-    void append(lazy_descrs_t& f) {
-        m_mk.push_back(alloc(lazy_descrs_t, f));        
+    void append(lazy_descrs_t f) {
+        m_mk.push_back(f);
     }
 };
 
@@ -137,6 +135,7 @@ struct gparams::imp {
     smap<params_ref* >   m_module_params;
     params_ref           m_params;
     region               m_region;
+    std::string          m_buffer;
 
     void check_registered() {
         if (m_modules_registered)
@@ -203,7 +202,7 @@ public:
         m_param_descrs.copy(d);
     }
 
-    void register_module(char const * module_name, lazy_descrs_t& f) {
+    void register_module(char const * module_name, lazy_descrs_t f) {
         // Don't need synchronization here, this method
         // is invoked from check_registered that is already protected.
         
@@ -277,20 +276,20 @@ public:
                 strm << "the parameter '" << param_name
                      << "', invoke 'z3 -p' to obtain the new parameter list, and 'z3 -pp:" << new_name
                      << "' for the full description of the parameter";
-                throw exception(strm.str());
+                throw exception(std::move(strm).str());
             }
             else if (is_old_param_name(param_name)) {
                 std::stringstream strm;
                 strm << "unknown parameter '" << param_name 
                      << "', this is an old parameter name, invoke 'z3 -p' to obtain the new parameter list";
-                throw default_exception(strm.str());
+                throw default_exception(std::move(strm).str());
             }
             else {
                 std::stringstream strm;
                 strm << "unknown parameter '" << param_name << "'\n";    
                 strm << "Legal parameters are:\n";
                 d.display(strm, 2, false, false);
-                throw default_exception(strm.str());
+                throw default_exception(std::move(strm).str());
             }
         }
         else {
@@ -299,7 +298,7 @@ public:
             strm << "at module '" << mod_name << "'\n";
             strm << "Legal parameters are:\n";
             d.display(strm, 2, false, false);
-            throw default_exception(strm.str());
+            throw default_exception(std::move(strm).str());
         }
     }
 
@@ -313,7 +312,7 @@ public:
                 if (!('0' <= *value && *value <= '9')) {
                     strm << "Expected values for parameter " << name 
                          << " is an unsigned integer. It was given argument '" << _value << "'";
-                    throw default_exception(strm.str());                    
+                    throw default_exception(std::move(strm).str());
                 }
             }
             break;
@@ -322,7 +321,7 @@ public:
                 if (!('0' <= *value && *value <= '9') && *value != '.' && *value != '-' && *value != '/') {
                     strm << "Expected values for parameter " << name 
                          << " is a double. It was given argument '" << _value << "'";
-                    throw default_exception(strm.str());                                        
+                    throw default_exception(std::move(strm).str());
                 }
             }
             break;
@@ -331,7 +330,7 @@ public:
             if (strcmp(value, "true") != 0 && strcmp(value, "false") != 0) {
                 strm << "Expected values for parameter " << name 
                      << " are 'true' or 'false'. It was given argument '" << value << "'";
-                throw default_exception(strm.str());
+                throw default_exception(std::move(strm).str());
             }
             break;
         default:
@@ -369,7 +368,7 @@ public:
                 if (mod_name[0]) {
                     strm << " at module '" << mod_name << "'";
                 }
-                throw default_exception(strm.str());
+                throw default_exception(std::move(strm).str());
             }
         }
         else if (k == CPK_SYMBOL) {
@@ -386,7 +385,7 @@ public:
             if (mod_name[0]) {
                 strm << " at module '" << mod_name << "'";            
             }
-            throw exception(strm.str());
+            throw exception(std::move(strm).str());
         }
     }
 
@@ -407,7 +406,7 @@ public:
             else {
                 std::stringstream strm;
                 strm << "invalid parameter, unknown module '" << m << "'";
-                throw exception(strm.str());
+                throw exception(std::move(strm).str());
             }
         }
     }
@@ -457,7 +456,7 @@ public:
         }
         std::stringstream strm;
         strm << "unknown module '" << m << "'";
-        throw exception(strm.str());
+        throw exception(std::move(strm).str());
     }
 
     // unfortunately, params_ref is not thread safe
@@ -524,7 +523,7 @@ public:
         if (!get_module_param_descr(module_name, d)) {
             std::stringstream strm;
             strm << "unknown module '" << module_name << "'";                    
-            throw exception(strm.str());
+            throw exception(std::move(strm).str());
         }
         out << "[module] " << module_name;
         char const * descr = nullptr;
@@ -533,6 +532,32 @@ public:
         }
         out << "\n";
         d->display(out, 4, false);
+    }
+    void display_module_markdown(std::ostream & out, char const* module_name) {
+        lock_guard lock(*gparams_mux);
+        param_descrs * d = nullptr;
+
+        if (module_name == std::string("global")) {
+            out << "\n## Global Parameters\n\n";
+            get_param_descrs().display_markdown(out);
+            return;
+        }
+        if (!get_module_param_descr(module_name, d)) {
+            std::stringstream strm;
+            strm << "unknown module '" << module_name << "'";                    
+            throw exception(std::move(strm).str());
+        }
+        out << "\n## " << module_name << "\n\n";
+        char const * descr = nullptr;
+        if (get_module_descrs().find(module_name, descr)) 
+            out << descr << "\n";
+        out << "\n";
+        d->display_markdown(out);
+    }
+
+    param_descrs const& get_global_param_descrs() {
+        lock_guard lock(*gparams_mux);
+        return get_param_descrs();
     }
 
     void display_parameter(std::ostream & out, char const * name) {        
@@ -549,7 +574,7 @@ public:
             if (!get_module_param_descr(m, d)) {
                 std::stringstream strm;
                 strm << "unknown module '" << m << "'";                    
-                throw exception(strm.str());
+                throw exception(std::move(strm).str());
             }
         }
         if (!d->contains(sp))
@@ -598,7 +623,7 @@ void gparams::register_global(param_descrs & d) {
     g_imp->register_global(d);
 }
 
-void gparams::register_module(char const * module_name, lazy_descrs_t& f) {
+void gparams::register_module(char const * module_name, lazy_descrs_t f) {
     SASSERT(g_imp);
     g_imp->register_module(module_name, f);
 }
@@ -625,6 +650,10 @@ void gparams::display(std::ostream & out, unsigned indent, bool smt2_style, bool
     g_imp->display(out, indent, smt2_style, include_descr);
 }
 
+param_descrs const& gparams::get_global_param_descrs() {
+    return g_imp->get_global_param_descrs();
+}
+
 void gparams::display_modules(std::ostream & out) {
     SASSERT(g_imp);
     g_imp->display_modules(out);
@@ -633,6 +662,11 @@ void gparams::display_modules(std::ostream & out) {
 void gparams::display_module(std::ostream & out, char const * module_name) {
     SASSERT(g_imp);
     g_imp->display_module(out, module_name);
+}
+
+void gparams::display_module_markdown(std::ostream & out, char const * module_name) {
+    SASSERT(g_imp);
+    g_imp->display_module_markdown(out, module_name);
 }
 
 void gparams::display_parameter(std::ostream & out, char const * name) {
@@ -650,4 +684,9 @@ void gparams::finalize() {
     TRACE("gparams", tout << "gparams::finalize()\n";);
     dealloc(g_imp);
     DEALLOC_MUTEX(gparams_mux);
+}
+
+std::string& gparams::g_buffer() {
+    SASSERT(g_imp);
+    return g_imp->m_buffer;
 }

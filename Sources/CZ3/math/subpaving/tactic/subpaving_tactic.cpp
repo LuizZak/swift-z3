@@ -26,6 +26,7 @@ Revision History:
 #include "util/mpff.h"
 #include "util/mpfx.h"
 #include "util/f2n.h"
+#include <iostream>
 
 class subpaving_tactic : public tactic {
 
@@ -36,8 +37,6 @@ class subpaving_tactic : public tactic {
             e2v.mk_inv(m_inv);
         }
 
-        virtual ~display_var_proc() {}
-        
         ast_manager & m() const { return m_inv.get_manager(); }
         
         void operator()(std::ostream & out, subpaving::var x) const override {
@@ -174,7 +173,7 @@ class subpaving_tactic : public tactic {
             for (unsigned i = 0; i < sz; i++) {
                 ineq_buffer.push_back(mk_ineq(args[i]));
             }
-            m_ctx->add_clause(sz, ineq_buffer.c_ptr());
+            m_ctx->add_clause(sz, ineq_buffer.data());
         }
         
         void internalize(goal const & g) {
@@ -220,13 +219,15 @@ public:
         dealloc(m_imp);
     }
 
+    char const* name() const override { return "subpaving"; }
+
     tactic * translate(ast_manager & m) override {
         return alloc(subpaving_tactic, m, m_params);
     }
 
     void updt_params(params_ref const & p) override {
-        m_params = p;
-        m_imp->updt_params(p);
+        m_params.append(p);
+        m_imp->updt_params(m_params);
     }
 
     void collect_param_descrs(param_descrs & r) override {

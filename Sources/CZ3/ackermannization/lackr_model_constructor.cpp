@@ -21,6 +21,7 @@
 #include "ast/for_each_expr.h"
 #include "ast/rewriter/bv_rewriter.h"
 #include "ast/rewriter/bool_rewriter.h"
+#include <iostream>
 
 struct lackr_model_constructor::imp {
 public:
@@ -62,7 +63,7 @@ public:
         for (unsigned i = 0; i < m_abstr_model->get_num_uninterpreted_sorts(); i++) {
             sort * const s = m_abstr_model->get_uninterpreted_sort(i);
             ptr_vector<expr> u = m_abstr_model->get_universe(s);
-            destination->register_usort(s, u.size(), u.c_ptr());
+            destination->register_usort(s, u.size(), u.data());
         }
         
         for (unsigned i = 0; i < m_abstr_model->get_num_functions(); i++) {
@@ -186,7 +187,7 @@ private:
         return m_app2val.find(a, val);
     }
     
-    bool evaluate(app * const a, expr_ref& result) {
+    bool evaluate(app * a, expr_ref& result) {
         SASSERT(!is_val(a));
         const unsigned num = a->get_num_args();
         if (num == 0) { // handle constants
@@ -213,7 +214,7 @@ private:
         }
         // handle functions
         if (m_ackr_helper.is_uninterp_fn(a)) { // handle uninterpreted
-            app_ref key(m.mk_app(a->get_decl(), values.c_ptr()), m);
+            app_ref key(m.mk_app(a->get_decl(), values.data()), m);
             if (!make_value_uninterpreted_function(a, key.get(), result)) {
                 return false;
             }
@@ -232,20 +233,20 @@ private:
     // Check and record the value for a given term, given that all arguments are already checked.
     //
     bool mk_value(app * a) {
-        if (is_val(a)) return true; // skip numerals
+        if (is_val(a))
+            return true; // skip numerals
         TRACE("model_constructor", tout << "mk_value(\n" << mk_ismt2_pp(a, m, 2) << ")\n";);
         SASSERT(!m_app2val.contains(a));
         expr_ref result(m);
-        if (!evaluate(a, result)) return false;
-        SASSERT(is_val(result));
+        if (!evaluate(a, result))
+            return false;
         TRACE("model_constructor",
               tout << "map term(\n" << mk_ismt2_pp(a, m, 2) << "\n->"
               << mk_ismt2_pp(result.get(), m, 2)<< ")\n"; );
         CTRACE("model_constructor",
                !is_val(result.get()),
-               tout << "eval fail\n" << mk_ismt2_pp(a, m, 2) << mk_ismt2_pp(result, m, 2) << "\n";
+               tout << "eval didn't create a constant \n" << mk_ismt2_pp(a, m, 2) << " " << mk_ismt2_pp(result, m, 2) << "\n";
                );
-        SASSERT(is_val(result.get()));
         m_app2val.insert(a, result.get()); // memoize
         m_pinned.push_back(a);
         m_pinned.push_back(result);
@@ -314,7 +315,7 @@ private:
         func_decl * const fd = a->get_decl();
         const family_id fid = fd->get_family_id();
         expr_ref term(m);
-        term = m.mk_app(a->get_decl(), num, values.c_ptr());
+        term = m.mk_app(a->get_decl(), num, values.data());
         m_evaluator->operator() (term, result);
         TRACE("model_constructor",
               tout << "eval(\n" << mk_ismt2_pp(term.get(), m, 2) << "\n->"
@@ -329,11 +330,11 @@ private:
                 if (s_fid == m_bv_rw.get_fid())
                     m_bv_rw.mk_eq_core(values.get(0), values.get(1), result);
             } else {
-                m_b_rw.mk_app_core(fd, num, values.c_ptr(), result);
+                m_b_rw.mk_app_core(fd, num, values.data(), result);
             }
         } else {
             if (fid == m_bv_rw.get_fid()) {
-                m_bv_rw.mk_app_core(fd, num, values.c_ptr(), result);
+                m_bv_rw.mk_app_core(fd, num, values.data(), result);
             }
             else {
                 UNREACHABLE();

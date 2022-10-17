@@ -46,10 +46,7 @@ public:
         p.insert("print_proofs", CPK_BOOL, "(default: false) print a proof showing the original term is equal to the resultant one.");
         p.insert("print_statistics", CPK_BOOL, "(default: false) print statistics.");
     }
-    
-    ~simplify_cmd() override {
-    }
-    
+
     void prepare(cmd_context & ctx) override {
         parametric_cmd::prepare(ctx);
         m_target   = nullptr;
@@ -104,7 +101,7 @@ public:
             ctx.display(ctx.regular_stream(), r);
             ctx.regular_stream() << std::endl; 
         }
-        if (!failed && m_params.get_bool("print_proofs", false)) {
+        if (!failed && m_params.get_bool("print_proofs", false) && pr.get()) {
             ast_smt_pp pp(ctx.m());
             pp.set_logic(ctx.get_logic());
             pp.display_expr_smt2(ctx.regular_stream(), pr.get());

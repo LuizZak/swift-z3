@@ -5,3 +5,4 @@
 xcuserdata/
 .swiftpm/
 temp/
+__pycache__

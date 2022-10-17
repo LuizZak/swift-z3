@@ -41,49 +41,47 @@ Revision History:
 
 #if defined(_MP_GMP)
 // Use LEHMER only if not using GMP
-// LEHMER assumes 32-bit digits, so it cannot be used with MSBIGNUM library + 64-bit binary
 #define EUCLID_GCD
 #else
 #define LEHMER_GCD
 #endif
 
 
-#if defined(_WINDOWS) && !defined(_M_ARM) && !defined(_M_ARM64)
+#if defined(__GNUC__)
+#define _trailing_zeros32(X) __builtin_ctz(X)
+#elif defined(_WINDOWS) && (defined(_M_X86) || (defined(_M_X64) && !defined(_M_ARM64EC)))
 // This is needed for _tzcnt_u32 and friends.
 #include <immintrin.h>
 #define _trailing_zeros32(X) _tzcnt_u32(X)
+#else
+static uint32_t _trailing_zeros32(uint32_t x) {
+    uint32_t r = 0;
+    for (; 0 == (x & 1) && r < 32; ++r, x >>= 1);
+    return r;
+}
 #endif
 
-#if defined(__GNUC__)
-#define _trailing_zeros32(X) __builtin_ctz(X)
-#endif
-
-#if (defined(__LP64__) || defined(_WIN64)) && !defined(_M_ARM) && !defined(_M_ARM64)
+#if (defined(__LP64__) || defined(_WIN64)) && defined(_M_X64) && !defined(_M_ARM64EC)
  #if defined(__GNUC__)
  #define _trailing_zeros64(X) __builtin_ctzll(X)
  #else
  #define _trailing_zeros64(X) _tzcnt_u64(X)
  #endif
 #else
-inline uint64_t _trailing_zeros64(uint64_t x) {
+static uint64_t _trailing_zeros64(uint64_t x) {
     uint64_t r = 0;
     for (; 0 == (x & 1) && r < 64; ++r, x >>= 1);
     return r;
 }
+#endif
 
-#if defined(_WINDOWS) && !defined(_M_ARM) && !defined(_M_ARM64)
-// _trailing_zeros32 already defined using intrinsics
-#elif defined(__GNUC__)
-// _trailing_zeros32 already defined using intrinsics
-#else
-inline uint32_t _trailing_zeros32(uint32_t x) {
-    uint32_t r = 0;
-    for (; 0 == (x & 1) && r < 32; ++r, x >>= 1);
-    return r;
+unsigned trailing_zeros(uint32_t x) {
+    return static_cast<unsigned>(_trailing_zeros32(x));
 }
-#endif
-#endif
 
+unsigned trailing_zeros(uint64_t x) {
+    return static_cast<unsigned>(_trailing_zeros64(x));
+}
 
 #define _bit_min(x, y) (y + ((x - y) & ((int)(x - y) >> 31)))
 #define _bit_max(x, y) (x - ((x - y) & ((int)(x - y) >> 31)))
@@ -567,12 +565,13 @@ void mpz_manager<SYNCH>::machine_div_rem(mpz const & a, mpz const & b, mpz & q, 
 template<bool SYNCH>
 void mpz_manager<SYNCH>::machine_div(mpz const & a, mpz const & b, mpz & c) {
     STRACE("mpz", tout << "[mpz-ext] machine-div(" << to_string(a) << ",  " << to_string(b) << ") == ";); 
-    if (is_small(a) && is_small(b)) {
+    if (is_small(b) && i64(b) == 0)
+        throw default_exception("division by 0"); 
+
+    if (is_small(a) && is_small(b)) 
         set_i64(c, i64(a) / i64(b));
-    }
-    else {
+    else 
         big_div(a, b, c);
-    }
     STRACE("mpz", tout << to_string(c) << "\n";);
 }
 
@@ -696,7 +695,7 @@ void mpz_manager<SYNCH>::big_add_sub(mpz const & a, mpz const & b, mpz & c) {
     mpz_stack tmp;
     if (SUB)
         sign_b = -sign_b;
-    size_t real_sz;
+    unsigned real_sz;
     if (ca.sign() == sign_b) {
         unsigned sz  = std::max(ca.cell()->m_size, cb.cell()->m_size)+1;
         allocate_if_needed(tmp, sz);
@@ -704,7 +703,7 @@ void mpz_manager<SYNCH>::big_add_sub(mpz const & a, mpz const & b, mpz & c) {
                           cb.cell()->m_digits, cb.cell()->m_size, 
                           tmp.m_ptr->m_digits, sz, &real_sz);
         SASSERT(real_sz <= sz);
-        set(*tmp.m_ptr, c, ca.sign(), static_cast<unsigned>(real_sz));
+        set(*tmp.m_ptr, c, ca.sign(), real_sz);
     }
     else {
         digit_t borrow;
@@ -1716,8 +1715,8 @@ void mpz_manager<SYNCH>::display(std::ostream & out, mpz const & a) const {
         // GMP version
         size_t sz = mpz_sizeinbase(*a.m_ptr, 10) + 2;
         sbuffer<char, 1024> buffer(sz, 0);
-        mpz_get_str(buffer.c_ptr(), 10, *a.m_ptr);
-        out << buffer.c_ptr();
+        mpz_get_str(buffer.data(), 10, *a.m_ptr);
+        out << buffer.data();
 #endif
     } 
 }
@@ -1776,11 +1775,11 @@ void mpz_manager<SYNCH>::display_hex(std::ostream & out, mpz const & a, unsigned
         unsigned requiredLength = num_bits / 4;
         unsigned padding = requiredLength > sz ? requiredLength - sz : 0;
         sbuffer<char, 1024> buffer(sz, 0);
-        mpz_get_str(buffer.c_ptr(), 16, *(a.m_ptr));
+        mpz_get_str(buffer.data(), 16, *(a.m_ptr));
         for (unsigned i = 0; i < padding; ++i) {
             out << "0";
         }
-        out << buffer.c_ptr() + (sz > requiredLength ? sz - requiredLength : 0);
+        out << buffer.data() + (sz > requiredLength ? sz - requiredLength : 0);
 #endif
     }
     out.copyfmt(fmt);
@@ -1830,11 +1829,11 @@ void mpz_manager<SYNCH>::display_bin(std::ostream & out, mpz const & a, unsigned
         size_t sz = mpz_sizeinbase(*(a.m_ptr), 2);
         unsigned padding = num_bits > sz ? num_bits - sz : 0;
         sbuffer<char, 1024> buffer(sz, 0);
-        mpz_get_str(buffer.c_ptr(), 2, *(a.m_ptr));
+        mpz_get_str(buffer.data(), 2, *(a.m_ptr));
         for (unsigned i = 0; i < padding; ++i) {
             out << "0";
         }
-        out << buffer.c_ptr() + (sz > num_bits ? sz - num_bits : 0);
+        out << buffer.data() + (sz > num_bits ? sz - num_bits : 0);
 #endif
     }
 }
@@ -1849,7 +1848,7 @@ std::string mpz_manager<SYNCH>::to_string(mpz const & a) const {
 template<bool SYNCH>
 unsigned mpz_manager<SYNCH>::hash(mpz const & a) {
     if (is_small(a))
-        return a.m_val;
+        return ::abs(a.m_val);
 #ifndef _MP_GMP
     unsigned sz = size(a);
     if (sz == 1)
@@ -2255,6 +2254,9 @@ template<bool SYNCH>
 unsigned mpz_manager<SYNCH>::mlog2(mpz const & a) {
     if (is_nonneg(a))
         return 0;
+    if (is_small(a) && a.m_val == INT_MIN)
+        return ::log2((unsigned)a.m_val);
+        
     if (is_small(a))
         return ::log2((unsigned)-a.m_val);
 #ifndef _MP_GMP
@@ -2467,6 +2469,33 @@ bool mpz_manager<SYNCH>::decompose(mpz const & a, svector<digit_t> & digits) {
     return r;
 #endif
     }
+}
+
+template<bool SYNCH>
+bool mpz_manager<SYNCH>::get_bit(mpz const & a, unsigned index) {
+    if (is_small(a)) {
+        SASSERT(a.m_val >= 0);
+        if (index >= 8*sizeof(digit_t))
+            return false;
+        return 0 != (a.m_val & (1ull << (digit_t)index));
+    }
+    unsigned i = index / (sizeof(digit_t)*8);
+    unsigned o = index % (sizeof(digit_t)*8);
+
+#ifndef _MP_GMP
+    mpz_cell * cell_a = a.m_ptr;
+    unsigned sz = cell_a->m_size;
+    if (sz*sizeof(digit_t)*8 <= index)
+        return false;
+    return 0 != (cell_a->m_digits[i] & (1ull << (digit_t)o));
+#else
+    SASSERT(!is_neg(a));
+    svector<digit_t> digits;
+    decompose(a, digits);
+    if (digits.size()*sizeof(digit_t)*8 <= index)
+        return false;
+    return 0 != (digits[i] & (1ull << (digit_t)o));    
+#endif
 }
 
 template<bool SYNCH>

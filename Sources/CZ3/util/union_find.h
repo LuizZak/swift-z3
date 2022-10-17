@@ -24,7 +24,6 @@ Revision History:
 class union_find_default_ctx {
 public:
     typedef trail_stack _trail_stack;
-    union_find_default_ctx() : m_stack() {}
        
     void unmerge_eh(unsigned, unsigned) {}
     void merge_eh(unsigned, unsigned, unsigned, unsigned) {}
@@ -51,7 +50,6 @@ class union_find {
         union_find & m_owner;
     public:
         mk_var_trail(union_find & o):m_owner(o) {}
-        ~mk_var_trail() override {}
         void undo() override {
             m_owner.m_find.pop_back();
             m_owner.m_size.pop_back();
@@ -69,7 +67,6 @@ class union_find {
         unsigned     m_r1;
     public:
         merge_trail(union_find & o, unsigned r1):m_owner(o), m_r1(r1) {}
-        ~merge_trail() override {}
         void undo() override { m_owner.unmerge(m_r1); }
     };
 
@@ -94,6 +91,11 @@ public:
         m_next.push_back(r);
         m_trail_stack.push_ptr(&m_mk_var_trail);
         return r;
+    }
+
+    void reserve(unsigned v) {
+        while (get_num_vars() <= v)
+            mk_var();
     }
 
     unsigned get_num_vars() const { return m_find.size(); }
@@ -132,6 +134,14 @@ public:
         m_trail_stack.push(merge_trail(*this, r1));
         m_ctx.after_merge_eh(r2, r1, v2, v1);
         CASSERT("union_find", check_invariant());
+    }
+
+    void set_root(unsigned v, unsigned root) {
+        TRACE("union_find", tout << "merging " << v << " " << root << "\n";);
+        SASSERT(v != root);
+        m_find[v] = root;
+        m_size[root] += m_size[v];
+        std::swap(m_next[root], m_next[v]);
     }
 
     // dissolve equivalence class of v

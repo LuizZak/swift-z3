@@ -29,7 +29,7 @@ public:
         updt_params(p);
     }
 
-    ~ackermannize_bv_tactic() override { }
+    char const* name() const override { return "ackermannize_bv"; }
 
     void operator()(goal_ref const & g, goal_ref_buffer & result) override {
         tactic_report report("ackermannize_bv", *g);

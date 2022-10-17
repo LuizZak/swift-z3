@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __QFUFBV_TACTIC_PARAMS_HPP_
-#define __QFUFBV_TACTIC_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct qfufbv_tactic_params {
@@ -19,4 +18,3 @@ struct qfufbv_tactic_params {
   bool sat_backend() const { return p.get_bool("sat_backend", g, false); }
   bool inc_sat_backend() const { return p.get_bool("inc_sat_backend", g, false); }
 };
-#endif

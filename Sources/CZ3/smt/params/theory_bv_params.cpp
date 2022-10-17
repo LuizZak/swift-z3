@@ -26,8 +26,9 @@ void theory_bv_params::updt_params(params_ref const & _p) {
     m_hi_div0 = rp.hi_div0();
     m_bv_reflect = p.bv_reflect();
     m_bv_enable_int2bv2int = p.bv_enable_int2bv(); 
-    m_bv_eq_axioms = p.bv_eq_axioms();
     m_bv_delay = p.bv_delay();
+    m_bv_eq_axioms = p.bv_eq_axioms();
+    m_bv_size_reduce = p.bv_size_reduce();
 }
 
 #define DISPLAY_PARAM(X) out << #X"=" << X << std::endl;
@@ -37,9 +38,10 @@ void theory_bv_params::display(std::ostream & out) const {
     DISPLAY_PARAM(m_hi_div0);
     DISPLAY_PARAM(m_bv_reflect);
     DISPLAY_PARAM(m_bv_lazy_le);
-    DISPLAY_PARAM(m_bv_cc);
     DISPLAY_PARAM(m_bv_eq_axioms);
+    DISPLAY_PARAM(m_bv_cc);
     DISPLAY_PARAM(m_bv_blast_max_size);
     DISPLAY_PARAM(m_bv_enable_int2bv2int);
     DISPLAY_PARAM(m_bv_delay);
+    DISPLAY_PARAM(m_bv_size_reduce);
 }

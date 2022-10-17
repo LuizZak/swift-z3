@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __NLSAT_PARAMS_HPP_
-#define __NLSAT_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct nlsat_params {
@@ -41,4 +40,3 @@ struct nlsat_params {
   unsigned seed() const { return p.get_uint("seed", g, 0u); }
   bool factor() const { return p.get_bool("factor", g, true); }
 };
-#endif

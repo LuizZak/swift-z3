@@ -1,4 +1,4 @@
-// swift-tools-version:5.1
+// swift-tools-version:5.4
 
 import PackageDescription
 
@@ -7,13 +7,17 @@ let package = Package(
     products: [
         .library(
             name: "SwiftZ3",
-            targets: ["SwiftZ3"]),
+            targets: ["SwiftZ3"]
+        ),
         .library(
             name: "CZ3",
-            targets: ["CZ3"]),
+            type: .dynamic,
+            targets: ["CZ3"]
+        ),
         .executable(
             name: "SwiftZ3Sample",
-            targets: ["SwiftZ3Sample"]),
+            targets: ["SwiftZ3Sample"]
+        ),
     ],
     targets: [
         .target(
@@ -21,21 +25,29 @@ let package = Package(
             dependencies: [],
             cSettings: [
                 .headerSearchPath("./"),
-                .define("_MP_INTERNAL")
+                .define("_MP_INTERNAL"),
             ],
             cxxSettings: [
                 .headerSearchPath("./"),
-                .define("_MP_INTERNAL")
-            ]),
+                .define("_MP_INTERNAL"),
+            ],
+            linkerSettings: [
+                .linkedLibrary("m", .when(platforms: [.linux])),
+                .linkedLibrary("pthread", .when(platforms: [.linux])),
+            ]
+        ),
         .target(
             name: "SwiftZ3",
-            dependencies: ["CZ3"]),
-        .target(
+            dependencies: ["CZ3"]
+        ),
+        .executableTarget(
             name: "SwiftZ3Sample",
-            dependencies: ["SwiftZ3", "CZ3"]),
+            dependencies: ["SwiftZ3", "CZ3"]
+        ),
         .testTarget(
             name: "SwiftZ3Tests",
-            dependencies: ["SwiftZ3", "CZ3"]),
+            dependencies: ["SwiftZ3", "CZ3"]
+        ),
     ],
-    cxxLanguageStandard: .cxx11
+    cxxLanguageStandard: .cxx17
 )

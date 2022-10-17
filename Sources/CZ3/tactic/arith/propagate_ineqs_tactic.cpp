@@ -49,6 +49,8 @@ public:
 
     ~propagate_ineqs_tactic() override;
 
+    char const* name() const override { return "propagate_ineqs"; }
+
     void updt_params(params_ref const & p) override;
     void collect_param_descrs(param_descrs & r) override {}
 
@@ -166,7 +168,7 @@ struct propagate_ineqs_tactic::imp {
             expr2linear_pol(t, m_num_buffer, m_var_buffer);
             m_num_buffer.push_back(mpq(-1));
             m_var_buffer.push_back(x);
-            bp.mk_eq(m_num_buffer.size(), m_num_buffer.c_ptr(), m_var_buffer.c_ptr());
+            bp.mk_eq(m_num_buffer.size(), m_num_buffer.data(), m_var_buffer.data());
         }
         return x;
     }
@@ -278,7 +280,7 @@ struct propagate_ineqs_tactic::imp {
         mpq  implied_k;
         bool implied_strict;
         bool result = 
-            bp.lower(m_var_buffer.size(), m_num_buffer.c_ptr(), m_var_buffer.c_ptr(), implied_k, implied_strict) &&
+            bp.lower(m_var_buffer.size(), m_num_buffer.data(), m_var_buffer.data(), implied_k, implied_strict) &&
             (nm.gt(implied_k, k) || (nm.eq(implied_k, k) && (!strict || implied_strict)));
         nm.del(implied_k);
         return result;
@@ -293,7 +295,7 @@ struct propagate_ineqs_tactic::imp {
         mpq  implied_k;
         bool implied_strict;
         bool result = 
-            bp.upper(m_var_buffer.size(), m_num_buffer.c_ptr(), m_var_buffer.c_ptr(), implied_k, implied_strict) &&
+            bp.upper(m_var_buffer.size(), m_num_buffer.data(), m_var_buffer.data(), implied_k, implied_strict) &&
             (nm.lt(implied_k, k) || (nm.eq(implied_k, k) && (!strict || implied_strict)));
         nm.del(implied_k);
         return result;
@@ -541,8 +543,8 @@ propagate_ineqs_tactic::~propagate_ineqs_tactic() {
 }
 
 void propagate_ineqs_tactic::updt_params(params_ref const & p) {
-    m_params = p;
-    m_imp->updt_params(p);
+    m_params.append(p);
+    m_imp->updt_params(m_params);
 }
 
 void propagate_ineqs_tactic::operator()(goal_ref const & g, 

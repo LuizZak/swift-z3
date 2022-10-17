@@ -15,7 +15,6 @@ Author:
 Revision History:
 
 --*/
-#include<iostream>
 #include "util/cancel_eh.h"
 #include "util/scoped_timer.h"
 #include "util/scoped_ctrl_c.h"
@@ -67,8 +66,8 @@ extern "C" {
     void Z3_API Z3_optimize_dec_ref(Z3_context c, Z3_optimize o) {
         Z3_TRY;
         LOG_Z3_optimize_dec_ref(c, o);
-        RESET_ERROR_CODE();
-        to_optimize(o)->dec_ref();
+        if (o)
+            to_optimize(o)->dec_ref();
         Z3_CATCH;
     }
     
@@ -279,7 +278,7 @@ extern "C" {
         to_optimize_ptr(o)->get_lower(idx, es);
         Z3_ast_vector_ref * v = alloc(Z3_ast_vector_ref, *mk_c(c), mk_c(c)->m());
         mk_c(c)->save_object(v);
-        v->m_ast_vector.append(es.size(), (ast*const*)es.c_ptr());
+        v->m_ast_vector.append(es.size(), (ast*const*)es.data());
         RETURN_Z3(of_ast_vector(v));
         Z3_CATCH_RETURN(nullptr);
     }
@@ -293,7 +292,7 @@ extern "C" {
         to_optimize_ptr(o)->get_upper(idx, es);
         Z3_ast_vector_ref * v = alloc(Z3_ast_vector_ref, *mk_c(c), mk_c(c)->m());
         mk_c(c)->save_object(v);
-        v->m_ast_vector.append(es.size(), (ast*const*)es.c_ptr());
+        v->m_ast_vector.append(es.size(), (ast*const*)es.data());
         RETURN_Z3(of_ast_vector(v));
         Z3_CATCH_RETURN(nullptr);
     }
@@ -324,6 +323,7 @@ extern "C" {
         RESET_ERROR_CODE();
         Z3_stats_ref * st = alloc(Z3_stats_ref, *mk_c(c));
         to_optimize_ptr(d)->collect_statistics(st->m_stats);
+        to_optimize_ptr(d)->collect_timer_stats(st->m_stats);
         mk_c(c)->save_object(st);
         Z3_stats r = of_stats(st);
         RETURN_Z3(r);

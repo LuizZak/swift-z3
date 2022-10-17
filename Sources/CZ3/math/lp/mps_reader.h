@@ -20,13 +20,13 @@ Revision History:
 
 #pragma once
 
-// reads an MPS file reperesenting a Mixed Integer Program
+// reads an MPS file representing a Mixed Integer Program
 #include <functional>
 #include <algorithm>
 #include <string>
 #include "util/vector.h"
 #include <unordered_map>
-#include <iostream>
+#include <ostream>
 #include <fstream>
 #include <locale>
 #include "math/lp/lp_primal_simplex.h"

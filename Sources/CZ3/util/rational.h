@@ -138,25 +138,25 @@ public:
         m().set(m_val, r.m_val);
         return *this;
     }
-private:
-    rational & operator=(bool) {
-        UNREACHABLE(); return *this;
-    }
-    inline rational operator*(bool  r1) const {
-        UNREACHABLE();
-        return *this;
-    }
 
-public:
+    rational & operator=(bool) = delete;
+    rational operator*(bool  r1) const = delete;
+
     rational & operator=(int v) {
         m().set(m_val, v);
         return *this;
     }
-    rational & operator=(double v) { UNREACHABLE(); return *this; }
+    rational & operator=(double v) = delete;
 
     friend inline rational numerator(rational const & r) { rational result; m().get_numerator(r.m_val, result.m_val); return result; }
     
     friend inline rational denominator(rational const & r) { rational result; m().get_denominator(r.m_val, result.m_val); return result; }
+
+    friend inline rational inv(rational const & r) {
+        rational result;
+        m().inv(r.m_val, result.m_val);
+        return result;
+    }
     
     rational & operator+=(rational const & r) { 
         m().add(m_val, r.m_val, m_val);
@@ -173,6 +173,10 @@ public:
         return *this; 
     }
 
+    rational& operator-=(int r) {
+        (*this) -= rational(r);
+        return *this;
+    }
 
     rational & operator*=(rational const & r) {
         m().mul(m_val, r.m_val, m_val);
@@ -228,9 +232,15 @@ public:
         rational::m().mod(r1.m_val, r2.m_val, r.m_val);
         return r;
     }
-
+    
     friend inline void mod(rational const & r1, rational const & r2, rational & r) {
         rational::m().mod(r1.m_val, r2.m_val, r.m_val);
+    }
+
+    friend inline rational mod2k(rational const & a, unsigned k) {
+        if (a.is_nonneg() && a.is_int() && a.bitsize() <= k) 
+            return a;
+        return mod(a, power_of_two(k));
     }
 
     friend inline rational operator%(rational const & r1, rational const & r2) {
@@ -308,6 +318,10 @@ public:
     bool is_even() const {
         return m().is_even(m_val);
     }
+
+    bool is_odd() const { 
+        return !is_even(); 
+    }
     
     friend inline rational floor(rational const & r) {
         rational f;
@@ -329,9 +343,16 @@ public:
 
     static rational power_of_two(unsigned k);
 
-    bool is_power_of_two(unsigned & shift) {
+    bool is_power_of_two(unsigned & shift) const {
         return m().is_power_of_two(m_val, shift);
     }
+    
+    bool is_power_of_two() const {
+        unsigned shift = 0;
+        return m().is_power_of_two(m_val, shift);
+    }
+
+    bool mult_inverse(unsigned num_bits, rational & result) const;
 
     static rational const & zero() {
         return m_zero;
@@ -457,6 +478,18 @@ public:
 
     unsigned get_num_decimal() const {
         return get_num_digits(rational(10));
+    }
+
+    bool get_bit(unsigned index) const {
+        return m().get_bit(m_val, index);
+    }
+
+    unsigned trailing_zeros() const {
+        if (is_zero())
+            return 0;
+        unsigned k = 0;
+        for (; !get_bit(k); ++k); 
+        return k;
     }
 
     static bool limit_denominator(rational &num, rational const& limit);

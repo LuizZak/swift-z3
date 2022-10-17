@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __MODEL_EVALUATOR_PARAMS_HPP_
-#define __MODEL_EVALUATOR_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct model_evaluator_params {
@@ -24,4 +23,3 @@ struct model_evaluator_params {
   bool array_equalities() const { return p.get_bool("array_equalities", g, true); }
   bool array_as_stores() const { return p.get_bool("array_as_stores", g, true); }
 };
-#endif

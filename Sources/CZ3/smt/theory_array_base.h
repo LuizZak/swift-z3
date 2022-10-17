@@ -62,7 +62,8 @@ namespace smt {
         bool is_select_arg(enode* r);
 
         app * mk_select(unsigned num_args, expr * const * args);
-        app * mk_select(expr_ref_vector const& args) { return mk_select(args.size(), args.c_ptr()); }
+        app * mk_select_reduce(unsigned num_args, expr * * args);
+        app * mk_select(expr_ref_vector const& args) { return mk_select(args.size(), args.data()); }
         app * mk_store(unsigned num_args, expr * const * args);
         app * mk_default(expr* a);
 
@@ -142,6 +143,7 @@ namespace smt {
         // 
         // --------------------------------------------------
         bool is_shared(theory_var v) const override;
+        bool is_beta_redex(enode* p, enode* n) const override;
         void collect_shared_vars(sbuffer<theory_var> & result);
         unsigned mk_interface_eqs();
 

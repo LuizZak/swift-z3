@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __SAT_SCC_PARAMS_HPP_
-#define __SAT_SCC_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct sat_scc_params {
@@ -18,4 +17,3 @@ struct sat_scc_params {
   bool scc() const { return p.get_bool("scc", g, true); }
   bool scc_tr() const { return p.get_bool("scc.tr", g, true); }
 };
-#endif

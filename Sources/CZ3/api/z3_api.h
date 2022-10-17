@@ -20,6 +20,7 @@ DEFINE_TYPE(Z3_constructor);
 DEFINE_TYPE(Z3_constructor_list);
 DEFINE_TYPE(Z3_params);
 DEFINE_TYPE(Z3_param_descrs);
+DEFINE_TYPE(Z3_parser_context);
 DEFINE_TYPE(Z3_goal);
 DEFINE_TYPE(Z3_tactic);
 DEFINE_TYPE(Z3_probe);
@@ -37,11 +38,11 @@ DEFINE_TYPE(Z3_optimize);
 DEFINE_TYPE(Z3_rcf_num);
 
 /** \defgroup capi C API */
-/*@{*/
+/**@{*/
 
 /** @name Types */
 
-///@{
+/**@{*/
 
 /**
    Most of the types in the C API are opaque pointers.
@@ -58,6 +59,7 @@ DEFINE_TYPE(Z3_rcf_num);
    - \c Z3_constructor_list: list of constructors for a (recursive) datatype.
    - \c Z3_params: parameter set used to configure many components such as: simplifiers, tactics, solvers, etc.
    - \c Z3_param_descrs: provides a collection of parameter names, their types, default values and documentation strings. Solvers, tactics, and other objects accept different collection of parameters.
+   - \c Z3_parser_context: context for incrementally parsing strings. Declarations can be added incrementally to the parser state.
    - \c Z3_model: model for the constraints asserted into the logical context.
    - \c Z3_func_interp: interpretation of a function in a model.
    - \c Z3_func_entry: representation of the value of a \c Z3_func_interp at a particular point.
@@ -74,26 +76,11 @@ DEFINE_TYPE(Z3_rcf_num);
 */
 
 /**
-   \brief Z3 Boolean type. It is just an alias for \c bool.
-*/
-typedef bool Z3_bool;
-
-/**
    \brief Z3 string type. It is just an alias for \ccode{const char *}.
 */
 typedef const char * Z3_string;
 typedef char const*  Z3_char_ptr;
 typedef Z3_string * Z3_string_ptr;
-
-/**
-   \brief True value. It is just an alias for \c true.
-*/
-#define Z3_TRUE  true
-
-/**
-   \brief False value. It is just an alias for \c false.
-*/
-#define Z3_FALSE false
 
 /**
    \brief Lifted Boolean type: \c false, \c undefined, \c true.
@@ -161,6 +148,7 @@ typedef enum
     Z3_ROUNDING_MODE_SORT,
     Z3_SEQ_SORT,
     Z3_RE_SORT,
+    Z3_CHAR_SORT,
     Z3_UNKNOWN_SORT = 1000
 } Z3_sort_kind;
 
@@ -995,6 +983,8 @@ typedef enum
         information is exposed. Tools may use the string representation of the
         function declaration to obtain more information.
 
+   - Z3_OP_RECURSIVE: function declared as recursive
+
    - Z3_OP_UNINTERPRETED: kind used for uninterpreted symbols.
 */
 typedef enum {
@@ -1191,6 +1181,9 @@ typedef enum {
     Z3_OP_SEQ_CONTAINS,
     Z3_OP_SEQ_EXTRACT,
     Z3_OP_SEQ_REPLACE,
+    Z3_OP_SEQ_REPLACE_RE,
+    Z3_OP_SEQ_REPLACE_RE_ALL,
+    Z3_OP_SEQ_REPLACE_ALL,
     Z3_OP_SEQ_AT,
     Z3_OP_SEQ_NTH,
     Z3_OP_SEQ_LENGTH,
@@ -1202,6 +1195,10 @@ typedef enum {
     // strings
     Z3_OP_STR_TO_INT,
     Z3_OP_INT_TO_STR,
+    Z3_OP_UBV_TO_STR,
+    Z3_OP_SBV_TO_STR,
+    Z3_OP_STR_TO_CODE,
+    Z3_OP_STR_FROM_CODE,
     Z3_OP_STRING_LT,
     Z3_OP_STRING_LE,
 
@@ -1212,11 +1209,25 @@ typedef enum {
     Z3_OP_RE_CONCAT,
     Z3_OP_RE_UNION,
     Z3_OP_RE_RANGE,
-    Z3_OP_RE_LOOP,
+    Z3_OP_RE_DIFF,
     Z3_OP_RE_INTERSECT,
+    Z3_OP_RE_LOOP,
+    Z3_OP_RE_POWER,
+    Z3_OP_RE_COMPLEMENT,
     Z3_OP_RE_EMPTY_SET,
     Z3_OP_RE_FULL_SET,
-    Z3_OP_RE_COMPLEMENT,
+    Z3_OP_RE_FULL_CHAR_SET,
+    Z3_OP_RE_OF_PRED,
+    Z3_OP_RE_REVERSE,
+    Z3_OP_RE_DERIVATIVE,
+
+    // char
+    Z3_OP_CHAR_CONST,
+    Z3_OP_CHAR_LE,
+    Z3_OP_CHAR_TO_INT,
+    Z3_OP_CHAR_TO_BV,
+    Z3_OP_CHAR_FROM_BV,
+    Z3_OP_CHAR_IS_DIGIT,
 
     // Auxiliary
     Z3_OP_LABEL = 0x700,
@@ -1298,6 +1309,7 @@ typedef enum {
     Z3_OP_FPA_BV2RM,
 
     Z3_OP_INTERNAL,
+    Z3_OP_RECURSIVE,
 
     Z3_OP_UNINTERPRETED
 } Z3_decl_kind;
@@ -1388,6 +1400,7 @@ typedef enum
   def_Type('CONSTRUCTOR_LIST', 'Z3_constructor_list', 'ConstructorList')
   def_Type('SOLVER',           'Z3_solver',           'SolverObj')
   def_Type('SOLVER_CALLBACK',  'Z3_solver_callback',  'SolverCallbackObj')
+  def_Type('PARSER_CONTEXT',   'Z3_parser_context',   'ParserContextObj')
   def_Type('GOAL',             'Z3_goal',             'GoalObj')
   def_Type('TACTIC',           'Z3_tactic',           'TacticObj')
   def_Type('PARAMS',           'Z3_params',           'Params')
@@ -1407,18 +1420,19 @@ typedef enum
 /**
    \brief Z3 custom error handler (See #Z3_set_error_handler).
 */
-typedef void Z3_error_handler(Z3_context c, Z3_error_code e);
-
+Z3_DECLARE_CLOSURE(Z3_error_handler, void, (Z3_context c, Z3_error_code e));
 
 /**
    \brief callback functions for user propagator.
 */
-typedef void Z3_push_eh(void* ctx);
-typedef void Z3_pop_eh(void* ctx, unsigned num_scopes);
-typedef void* Z3_fresh_eh(void* ctx, Z3_context new_context);
-typedef void Z3_fixed_eh(void* ctx, Z3_solver_callback cb, unsigned id, Z3_ast value);
-typedef void Z3_eq_eh(void* ctx, Z3_solver_callback cb, unsigned x, unsigned y);
-typedef void Z3_final_eh(void* ctx, Z3_solver_callback cb);
+Z3_DECLARE_CLOSURE(Z3_push_eh,    void, (void* ctx, Z3_solver_callback cb));
+Z3_DECLARE_CLOSURE(Z3_pop_eh,     void, (void* ctx, Z3_solver_callback cb, unsigned num_scopes));
+Z3_DECLARE_CLOSURE(Z3_fresh_eh,   void*, (void* ctx, Z3_context new_context));
+Z3_DECLARE_CLOSURE(Z3_fixed_eh,   void, (void* ctx, Z3_solver_callback cb, Z3_ast t, Z3_ast value));
+Z3_DECLARE_CLOSURE(Z3_eq_eh,      void, (void* ctx, Z3_solver_callback cb, Z3_ast s, Z3_ast t));
+Z3_DECLARE_CLOSURE(Z3_final_eh,   void, (void* ctx, Z3_solver_callback cb));
+Z3_DECLARE_CLOSURE(Z3_created_eh, void, (void* ctx, Z3_solver_callback cb, Z3_ast t));
+Z3_DECLARE_CLOSURE(Z3_decide_eh,  void, (void* ctx, Z3_solver_callback cb, Z3_ast* t, unsigned* idx, Z3_lbool* phase));
 
 
 /**
@@ -1439,7 +1453,7 @@ typedef enum
     Z3_GOAL_UNDER_OVER
 } Z3_goal_prec;
 
-///@}
+/**@}*/
 
 #ifdef __cplusplus
 extern "C" {
@@ -1499,12 +1513,12 @@ extern "C" {
 
        def_API('Z3_global_param_get', BOOL, (_in(STRING), _out(STRING)))
     */
-    Z3_bool_opt Z3_API Z3_global_param_get(Z3_string param_id, Z3_string_ptr param_value);
+    bool Z3_API Z3_global_param_get(Z3_string param_id, Z3_string_ptr param_value);
 
     /**@}*/
 
     /** @name Create configuration */
-    /*@{*/
+    /**@{*/
 
     /**
         \brief Create a configuration object for the Z3 context object.
@@ -1530,6 +1544,7 @@ extern "C" {
             - model                      model generation for solvers, this parameter can be overwritten when creating a solver
             - model_validate             validate models produced by solvers
             - unsat_core                 unsat-core generation for solvers, this parameter can be overwritten when creating a solver
+            - encoding                   the string encoding used internally (must be either "unicode" - 18 bit, "bmp" - 16 bit or "ascii" - 8 bit)
 
         \sa Z3_set_param_value
         \sa Z3_del_config
@@ -1558,10 +1573,10 @@ extern "C" {
     */
     void Z3_API Z3_set_param_value(Z3_config c, Z3_string param_id, Z3_string param_value);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Context and AST Reference Counting */
-    /*@{*/
+    /**@{*/
 
     /**
        \brief Create a context using the given configuration.
@@ -1658,6 +1673,14 @@ extern "C" {
     */
     void Z3_API Z3_update_param_value(Z3_context c, Z3_string param_id, Z3_string param_value);
 
+
+    /**
+       \brief Retrieve description of global parameters.
+
+       def_API('Z3_get_global_param_descrs', PARAM_DESCRS, (_in(CONTEXT),))
+    */
+    Z3_param_descrs Z3_API Z3_get_global_param_descrs(Z3_context c);
+
     /**
        \brief Interrupt the execution of a Z3 procedure.
        This procedure can be used to interrupt: solvers, simplifiers and tactics.
@@ -1667,10 +1690,20 @@ extern "C" {
     void Z3_API Z3_interrupt(Z3_context c);
 
 
-    /*@}*/
+    /**
+       \brief use concurrency control for dec-ref. 
+       Reference counting decrements are allowed in separate threads from the context. 
+       If this setting is not invoked, reference counting decrements are not going to be thread safe.
+
+       def_API('Z3_enable_concurrent_dec_ref', VOID, (_in(CONTEXT),))
+     */
+    void Z3_API Z3_enable_concurrent_dec_ref(Z3_context c);
+    
+
+    /**@}*/
 
     /** @name Parameters */
-    /*@{*/
+    /**@{*/
 
     /**
        \brief Create a Z3 (empty) parameter set.
@@ -1743,10 +1776,10 @@ extern "C" {
     */
     void Z3_API Z3_params_validate(Z3_context c, Z3_params p, Z3_param_descrs d);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Parameter Descriptions */
-    /*@{*/
+    /**@{*/
 
     /**
        \brief Increment the reference counter of the given parameter description set.
@@ -1800,10 +1833,10 @@ extern "C" {
     */
     Z3_string Z3_API Z3_param_descrs_to_string(Z3_context c, Z3_param_descrs p);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Symbols */
-    /*@{*/
+    /**@{*/
 
     /**
        \brief Create a Z3 symbol using an integer.
@@ -1832,10 +1865,10 @@ extern "C" {
     */
     Z3_symbol Z3_API Z3_mk_string_symbol(Z3_context c, Z3_string s);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Sorts */
-    /*@{*/
+    /**@{*/
 
     /**
        \brief Create a free (uninterpreted) type using the given name (symbol).
@@ -2068,6 +2101,19 @@ extern "C" {
                                   Z3_constructor constructors[]);
 
     /**
+       \brief create a forward reference to a recursive datatype being declared.
+       The forward reference can be used in a nested occurrence: the range of an array
+       or as element sort of a sequence. The forward reference should only be used when
+       used in an accessor for a recursive datatype that gets declared.
+
+       Forward references can replace the use sort references, that are unsigned integers
+       in the \c Z3_mk_constructor call
+
+       def_API('Z3_mk_datatype_sort', SORT, (_in(CONTEXT), _in(SYMBOL)))
+     */
+    Z3_sort Z3_API Z3_mk_datatype_sort(Z3_context c, Z3_symbol name);
+
+    /**
        \brief Create list of constructors.
 
        \param c logical context.
@@ -2139,10 +2185,10 @@ extern "C" {
                                      Z3_func_decl* tester,
                                      Z3_func_decl accessors[]);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Constants and Applications */
-    /*@{*/
+    /**@{*/
 
     /**
        \brief Declare a constant or function.
@@ -2276,10 +2322,10 @@ extern "C" {
      */
     void Z3_API Z3_add_rec_def(Z3_context c, Z3_func_decl f, unsigned n, Z3_ast args[], Z3_ast body);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Propositional Logic and Equality */
-    /*@{*/
+    /**@{*/
     /**
         \brief Create an AST node representing \c true.
 
@@ -2386,10 +2432,10 @@ extern "C" {
        def_API('Z3_mk_or', AST, (_in(CONTEXT), _in(UINT), _in_array(1, AST)))
     */
     Z3_ast Z3_API Z3_mk_or(Z3_context c, unsigned num_args, Z3_ast const args[]);
-    /*@}*/
+    /**@}*/
 
     /** @name Integers and Reals */
-    /*@{*/
+    /**@{*/
     /**
        \brief Create an AST node representing \ccode{args[0] + ... + args[num_args-1]}.
 
@@ -2562,10 +2608,10 @@ extern "C" {
         def_API('Z3_mk_is_int', AST, (_in(CONTEXT), _in(AST)))
     */
     Z3_ast Z3_API Z3_mk_is_int(Z3_context c, Z3_ast t1);
-    /*@}*/
+    /**@}*/
 
     /** @name Bit-vectors */
-    /*@{*/
+    /**@{*/
     /**
        \brief Bitwise negation.
 
@@ -2887,6 +2933,16 @@ extern "C" {
        def_API('Z3_mk_repeat', AST, (_in(CONTEXT), _in(UINT), _in(AST)))
     */
     Z3_ast Z3_API Z3_mk_repeat(Z3_context c, unsigned i, Z3_ast t1);
+    
+    /**
+       \brief Extracts the bit at position \ccode{i} of a bit-vector and 
+       yields a boolean.
+
+       The node \c t1 must have a bit-vector sort.
+
+       def_API('Z3_mk_bit2bool', AST, (_in(CONTEXT), _in(UINT), _in(AST)))
+    */
+    Z3_ast Z3_API Z3_mk_bit2bool(Z3_context c, unsigned i, Z3_ast t1);
 
     /**
        \brief Shift left.
@@ -3086,10 +3142,10 @@ extern "C" {
        def_API('Z3_mk_bvmul_no_underflow', AST, (_in(CONTEXT), _in(AST), _in(AST)))
     */
     Z3_ast Z3_API Z3_mk_bvmul_no_underflow(Z3_context c, Z3_ast t1, Z3_ast t2);
-    /*@}*/
+    /**@}*/
 
     /** @name Arrays */
-    /*@{*/
+    /**@{*/
     /**
        \brief Array read.
        The argument \c a is the array and \c i is the index of the array that gets read.
@@ -3201,10 +3257,10 @@ extern "C" {
     */
     Z3_ast Z3_API Z3_mk_set_has_size(Z3_context c, Z3_ast set, Z3_ast k);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Sets */
-    /*@{*/
+    /**@{*/
     /**
        \brief Create Set type.
 
@@ -3297,10 +3353,10 @@ extern "C" {
     */
 
     Z3_ast Z3_API Z3_mk_array_ext(Z3_context c, Z3_ast arg1, Z3_ast arg2);
-    /*@}*/
+    /**@}*/
 
     /** @name Numerals */
-    /*@{*/
+    /**@{*/
     /**
        \brief Create a numeral of a given sort.
 
@@ -3315,6 +3371,39 @@ extern "C" {
        def_API('Z3_mk_numeral', AST, (_in(CONTEXT), _in(STRING), _in(SORT)))
     */
     Z3_ast Z3_API Z3_mk_numeral(Z3_context c, Z3_string numeral, Z3_sort ty);
+
+#if 0
+    /**
+       \brief Create an integer numeral from a vector of unsigned numerals.
+
+       \param c - context
+       \param sign - true if positive, false if negative
+       \param n - length of array of numerals
+       \param nums - array of numerals
+       \param s - sort of numeral (int, real, bit-vector).
+
+       future_('Z3_mk_mpz_numeral', AST, (_in(CONTEXT), _in(BOOL), _in(UINT), _in_array(2, UINT), _in(SORT)))
+     */
+
+    Z3_ast Z3_mk_mpz_numeral(Z3_context c, bool sign, unsigned n, unsigned const nums[], Z3_sort s);
+
+    /**
+       \brief Create a rational numeral from a vector of unsigned numerals.
+
+       \param c - context
+       \param sign - true if positive, false if negative
+       \param n - length of array of nominator numerals
+       \param nums - array of numerator numerals
+       \param d - length of array of denominator numerals
+       \param dens - array of denominator numerals      
+
+       The sort of returned numeral is Real.
+
+       future_('Z3_mk_mpq_numeral', AST, (_in(CONTEXT), _in(BOOL), _in(UINT), _in_array(2, UINT), _in(UINT), _in_array(4, UINT)))
+     */
+
+    Z3_ast Z3_mk_mpq_numeral(Z3_context c, bool sign, unsigned n, unsigned const nums[], unsigned d, unsigned const dens[]);
+#endif
 
     /**
        \brief Create a real from a fraction.
@@ -3389,10 +3478,10 @@ extern "C" {
     */
     Z3_ast Z3_API Z3_mk_bv_numeral(Z3_context c, unsigned sz, bool const* bits);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Sequences and regular expressions */
-    /*@{*/
+    /**@{*/
 
     /**
        \brief Create a sequence sort out of the sort for the elements.
@@ -3437,14 +3526,26 @@ extern "C" {
     Z3_sort Z3_API Z3_get_re_sort_basis(Z3_context c, Z3_sort s);
 
     /**
-       \brief Create a sort for 8 bit strings.
+       \brief Create a sort for unicode strings.
 
-       This function creates a sort for ASCII strings.
-       Each character is 8 bits.
+       The sort for characters can be changed to ASCII by setting
+       the global parameter \c encoding to \c ascii, or alternative
+       to 16 bit characters by setting \c encoding to \c bmp.
 
-       def_API('Z3_mk_string_sort', SORT ,(_in(CONTEXT), ))
+       def_API('Z3_mk_string_sort', SORT, (_in(CONTEXT), ))
      */
     Z3_sort Z3_API Z3_mk_string_sort(Z3_context c);
+
+    /**
+       \brief Create a sort for unicode characters.
+
+       The sort for characters can be changed to ASCII by setting
+       the global parameter \c encoding to \c ascii, or alternative
+       to 16 bit characters by setting \c encoding to \c bmp.
+
+       def_API('Z3_mk_char_sort', SORT, (_in(CONTEXT), ))
+    */
+    Z3_sort Z3_API Z3_mk_char_sort(Z3_context c);
 
     /**
        \brief Check if \c s is a string sort.
@@ -3454,19 +3555,41 @@ extern "C" {
     bool Z3_API Z3_is_string_sort(Z3_context c, Z3_sort s);
 
     /**
+       \brief Check if \c s is a character sort.
+
+       def_API('Z3_is_char_sort', BOOL, (_in(CONTEXT), _in(SORT)))
+    */
+    bool Z3_API Z3_is_char_sort(Z3_context c, Z3_sort s);
+
+    /**
        \brief Create a string constant out of the string that is passed in
-       def_API('Z3_mk_string' ,AST ,(_in(CONTEXT), _in(STRING)))
+       The string may contain escape encoding for non-printable characters
+       or characters outside of the basic printable ASCII range. For example, 
+       the escape encoding \\u{0} represents the character 0 and the encoding
+       \\u{100} represents the character 256.
+
+       def_API('Z3_mk_string', AST, (_in(CONTEXT), _in(STRING)))
      */
     Z3_ast Z3_API Z3_mk_string(Z3_context c, Z3_string s);
 
     /**
        \brief Create a string constant out of the string that is passed in
        It takes the length of the string as well to take into account
-       0 characters. The string is unescaped.
+       0 characters. The string is treated as if it is unescaped so a sequence
+       of characters \\u{0} is treated as 5 characters and not the character 0.
 
-       def_API('Z3_mk_lstring' ,AST ,(_in(CONTEXT), _in(UINT), _in(STRING)))
+       def_API('Z3_mk_lstring', AST, (_in(CONTEXT), _in(UINT), _in(STRING)))
      */
     Z3_ast Z3_API Z3_mk_lstring(Z3_context c, unsigned len, Z3_string s);
+
+    /**
+       \brief Create a string constant out of the string that is passed in
+       It takes the length of the string as well to take into account
+       0 characters. The string is unescaped.
+
+       def_API('Z3_mk_u32string', AST, (_in(CONTEXT), _in(UINT), _in_array(1, UINT)))
+     */
+    Z3_ast Z3_API Z3_mk_u32string(Z3_context c, unsigned len, unsigned const chars[]);
 
     /**
        \brief Determine if \c s is a string constant.
@@ -3477,35 +3600,58 @@ extern "C" {
 
     /**
        \brief Retrieve the string constant stored in \c s.
+       Characters outside the basic printiable ASCII range are escaped.
 
        \pre  Z3_is_string(c, s)
 
-       def_API('Z3_get_string' ,STRING ,(_in(CONTEXT), _in(AST)))
+       def_API('Z3_get_string', STRING, (_in(CONTEXT), _in(AST)))
      */
     Z3_string Z3_API Z3_get_string(Z3_context c, Z3_ast s);
 
     /**
-       \brief Retrieve the unescaped string constant stored in \c s.
+       \brief Retrieve the string constant stored in \c s. The string can contain escape sequences.
+       Characters in the range 1 to 255 are literal. 
+       Characters in the range 0, and 256 above are escaped.
 
        \pre  Z3_is_string(c, s)
 
-       def_API('Z3_get_lstring' ,CHAR_PTR ,(_in(CONTEXT), _in(AST), _out(UINT)))
+       def_API('Z3_get_lstring', CHAR_PTR, (_in(CONTEXT), _in(AST), _out(UINT)))
      */
     Z3_char_ptr Z3_API Z3_get_lstring(Z3_context c, Z3_ast s, unsigned* length);
+    
+    /**
+       \brief Retrieve the length of the unescaped string constant stored in \c s. 
 
+       \pre  Z3_is_string(c, s)
+
+       def_API('Z3_get_string_length', UINT, (_in(CONTEXT), _in(AST)))
+    */
+    unsigned Z3_API Z3_get_string_length(Z3_context c, Z3_ast s);
+    
+    /**
+       \brief Retrieve the unescaped string constant stored in \c s. 
+
+       \pre  Z3_is_string(c, s)
+
+       \pre length contains the number of characters in s
+
+       def_API('Z3_get_string_contents', VOID, (_in(CONTEXT), _in(AST), _in(UINT), _out_array(2, UINT)))
+     */
+    void Z3_API Z3_get_string_contents(Z3_context c, Z3_ast s, unsigned length, unsigned contents[]);
+    
     /**
        \brief Create an empty sequence of the sequence sort \c seq.
 
        \pre s is a sequence sort.
 
-       def_API('Z3_mk_seq_empty' ,AST ,(_in(CONTEXT), _in(SORT)))
+       def_API('Z3_mk_seq_empty', AST ,(_in(CONTEXT), _in(SORT)))
      */
     Z3_ast Z3_API Z3_mk_seq_empty(Z3_context c, Z3_sort seq);
 
     /**
        \brief Create a unit sequence of \c a.
 
-       def_API('Z3_mk_seq_unit' ,AST ,(_in(CONTEXT), _in(AST)))
+       def_API('Z3_mk_seq_unit', AST ,(_in(CONTEXT), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_unit(Z3_context c, Z3_ast a);
 
@@ -3514,7 +3660,7 @@ extern "C" {
 
        \pre n > 0
 
-       def_API('Z3_mk_seq_concat' ,AST ,(_in(CONTEXT), _in(UINT), _in_array(1, AST)))
+       def_API('Z3_mk_seq_concat', AST ,(_in(CONTEXT), _in(UINT), _in_array(1, AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_concat(Z3_context c, unsigned n, Z3_ast const args[]);
 
@@ -3523,7 +3669,7 @@ extern "C" {
 
        \pre prefix and s are the same sequence sorts.
 
-       def_API('Z3_mk_seq_prefix' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
+       def_API('Z3_mk_seq_prefix', AST ,(_in(CONTEXT), _in(AST), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_prefix(Z3_context c, Z3_ast prefix, Z3_ast s);
 
@@ -3532,7 +3678,7 @@ extern "C" {
 
        \pre \c suffix and \c s are the same sequence sorts.
 
-       def_API('Z3_mk_seq_suffix' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
+       def_API('Z3_mk_seq_suffix', AST ,(_in(CONTEXT), _in(AST), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_suffix(Z3_context c, Z3_ast suffix, Z3_ast s);
 
@@ -3541,7 +3687,7 @@ extern "C" {
 
        \pre \c container and \c containee are the same sequence sorts.
 
-       def_API('Z3_mk_seq_contains' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
+       def_API('Z3_mk_seq_contains', AST ,(_in(CONTEXT), _in(AST), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_contains(Z3_context c, Z3_ast container, Z3_ast containee);
 
@@ -3551,7 +3697,7 @@ extern "C" {
 
        \pre \c s1 and \c s2 are strings
 
-       def_API('Z3_mk_str_lt' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
+       def_API('Z3_mk_str_lt', AST ,(_in(CONTEXT), _in(AST), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_str_lt(Z3_context c, Z3_ast prefix, Z3_ast s);
 
@@ -3560,21 +3706,21 @@ extern "C" {
 
        \pre \c s1 and \c s2 are strings
 
-       def_API('Z3_mk_str_le' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
+       def_API('Z3_mk_str_le', AST ,(_in(CONTEXT), _in(AST), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_str_le(Z3_context c, Z3_ast prefix, Z3_ast s);
 
     /**
        \brief Extract subsequence starting at \c offset of \c length.
 
-       def_API('Z3_mk_seq_extract' ,AST ,(_in(CONTEXT), _in(AST), _in(AST), _in(AST)))
+       def_API('Z3_mk_seq_extract', AST ,(_in(CONTEXT), _in(AST), _in(AST), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_extract(Z3_context c, Z3_ast s, Z3_ast offset, Z3_ast length);
 
     /**
        \brief Replace the first occurrence of \c src with \c dst in \c s.
 
-       def_API('Z3_mk_seq_replace' ,AST ,(_in(CONTEXT), _in(AST), _in(AST), _in(AST)))
+       def_API('Z3_mk_seq_replace', AST ,(_in(CONTEXT), _in(AST), _in(AST), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_replace(Z3_context c, Z3_ast s, Z3_ast src, Z3_ast dst);
 
@@ -3582,7 +3728,7 @@ extern "C" {
        \brief Retrieve from \c s the unit sequence positioned at position \c index.
        The sequence is empty if the index is out of bounds.
 
-       def_API('Z3_mk_seq_at' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
+       def_API('Z3_mk_seq_at', AST ,(_in(CONTEXT), _in(AST), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_at(Z3_context c, Z3_ast s, Z3_ast index);
 
@@ -3590,29 +3736,29 @@ extern "C" {
        \brief Retrieve from \c s the element positioned at position \c index.
        The function is under-specified if the index is out of bounds.
 
-       def_API('Z3_mk_seq_nth' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
+       def_API('Z3_mk_seq_nth', AST ,(_in(CONTEXT), _in(AST), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_nth(Z3_context c, Z3_ast s, Z3_ast index);
 
     /**
        \brief Return the length of the sequence \c s.
 
-       def_API('Z3_mk_seq_length' ,AST ,(_in(CONTEXT), _in(AST)))
+       def_API('Z3_mk_seq_length', AST ,(_in(CONTEXT), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_length(Z3_context c, Z3_ast s);
 
 
     /**
-       \brief Return index of first occurrence of \c substr in \c s starting from offset \c offset.
+       \brief Return index of the first occurrence of \c substr in \c s starting from offset \c offset.
        If \c s does not contain \c substr, then the value is -1, if \c offset is the length of \c s, then the value is -1 as well.
        The value is -1 if \c offset is negative or larger than the length of \c s.
 
-       def_API('Z3_mk_seq_index' ,AST ,(_in(CONTEXT), _in(AST), _in(AST), _in(AST)))
+       def_API('Z3_mk_seq_index', AST ,(_in(CONTEXT), _in(AST), _in(AST), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_index(Z3_context c, Z3_ast s, Z3_ast substr, Z3_ast offset);
 
     /**
-       \brief Return the last occurrence of \c substr in \c s.
+       \brief Return index of the last occurrence of \c substr in \c s.
        If \c s does not contain \c substr, then the value is -1, 
        def_API('Z3_mk_seq_last_index', AST, (_in(CONTEXT), _in(AST), _in(AST)))
     */
@@ -3621,7 +3767,7 @@ extern "C" {
     /**
        \brief Convert string to integer.
 
-       def_API('Z3_mk_str_to_int' ,AST ,(_in(CONTEXT), _in(AST)))
+       def_API('Z3_mk_str_to_int', AST ,(_in(CONTEXT), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_str_to_int(Z3_context c, Z3_ast s);
 
@@ -3629,42 +3775,71 @@ extern "C" {
     /**
        \brief Integer to string conversion.
 
-       def_API('Z3_mk_int_to_str' ,AST ,(_in(CONTEXT), _in(AST)))
+       def_API('Z3_mk_int_to_str', AST ,(_in(CONTEXT), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_int_to_str(Z3_context c, Z3_ast s);
+
+
+    /**
+       \brief String to code conversion.
+       
+       def_API('Z3_mk_string_to_code', AST, (_in(CONTEXT), _in(AST)))
+    */
+    Z3_ast Z3_API Z3_mk_string_to_code(Z3_context c, Z3_ast a);
+
+    /**
+       \brief Code to string conversion.
+       
+       def_API('Z3_mk_string_from_code', AST, (_in(CONTEXT), _in(AST)))
+    */
+    Z3_ast Z3_API Z3_mk_string_from_code(Z3_context c, Z3_ast a);
+
+    /**
+       \brief Unsigned bit-vector to string conversion.
+
+       def_API('Z3_mk_ubv_to_str', AST ,(_in(CONTEXT), _in(AST)))
+    */
+    Z3_ast Z3_API Z3_mk_ubv_to_str(Z3_context c, Z3_ast s);
+  
+    /**
+       \brief Signed bit-vector to string conversion.
+
+       def_API('Z3_mk_sbv_to_str', AST ,(_in(CONTEXT), _in(AST)))
+    */
+    Z3_ast Z3_API Z3_mk_sbv_to_str(Z3_context c, Z3_ast s);
 
     /**
        \brief Create a regular expression that accepts the sequence \c seq.
 
-       def_API('Z3_mk_seq_to_re' ,AST ,(_in(CONTEXT), _in(AST)))
+       def_API('Z3_mk_seq_to_re', AST ,(_in(CONTEXT), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_to_re(Z3_context c, Z3_ast seq);
 
     /**
        \brief Check if \c seq is in the language generated by the regular expression \c re.
 
-       def_API('Z3_mk_seq_in_re' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
+       def_API('Z3_mk_seq_in_re', AST ,(_in(CONTEXT), _in(AST), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_seq_in_re(Z3_context c, Z3_ast seq, Z3_ast re);
 
     /**
        \brief Create the regular language \c re+.
 
-       def_API('Z3_mk_re_plus' ,AST ,(_in(CONTEXT), _in(AST)))
+       def_API('Z3_mk_re_plus', AST ,(_in(CONTEXT), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_re_plus(Z3_context c, Z3_ast re);
 
     /**
        \brief Create the regular language \c re*.
 
-       def_API('Z3_mk_re_star' ,AST ,(_in(CONTEXT), _in(AST)))
+       def_API('Z3_mk_re_star', AST ,(_in(CONTEXT), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_re_star(Z3_context c, Z3_ast re);
 
     /**
        \brief Create the regular language \c [re].
 
-       def_API('Z3_mk_re_option' ,AST ,(_in(CONTEXT), _in(AST)))
+       def_API('Z3_mk_re_option', AST ,(_in(CONTEXT), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_re_option(Z3_context c, Z3_ast re);
 
@@ -3673,7 +3848,7 @@ extern "C" {
 
        \pre n > 0
 
-       def_API('Z3_mk_re_union' ,AST ,(_in(CONTEXT), _in(UINT), _in_array(1, AST)))
+       def_API('Z3_mk_re_union', AST ,(_in(CONTEXT), _in(UINT), _in_array(1, AST)))
      */
     Z3_ast Z3_API Z3_mk_re_union(Z3_context c, unsigned n, Z3_ast const args[]);
 
@@ -3682,7 +3857,7 @@ extern "C" {
 
        \pre n > 0
 
-       def_API('Z3_mk_re_concat' ,AST ,(_in(CONTEXT), _in(UINT), _in_array(1, AST)))
+       def_API('Z3_mk_re_concat', AST ,(_in(CONTEXT), _in(UINT), _in_array(1, AST)))
      */
     Z3_ast Z3_API Z3_mk_re_concat(Z3_context c, unsigned n, Z3_ast const args[]);
 
@@ -3690,10 +3865,18 @@ extern "C" {
     /**
        \brief Create the range regular expression over two sequences of length 1.
 
-       def_API('Z3_mk_re_range' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
+       def_API('Z3_mk_re_range', AST ,(_in(CONTEXT), _in(AST), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_re_range(Z3_context c, Z3_ast lo, Z3_ast hi);
 
+
+    /**
+       \brief Create a regular expression that accepts all singleton sequences of the regular expression sort
+
+      def_API('Z3_mk_re_allchar', AST, (_in(CONTEXT), _in(SORT)))
+    */
+    Z3_ast Z3_API Z3_mk_re_allchar(Z3_context c, Z3_sort regex_sort);
+  
     /**
        \brief Create a regular expression loop. The supplied regular expression \c r is repeated
        between \c lo and \c hi times. The \c lo should be below \c hi with one exception: when
@@ -3705,27 +3888,41 @@ extern "C" {
     Z3_ast Z3_API Z3_mk_re_loop(Z3_context c, Z3_ast r, unsigned lo, unsigned hi);
 
     /**
+       \brief Create a power regular expression.
+
+       def_API('Z3_mk_re_power', AST, (_in(CONTEXT), _in(AST), _in(UINT)))
+     */
+    Z3_ast Z3_API Z3_mk_re_power(Z3_context c, Z3_ast, unsigned n);
+
+    /**
        \brief Create the intersection of the regular languages.
 
        \pre n > 0
 
-       def_API('Z3_mk_re_intersect' ,AST ,(_in(CONTEXT), _in(UINT), _in_array(1, AST)))
+       def_API('Z3_mk_re_intersect', AST ,(_in(CONTEXT), _in(UINT), _in_array(1, AST)))
      */
     Z3_ast Z3_API Z3_mk_re_intersect(Z3_context c, unsigned n, Z3_ast const args[]);
 
     /**
        \brief Create the complement of the regular language \c re.
 
-       def_API('Z3_mk_re_complement' ,AST ,(_in(CONTEXT), _in(AST)))
+       def_API('Z3_mk_re_complement', AST ,(_in(CONTEXT), _in(AST)))
      */
     Z3_ast Z3_API Z3_mk_re_complement(Z3_context c, Z3_ast re);
+
+    /**
+       \brief Create the difference of regular expressions.
+
+       def_API('Z3_mk_re_diff', AST ,(_in(CONTEXT), _in(AST), _in(AST)))
+     */
+    Z3_ast Z3_API Z3_mk_re_diff(Z3_context c, Z3_ast re1, Z3_ast re2);
 
     /**
        \brief Create an empty regular expression of sort \c re.
 
        \pre re is a regular expression sort.
 
-       def_API('Z3_mk_re_empty' ,AST ,(_in(CONTEXT), _in(SORT)))
+       def_API('Z3_mk_re_empty', AST ,(_in(CONTEXT), _in(SORT)))
      */
     Z3_ast Z3_API Z3_mk_re_empty(Z3_context c, Z3_sort re);
 
@@ -3735,15 +3932,57 @@ extern "C" {
 
        \pre re is a regular expression sort.
 
-       def_API('Z3_mk_re_full' ,AST ,(_in(CONTEXT), _in(SORT)))
+       def_API('Z3_mk_re_full', AST ,(_in(CONTEXT), _in(SORT)))
      */
     Z3_ast Z3_API Z3_mk_re_full(Z3_context c, Z3_sort re);
 
-    /*@}*/
+
+    /**
+       \brief Create a character literal
+       def_API('Z3_mk_char', AST, (_in(CONTEXT), _in(UINT)))
+    */
+    Z3_ast Z3_API Z3_mk_char(Z3_context c, unsigned ch);
+
+    /**
+         \brief Create less than or equal to between two characters.
+
+         def_API('Z3_mk_char_le', AST, (_in(CONTEXT), _in(AST), _in(AST)))
+     */
+    Z3_ast Z3_API Z3_mk_char_le(Z3_context c, Z3_ast ch1, Z3_ast ch2);
+
+    /**
+         \brief Create an integer (code point) from character.
+
+         def_API('Z3_mk_char_to_int', AST, (_in(CONTEXT), _in(AST)))
+     */
+    Z3_ast Z3_API Z3_mk_char_to_int(Z3_context c, Z3_ast ch);
+
+    /**
+         \brief Create a bit-vector (code point) from character.
+
+         def_API('Z3_mk_char_to_bv', AST, (_in(CONTEXT), _in(AST)))
+     */
+    Z3_ast Z3_API Z3_mk_char_to_bv(Z3_context c, Z3_ast ch);
+
+    /**
+         \brief Create a character from a bit-vector (code point).
+
+         def_API('Z3_mk_char_from_bv', AST, (_in(CONTEXT), _in(AST)))
+    */
+    Z3_ast Z3_API Z3_mk_char_from_bv(Z3_context c, Z3_ast bv);
+
+    /**
+         \brief Create a check if the character is a digit.
+
+         def_API('Z3_mk_char_is_digit', AST, (_in(CONTEXT), _in(AST)))
+    */
+    Z3_ast Z3_API Z3_mk_char_is_digit(Z3_context c, Z3_ast ch);
+
+    /**@}*/
 
 
     /** @name Special relations */
-    /*@{*/
+    /**@{*/
     /**
        \brief create a linear ordering relation over signature \c a.
        The relation is identified by the index \c id.
@@ -3784,10 +4023,10 @@ extern "C" {
      */
     Z3_func_decl Z3_API Z3_mk_transitive_closure(Z3_context c, Z3_func_decl f);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Quantifiers */
-    /*@{*/
+    /**@{*/
     /**
        \brief Create a pattern for quantifier instantiation.
 
@@ -4092,10 +4331,10 @@ extern "C" {
                                      Z3_ast body);
 
 
-    /*@}*/
+    /**@}*/
 
     /** @name Accessors */
-    /*@{*/
+    /**@{*/
     /**
        \brief Return \c Z3_INT_SYMBOL if the symbol was constructed
        using #Z3_mk_int_symbol, and \c Z3_STRING_SYMBOL if the symbol
@@ -4186,7 +4425,7 @@ extern "C" {
 
         def_API('Z3_get_finite_domain_sort_size', BOOL, (_in(CONTEXT), _in(SORT), _out(UINT64)))
     */
-    Z3_bool_opt Z3_API Z3_get_finite_domain_sort_size(Z3_context c, Z3_sort s, uint64_t* r);
+    bool Z3_API Z3_get_finite_domain_sort_size(Z3_context c, Z3_sort s, uint64_t* r);
 
     /**
        \brief Return the domain of the given array sort.
@@ -4196,10 +4435,26 @@ extern "C" {
 
        \sa Z3_mk_array_sort
        \sa Z3_get_sort_kind
+       \sa Z3_get_array_sort_domain_n
 
        def_API('Z3_get_array_sort_domain', SORT, (_in(CONTEXT), _in(SORT)))
     */
     Z3_sort Z3_API Z3_get_array_sort_domain(Z3_context c, Z3_sort t);
+
+
+    /**
+       \brief Return the i'th domain sort of an n-dimensional array.
+
+       \pre Z3_get_sort_kind(c, t) == Z3_ARRAY_SORT
+
+       \sa Z3_mk_array_sort
+       \sa Z3_get_sort_kind
+       \sa Z3_get_array_sort_domain
+
+       def_API('Z3_get_array_sort_domain_n', SORT, (_in(CONTEXT), _in(SORT), _in(UINT)))
+       
+     */
+    Z3_sort Z3_API Z3_get_array_sort_domain_n(Z3_context c, Z3_sort t, unsigned idx);
 
     /**
        \brief Return the range of the given array sort.
@@ -4585,6 +4840,8 @@ extern "C" {
        \brief Return the number of argument of an application. If \c t
        is an constant, then the number of arguments is 0.
 
+       \sa Z3_get_app_arg
+
        def_API('Z3_get_app_num_args', UINT, (_in(CONTEXT), _in(APP)))
     */
     unsigned Z3_API Z3_get_app_num_args(Z3_context c, Z3_app a);
@@ -4593,6 +4850,8 @@ extern "C" {
        \brief Return the i-th argument of the given application.
 
        \pre i < Z3_get_app_num_args(c, a)
+
+       \sa Z3_get_app_num_args
 
        def_API('Z3_get_app_arg', AST, (_in(CONTEXT), _in(APP), _in(UINT)))
     */
@@ -4620,8 +4879,9 @@ extern "C" {
 
     /**
        \brief Return a hash code for the given AST.
-       The hash code is structural. You can use Z3_get_ast_id interchangeably with
-       this function.
+       The hash code is structural but two different AST objects can map to the same hash.
+       The result of \c Z3_get_ast_id returns an indentifier that is unique over the 
+       set of live AST objects.
 
        def_API('Z3_get_ast_hash', UINT, (_in(CONTEXT), _in(AST)))
     */
@@ -4646,7 +4906,7 @@ extern "C" {
     /**
        \brief Return \c Z3_L_TRUE if \c a is true, \c Z3_L_FALSE if it is false, and \c Z3_L_UNDEF otherwise.
 
-       def_API('Z3_get_bool_value', INT, (_in(CONTEXT), _in(AST)))
+       def_API('Z3_get_bool_value', LBOOL, (_in(CONTEXT), _in(AST)))
     */
     Z3_lbool Z3_API Z3_get_bool_value(Z3_context c, Z3_ast a);
 
@@ -5029,10 +5289,10 @@ extern "C" {
        def_API('Z3_simplify_get_param_descrs', PARAM_DESCRS, (_in(CONTEXT),))
     */
     Z3_param_descrs Z3_API Z3_simplify_get_param_descrs(Z3_context c);
-    /*@}*/
+    /**@}*/
 
     /** @name Modifiers */
-    /*@{*/
+    /**@{*/
     /**
        \brief Update the arguments of term \c a using the arguments \c args.
        The number of arguments \c num_args should coincide
@@ -5068,6 +5328,20 @@ extern "C" {
                                      Z3_ast const to[]);
 
     /**
+       \brief Substitute funcions in \c from with new expressions in \c to.
+
+       The expressions in \c to can have free variables. The free variable in \c to at index 0
+       refers to the first argument of \c from, the free variable at index 1 corresponds to the second argument.
+
+       def_API('Z3_substitute_funs', AST, (_in(CONTEXT), _in(AST), _in(UINT), _in_array(2, FUNC_DECL), _in_array(2, AST)))
+    */
+    Z3_ast Z3_API Z3_substitute_funs(Z3_context c,
+                                     Z3_ast a,
+                                     unsigned num_funs,
+                                     Z3_func_decl const from[],
+                                     Z3_ast const to[]);
+
+    /**
        \brief Translate/Copy the AST \c a from context \c source to context \c target.
        AST \c a must have been created using context \c source.
        \pre source != target
@@ -5075,10 +5349,10 @@ extern "C" {
        def_API('Z3_translate', AST, (_in(CONTEXT), _in(AST), _in(CONTEXT)))
     */
     Z3_ast Z3_API Z3_translate(Z3_context source, Z3_ast a, Z3_context target);
-    /*@}*/
+    /**@}*/
 
     /** @name Models */
-    /*@{*/
+    /**@{*/
 
     /**
        \brief Create a fresh model object. It has reference count 0.
@@ -5124,7 +5398,7 @@ extern "C" {
 
        def_API('Z3_model_eval', BOOL, (_in(CONTEXT), _in(MODEL), _in(AST), _in(BOOL), _out(AST)))
     */
-    Z3_bool_opt Z3_API Z3_model_eval(Z3_context c, Z3_model m, Z3_ast t, bool model_completion, Z3_ast * v);
+    bool Z3_API Z3_model_eval(Z3_context c, Z3_model m, Z3_ast t, bool model_completion, Z3_ast * v);
 
     /**
        \brief Return the interpretation (i.e., assignment) of constant \c a in the model \c m.
@@ -5173,6 +5447,7 @@ extern "C" {
        \pre i < Z3_model_get_num_consts(c, m)
 
        \sa Z3_model_eval
+       \sa Z3_model_get_num_consts
 
        def_API('Z3_model_get_const_decl', FUNC_DECL, (_in(CONTEXT), _in(MODEL), _in(UINT)))
     */
@@ -5183,6 +5458,8 @@ extern "C" {
 
        A function interpretation is represented as a finite map and an 'else' value.
        Each entry in the finite map represents the value of a function given a set of arguments.
+
+       \sa Z3_model_get_func_decl
 
        def_API('Z3_model_get_num_funcs', UINT, (_in(CONTEXT), _in(MODEL)))
     */
@@ -5309,6 +5586,8 @@ extern "C" {
        Each entry in the finite map represents the value of a function given a set of arguments.
        This procedure return the number of element in the finite map of \c f.
 
+       \sa Z3_func_interp_get_entry
+
        def_API('Z3_func_interp_get_num_entries', UINT, (_in(CONTEXT), _in(FUNC_INTERP)))
     */
     unsigned Z3_API Z3_func_interp_get_num_entries(Z3_context c, Z3_func_interp f);
@@ -5397,6 +5676,7 @@ extern "C" {
     /**
        \brief Return the number of arguments in a \c Z3_func_entry object.
 
+       \sa Z3_func_entry_get_arg
        \sa Z3_func_interp_get_entry
 
        def_API('Z3_func_entry_get_num_args', UINT, (_in(CONTEXT), _in(FUNC_ENTRY)))
@@ -5408,17 +5688,21 @@ extern "C" {
 
        \pre i < Z3_func_entry_get_num_args(c, e)
 
+       \sa Z3_func_entry_get_num_args
        \sa Z3_func_interp_get_entry
 
        def_API('Z3_func_entry_get_arg', AST, (_in(CONTEXT), _in(FUNC_ENTRY), _in(UINT)))
     */
     Z3_ast Z3_API Z3_func_entry_get_arg(Z3_context c, Z3_func_entry e, unsigned i);
-    /*@}*/
+    /**@}*/
 
     /** @name Interaction logging */
-    /*@{*/
+    /**@{*/
     /**
        \brief Log interaction to a file.
+
+       \sa Z3_append_log
+       \sa Z3_close_log
 
        extra_API('Z3_open_log', INT, (_in(STRING),))
     */
@@ -5427,9 +5711,12 @@ extern "C" {
     /**
        \brief Append user-defined string to interaction log.
 
-       The interaction log is opened using Z3_open_log.
+       The interaction log is opened using #Z3_open_log.
        It contains the formulas that are checked using Z3.
        You can use this command to append comments, for instance.
+
+       \sa Z3_open_log
+       \sa Z3_close_log
 
        extra_API('Z3_append_log', VOID, (_in(STRING),))
     */
@@ -5437,6 +5724,9 @@ extern "C" {
 
     /**
        \brief Close interaction log.
+
+       \sa Z3_open_log
+       \sa Z3_append_log
 
        extra_API('Z3_close_log', VOID, ())
     */
@@ -5451,10 +5741,10 @@ extern "C" {
        def_API('Z3_toggle_warning_messages', VOID, (_in(BOOL),))
     */
     void Z3_API Z3_toggle_warning_messages(bool enabled);
-    /*@}*/
+    /**@}*/
 
     /** @name String conversion */
-    /*@{*/
+    /**@{*/
     /**
        \brief Select mode for the format used for pretty-printing AST nodes.
 
@@ -5541,10 +5831,10 @@ extern "C" {
                                                    Z3_ast const assumptions[],
                                                    Z3_ast formula);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Parser interface */
-    /*@{*/
+    /**@{*/
     /**
        \brief Parse the given string using the SMT-LIB2 parser.
 
@@ -5588,10 +5878,59 @@ extern "C" {
 
     Z3_string Z3_API Z3_eval_smtlib2_string(Z3_context, Z3_string str);
 
-    /*@}*/
+
+    /** 
+       \brief Create a parser context.
+
+       A parser context maintains state between calls to \c Z3_parser_context_parse_string
+       where the caller can pass in a set of SMTLIB2 commands.
+       It maintains all the declarations from previous calls together with 
+       of sorts and function declarations (including 0-ary) that are added directly to the context.
+
+       def_API('Z3_mk_parser_context', PARSER_CONTEXT, (_in(CONTEXT),))
+    */
+    Z3_parser_context Z3_API Z3_mk_parser_context(Z3_context c);
+
+    /**
+       \brief Increment the reference counter of the given \c Z3_parser_context object.
+
+       def_API('Z3_parser_context_inc_ref', VOID, (_in(CONTEXT), _in(PARSER_CONTEXT)))
+    */
+    void Z3_API Z3_parser_context_inc_ref(Z3_context c, Z3_parser_context pc);
+
+    /**
+       \brief Decrement the reference counter of the given \c Z3_parser_context object.
+
+       def_API('Z3_parser_context_dec_ref', VOID, (_in(CONTEXT), _in(PARSER_CONTEXT)))
+    */
+    void Z3_API Z3_parser_context_dec_ref(Z3_context c, Z3_parser_context pc);
+
+    /**
+       \brief Add a sort declaration.
+
+       def_API('Z3_parser_context_add_sort', VOID, (_in(CONTEXT), _in(PARSER_CONTEXT), _in(SORT)))
+     */
+    void Z3_API Z3_parser_context_add_sort(Z3_context c, Z3_parser_context pc, Z3_sort s);
+
+    /**
+       \brief Add a function declaration.
+
+       def_API('Z3_parser_context_add_decl', VOID, (_in(CONTEXT), _in(PARSER_CONTEXT), _in(FUNC_DECL)))
+     */
+    void Z3_API Z3_parser_context_add_decl(Z3_context c, Z3_parser_context pc, Z3_func_decl f);
+
+    /**
+       \brief Parse a string of SMTLIB2 commands. Return assertions.
+      
+       def_API('Z3_parser_context_from_string', AST_VECTOR, (_in(CONTEXT), _in(PARSER_CONTEXT), _in(STRING)))
+     */
+    Z3_ast_vector Z3_API Z3_parser_context_from_string(Z3_context c, Z3_parser_context pc, Z3_string s);
+
+
+    /**@}*/
 
     /** @name Error Handling */
-    /*@{*/
+    /**@{*/
 #ifndef SAFE_ERRORS
     /**
        \brief Return the error code for the last API call.
@@ -5634,10 +5973,10 @@ extern "C" {
     */
     Z3_string Z3_API Z3_get_error_msg(Z3_context c, Z3_error_code err);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Miscellaneous */
-    /*@{*/
+    /**@{*/
 
     /**
        \brief Return Z3 version number information.
@@ -5698,10 +6037,10 @@ extern "C" {
        def_API('Z3_finalize_memory', VOID, ())
     */
     void Z3_API Z3_finalize_memory(void);
-    /*@}*/
+    /**@}*/
 
     /** @name Goals */
-    /*@{*/
+    /**@{*/
     /**
        \brief Create a goal (aka problem). A goal is essentially a set
        of formulas, that can be solved and/or transformed using
@@ -5851,10 +6190,10 @@ extern "C" {
     */
     Z3_string Z3_API Z3_goal_to_dimacs_string(Z3_context c, Z3_goal g, bool include_names);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Tactics and Probes */
-    /*@{*/
+    /**@{*/
     /**
        \brief Return a tactic associated with the given name.
        The complete list of tactics may be obtained using the procedures #Z3_get_num_tactics and #Z3_get_tactic_name.
@@ -6087,6 +6426,8 @@ extern "C" {
     /**
        \brief Return the number of builtin tactics available in Z3.
 
+       \sa Z3_get_tactic_name
+
        def_API('Z3_get_num_tactics', UINT, (_in(CONTEXT),))
     */
     unsigned Z3_API Z3_get_num_tactics(Z3_context c);
@@ -6096,12 +6437,16 @@ extern "C" {
 
        \pre i < Z3_get_num_tactics(c)
 
+       \sa Z3_get_num_tactics
+
        def_API('Z3_get_tactic_name', STRING, (_in(CONTEXT), _in(UINT)))
     */
     Z3_string Z3_API Z3_get_tactic_name(Z3_context c, unsigned i);
 
     /**
        \brief Return the number of builtin probes available in Z3.
+
+       \sa Z3_get_probe_name
 
        def_API('Z3_get_num_probes', UINT, (_in(CONTEXT),))
     */
@@ -6111,6 +6456,8 @@ extern "C" {
        \brief Return the name of the \c i probe.
 
        \pre i < Z3_get_num_probes(c)
+
+       \sa Z3_get_num_probes
 
        def_API('Z3_get_probe_name', STRING, (_in(CONTEXT), _in(UINT)))
     */
@@ -6155,12 +6502,16 @@ extern "C" {
     /**
        \brief Apply tactic \c t to the goal \c g.
 
+       \sa Z3_tactic_apply_ex
+
        def_API('Z3_tactic_apply', APPLY_RESULT, (_in(CONTEXT), _in(TACTIC), _in(GOAL)))
     */
     Z3_apply_result Z3_API Z3_tactic_apply(Z3_context c, Z3_tactic t, Z3_goal g);
 
     /**
        \brief Apply tactic \c t to the goal \c g using the parameter set \c p.
+
+       \sa Z3_tactic_apply
 
        def_API('Z3_tactic_apply_ex', APPLY_RESULT, (_in(CONTEXT), _in(TACTIC), _in(GOAL), _in(PARAMS)))
     */
@@ -6190,6 +6541,8 @@ extern "C" {
     /**
        \brief Return the number of subgoals in the \c Z3_apply_result object returned by #Z3_tactic_apply.
 
+       \sa Z3_apply_result_get_subgoal
+
        def_API('Z3_apply_result_get_num_subgoals', UINT, (_in(CONTEXT), _in(APPLY_RESULT)))
     */
     unsigned Z3_API Z3_apply_result_get_num_subgoals(Z3_context c, Z3_apply_result r);
@@ -6199,14 +6552,16 @@ extern "C" {
 
        \pre i < Z3_apply_result_get_num_subgoals(c, r)
 
+       \sa Z3_apply_result_get_num_subgoals
+
        def_API('Z3_apply_result_get_subgoal', GOAL, (_in(CONTEXT), _in(APPLY_RESULT), _in(UINT)))
     */
     Z3_goal Z3_API Z3_apply_result_get_subgoal(Z3_context c, Z3_apply_result r, unsigned i);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Solvers*/
-    /*@{*/
+    /**@{*/
     /**
        \brief Create a new solver. This solver is a "combined solver" (see
        combined_solver module) that internally uses a non-incremental (solver1) and an
@@ -6241,6 +6596,10 @@ extern "C" {
        \remark User must use #Z3_solver_inc_ref and #Z3_solver_dec_ref to manage solver objects.
        Even if the context was created using #Z3_mk_context instead of #Z3_mk_context_rc.
 
+       \sa Z3_mk_simple_solver
+       \sa Z3_mk_solver_for_logic
+       \sa Z3_mk_solver_from_tactic
+
        def_API('Z3_mk_solver', SOLVER, (_in(CONTEXT),))
     */
     Z3_solver Z3_API Z3_mk_solver(Z3_context c);
@@ -6268,6 +6627,10 @@ extern "C" {
        \remark User must use #Z3_solver_inc_ref and #Z3_solver_dec_ref to manage solver objects.
        Even if the context was created using #Z3_mk_context instead of #Z3_mk_context_rc.
 
+       \sa Z3_mk_solver
+       \sa Z3_mk_solver_for_logic
+       \sa Z3_mk_solver_from_tactic
+
        def_API('Z3_mk_simple_solver', SOLVER, (_in(CONTEXT),))
     */
     Z3_solver Z3_API Z3_mk_simple_solver(Z3_context c);
@@ -6278,6 +6641,10 @@ extern "C" {
 
        \remark User must use #Z3_solver_inc_ref and #Z3_solver_dec_ref to manage solver objects.
        Even if the context was created using #Z3_mk_context instead of #Z3_mk_context_rc.
+
+       \sa Z3_mk_solver
+       \sa Z3_mk_simple_solver
+       \sa Z3_mk_solver_from_tactic
 
        def_API('Z3_mk_solver_for_logic', SOLVER, (_in(CONTEXT), _in(SYMBOL)))
     */
@@ -6290,6 +6657,10 @@ extern "C" {
 
        \remark User must use #Z3_solver_inc_ref and #Z3_solver_dec_ref to manage solver objects.
        Even if the context was created using #Z3_mk_context instead of #Z3_mk_context_rc.
+
+       \sa Z3_mk_solver
+       \sa Z3_mk_simple_solver
+       \sa Z3_mk_solver_for_logic
 
        def_API('Z3_mk_solver_from_tactic', SOLVER, (_in(CONTEXT), _in(TACTIC)))
     */
@@ -6509,6 +6880,15 @@ extern "C" {
 
     /**
        \brief register a user-properator with the solver.
+
+       \param c - context.
+       \param s - solver object.
+       \param user_context - a context used to maintain state for callbacks.
+       \param push_eh - a callback invoked when scopes are pushed
+       \param pop_eh - a callback invoked when scopes are poped
+       \param fresh_eh - a solver may spawn new solvers internally. This callback is used to produce a fresh user_context to be associated with fresh solvers. 
+
+       def_API('Z3_solver_propagate_init', VOID, (_in(CONTEXT), _in(SOLVER), _in(VOID_PTR), _fnptr(Z3_push_eh), _fnptr(Z3_pop_eh), _fnptr(Z3_fresh_eh)))
      */
 
     void Z3_API Z3_solver_propagate_init(
@@ -6524,6 +6904,8 @@ extern "C" {
        The supported expression types are
        - Booleans
        - Bit-vectors
+
+       def_API('Z3_solver_propagate_fixed', VOID, (_in(CONTEXT), _in(SOLVER), _fnptr(Z3_fixed_eh)))
      */
 
     void Z3_API Z3_solver_propagate_fixed(Z3_context c, Z3_solver s, Z3_fixed_eh fixed_eh);
@@ -6531,32 +6913,89 @@ extern "C" {
     /**
        \brief register a callback on final check.
        This provides freedom to the propagator to delay actions or implement a branch-and bound solver.
+       The final check is invoked when all decision variables have been assigned by the solver.
 
-       The final_eh callback takes as argument the original user_context that was used
-       when calling \c Z3_solver_propagate_init, and it takes a callback context for propagations.
-       If may use the callback context to invoke the \c Z3_solver_propagate_consequence function.
-       If the callback context gets used, the solver continues. 
+       The \c final_eh callback takes as argument the original user_context that was used
+       when calling \c Z3_solver_propagate_init, and it takes a callback context with the
+       opaque type \c Z3_solver_callback. 
+       The callback context is passed as argument to invoke the \c Z3_solver_propagate_consequence function.
+       The callback context can only be accessed (for propagation and for dynamically registering expressions) within a callback. 
+       If the callback context gets used for propagation or conflicts, those propagations take effect and
+       may trigger new decision variables to be set.
+
+       def_API('Z3_solver_propagate_final', VOID, (_in(CONTEXT), _in(SOLVER), _fnptr(Z3_final_eh)))
      */
     void Z3_API Z3_solver_propagate_final(Z3_context c, Z3_solver s, Z3_final_eh final_eh);
     
     /**
        \brief register a callback on expression equalities.
+
+       def_API('Z3_solver_propagate_eq', VOID, (_in(CONTEXT), _in(SOLVER), _fnptr(Z3_eq_eh)))
     */
     void Z3_API Z3_solver_propagate_eq(Z3_context c, Z3_solver s, Z3_eq_eh eq_eh);
 
     /**
        \brief register a callback on expression dis-equalities.
+
+       def_API('Z3_solver_propagate_diseq', VOID, (_in(CONTEXT), _in(SOLVER), _fnptr(Z3_eq_eh)))
     */
     void Z3_API Z3_solver_propagate_diseq(Z3_context c, Z3_solver s, Z3_eq_eh eq_eh);
+
+    /**
+       \brief register a callback when a new expression with a registered function is used by the solver 
+       The registered function appears at the top level and is created using \ref Z3_solver_propagate_declare.
+
+       def_API('Z3_solver_propagate_created', VOID, (_in(CONTEXT), _in(SOLVER), _fnptr(Z3_created_eh)))
+    */
+    void Z3_API Z3_solver_propagate_created(Z3_context c, Z3_solver s, Z3_created_eh created_eh);
+    
+    /**
+       \brief register a callback when the solver decides to split on a registered expression.
+       The callback may set the passed expression to another registered expression which will be selected instead.
+       In case the expression is a bitvector the bit to split on is determined by the bit argument and the 
+       truth-value to try first is given by is_pos. In case the truth value is undefined the solver will decide.
+
+       def_API('Z3_solver_propagate_decide', VOID, (_in(CONTEXT), _in(SOLVER), _fnptr(Z3_decide_eh)))
+    */
+    void Z3_API Z3_solver_propagate_decide(Z3_context c, Z3_solver s, Z3_decide_eh decide_eh);
+
+    /**
+        Sets the next expression to split on
+     
+      def_API('Z3_solver_next_split', VOID, (_in(CONTEXT), _in(SOLVER_CALLBACK), _in(AST), _in(UINT), _in(LBOOL)))
+    */
+    void Z3_API Z3_solver_next_split(Z3_context c, Z3_solver_callback cb,  Z3_ast t, unsigned idx, Z3_lbool phase);
+    
+    /**
+        Create uninterpreted function declaration for the user propagator.
+        When expressions using the function are created by the solver invoke a callback
+        to \ref Z3_solver_propagate_created with arguments
+        1. context and callback solve
+        2. declared_expr: expression using function that was used as the top-level symbol
+        3. declared_id: a unique identifier (unique within the current scope) to track the expression.
+     
+      def_API('Z3_solver_propagate_declare', FUNC_DECL, (_in(CONTEXT), _in(SYMBOL), _in(UINT), _in_array(2, SORT), _in(SORT)))
+    */
+    Z3_func_decl Z3_API Z3_solver_propagate_declare(Z3_context c, Z3_symbol name, unsigned n, Z3_sort* domain, Z3_sort range);
 
     /**
        \brief register an expression to propagate on with the solver.
        Only expressions of type Bool and type Bit-Vector can be registered for propagation.
 
-       def_API('Z3_solver_propagate_register', UINT, (_in(CONTEXT), _in(SOLVER), _in(AST)))
+       def_API('Z3_solver_propagate_register', VOID, (_in(CONTEXT), _in(SOLVER), _in(AST)))
     */
 
-    unsigned Z3_API Z3_solver_propagate_register(Z3_context c, Z3_solver s, Z3_ast e);   
+    void Z3_API Z3_solver_propagate_register(Z3_context c, Z3_solver s, Z3_ast e);   
+
+    /**
+        \brief register an expression to propagate on with the solver.
+        Only expressions of type Bool and type Bit-Vector can be registered for propagation.
+        Unlike \ref Z3_solver_propagate_register, this function takes a solver callback context
+        as argument. It can be invoked during a callback to register new expressions.
+
+        def_API('Z3_solver_propagate_register_cb', VOID, (_in(CONTEXT), _in(SOLVER_CALLBACK), _in(AST)))
+    */
+    void Z3_API Z3_solver_propagate_register_cb(Z3_context c, Z3_solver_callback cb, Z3_ast e);
 
     /**
        \brief propagate a consequence based on fixed values.
@@ -6564,10 +7003,10 @@ extern "C" {
        The callback adds a propagation consequence based on the fixed values of the
        \c ids. 
        
-       def_API('Z3_solver_propagate_consequence', VOID, (_in(CONTEXT), _in(SOLVER_CALLBACK), _in(UINT), _in_array(2, UINT), _in(UINT), _in_array(4, UINT), _in_array(4, UINT), _in(AST)))
+       def_API('Z3_solver_propagate_consequence', VOID, (_in(CONTEXT), _in(SOLVER_CALLBACK), _in(UINT), _in_array(2, AST), _in(UINT), _in_array(4, AST), _in_array(4, AST), _in(AST)))
     */
     
-    void Z3_API Z3_solver_propagate_consequence(Z3_context c, Z3_solver_callback, unsigned num_fixed, unsigned const* fixed_ids, unsigned num_eqs, unsigned const* eq_lhs, unsigned const* eq_rhs, Z3_ast conseq);
+    void Z3_API Z3_solver_propagate_consequence(Z3_context c, Z3_solver_callback, unsigned num_fixed, Z3_ast const* fixed, unsigned num_eqs, Z3_ast const* eq_lhs, Z3_ast const* eq_rhs, Z3_ast conseq);
 
     /**
        \brief Check whether the assertions in a given solver are consistent or not.
@@ -6585,7 +7024,7 @@ extern "C" {
 
        \sa Z3_solver_check_assumptions
 
-       def_API('Z3_solver_check', INT, (_in(CONTEXT), _in(SOLVER)))
+       def_API('Z3_solver_check', LBOOL, (_in(CONTEXT), _in(SOLVER)))
     */
     Z3_lbool Z3_API Z3_solver_check(Z3_context c, Z3_solver s);
 
@@ -6598,7 +7037,7 @@ extern "C" {
 
        \sa Z3_solver_check
 
-       def_API('Z3_solver_check_assumptions', INT, (_in(CONTEXT), _in(SOLVER), _in(UINT), _in_array(2, AST)))
+       def_API('Z3_solver_check_assumptions', LBOOL, (_in(CONTEXT), _in(SOLVER), _in(UINT), _in_array(2, AST)))
     */
     Z3_lbool Z3_API Z3_solver_check_assumptions(Z3_context c, Z3_solver s,
                                                 unsigned num_assumptions, Z3_ast const assumptions[]);
@@ -6619,7 +7058,7 @@ extern "C" {
        A side-effect of the function is a satisfiability check on the assertions on the solver that is passed in.
        The function return \c Z3_L_FALSE if the current assertions are not satisfiable.
 
-       def_API('Z3_get_implied_equalities', INT, (_in(CONTEXT), _in(SOLVER), _in(UINT), _in_array(2, AST), _out_array(2, UINT)))
+       def_API('Z3_get_implied_equalities', LBOOL, (_in(CONTEXT), _in(SOLVER), _in(UINT), _in_array(2, AST), _out_array(2, UINT)))
     */
     Z3_lbool Z3_API Z3_get_implied_equalities(Z3_context c,
                                               Z3_solver  s,
@@ -6630,7 +7069,7 @@ extern "C" {
     /**
        \brief retrieve consequences from solver that determine values of the supplied function symbols.
 
-       def_API('Z3_solver_get_consequences', INT, (_in(CONTEXT), _in(SOLVER), _in(AST_VECTOR), _in(AST_VECTOR), _in(AST_VECTOR)))
+       def_API('Z3_solver_get_consequences', LBOOL, (_in(CONTEXT), _in(SOLVER), _in(AST_VECTOR), _in(AST_VECTOR), _in(AST_VECTOR)))
      */
 
     Z3_lbool Z3_API Z3_solver_get_consequences(Z3_context c,
@@ -6729,10 +7168,10 @@ extern "C" {
     */
     Z3_string Z3_API Z3_solver_to_dimacs_string(Z3_context c, Z3_solver s, bool include_names);
 
-    /*@}*/
+    /**@}*/
 
     /** @name Statistics */
-    /*@{*/
+    /**@{*/
 
     /**
        \brief Convert a statistics into a string.
@@ -6814,11 +7253,11 @@ extern "C" {
     */
     uint64_t Z3_API Z3_get_estimated_alloc_size(void);
 
-    /*@}*/
+    /**@}*/
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
-/*@}*/
+/**@}*/
 

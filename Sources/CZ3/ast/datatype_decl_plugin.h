@@ -103,10 +103,9 @@ namespace datatype {
 
     namespace param_size {
         class size {
-            unsigned m_ref;
+            unsigned m_ref{ 0 };
         public:
-            size(): m_ref(0) {}
-            virtual ~size() {}
+            virtual ~size() = default;
             void inc_ref() { ++m_ref; }
             void dec_ref();
             static size* mk_offset(sort_size const& s); 
@@ -124,7 +123,6 @@ namespace datatype {
         struct offset : public size {
             sort_size m_offset;
             offset(sort_size const& s): m_offset(s) {}
-            ~offset() override {}
             size* subst(obj_map<sort,size*>& S) override { return this; }
             sort_size eval(obj_map<sort, sort_size> const& S) override { return m_offset; }
         };
@@ -152,7 +150,6 @@ namespace datatype {
         struct sparam : public size {
             sort_ref m_param;
             sparam(sort_ref& p): m_param(p) {}
-            ~sparam() override {}
             size* subst(obj_map<sort, size*>& S) override;
             sort_size eval(obj_map<sort, sort_size> const& S) override { return S[m_param]; }
         };
@@ -197,7 +194,7 @@ namespace datatype {
         sort_ref_vector const& params() const { return m_params; }
         util& u() const { return m_util; }
         param_size::size* sort_size() { return m_sort_size; }
-        void set_sort_size(param_size::size* p) { m_sort_size = p; if (p) p->inc_ref(); m_sort = nullptr; }
+        void set_sort_size(param_size::size* p) { auto* q = m_sort_size;  m_sort_size = p; if (p) p->inc_ref(); if (q) q->dec_ref(); m_sort = nullptr; }
         def* translate(ast_translation& tr, util& u);
     };
 
@@ -210,14 +207,14 @@ namespace datatype {
             unsigned                 m_id_counter;
             svector<symbol>          m_def_block;
             unsigned                 m_class_id;
-            mutable bool             m_has_nested_arrays;
+            mutable bool             m_has_nested_rec;
 
             void inherit(decl_plugin* other_p, ast_translation& tr) override;
 
             void log_axiom_definitions(symbol const& s, sort * new_sort);
 
         public:
-            plugin(): m_id_counter(0), m_class_id(0), m_has_nested_arrays(false) {}
+            plugin(): m_id_counter(0), m_class_id(0), m_has_nested_rec(false) {}
             ~plugin() override;
 
             void finalize() override;
@@ -233,9 +230,11 @@ namespace datatype {
         
             bool is_fully_interp(sort * s) const override;
         
-            bool is_value(app* e) const override;
+            bool is_value(app* e) const override { return is_value_aux(false, e); }
         
-            bool is_unique_value(app * e) const override { return is_value(e); }
+            bool is_unique_value(app * e) const override { return is_value_aux(true, e); }
+
+            bool are_distinct(app * a, app * b) const override;
         
             void get_op_names(svector<builtin_name> & op_names, symbol const & logic) override;
                 
@@ -251,14 +250,17 @@ namespace datatype {
 
             def const& get_def(sort* s) const { return *(m_defs[datatype_name(s)]); }
             def& get_def(symbol const& s) { return *(m_defs[s]); }
+            ptr_vector<constructor> get_constructors(symbol const& s) const;
+            ptr_vector<accessor> get_accessors(symbol const& s) const;
             bool is_declared(sort* s) const { return m_defs.contains(datatype_name(s)); }
             unsigned get_axiom_base_id(symbol const& s) { return m_axiom_bases[s]; }
             util & u() const;
 
-            bool has_nested_arrays() const { return m_has_nested_arrays; }
+            bool has_nested_rec() const { return m_has_nested_rec; }
 
         private:
-            bool is_value_visit(expr * arg, ptr_buffer<app> & todo) const;
+            bool is_value_visit(bool unique, expr * arg, ptr_buffer<app> & todo) const;
+            bool is_value_aux(bool unique, app * arg) const;
         
             func_decl * mk_update_field(
                 unsigned num_parameters, parameter const * parameters, 
@@ -324,6 +326,7 @@ namespace datatype {
         bool is_covariant(ast_mark& mark, ptr_vector<sort>& subsorts, sort* s) const;
         def& get_def(symbol const& s) { return plugin().get_def(s); }        
         void get_subsorts(sort* s, ptr_vector<sort>& sorts) const;        
+        symbol datatype_name(sort* s) const { return s->get_parameter(0).get_symbol(); }
 
     public:
         util(ast_manager & m);
@@ -333,6 +336,7 @@ namespace datatype {
         bool is_datatype(sort const* s) const { return is_sort_of(s, fid(), DATATYPE_SORT); }
         bool is_enum_sort(sort* s);
         bool is_recursive(sort * ty);
+        bool is_recursive_nested(sort * ty);
         bool is_constructor(func_decl * f) const { return is_decl_of(f, fid(), OP_DT_CONSTRUCTOR); }
         bool is_recognizer(func_decl * f) const { return is_recognizer0(f) || is_is(f); }
         bool is_recognizer0(func_decl * f) const { return is_decl_of(f, fid(), OP_DT_RECOGNISER); }
@@ -363,7 +367,7 @@ namespace datatype {
         func_decl * get_accessor_constructor(func_decl * accessor);
         func_decl * get_recognizer_constructor(func_decl * recognizer) const;
         func_decl * get_update_accessor(func_decl * update) const;
-        bool has_nested_arrays() const { return plugin().has_nested_arrays(); }
+        bool has_nested_rec() const { return plugin().has_nested_rec(); }
         family_id get_family_id() const { return fid(); }
         decl::plugin& plugin() const;
         bool are_siblings(sort * s1, sort * s2);

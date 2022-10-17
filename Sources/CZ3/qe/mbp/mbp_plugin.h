@@ -43,6 +43,7 @@ namespace mbp {
         expr_mark        m_non_ground;
         expr_ref_vector  m_cache, m_args, m_pure_eqs;
 
+        bool reduce(model_evaluator& eval, model& model, expr* fml, expr_ref_vector& fmls);
         void extract_bools(model_evaluator& eval, expr_ref_vector& fmls, unsigned i, expr* fml, bool is_true);
         void visit_app(expr* e);
         bool visit_ite(model_evaluator& eval, expr* e, expr_ref_vector& fmls);
@@ -58,7 +59,7 @@ namespace mbp {
 
     public:
         project_plugin(ast_manager& m) :m(m), m_cache(m), m_args(m), m_pure_eqs(m) {}
-        virtual ~project_plugin() {}
+        virtual ~project_plugin() = default;
         virtual bool operator()(model& model, app* var, app_ref_vector& vars, expr_ref_vector& lits) { return false; }
         /**
            \brief partial solver.
@@ -66,7 +67,7 @@ namespace mbp {
         virtual bool solve(model& model, app_ref_vector& vars, expr_ref_vector& lits) { return false; }
         virtual family_id get_family_id() { return null_family_id; }
 
-        virtual void operator()(model& model, app_ref_vector& vars, expr_ref_vector& lits) { };
+        virtual bool operator()(model& model, app_ref_vector& vars, expr_ref_vector& lits) { return false; };
 
         /**
            \brief project vars modulo model, return set of definitions for eliminated variables.
@@ -75,7 +76,7 @@ namespace mbp {
            - returns set of definitions
              (TBD: in triangular form, the last definition can be substituted into definitions that come before)
         */
-        virtual vector<def> project(model& model, app_ref_vector& vars, expr_ref_vector& lits) { return vector<def>(); }
+        virtual bool project(model& model, app_ref_vector& vars, expr_ref_vector& lits, vector<def>& defs) { return true; }
 
         /**
            \brief model based saturation. Saturates theory axioms to equi-satisfiable literals over EUF,

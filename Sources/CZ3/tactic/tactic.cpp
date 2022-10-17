@@ -52,6 +52,7 @@ struct tactic_report::imp {
                    << " :before-memory " << std::fixed << std::setprecision(2) << m_start_memory
                    << " :after-memory " << std::fixed << std::setprecision(2) << end_memory
                    << ")" << std::endl);
+        IF_VERBOSE(20, m_goal.display(verbose_stream() << m_id << "\n"));
         SASSERT(m_goal.is_well_formed());
     }
 };
@@ -89,6 +90,8 @@ public:
     }
 
     void cleanup() override {}
+
+    char const* name() const override { return "fail"; }
 
     tactic * translate(ast_manager & m) override { return this; }
 };
@@ -181,8 +184,7 @@ lbool check_sat(tactic & t, goal_ref & g, model_ref & md, labels_vec & labels, p
     if (r.size() > 0) {
         pr = r[0]->pr(0);
         CTRACE("tactic", pr, tout << pr << "\n";);
-    }
-    
+    }    
 
     if (is_decided_sat(r)) {
         model_converter_ref mc = r[0]->mc();            
@@ -214,7 +216,9 @@ lbool check_sat(tactic & t, goal_ref & g, model_ref & md, labels_vec & labels, p
             if (mc)
                 (*mc)(labels);
         }
-        reason_unknown = "incomplete";
+        reason_unknown = get_reason_unknown(r);
+        if (reason_unknown.empty())
+            reason_unknown = "unknown";
         return l_undef;
     }
 }

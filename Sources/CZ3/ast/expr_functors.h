@@ -27,14 +27,14 @@ Revision History:
 class i_expr_pred {
 public:
     virtual bool operator()(expr* e) = 0;
-    virtual ~i_expr_pred() {}
+    virtual ~i_expr_pred() = default;
 };
 
 
 class i_sort_pred {
 public:
     virtual bool operator()(sort* s) = 0;
-    virtual ~i_sort_pred() {}
+    virtual ~i_sort_pred() = default;
 };
 
 
@@ -91,7 +91,7 @@ public:
     }
     
     bool operator()(expr_ref_vector const& v) {
-        return (*this)(v.size(), v.c_ptr());
+        return (*this)(v.size(), v.data());
     }
     
     bool operator()(unsigned size, expr* const* es);

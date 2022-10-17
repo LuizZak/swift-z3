@@ -49,6 +49,14 @@ namespace arith {
         }
     }
 
+    void solver::mk_abs_axiom(app* n) {
+        expr* x = nullptr;
+        VERIFY(a.is_abs(n, x));
+        literal is_nonneg = mk_literal(a.mk_ge(x, a.mk_numeral(rational::zero(), n->get_sort())));
+        add_clause(~is_nonneg, eq_internalize(n, x));
+        add_clause(is_nonneg, eq_internalize(n, a.mk_uminus(x)));
+    }
+
     // t = n^0
     void solver::mk_power0_axioms(app* t, app* n) {
         expr_ref p0(a.mk_power0(n, t->get_arg(1)), m);
@@ -120,6 +128,22 @@ namespace arith {
         }
         else {
 
+
+            expr_ref mone(a.mk_int(-1), m);
+            expr_ref abs_q(m.mk_ite(a.mk_ge(q, zero), q, a.mk_uminus(q)), m);
+            literal eqz = mk_literal(m.mk_eq(q, zero));
+            literal mod_ge_0 = mk_literal(a.mk_ge(mod, zero));
+            literal mod_lt_q = mk_literal(a.mk_le(a.mk_sub(mod, abs_q), mone));
+            
+            // q = 0 or p = (p mod q) + q * (p div q)
+            // q = 0 or (p mod q) >= 0
+            // q = 0 or (p mod q) < abs(q)
+
+            add_clause(eqz, eq);
+            add_clause(eqz, mod_ge_0);
+            add_clause(eqz, mod_lt_q);
+
+#if 0
             /*literal div_ge_0   = */ mk_literal(a.mk_ge(div, zero));
             /*literal div_le_0   = */ mk_literal(a.mk_le(div, zero));
             /*literal p_ge_0     = */ mk_literal(a.mk_ge(p, zero));
@@ -131,6 +155,8 @@ namespace arith {
             // q <= 0 or (p mod q) >= 0
             // q <= 0 or (p mod q) <  q
             // q >= 0 or (p mod q) < -q
+
+
             literal q_ge_0 = mk_literal(a.mk_ge(q, zero));
             literal q_le_0 = mk_literal(a.mk_le(q, zero));
 
@@ -140,6 +166,17 @@ namespace arith {
             add_clause(q_le_0, mod_ge_0);
             add_clause(q_le_0, ~mk_literal(a.mk_ge(a.mk_sub(mod, q), zero)));
             add_clause(q_ge_0, ~mk_literal(a.mk_ge(a.mk_add(mod, q), zero)));
+#endif
+            
+            if (a.is_zero(p)) {
+                add_clause(eqz, mk_literal(m.mk_eq(mod, zero)));
+                add_clause(eqz, mk_literal(m.mk_eq(div, zero)));
+            }
+            else if (!a.is_numeral(q)) {
+                // (or (= y 0)  (<= (* y (div x y)) x))
+                add_clause(eqz, mk_literal(a.mk_le(a.mk_mul(q, div), p)));
+            }
+
 
         }
         if (get_config().m_arith_enum_const_mod && k.is_pos() && k < rational(8)) {
@@ -214,6 +251,17 @@ namespace arith {
         if (hi_sup != end) mk_bound_axiom(b, *hi_sup);
     }
 
+    void solver::add_farkas_clause(sat::literal l1, sat::literal l2) {
+        arith_proof_hint* bound_params = nullptr;
+        if (ctx.use_drat()) {
+            m_arith_hint.set_type(ctx, hint_type::farkas_h);
+            m_arith_hint.add_lit(rational(1), ~l1);
+            m_arith_hint.add_lit(rational(1), ~l2);
+            bound_params = m_arith_hint.mk(ctx);
+        }
+        add_clause(l1, l2, bound_params);
+    }
+
     void solver::mk_bound_axiom(api_bound& b1, api_bound& b2) {
         literal   l1(b1.get_lit());
         literal   l2(b2.get_lit());
@@ -226,44 +274,45 @@ namespace arith {
         if (k1 == k2 && kind1 == kind2) return;
         SASSERT(k1 != k2 || kind1 != kind2);
 
+        
         if (kind1 == lp_api::lower_t) {
             if (kind2 == lp_api::lower_t) {
                 if (k2 <= k1)
-                    add_clause(~l1, l2);
+                    add_farkas_clause(~l1, l2);
                 else
-                    add_clause(l1, ~l2);
+                    add_farkas_clause(l1, ~l2);
             }
             else if (k1 <= k2)
                 // k1 <= k2, k1 <= x or x <= k2
-                add_clause(l1, l2);
+                add_farkas_clause(l1, l2);
             else {
                 // k1 > hi_inf, k1 <= x => ~(x <= hi_inf)
-                add_clause(~l1, ~l2);
+                add_farkas_clause(~l1, ~l2);
                 if (v_is_int && k1 == k2 + rational(1))
                     // k1 <= x or x <= k1-1
-                    add_clause(l1, l2);
+                    add_farkas_clause(l1, l2);
             }
         }
         else if (kind2 == lp_api::lower_t) {
             if (k1 >= k2)
                 // k1 >= lo_inf, k1 >= x or lo_inf <= x
-                add_clause(l1, l2);
+                add_farkas_clause(l1, l2);
             else {
                 // k1 < k2, k2 <= x => ~(x <= k1)
-                add_clause(~l1, ~l2);
+                add_farkas_clause(~l1, ~l2);
                 if (v_is_int && k1 == k2 - rational(1))
                     // x <= k1 or k1+l <= x
-                    add_clause(l1, l2);
+                    add_farkas_clause(l1, l2);
             }
         }
         else {
             // kind1 == A_UPPER, kind2 == A_UPPER
             if (k1 >= k2)
                 // k1 >= k2, x <= k2 => x <= k1
-                add_clause(l1, ~l2);
+                add_farkas_clause(l1, ~l2);
             else
                 // k1 <= hi_sup , x <= k1 =>  x <= hi_sup
-                add_clause(~l1, l2);
+                add_farkas_clause(~l1, l2);
         }
     }
 
@@ -331,6 +380,8 @@ namespace arith {
     }
 
     void solver::new_diseq_eh(euf::th_eq const& e) {
+        ensure_column(e.v1());
+        ensure_column(e.v2());
         m_delayed_eqs.push_back(std::make_pair(e, false));
         ctx.push(push_back_vector<svector<std::pair<euf::th_eq, bool>>>(m_delayed_eqs));
     }
@@ -371,9 +422,9 @@ namespace arith {
             ge = mk_literal(a.mk_ge(diff, zero));
         }
         ++m_stats.m_assert_diseq;  
-        add_clause(~eq, le);
-        add_clause(~eq, ge);
-        add_clause(~le, ~ge, eq);
+        add_farkas_clause(~eq, le);
+        add_farkas_clause(~eq, ge);
+        add_clause(~le, ~ge, eq, explain_trichotomy(le, ge, eq));
     }
 
 
@@ -415,15 +466,8 @@ namespace arith {
             expr* n = m_idiv_terms[i];
             expr* p = nullptr, * q = nullptr;
             VERIFY(a.is_idiv(n, p, q));
-            euf::enode* np = ctx.get_enode(p);
-            euf::enode* nn = ctx.get_enode(n);
-            if (!np || !np->is_attached_to(get_id()))
-                continue;
-            if (!nn || !nn->is_attached_to(get_id()))
-                continue;
-            theory_var v1 = mk_evar(p);
-            if (!is_registered_var(v1))
-                continue;
+            theory_var v1 = internalize_def(p);
+            ensure_column(v1);
             lp::impq r1 = get_ivalue(v1);
             rational r2;
 
@@ -442,9 +486,7 @@ namespace arith {
                     TRACE("arith", tout << "unbounded " << expr_ref(n, m) << "\n";);
                     continue;
                 }
-                theory_var v = mk_evar(n);
-                if (!is_registered_var(v))
-                    continue;
+                theory_var v = internalize_def(n);
                 lp::impq val_v = get_ivalue(v);
                 if (val_v.y.is_zero() && val_v.x == div(r1.x, r2)) continue;
 
@@ -481,5 +523,28 @@ namespace arith {
 
         return all_divs_valid;
     }
+
+    void solver::fixed_var_eh(theory_var v, lp::constraint_index ci1, lp::constraint_index ci2, rational const& bound) {
+        theory_var w = euf::null_theory_var;
+        enode* x = var2enode(v);
+        if (bound.is_zero()) 
+            w = lp().local_to_external(get_zero(a.is_int(x->get_expr())));
+        else if (bound.is_one())
+            w = lp().local_to_external(get_one(a.is_int(x->get_expr())));
+        else if (!m_value2var.find(bound, w))
+            return;
+        enode* y = var2enode(w);
+        if (x->get_sort() != y->get_sort())
+            return;
+        if (x->get_root() == y->get_root())
+            return;
+        reset_evidence();
+        set_evidence(ci1);
+        set_evidence(ci2);
+        ++m_stats.m_fixed_eqs;
+        auto* jst = euf::th_explain::propagate(*this, m_core, m_eqs, x, y);
+        ctx.propagate(x, y, jst->to_index());
+    }
+
 
 }

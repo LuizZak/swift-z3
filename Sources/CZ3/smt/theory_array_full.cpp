@@ -181,6 +181,17 @@ namespace smt {
         }
     }
 
+    void theory_array_full::add_lambda(theory_var v, enode* lam) {
+        var_data * d  = m_var_data[v];
+        unsigned lambda_equiv_class_size = get_lambda_equiv_size(v, d);
+        if (m_params.m_array_always_prop_upward || lambda_equiv_class_size >= 1) 
+            set_prop_upward(v, d);
+        ptr_vector<enode> & lambdas = m_var_data_full[v]->m_lambdas;
+        m_trail_stack.push(push_back_trail<enode *, false>(lambdas));
+        lambdas.push_back(lam);
+        instantiate_default_lambda_def_axiom(lam);        
+    }
+
     void theory_array_full::add_as_array(theory_var v, enode* arr) {
         var_data * d  = m_var_data[v];
         unsigned lambda_equiv_class_size = get_lambda_equiv_size(v, d);
@@ -210,11 +221,11 @@ namespace smt {
         theory_array::display_var(out, v);
         var_data_full const * d = m_var_data_full[v];
         out << " maps: {";
-        display_ids(out, d->m_maps.size(), d->m_maps.c_ptr());
+        display_ids(out, d->m_maps.size(), d->m_maps.data());
         out << "} p_parent_maps: {";
-        display_ids(out, d->m_parent_maps.size(), d->m_parent_maps.c_ptr());
+        display_ids(out, d->m_parent_maps.size(), d->m_parent_maps.data());
         out << "} p_const: {";
-        display_ids(out, d->m_consts.size(), d->m_consts.c_ptr());
+        display_ids(out, d->m_consts.size(), d->m_consts.data());
         out << "}\n";
     }
     
@@ -237,6 +248,10 @@ namespace smt {
         else if (is_as_array(n)) {
             instantiate_default_as_array_axiom(n);
             d->m_as_arrays.push_back(n);
+        }
+        else if (m.is_lambda_def(n->get_decl())) {
+            instantiate_default_lambda_def_axiom(n);
+            d->m_lambdas.push_back(n);
         }
         return r;
     }
@@ -315,7 +330,8 @@ namespace smt {
             // Even if there was, as-array on interpreted 
             // functions will be incomplete.
             // The instantiation operations are still sound to include.
-            found_unsupported_op(n);
+            m_as_array.push_back(node);
+            ctx.push_trail(push_back_vector(m_as_array));
             instantiate_default_as_array_axiom(node);
         }
         else if (is_array_ext(n)) {
@@ -331,18 +347,16 @@ namespace smt {
         // v1 is the new root
         SASSERT(v1 == find(v1));
         var_data_full * d2 = m_var_data_full[v2];
-        for (enode * n : d2->m_maps) {
+        for (enode * n : d2->m_maps) 
             add_map(v1, n);
-        }
-        for (enode * n : d2->m_parent_maps) {
+        for (enode * n : d2->m_parent_maps) 
             add_parent_map(v1, n);
-        }
-        for (enode * n : d2->m_consts) {
+        for (enode * n : d2->m_consts) 
             add_const(v1, n);
-        }
-        for (enode * n : d2->m_as_arrays) {
+        for (enode * n : d2->m_as_arrays) 
             add_as_array(v1, n);
-        }
+        for (enode* n : d2->m_lambdas)
+            add_lambda(v1, n);
         TRACE("array", 
               tout << pp(get_enode(v1), m) << "\n";
               tout << pp(get_enode(v2), m) << "\n";
@@ -486,13 +500,13 @@ namespace smt {
             args1.push_back(arg);
         }
         for (unsigned j = 0; j < num_arrays; ++j) {
-            expr* sel = mk_select(args2l[j].size(), args2l[j].c_ptr());
+            expr* sel = mk_select(args2l[j].size(), args2l[j].data());
             args2.push_back(sel);
         }
 
         expr_ref sel1(m), sel2(m);
-        sel1 = mk_select(args1.size(), args1.c_ptr());
-        sel2 = m.mk_app(f, args2.size(), args2.c_ptr());
+        sel1 = mk_select(args1.size(), args1.data());
+        sel2 = m.mk_app(f, args2.size(), args2.data());
         ctx.get_rewriter()(sel2);
         ctx.internalize(sel1, false);
         ctx.internalize(sel2, false);
@@ -528,7 +542,7 @@ namespace smt {
             args2.push_back(mk_default(arg));
         }
 
-        expr_ref def2(m.mk_app(f, args2.size(), args2.c_ptr()), m);
+        expr_ref def2(m.mk_app(f, args2.size(), args2.data()), m);
         ctx.get_rewriter()(def2);
         expr* def1 = mk_default(map);
         ctx.internalize(def1, false);
@@ -576,6 +590,34 @@ namespace smt {
         return try_assign_eq(val.get(), def);
 #endif
     }
+
+    bool theory_array_full::instantiate_default_lambda_def_axiom(enode* arr) {
+        if (!ctx.add_fingerprint(this, m_default_lambda_fingerprint, 1, &arr))
+            return false;
+        m_stats.m_num_default_lambda_axiom++;
+        expr* e = arr->get_expr();
+        expr* def = mk_default(e);
+        quantifier* lam = m.is_lambda_def(arr->get_decl());
+        TRACE("array", tout << mk_pp(lam, m) << "\n" << mk_pp(e, m) << "\n");
+        expr_ref_vector args(m);       
+        var_subst subst(m, false);
+        args.push_back(subst(lam, to_app(e)->get_num_args(), to_app(e)->get_args()));
+        for (unsigned i = 0; i < lam->get_num_decls(); ++i) 
+            args.push_back(mk_epsilon(lam->get_decl_sort(i)).first);
+        expr_ref val(mk_select(args), m);
+        ctx.get_rewriter()(val);
+        if (has_quantifiers(val)) {
+            expr_ref fn(m.mk_fresh_const("lambda-body", val->get_sort()), m);
+            expr_ref eq(m.mk_eq(fn, val), m);
+            ctx.assert_expr(eq);
+            ctx.internalize_assertions();
+            val = fn;
+        }
+        ctx.internalize(def, false);
+        ctx.internalize(val.get(), false);
+        return try_assign_eq(val.get(), def);
+    }
+
 
     bool theory_array_full::has_unitary_domain(app* array_term) {
         SASSERT(is_array_sort(array_term));
@@ -630,7 +672,7 @@ namespace smt {
         for (unsigned short i = 1; i < num_args; ++i) {
             sel_args.push_back(select->get_expr()->get_arg(i));
         }
-        expr * sel = mk_select(sel_args.size(), sel_args.c_ptr());
+        expr * sel = mk_select(sel_args.size(), sel_args.data());
         expr * val = cnst->get_expr()->get_arg(0);
         TRACE("array", tout << "new select-const axiom...\n";
               tout << "const: " << mk_bounded_pp(cnst->get_expr(), m) << "\n";
@@ -664,9 +706,9 @@ namespace smt {
         for (unsigned short i = 1; i < num_args; ++i) {
             sel_args.push_back(select->get_expr()->get_arg(i));
         }
-        expr * sel = mk_select(sel_args.size(), sel_args.c_ptr());
+        expr * sel = mk_select(sel_args.size(), sel_args.data());
         func_decl * f = array_util(m).get_as_array_func_decl(arr->get_expr());
-        expr_ref val(m.mk_app(f, sel_args.size()-1, sel_args.c_ptr()+1), m);
+        expr_ref val(m.mk_app(f, sel_args.size()-1, sel_args.data()+1), m);
         TRACE("array", tout << "new select-as-array axiom...\n";
               tout << "as-array: " << mk_bounded_pp(arr->get_expr(), m) << "\n";
               tout << "select: " << mk_bounded_pp(select->get_expr(), m) << "\n";
@@ -710,28 +752,28 @@ namespace smt {
             // let A = store(B, i, v)
             // 
             // Add:
-            //   default(A) = ite(epsilon1 = i, v, default(B))
-            //   A[diag(i)] = B[diag(i)]
-            // 
-            expr_ref_vector eqs(m);
+            //  default(A) = A[epsilon]
+            //  default(B) = B[epsilon]
+            //
+            //
             expr_ref_vector args1(m), args2(m);
-            args1.push_back(store_app->get_arg(0));
-            args2.push_back(store_app);
+            args1.push_back(store_app);
+            args2.push_back(store_app->get_arg(0));
 
             for (unsigned i = 1; i + 1 < num_args; ++i) {
                 expr* arg = store_app->get_arg(i);
                 sort* srt = arg->get_sort();
                 auto ep = mk_epsilon(srt);
-                eqs.push_back(m.mk_eq(ep.first, arg));
-                args1.push_back(m.mk_app(ep.second, arg));
-                args2.push_back(m.mk_app(ep.second, arg));
+                args1.push_back(ep.first);
+                args2.push_back(ep.first);
             }            
-            expr_ref eq(mk_and(eqs), m);
-            def2 = m.mk_ite(eq, store_app->get_arg(num_args-1), def2);             
             app_ref sel1(m), sel2(m);
             sel1 = mk_select(args1);
             sel2 = mk_select(args2);
-            is_new = try_assign_eq(sel1, sel2);
+            ctx.internalize(def1, false);
+            ctx.internalize(def2, false);
+            is_new = try_assign_eq(def1, sel1) || try_assign_eq(def2, sel2);
+            return is_new;
         }
 
         ctx.internalize(def1, false);
@@ -774,11 +816,23 @@ namespace smt {
         if (r == FC_DONE && m_bapa) {
             r = m_bapa->final_check();
         }
-        bool should_giveup = m_found_unsupported_op || has_propagate_up_trail();
+        bool should_giveup = m_found_unsupported_op || has_propagate_up_trail() || has_non_beta_as_array();
         if (r == FC_DONE && should_giveup)
             r = FC_GIVEUP;
         return r;
     }
+
+    bool theory_array_full::has_non_beta_as_array() {
+        for (enode* n : m_as_array) {
+            for (enode* p : n->get_parents())
+                if (!ctx.is_beta_redex(p, n)) {
+                    TRACE("array", tout << "not a beta redex " << enode_pp(p, ctx) << "\n");
+                    return true;
+                }
+        }
+        return false;
+    }
+
 
     bool theory_array_full::instantiate_parent_stores_default(theory_var v) {
         SASSERT(v != null_theory_var);
@@ -829,5 +883,6 @@ namespace smt {
         st.update("array def store", m_stats.m_num_default_store_axiom);
         st.update("array def as-array", m_stats.m_num_default_as_array_axiom);
         st.update("array sel as-array", m_stats.m_num_select_as_array_axiom);
+        st.update("array def lambda", m_stats.m_num_default_lambda_axiom);
     }
 }

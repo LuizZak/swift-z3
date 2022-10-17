@@ -70,7 +70,7 @@ public:
     void collect_statistics(statistics & st) const override;
     void get_unsat_core(expr_ref_vector & r) override;
     void get_model_core(model_ref & m) override;
-    proof * get_proof() override;
+    proof * get_proof_core() override;
     std::string reason_unknown() const override;
     void set_reason_unknown(char const* msg) override;
     void get_labels(svector<symbol> & r) override {}
@@ -83,6 +83,47 @@ public:
     phase* get_phase() override { return nullptr; }
     void set_phase(phase* p) override { }
     void move_to_front(expr* e) override { }
+
+    void user_propagate_init(
+        void* ctx,
+        user_propagator::push_eh_t& push_eh,
+        user_propagator::pop_eh_t& pop_eh,
+        user_propagator::fresh_eh_t& fresh_eh) override {
+        m_tactic->user_propagate_init(ctx, push_eh, pop_eh, fresh_eh);
+    }
+
+    void user_propagate_register_fixed(user_propagator::fixed_eh_t& fixed_eh) override {
+        m_tactic->user_propagate_register_fixed(fixed_eh);
+    }
+
+    void user_propagate_register_final(user_propagator::final_eh_t& final_eh) override {
+        m_tactic->user_propagate_register_final(final_eh);
+    }
+
+    void user_propagate_register_eq(user_propagator::eq_eh_t& eq_eh) override {
+        m_tactic->user_propagate_register_eq(eq_eh);
+    }
+
+    void user_propagate_register_diseq(user_propagator::eq_eh_t& diseq_eh) override {
+        m_tactic->user_propagate_register_diseq(diseq_eh);
+    }
+
+    void user_propagate_register_expr(expr* e) override {
+        m_tactic->user_propagate_register_expr(e);
+    }
+
+    void user_propagate_register_created(user_propagator::created_eh_t& created_eh) override {
+        m_tactic->user_propagate_register_created(created_eh);
+    }
+
+    void user_propagate_register_decide(user_propagator::decide_eh_t& decide_eh) override {
+        m_tactic->user_propagate_register_decide(decide_eh);
+    }
+
+    void user_propagate_clear() override {
+        if (m_tactic)
+            m_tactic->user_propagate_clear();
+    }
 
 
     expr_ref_vector cube(expr_ref_vector& vars, unsigned ) override {
@@ -97,7 +138,7 @@ public:
         throw default_exception("cannot retrieve depth from solvers created using tactics");
     }
 
-    expr_ref_vector get_trail() override {
+    expr_ref_vector get_trail(unsigned max_level) override {
         throw default_exception("cannot retrieve trail from solvers created using tactics");
     }
 };
@@ -120,6 +161,7 @@ tactic2solver::tactic2solver(ast_manager & m, tactic * t, params_ref const & p, 
 }
 
 tactic2solver::~tactic2solver() {
+    user_propagate_clear();
 }
 
 void tactic2solver::updt_params(params_ref const & p) {
@@ -229,7 +271,7 @@ lbool tactic2solver::check_sat_core2(unsigned num_assumptions, expr * const * as
     if (m_produce_unsat_cores) {
         ptr_vector<expr> core_elems;
         m.linearize(core, core_elems);
-        m_result->m_core.append(core_elems.size(), core_elems.c_ptr());
+        m_result->m_core.append(core_elems.size(), core_elems.data());
     }
     m_tactic->cleanup();
     return m_result->status();
@@ -269,9 +311,9 @@ void tactic2solver::get_model_core(model_ref & m) {
     }
 }
 
-proof * tactic2solver::get_proof() {
+proof * tactic2solver::get_proof_core() {
     if (m_result.get())
-        return m_result->get_proof();
+        return m_result->get_proof_core();
     else
         return nullptr;
 }
@@ -315,9 +357,7 @@ class tactic2solver_factory : public solver_factory {
 public:
     tactic2solver_factory(tactic * t):m_tactic(t) {
     }
-    
-    ~tactic2solver_factory() override {}
-    
+
     solver * operator()(ast_manager & m, params_ref const & p, bool proofs_enabled, bool models_enabled, bool unsat_core_enabled, symbol const & logic) override {
         return mk_tactic2solver(m, m_tactic.get(), p, proofs_enabled, models_enabled, unsat_core_enabled, logic);
     }

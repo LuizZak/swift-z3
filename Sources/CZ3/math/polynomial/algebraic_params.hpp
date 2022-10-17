@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __ALGEBRAIC_PARAMS_HPP_
-#define __ALGEBRAIC_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct algebraic_params {
@@ -27,4 +26,3 @@ struct algebraic_params {
   unsigned factor_num_primes() const { return p.get_uint("factor_num_primes", g, 1u); }
   unsigned factor_search_size() const { return p.get_uint("factor_search_size", g, 5000u); }
 };
-#endif

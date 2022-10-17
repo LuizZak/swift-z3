@@ -29,8 +29,7 @@ namespace smt {
         void mark_as_relevant(relevancy_propagator & rp, expr * n);
         void mark_args_as_relevant(relevancy_propagator & rp, app * n);
     public:
-        relevancy_eh() {}
-        virtual ~relevancy_eh() {}
+        virtual ~relevancy_eh() = default;
         /**
            \brief This method is invoked when n is marked as relevant.
         */
@@ -49,7 +48,6 @@ namespace smt {
         expr * m_target;
     public:
         simple_relevancy_eh(expr * t):m_target(t) {}
-        ~simple_relevancy_eh() override {}
         void operator()(relevancy_propagator & rp) override;
     };
     
@@ -62,7 +60,6 @@ namespace smt {
         expr * m_target;
     public:
         pair_relevancy_eh(expr * s1, expr * s2, expr * t):m_source1(s1), m_source2(s2), m_target(t) {}
-        ~pair_relevancy_eh() override {}
         void operator()(relevancy_propagator & rp) override;
     };
 
@@ -90,7 +87,7 @@ namespace smt {
         context & m_context;
     public:
         relevancy_propagator(context & ctx);
-        virtual ~relevancy_propagator() {}
+        virtual ~relevancy_propagator() = default;
 
         context & get_context() { return m_context; }
 
@@ -172,12 +169,12 @@ namespace smt {
         bool enabled() const;
 
         /**
-           \Brief Return the region allocator for the smt::context that owns this propagator.
+           \brief Return the region allocator for the smt::context that owns this propagator.
         */
         region & get_region() const;
 
         /**
-           \Brief Return the ast_manager for the smt::context that owns this propagator.
+           \brief Return the ast_manager for the smt::context that owns this propagator.
         */
         ast_manager & get_manager() const;
         

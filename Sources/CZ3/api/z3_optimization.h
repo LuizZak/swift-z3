@@ -28,10 +28,10 @@ extern "C" {
 #endif // __cplusplus
 
     /** \defgroup capi C API */
-    /*@{*/
+    /**@{*/
 
     /** @name Optimization facilities */
-    /*@{*/
+    /**@{*/
     /**
        \brief Create a new optimize context.
 
@@ -82,7 +82,7 @@ extern "C" {
        \param c - context
        \param o - optimization context
        \param a - formula
-       \param weight - a positive weight, penalty for violating soft constraint
+       \param weight - a penalty for violating soft constraint. Negative weights convert into rewards.
        \param id - optional identifier to group soft constraints
 
        \sa Z3_optimize_assert
@@ -151,7 +151,7 @@ extern "C" {
        \sa Z3_optimize_get_statistics
        \sa Z3_optimize_get_unsat_core
 
-       def_API('Z3_optimize_check', INT, (_in(CONTEXT), _in(OPTIMIZE), _in(UINT), _in_array(2, AST)))
+       def_API('Z3_optimize_check', LBOOL, (_in(CONTEXT), _in(OPTIMIZE), _in(UINT), _in_array(2, AST)))
     */
     Z3_lbool Z3_API Z3_optimize_check(Z3_context c, Z3_optimize o, unsigned num_assumptions, Z3_ast const assumptions[]);
 
@@ -368,8 +368,8 @@ extern "C" {
         Z3_model_eh  model_eh);
 
 
-    /*@}*/
-    /*@}*/
+    /**@}*/
+    /**@}*/
 
 #ifdef __cplusplus
 }

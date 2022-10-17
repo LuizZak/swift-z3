@@ -51,7 +51,6 @@ public:
     result operator()(goal const & g) override {
         return is_unbounded(g);
     }
-    ~is_unbounded_probe() override {}
 };
 
 probe * mk_is_unbounded_probe() {
@@ -145,10 +144,12 @@ public:
     ~add_bounds_tactic() override {
         dealloc(m_imp);
     }
+
+    char const* name() const override { return "add_bounds"; }
     
     void updt_params(params_ref const & p) override {
-        m_params = p;
-        m_imp->updt_params(p);
+        m_params.append(p);
+        m_imp->updt_params(m_params);
     }
 
     void collect_param_descrs(param_descrs & r) override {

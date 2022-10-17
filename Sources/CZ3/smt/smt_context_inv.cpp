@@ -263,7 +263,7 @@ namespace smt {
     */
     bool context::check_th_diseq_propagation() const {
         TRACE("check_th_diseq_propagation", tout << "m_propagated_th_diseqs.size() " << m_propagated_th_diseqs.size() << "\n";);
-        int num = get_num_bool_vars();
+        unsigned num = get_num_bool_vars();
         if (inconsistent() || get_manager().limit().is_canceled()) {
             return true;
         }
@@ -371,7 +371,7 @@ namespace smt {
             case l_true:
                 if (!m_proto_model->eval(n, res, false)) 
                     return true;
-                CTRACE("model", !m.is_true(res), tout << n << " evaluates to " << res << "\n";); 
+                CTRACE("model", !m.is_true(res), tout << n << " evaluates to " << res << "\n" << *m_proto_model << "\n";); 
                 if (m.is_false(res)) {
                     return false;
                 }
@@ -379,7 +379,7 @@ namespace smt {
             case l_false:
                 if (!m_proto_model->eval(n, res, false)) 
                     return true;
-                CTRACE("model", !m.is_false(res), tout << n << " evaluates to " << res << "\n";); 
+                CTRACE("model", !m.is_false(res), tout << n << " evaluates to " << res << "\n" << *m_proto_model << "\n";); 
                 if (m.is_true(res)) {
                     return false;
                 }

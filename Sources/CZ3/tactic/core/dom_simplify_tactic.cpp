@@ -182,6 +182,7 @@ tactic * dom_simplify_tactic::translate(ast_manager & m) {
     return alloc(dom_simplify_tactic, m, m_simplifier->translate(m), m_params);
 }
 
+
 void dom_simplify_tactic::operator()(goal_ref const & in, goal_ref_buffer & result) {
     tactic_report report("dom-simplify", *in.get());
     simplify_goal(*(in.get()));
@@ -290,7 +291,7 @@ expr_ref dom_simplify_tactic::simplify_rec(expr * e0) {
                 // for fn applications.
                 m_args.push_back(m.is_bool(arg) ? arg : simplify_arg(arg));
             }
-            r = m.mk_app(to_app(e)->get_decl(), m_args.size(), m_args.c_ptr());
+            r = m.mk_app(to_app(e)->get_decl(), m_args.size(), m_args.data());
         }
         else {
             r = e;
@@ -540,7 +541,6 @@ class expr_substitution_simplifier : public dom_simplifier {
 
 public:
     expr_substitution_simplifier(ast_manager& m): m(m), m_subst(m), m_scoped_substitution(m_subst), m_trail(m) {}
-    ~expr_substitution_simplifier() override {}
 
     bool assert_expr(expr * t, bool sign) override {
         expr* tt;

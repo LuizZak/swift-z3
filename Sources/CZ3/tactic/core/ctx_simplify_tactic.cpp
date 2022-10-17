@@ -32,7 +32,6 @@ class ctx_propagate_assertions : public ctx_simplify_tactic::simplifier {
     void assert_eq_core(expr * t, app * val);
 public:
     ctx_propagate_assertions(ast_manager& m);
-    ~ctx_propagate_assertions() override {}
     bool assert_expr(expr * t, bool sign) override;
     bool simplify(expr* t, expr_ref& result) override;
     void push();
@@ -420,8 +419,8 @@ struct ctx_simplify_tactic::imp {
             r = new_new_args[0];
         }
         else {
-            std::reverse(new_new_args.c_ptr(), new_new_args.c_ptr() + new_new_args.size());
-            m_mk_app(t->get_decl(), new_new_args.size(), new_new_args.c_ptr(), r);
+            std::reverse(new_new_args.data(), new_new_args.data() + new_new_args.size());
+            m_mk_app(t->get_decl(), new_new_args.size(), new_new_args.data(), r);
         }
         cache(t, r);
     }
@@ -495,7 +494,7 @@ struct ctx_simplify_tactic::imp {
             r     = t;
         }
         else {
-            m_mk_app(t->get_decl(), new_args.size(), new_args.c_ptr(), r);
+            m_mk_app(t->get_decl(), new_args.size(), new_args.data(), r);
         }
     }
 
@@ -605,8 +604,8 @@ ctx_simplify_tactic::~ctx_simplify_tactic() {
 }
 
 void ctx_simplify_tactic::updt_params(params_ref const & p) {
-    m_params = p;
-    m_imp->updt_params(p);
+    m_params.append(p);
+    m_imp->updt_params(m_params);
 }
 
 void ctx_simplify_tactic::get_param_descrs(param_descrs & r) {

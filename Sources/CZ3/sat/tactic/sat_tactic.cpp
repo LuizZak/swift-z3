@@ -20,6 +20,7 @@ Notes:
 #include "model/model_v2_pp.h"
 #include "tactic/tactical.h"
 #include "sat/tactic/goal2sat.h"
+#include "sat/tactic/sat2goal.h"
 #include "sat/sat_solver.h"
 #include "sat/sat_params.hpp"
 
@@ -29,7 +30,7 @@ class sat_tactic : public tactic {
         ast_manager &   m;
         goal2sat        m_goal2sat;
         sat2goal        m_sat2goal;
-        scoped_ptr<sat::solver_core>   m_solver;
+        scoped_ptr<sat::solver> m_solver;
         params_ref      m_params;
         
         imp(ast_manager & _m, params_ref const & p):
@@ -56,6 +57,12 @@ class sat_tactic : public tactic {
                   for (func_decl* f : funs) 
                       tout << mk_ismt2_pp(f, m) << "\n";
                   );
+
+            expr_ref_vector fmls_to_validate(m);
+            if (gparams::get_ref().get_bool("model_validate", false)) 
+                for (unsigned i = 0; i < g->size(); ++i) 
+                    fmls_to_validate.push_back(g->form(i));
+
             g->reset();
             g->m().compact_memory();
 
@@ -63,9 +70,12 @@ class sat_tactic : public tactic {
             IF_VERBOSE(TACTIC_VERBOSITY_LVL, m_solver->display_status(verbose_stream()););
             TRACE("sat_dimacs", m_solver->display_dimacs(tout););
             dep2assumptions(dep2asm, assumptions);
-            lbool r = m_solver->check(assumptions.size(), assumptions.c_ptr());
+            lbool r = m_solver->check(assumptions.size(), assumptions.data());
             TRACE("sat", tout << "result of checking: " << r << " "; 
-                  if (r == l_undef) tout << m_solver->get_reason_unknown(); tout << "\n";);
+                  if (r == l_undef) tout << m_solver->get_reason_unknown(); tout << "\n";
+                  if (m_goal2sat.has_interpreted_funs()) tout << "has interpreted\n";);
+            if (r == l_undef)
+                g->set_reason_unknown(m_solver->get_reason_unknown());
             if (r == l_false) {
                 expr_dependency * lcore = nullptr;
                 if (produce_core) {
@@ -106,6 +116,13 @@ class sat_tactic : public tactic {
                             break;
                         }
                     }
+
+                    bool euf = m_goal2sat.has_euf();
+		    
+                    for (auto* f : fmls_to_validate) 
+                        if (!euf && md->is_false(f)) 
+                            IF_VERBOSE(0, verbose_stream() << "failed to validate: " << mk_pp(f, m) << "\n";);
+                    
                     m_goal2sat.update_model(md);
                     TRACE("sat_tactic", model_v2_pp(tout, *md););
                     g->add(model2model_converter(md.get()));
@@ -183,9 +200,11 @@ public:
         SASSERT(m_imp == 0);
     }
 
+    char const* name() const override { return "sat"; }
+
     void updt_params(params_ref const & p) override {
-        m_params = p;
-        if (m_imp) m_imp->updt_params(p);
+        m_params.append(p);
+        if (m_imp) m_imp->updt_params(m_params);
     }
 
     void collect_param_descrs(param_descrs & r) override {

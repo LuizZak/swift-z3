@@ -19,6 +19,7 @@ Author:
 #include "sat/smt/sat_th.h"
 #include "ast/datatype_decl_plugin.h"
 #include "ast/array_decl_plugin.h"
+#include "ast/seq_decl_plugin.h"
 
 namespace euf {
     class solver;
@@ -60,8 +61,9 @@ namespace dt {
             stats() { reset(); }
         };
 
-        datatype_util         dt;
+        mutable datatype_util dt;
         array_util            m_autil;
+        seq_util              m_sutil;
         stats                 m_stats;
         ptr_vector<var_data>  m_var_data;
         dt_union_find         m_find;
@@ -108,8 +110,9 @@ namespace dt {
         bool oc_cycle_free(enode * n) const { return n->get_root()->is_marked2(); }
 
         void oc_push_stack(enode * n);
-        ptr_vector<enode> m_array_args;
+        ptr_vector<enode> m_nodes, m_todo;
         ptr_vector<enode> const& get_array_args(enode* n);
+        ptr_vector<enode> const& get_seq_args(enode* n, enode*& sibling);
 
         void pop_core(unsigned n) override;
 
@@ -150,6 +153,7 @@ namespace dt {
         bool unit_propagate() override { return false; }
         void add_value(euf::enode* n, model& mdl, expr_ref_vector& values) override;
         bool add_dep(euf::enode* n, top_sort<euf::enode>& dep) override;
+        bool include_func_interp(func_decl* f) const override;
         sat::literal internalize(expr* e, bool sign, bool root, bool redundant) override;
         void internalize(expr* e, bool redundant) override;
         euf::theory_var mk_var(euf::enode* n) override;

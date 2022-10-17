@@ -35,15 +35,17 @@ class params_ref {
     params * m_params;
     void init();
     void copy_core(params const * p);
+    void set(params_ref const& p);
 public:
     params_ref():m_params(nullptr) {}
     params_ref(params_ref const & p);
     ~params_ref();
     
+    params_ref& operator=(params_ref const& p) = delete;
+
     static params_ref const & get_empty() { return g_empty_params_ref; }
     
-    params_ref & operator=(params_ref const & p);
-    
+        
     // copy params from src
     void copy(params_ref const & src);
     void append(params_ref const & src) { copy(src); }
@@ -128,6 +130,7 @@ public:
     char const * get_default(char const * name) const;
     char const * get_default(symbol const & name) const;
     void display(std::ostream & out, unsigned indent = 0, bool smt2_style=false, bool include_descr=true) const;
+    void display_markdown(std::ostream& out, bool smt2_style = false, bool include_descr = true) const;
     unsigned size() const; 
     symbol get_param_name(unsigned idx) const;
     char const * get_module(symbol const& name) const;

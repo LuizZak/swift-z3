@@ -8,8 +8,8 @@
 #include "muz/fp/horn_tactic.h"
 #include "nlsat/tactic/nlsat_tactic.h"
 #include "nlsat/tactic/qfnra_nlsat_tactic.h"
+#include "qe/lite/qe_lite.h"
 #include "qe/nlqsat.h"
-#include "qe/qe_lite.h"
 #include "qe/qe_tactic.h"
 #include "qe/qsat.h"
 #include "sat/sat_solver/inc_sat_solver.h"
@@ -72,8 +72,8 @@
 #include "tactic/fpa/qffp_tactic.h"
 #include "tactic/fpa/qffplra_tactic.h"
 #include "tactic/portfolio/default_tactic.h"
+#include "tactic/portfolio/solver_subsumption_tactic.h"
 #include "tactic/probe.h"
-#include "tactic/sine_filter.h"
 #include "tactic/sls/sls_tactic.h"
 #include "tactic/smtlogics/nra_tactic.h"
 #include "tactic/smtlogics/qfaufbv_tactic.h"
@@ -102,8 +102,8 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("horn-simplify", "simplify horn clauses.", mk_horn_simplify_tactic(m, p));
   ADD_TACTIC_CMD("nlsat", "(try to) solve goal using a nonlinear arithmetic solver.", mk_nlsat_tactic(m, p));
   ADD_TACTIC_CMD("qfnra-nlsat", "builtin strategy for solving QF_NRA problems using only nlsat.", mk_qfnra_nlsat_tactic(m, p));
-  ADD_TACTIC_CMD("nlqsat", "apply a NL-QSAT solver.", mk_nlqsat_tactic(m, p));
   ADD_TACTIC_CMD("qe-light", "apply light-weight quantifier elimination.", mk_qe_lite_tactic(m, p));
+  ADD_TACTIC_CMD("nlqsat", "apply a NL-QSAT solver.", mk_nlqsat_tactic(m, p));
   ADD_TACTIC_CMD("qe", "apply quantifier elimination.", mk_qe_tactic(m, p));
   ADD_TACTIC_CMD("qsat", "apply a QSAT solver.", mk_qsat_tactic(m, p));
   ADD_TACTIC_CMD("qe2", "apply a QSAT based quantifier elimination.", mk_qe2_tactic(m, p));
@@ -174,7 +174,7 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("qffpbv", "(try to) solve goal using the tactic for QF_FPBV (floats+bit-vectors).", mk_qffpbv_tactic(m, p));
   ADD_TACTIC_CMD("qffplra", "(try to) solve goal using the tactic for QF_FPLRA.", mk_qffplra_tactic(m, p));
   ADD_TACTIC_CMD("default", "default strategy used when no logic is specified.", mk_default_tactic(m, p));
-  ADD_TACTIC_CMD("sine-filter", "eliminate premises using Sine Qua Non", mk_sine_tactic(m, p));
+  ADD_TACTIC_CMD("solver-subsumption", "remove assertions that are subsumed.", mk_solver_subsumption_tactic(m, p));
   ADD_TACTIC_CMD("qfbv-sls", "(try to) solve using stochastic local search for QF_BV.", mk_qfbv_sls_tactic(m, p));
   ADD_TACTIC_CMD("nra", "builtin strategy for solving NRA problems.", mk_nra_tactic(m, p));
   ADD_TACTIC_CMD("qfaufbv", "builtin strategy for solving QF_AUFBV problems.", mk_qfaufbv_tactic(m, p));

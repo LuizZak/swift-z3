@@ -130,7 +130,7 @@ void ast_translation::mk_sort(sort * s, frame & fr) {
                                                               si->get_decl_kind(),
                                                               si->get_num_elements(),
                                                               si->get_num_parameters(),
-                                                              ps.c_ptr(),
+                                                              ps.data(),
                                                               s->private_parameters()));
     }
     m_result_stack.shrink(fr.m_rpos);
@@ -144,7 +144,7 @@ void ast_translation::mk_func_decl(func_decl * f, frame & fr) {
     func_decl_info * fi   = f->get_info();
     SASSERT(fr.m_cpos <= m_extra_children_stack.size());
     unsigned num_extra = m_extra_children_stack.size() - fr.m_cpos;
-    sort ** new_domain = reinterpret_cast<sort**>(m_result_stack.c_ptr() + fr.m_rpos + num_extra);
+    sort ** new_domain = reinterpret_cast<sort**>(m_result_stack.data() + fr.m_rpos + num_extra);
     sort *  new_range  = static_cast<sort*>(m_result_stack.back());  
     func_decl * new_f;
     if (fi == nullptr) {
@@ -159,7 +159,7 @@ void ast_translation::mk_func_decl(func_decl * f, frame & fr) {
         func_decl_info new_fi(fi->get_family_id(),
                               fi->get_decl_kind(),
                               fi->get_num_parameters(),
-                              ps.c_ptr());
+                              ps.data());
 
         new_fi.set_left_associative(fi->is_left_associative());
         new_fi.set_right_associative(fi->is_right_associative());
@@ -170,12 +170,20 @@ void ast_translation::mk_func_decl(func_decl * f, frame & fr) {
         new_fi.set_injective(fi->is_injective());
         new_fi.set_skolem(fi->is_skolem()); 
         new_fi.set_idempotent(fi->is_idempotent());
+        new_fi.set_lambda(fi->is_lambda());
 
         new_f = m_to_manager.mk_func_decl(f->get_name(),
                                           f->get_arity(),
                                           new_domain,
                                           new_range,
                                           new_fi);
+
+        if (new_fi.is_lambda()) {
+            quantifier* q = from().is_lambda_def(f);
+            ast_translation tr(from(), to());
+            quantifier* new_q = tr(q);
+            to().add_lambda_def(new_f, new_q);
+        }
     }
     TRACE("ast_translation", 
           tout << f->get_name() << " "; if (fi) tout << *fi; tout << "\n";
@@ -251,7 +259,7 @@ ast * ast_translation::process(ast const * _n) {
                         goto loop;
                 }
                 func_decl * new_f   = to_func_decl(m_result_stack[fr.m_rpos]);
-                expr ** new_args    = reinterpret_cast<expr **>(m_result_stack.c_ptr() + fr.m_rpos + 1);
+                expr ** new_args    = reinterpret_cast<expr **>(m_result_stack.data() + fr.m_rpos + 1);
                 expr *  new_app     = m_to_manager.mk_app(new_f, num, new_args);
                 m_result_stack.shrink(fr.m_rpos);
                 m_result_stack.push_back(new_app);
@@ -273,10 +281,10 @@ ast * ast_translation::process(ast const * _n) {
                         goto loop;
                 }
                 symbol const * dnames = to_quantifier(n)->get_decl_names();
-                sort **  dsorts       = reinterpret_cast<sort**>(m_result_stack.c_ptr() + fr.m_rpos);
+                sort **  dsorts       = reinterpret_cast<sort**>(m_result_stack.data() + fr.m_rpos);
                 expr *   body         = static_cast<expr*>(m_result_stack[fr.m_rpos + num_decls]);
                 unsigned num_pats     = to_quantifier(n)->get_num_patterns();
-                expr **  pats         = reinterpret_cast<expr**>(m_result_stack.c_ptr() + fr.m_rpos + num_decls + 1);
+                expr **  pats         = reinterpret_cast<expr**>(m_result_stack.data() + fr.m_rpos + num_decls + 1);
                 unsigned num_no_pats  = to_quantifier(n)->get_num_no_patterns();
                 expr **  no_pats      = pats + num_pats;
                 quantifier * new_q    = m_to_manager.mk_quantifier(to_quantifier(n)->get_kind(),
@@ -349,5 +357,5 @@ expr_dependency * expr_dependency_translation::operator()(expr_dependency * d) {
     for (unsigned i = 0; i < sz; i++) {
         m_buffer[i] = m_translation(m_buffer[i]);
     }
-    return m_translation.to().mk_join(sz, m_buffer.c_ptr());
+    return m_translation.to().mk_join(sz, m_buffer.data());
 }

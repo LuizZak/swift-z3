@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __RCF_PARAMS_HPP_
-#define __RCF_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct rcf_params {
@@ -27,4 +26,3 @@ struct rcf_params {
   unsigned max_precision() const { return p.get_uint("max_precision", g, 128u); }
   bool lazy_algebraic_normalization() const { return p.get_bool("lazy_algebraic_normalization", g, true); }
 };
-#endif

@@ -50,7 +50,7 @@ namespace smt {
         // try first sequential with a low conflict budget to make super easy problems cheap
         unsigned max_c = std::min(thread_max_conflicts, 40u);
         flet<unsigned> _mc(ctx.get_fparams().m_max_conflicts, max_c);
-        result = ctx.check(asms.size(), asms.c_ptr());
+        result = ctx.check(asms.size(), asms.data());
         if (result != l_undef || ctx.m_num_conflicts < max_c) {
             return result;
         }        
@@ -149,21 +149,18 @@ namespace smt {
                 expr_ref c(pm);
 
                 pctx.get_fparams().m_max_conflicts = std::min(thread_max_conflicts, max_conflicts);
-                if (num_rounds > 0 && (pctx.get_fparams().m_threads_cube_frequency % num_rounds) == 0) {
+                if (num_rounds > 0 && (pctx.get_fparams().m_threads_cube_frequency % num_rounds) == 0) 
                     cube(pctx, lasms, c);
-                }
                 IF_VERBOSE(1, verbose_stream() << "(smt.thread " << i; 
                            if (num_rounds > 0) verbose_stream() << " :round " << num_rounds;
                            if (c) verbose_stream() << " :cube " << mk_bounded_pp(c, pm, 3);
                            verbose_stream() << ")\n";);
-                lbool r = pctx.check(lasms.size(), lasms.c_ptr());
+                lbool r = pctx.check(lasms.size(), lasms.data());
                 
-                if (r == l_undef && pctx.m_num_conflicts >= max_conflicts) {
-                    // no-op
-                }
-                else if (r == l_undef && pctx.m_num_conflicts >= thread_max_conflicts) {
+                if (r == l_undef && pctx.m_num_conflicts >= max_conflicts) 
+                    ; // no-op
+                else if (r == l_undef && pctx.m_num_conflicts >= thread_max_conflicts) 
                     return;
-                }                
                 else if (r == l_false && pctx.unsat_core().contains(c)) {
                     IF_VERBOSE(1, verbose_stream() << "(smt.thread " << i << " :learn " << mk_bounded_pp(c, pm, 3) << ")");
                     pctx.assert_expr(mk_not(mk_and(pctx.unsat_core())));
@@ -193,14 +190,25 @@ namespace smt {
 
             }
             catch (z3_error & err) {
-                error_code = err.error_code();
-                ex_kind = ERROR_EX;                
-                done = true;
+                if (finished_id == UINT_MAX) {
+                    error_code = err.error_code();
+                    ex_kind = ERROR_EX;
+                    done = true;
+                }
             }
             catch (z3_exception & ex) {
-                ex_msg = ex.msg();
-                ex_kind = DEFAULT_EX;    
-                done = true;
+                if (finished_id == UINT_MAX) {
+                    ex_msg = ex.msg();
+                    ex_kind = DEFAULT_EX;
+                    done = true;
+                }
+            }
+            catch (...) {
+                if (finished_id == UINT_MAX) {
+                    ex_msg = "unknown exception";
+                    ex_kind = ERROR_EX;
+                    done = true;
+                }
             }
         };
 

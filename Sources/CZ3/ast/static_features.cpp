@@ -18,6 +18,7 @@ Revision History:
 --*/
 #include "ast/static_features.h"
 #include "ast/ast_pp.h"
+#include "ast/ast_ll_pp.h"
 #include "ast/for_each_expr.h"
 
 static_features::static_features(ast_manager & m):
@@ -39,7 +40,8 @@ static_features::static_features(ast_manager & m):
 }
 
 void static_features::reset() {
-    m_already_visited                      .reset();
+    m_pre_processed                      .reset();
+    m_post_processed.reset();
     m_cnf                                  = true;
     m_num_exprs                            = 0;
     m_num_roots                            = 0;
@@ -54,12 +56,6 @@ void static_features::reset() {
     m_num_nested_formulas                  = 0;
     m_num_bool_exprs                       = 0;
     m_num_bool_constants                   = 0;
-    m_num_formula_trees                    = 0;
-    m_max_formula_depth                    = 0;
-    m_sum_formula_depth                    = 0;
-    m_num_or_and_trees                     = 0;
-    m_max_or_and_tree_depth                = 0;
-    m_sum_or_and_tree_depth                = 0;
     m_num_ite_trees                        = 0;
     m_max_ite_tree_depth                   = 0;
     m_sum_ite_tree_depth                   = 0;
@@ -104,7 +100,7 @@ void static_features::reset() {
     m_num_aliens_per_family                .reset();
     m_num_theories                         = 0;
     m_theories                             .reset();
-    m_max_stack_depth                      = 500;
+    m_max_stack_depth                      = 30;
     flush_cache();
 }
 
@@ -343,8 +339,8 @@ void static_features::update_core(expr * e) {
         }
         func_decl * d = to_app(e)->get_decl();
         inc_num_apps(d);
-        if (d->get_arity() > 0 && !is_marked(d)) {
-            mark(d);
+        if (d->get_arity() > 0 && !is_marked_pre(d)) {
+            mark_pre(d);
             if (fid == null_family_id)
                 m_num_uninterpreted_functions++;
         }
@@ -396,30 +392,90 @@ void static_features::update_core(sort * s) {
     check_array(s);
 }
 
-void static_features::process(expr * e, bool form_ctx, bool or_and_ctx, bool ite_ctx, unsigned stack_depth) {
-    TRACE("static_features", tout << "processing\n" << mk_pp(e, m) << "\n";);
-    if (is_var(e))
-        return;
-    if (is_marked(e)) {
-        m_num_sharing++;
-        return;
-    }    
-    if (stack_depth > m_max_stack_depth) {
-        for (expr* arg : subterms(expr_ref(e, m)))
-            if (get_depth(arg) <= 3 || is_quantifier(arg)) 
-                process(arg, form_ctx, or_and_ctx, ite_ctx, stack_depth-10);
-        return;
+bool static_features::pre_process(expr * e, bool form_ctx, bool or_and_ctx, bool ite_ctx) {
+    if (is_marked_post(e))
+        return true;
+
+    if (is_marked_pre(e))
+        return true;
+
+    if (is_var(e)) {
+        mark_pre(e);
+        mark_post(e);
+        return true;
     }
-    mark(e);
+
+    mark_pre(e);
+
     update_core(e);
 
     if (is_quantifier(e)) {
         expr * body = to_quantifier(e)->get_expr();
-        process(body, false, false, false, stack_depth+1);
+        if (is_marked_post(body)) 
+            return true;                    
+        add_process(body, false, false, false);
+        return false;
+    }
+
+    auto [form_ctx_new, or_and_ctx_new, ite_ctx_new] = new_ctx(e);
+
+    bool all_processed = true;
+    for (expr* arg : *to_app(e)) {
+        m.is_not(arg, arg);
+        if (is_marked_post(arg))
+            ++m_num_sharing;
+        else {
+            add_process(arg, form_ctx_new, or_and_ctx_new, ite_ctx_new);
+            all_processed = false;
+        }
+    }    
+    return all_processed;    
+}
+
+void static_features::post_process(expr * e, bool form_ctx, bool or_and_ctx, bool ite_ctx) {
+    if (is_marked_post(e))
+        return;
+
+    mark_post(e);
+
+    if (is_quantifier(e)) {
+        expr * body = to_quantifier(e)->get_expr();
         set_depth(e, get_depth(body)+1);
         return;
     }
+
+    unsigned depth = 0;
+    unsigned ite_depth = 0;
+
+    auto [form_ctx_new, or_and_ctx_new, ite_ctx_new] = new_ctx(e);
+
+    for (expr* arg : *to_app(e)) {
+        m.is_not(arg, arg);
+        SASSERT(is_marked_post(arg));
+        depth        = std::max(depth, get_depth(arg));
+        if (ite_ctx_new)
+            ite_depth    = std::max(ite_depth, get_ite_depth(arg));
+    }
+
+    depth++;
+    set_depth(e, depth);
+    if (depth > m_max_depth)
+        m_max_depth = depth;
     
+    if (ite_ctx_new) {
+        ite_depth++;
+        if (!ite_ctx) {
+            m_num_ite_trees++;
+            m_sum_ite_tree_depth += ite_depth;
+            if (ite_depth >= m_max_ite_tree_depth)
+                m_max_ite_tree_depth = ite_depth;
+        }
+        set_ite_depth(e, ite_depth);
+    }
+
+}
+
+std::tuple<bool, bool, bool> static_features::new_ctx(expr* e) {
     bool form_ctx_new   = false;
     bool or_and_ctx_new = false;
     bool ite_ctx_new    = false;
@@ -440,69 +496,34 @@ void static_features::process(expr * e, bool form_ctx, bool or_and_ctx, bool ite
             break;
         }
     }
-    
-    unsigned depth = 0;
-    unsigned form_depth = 0;
-    unsigned or_and_depth = 0;
-    unsigned ite_depth = 0;
 
-    for (expr* arg : *to_app(e)) {
-        m.is_not(arg, arg);
-        process(arg, form_ctx_new, or_and_ctx_new, ite_ctx_new, stack_depth+1);
-        depth        = std::max(depth, get_depth(arg));
-        if (form_ctx_new)
-            form_depth   = std::max(form_depth, get_form_depth(arg));
-        if (or_and_ctx_new)
-            or_and_depth = std::max(or_and_depth, get_or_and_depth(arg));
-        if (ite_ctx_new)
-            ite_depth    = std::max(ite_depth, get_ite_depth(arg));
-    }
+    return std::tuple(form_ctx_new, or_and_ctx_new, ite_ctx_new);
+}
 
-    depth++;
-    set_depth(e, depth);
-    if (depth > m_max_depth)
-        m_max_depth = depth;
-
-    if (form_ctx_new) {
-        form_depth++;
-        if (!form_ctx) {
-            m_num_formula_trees++;
-            m_sum_formula_depth += form_depth;
-            if (form_depth > m_max_formula_depth)
-                m_max_formula_depth = form_depth;
+void static_features::process_all() {
+    while (!m_to_process.empty()) {
+        auto const& [e, form, or_and, ite] = m_to_process.back();
+        if (is_marked_post(e)) {
+            m_to_process.pop_back();
+            ++m_num_sharing;
+            continue;
         }
-        set_form_depth(e, form_depth);
-    }
-    if (or_and_ctx_new) {
-        or_and_depth++;
-        if (!or_and_ctx) {
-            m_num_or_and_trees++;
-            m_sum_or_and_tree_depth += or_and_depth;
-            if (or_and_depth > m_max_or_and_tree_depth)
-                m_max_or_and_tree_depth = or_and_depth;
-        }
-        set_or_and_depth(e, or_and_depth);
-    }
-    if (ite_ctx_new) {
-        ite_depth++;
-        if (!ite_ctx) {
-            m_num_ite_trees++;
-            m_sum_ite_tree_depth += ite_depth;
-            if (ite_depth >= m_max_ite_tree_depth)
-                m_max_ite_tree_depth = ite_depth;
-        }
-        set_ite_depth(e, ite_depth);
+        if (!pre_process(e, form, or_and, ite))
+            continue;
+        post_process(e, form, or_and, ite);
+        m_to_process.pop_back();
     }
 }
 
+
 void static_features::process_root(expr * e) {
-    if (is_marked(e)) {
+    if (is_marked_post(e)) {
         m_num_sharing++;
         return;
     }
     m_num_roots++;
     if (m.is_or(e)) {
-        mark(e);
+        mark_post(e);
         m_num_clauses++;
         m_num_bool_exprs++;
         unsigned num_args  = to_app(e)->get_num_args();
@@ -510,33 +531,18 @@ void static_features::process_root(expr * e) {
         if (num_args == 2)
             m_num_bin_clauses++;
         unsigned depth = 0;
-        unsigned form_depth = 0;
-        unsigned or_and_depth = 0;
         for (unsigned i = 0; i < num_args; i++) {
             expr * arg = to_app(e)->get_arg(i);
             if (m.is_not(arg))
                 arg = to_app(arg)->get_arg(0);
-            process(arg, true, true, false, 0);
+            add_process(arg, true, true, false);
+            process_all();
             depth        = std::max(depth, get_depth(arg));
-            form_depth   = std::max(form_depth, get_form_depth(arg));
-            or_and_depth = std::max(or_and_depth, get_or_and_depth(arg));
         }
         depth++;
         set_depth(e, depth);
         if (depth > m_max_depth)
             m_max_depth = depth;
-        form_depth++;
-        m_num_formula_trees++;
-        m_sum_formula_depth += form_depth;
-        if (form_depth > m_max_formula_depth)
-            m_max_formula_depth = form_depth;
-        set_form_depth(e, form_depth);
-        or_and_depth++;
-        m_num_or_and_trees++;
-        m_sum_or_and_tree_depth += or_and_depth;
-        if (or_and_depth > m_max_or_and_tree_depth)
-            m_max_or_and_tree_depth = or_and_depth;
-        set_or_and_depth(e, or_and_depth);
         return;
     }
     if (!is_gate(e)) {
@@ -544,7 +550,8 @@ void static_features::process_root(expr * e) {
         m_num_units++;
         m_num_clauses++;
     }
-    process(e, false, false, false, 0);
+    add_process(e, false, false, false);
+    process_all();
 }
 
 void static_features::collect(unsigned num_formulas, expr * const * formulas) {
@@ -592,12 +599,6 @@ void static_features::display_primitive(std::ostream & out) const {
     out << "NUM_NESTED_FORMULAS " << m_num_nested_formulas << "\n";
     out << "NUM_BOOL_EXPRS " << m_num_bool_exprs << "\n";
     out << "NUM_BOOL_CONSTANTS " << m_num_bool_constants << "\n";
-    out << "NUM_FORMULA_TREES " << m_num_formula_trees << "\n"; 
-    out << "MAX_FORMULA_DEPTH " << m_max_formula_depth << "\n";
-    out << "SUM_FORMULA_DEPTH " << m_sum_formula_depth << "\n";
-    out << "NUM_OR_AND_TREES " << m_num_or_and_trees << "\n";
-    out << "MAX_OR_AND_TREE_DEPTH " << m_max_or_and_tree_depth << "\n";
-    out << "SUM_OR_AND_TREE_DEPTH " << m_sum_or_and_tree_depth << "\n";
     out << "NUM_ITE_TREES " << m_num_ite_trees << "\n";
     out << "MAX_ITE_TREE_DEPTH " << m_max_ite_tree_depth << "\n";
     out << "SUM_ITE_TREE_DEPTH " << m_sum_ite_tree_depth << "\n";
@@ -640,7 +641,6 @@ void static_features::display(std::ostream & out) const {
     out << "BEGIN_STATIC_FEATURES" << "\n";
     out << "CNF " << m_cnf << "\n";
     out << "MAX_DEPTH " << m_max_depth << "\n";
-    out << "MAX_OR_AND_TREE_DEPTH " << m_max_or_and_tree_depth << "\n";
     out << "MAX_ITE_TREE_DEPTH " << m_max_ite_tree_depth << "\n";
     out << "HAS_INT " << m_has_int << "\n";
     out << "HAS_REAL " << m_has_real << "\n";

@@ -18,6 +18,7 @@ Author:
 
 #include "util/obj_hashtable.h"
 #include "ast/ast_trail.h"
+#include "ast/rewriter/der.h"
 #include "sat/smt/sat_th.h"
 #include "sat/smt/q_mbi.h"
 #include "sat/smt/q_ematch.h"
@@ -27,6 +28,23 @@ namespace euf {
 }
 
 namespace q {
+
+    struct q_proof_hint : public euf::th_proof_hint {
+        unsigned      m_num_bindings;
+        unsigned      m_num_literals;
+        sat::literal* m_literals;
+        expr*         m_bindings[0];
+        
+        q_proof_hint(unsigned b, unsigned l) {
+            m_num_bindings = b;
+            m_num_literals = l;
+            m_literals = reinterpret_cast<sat::literal*>(m_bindings + m_num_bindings);
+        }
+        static size_t get_obj_size(unsigned num_bindings, unsigned num_lits) { return sizeof(q_proof_hint) + num_bindings*sizeof(expr*) + num_lits*sizeof(sat::literal); }
+        static q_proof_hint* mk(euf::solver& s, sat::literal_vector const& lits, unsigned n, euf::enode* const* bindings);
+        static q_proof_hint* mk(euf::solver& s, sat::literal l1, sat::literal l2, unsigned n, expr* const* bindings);
+        expr* get_hint(euf::solver& s) const override;
+    };
 
     class solver : public euf::th_euf_solver {
 
@@ -47,6 +65,7 @@ namespace q {
         sat::literal_vector    m_universal;
         obj_map<sort, expr*>   m_unit_table;
         expr_ref_vector        m_expanded;
+        der_rewriter           m_der;
 
         sat::literal instantiate(quantifier* q, bool negate, std::function<expr* (quantifier*, unsigned)>& mk_var);
         sat::literal skolemize(quantifier* q);
@@ -54,14 +73,15 @@ namespace q {
         void init_units();
         expr* get_unit(sort* s);
         
-        expr_ref_vector const& expand(quantifier* q);
+        bool expand(quantifier* q);
+        bool split(expr* arg, expr_ref& e1, expr_ref& e2);
+        bool is_literal(expr* arg);
 
         friend class ematch;
 
     public:
 
         solver(euf::solver& ctx, family_id fid);
-        ~solver() override {}
         bool is_external(sat::bool_var v) override { return false; }
         void get_antecedents(sat::literal l, sat::ext_justification_idx idx, sat::literal_vector& r, bool probing) override;
         void asserted(sat::literal l) override;
@@ -74,15 +94,20 @@ namespace q {
         euf::th_solver* clone(euf::solver& ctx) override;
         bool unit_propagate() override;
         sat::literal internalize(expr* e, bool sign, bool root, bool learned) override;
-        void internalize(expr* e, bool redundant) override { UNREACHABLE(); }
+        void internalize(expr* e, bool redundant) override { internalize(e, false, false, redundant); }
         euf::theory_var mk_var(euf::enode* n) override;
         void init_search() override;
         void finalize_model(model& mdl) override;
         bool is_shared(euf::theory_var v) const override { return true; }
+        void relevant_eh(euf::enode* n) override { m_ematch.relevant_eh(n); }
 
         ast_manager& get_manager() { return m; }
         sat::literal_vector const& universal() const { return m_universal; }
         quantifier* flatten(quantifier* q);
+
+        void log_instantiation(sat::literal q, sat::literal i, justification* j = nullptr) { sat::literal lits[2] = { q, i }; log_instantiation(2, lits, j); }
+        void log_instantiation(sat::literal_vector const& lits, justification* j) { log_instantiation(lits.size(), lits.data(), j); }
+        void log_instantiation(unsigned n, sat::literal const* lits, justification* j);
 
     };
 }

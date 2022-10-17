@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __MODEL_PARAMS_HPP_
-#define __MODEL_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct model_params {
@@ -14,6 +13,7 @@ struct model_params {
     d.insert("v2", CPK_BOOL, "use Z3 version 2.x (x <= 16) pretty printer", "false","model");
     d.insert("compact", CPK_BOOL, "try to compact function graph (i.e., function interpretations that are lookup tables)", "true","model");
     d.insert("inline_def", CPK_BOOL, "inline local function definitions ignoring possible expansion", "false","model");
+    d.insert("user_functions", CPK_BOOL, "include user defined functions in model", "true","model");
     d.insert("completion", CPK_BOOL, "enable/disable model completion", "false","model");
   }
   /*
@@ -24,6 +24,6 @@ struct model_params {
   bool v2() const { return p.get_bool("v2", g, false); }
   bool compact() const { return p.get_bool("compact", g, true); }
   bool inline_def() const { return p.get_bool("inline_def", g, false); }
+  bool user_functions() const { return p.get_bool("user_functions", g, true); }
   bool completion() const { return p.get_bool("completion", g, false); }
 };
-#endif

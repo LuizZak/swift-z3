@@ -42,7 +42,7 @@ Development is ongoing and the public API might change at any time without notic
 
 ### Requirements
 
-Swift 5.2
+Swift 5.4
 
 ### Instalation
 

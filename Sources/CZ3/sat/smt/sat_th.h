@@ -39,7 +39,7 @@ namespace euf {
         virtual bool post_visit(expr* e, bool sign, bool root) { return false; }
 
     public:
-        virtual ~th_internalizer() {}
+        virtual ~th_internalizer() = default;
 
         virtual sat::literal internalize(expr* e, bool sign, bool root, bool redundant) = 0;
 
@@ -52,15 +52,16 @@ namespace euf {
         virtual void apply_sort_cnstr(enode* n, sort* s) {}
 
         /**
-           \record that an equality has been internalized.
+           \brief Record that an equality has been internalized.
          */
         virtual void eq_internalized(enode* n) {}
 
     };
 
+
     class th_decompile {
     public:
-        virtual ~th_decompile() {}
+        virtual ~th_decompile() = default;
 
         virtual bool to_formulas(std::function<expr_ref(sat::literal)>& lit2expr, expr_ref_vector& fmls) { return false; }
     };
@@ -68,7 +69,7 @@ namespace euf {
     class th_model_builder {
     public:
 
-        virtual ~th_model_builder() {}
+        virtual ~th_model_builder() = default;
 
         /**
            \brief compute the value for enode \c n and store the value in \c values
@@ -95,6 +96,11 @@ namespace euf {
           \brief conclude model building
         */
         virtual void finalize_model(model& mdl) {}
+
+        /**
+        * \brief does solver have an unhandled function.
+        */
+        virtual bool has_unhandled() const { return false; }
     };
 
     class th_solver : public sat::extension, public th_model_builder, public th_decompile, public th_internalizer {
@@ -111,13 +117,31 @@ namespace euf {
 
         virtual void new_diseq_eh(euf::th_eq const& eq) {}
 
+        virtual bool enable_ackerman_axioms(euf::enode* n) const { return true; }
+
+        virtual bool is_fixed(euf::theory_var v, expr_ref& val, sat::literal_vector& lits) { return false; }
+
+        virtual void relevant_eh(euf::enode* n) {}
+
         /**
            \brief Parametric theories (e.g. Arrays) should implement this method.
         */
         virtual bool is_shared(theory_var v) const { return false; }
 
+
+        /**
+           \brief Determine if argument n of parent p is a beta redex position
+         */
+
+        virtual bool is_beta_redex(euf::enode* p, euf::enode* n) const { return false; }
+
         sat::status status() const { return sat::status::th(m_is_redundant, get_id()); }
 
+    };
+
+    class th_proof_hint : public sat::proof_hint {
+    public:
+        virtual expr* get_hint(euf::solver& s) const = 0;
     };
 
     class th_euf_solver : public th_solver {
@@ -132,14 +156,15 @@ namespace euf {
         region& get_region();
 
 
-        sat::status mk_status();
-        bool add_unit(sat::literal lit);
+        sat::status mk_status(th_proof_hint const* ps = nullptr);
+        bool add_unit(sat::literal lit, th_proof_hint const* ps = nullptr);
         bool add_units(sat::literal_vector const& lits);
-        bool add_clause(sat::literal lit) { return add_unit(lit); }
-        bool add_clause(sat::literal a, sat::literal b);
-        bool add_clause(sat::literal a, sat::literal b, sat::literal c);
-        bool add_clause(sat::literal a, sat::literal b, sat::literal c, sat::literal d);
-        bool add_clause(sat::literal_vector const& lits);
+        bool add_clause(sat::literal lit, th_proof_hint const* ps = nullptr) { return add_unit(lit, ps); }
+        bool add_clause(sat::literal a, sat::literal b, th_proof_hint const* ps = nullptr);
+        bool add_clause(sat::literal a, sat::literal b, sat::literal c, th_proof_hint const* ps = nullptr);
+        bool add_clause(sat::literal a, sat::literal b, sat::literal c, sat::literal d, th_proof_hint const* ps = nullptr);
+        bool add_clause(sat::literal_vector const& lits, th_proof_hint const* ps = nullptr) { return add_clause(lits.size(), lits.data(), ps); }
+        bool add_clause(unsigned n, sat::literal* lits, th_proof_hint const* ps = nullptr);
         void add_equiv(sat::literal a, sat::literal b);
         void add_equiv_and(sat::literal a, sat::literal_vector const& bs);
 
@@ -169,19 +194,20 @@ namespace euf {
 
     public:
         th_euf_solver(euf::solver& ctx, symbol const& name, euf::theory_id id);
-        virtual ~th_euf_solver() {}
         virtual theory_var mk_var(enode* n);
         unsigned get_num_vars() const { return m_var2enode.size(); }
         euf::enode* e_internalize(expr* e); 
         enode* expr2enode(expr* e) const;
         enode* var2enode(theory_var v) const { return m_var2enode[v]; }
         expr* var2expr(theory_var v) const { return var2enode(v)->get_expr(); }
+        bool is_representative(theory_var v) const { return v == get_representative(v); }
         expr* bool_var2expr(sat::bool_var v) const;
         expr_ref literal2expr(sat::literal lit) const;
         enode* bool_var2enode(sat::bool_var v) const { expr* e = bool_var2expr(v); return e ? expr2enode(e) : nullptr; }
         sat::literal mk_literal(expr* e) const;
         theory_var get_th_var(enode* n) const { return n->get_th_var(get_id()); }
         theory_var get_th_var(expr* e) const;
+        theory_var get_representative(theory_var v) const;
         trail_stack& get_trail_stack();
         bool is_attached_to_var(enode* n) const;
         bool is_root(theory_var v) const { return var2enode(v)->is_root(); }
@@ -199,27 +225,29 @@ namespace euf {
     * that retrieve literals on demand.
     */
     class th_explain {
-        sat::literal   m_consequent { sat::null_literal }; // literal consequent for propagations
-        enode_pair     m_eq { enode_pair() };              // equality consequent for propagations
+        sat::literal     m_consequent = sat::null_literal; // literal consequent for propagations
+        enode_pair       m_eq = enode_pair();              // equality consequent for propagations
+        th_proof_hint const* m_proof_hint;
         unsigned       m_num_literals;
         unsigned       m_num_eqs;        
         sat::literal*  m_literals;
         enode_pair*    m_eqs;
         static size_t get_obj_size(unsigned num_lits, unsigned num_eqs);
-        th_explain(unsigned n_lits, sat::literal const* lits, unsigned n_eqs, enode_pair const* eqs, sat::literal c, enode_pair const& eq);
-        static th_explain* mk(th_euf_solver& th, unsigned n_lits, sat::literal const* lits, unsigned n_eqs, enode_pair const* eqs, sat::literal c, enode* x, enode* y);
+        th_explain(unsigned n_lits, sat::literal const* lits, unsigned n_eqs, enode_pair const* eqs, sat::literal c, enode_pair const& eq, th_proof_hint const* ph = nullptr);
+        static th_explain* mk(th_euf_solver& th, unsigned n_lits, sat::literal const* lits, unsigned n_eqs, enode_pair const* eqs, sat::literal c, enode* x, enode* y, th_proof_hint const* ph = nullptr);
 
     public:
-        static th_explain* conflict(th_euf_solver& th, sat::literal_vector const& lits, enode_pair_vector const& eqs);
-        static th_explain* conflict(th_euf_solver& th, sat::literal_vector const& lits) { return conflict(th, lits.size(), lits.c_ptr(), 0, nullptr); }
-        static th_explain* conflict(th_euf_solver& th, unsigned n_lits, sat::literal const* lits, unsigned n_eqs, enode_pair const* eqs);
-        static th_explain* conflict(th_euf_solver& th, enode_pair_vector const& eqs);
-        static th_explain* conflict(th_euf_solver& th, sat::literal lit);
-        static th_explain* conflict(th_euf_solver& th, sat::literal lit, euf::enode* x, euf::enode* y);
-        static th_explain* conflict(th_euf_solver& th, euf::enode* x, euf::enode* y);
-        static th_explain* propagate(th_euf_solver& th, sat::literal lit, euf::enode* x, euf::enode* y);
-        static th_explain* propagate(th_euf_solver& th, sat::literal_vector const& lits, enode_pair_vector const& eqs, sat::literal consequent);
-        static th_explain* propagate(th_euf_solver& th, sat::literal_vector const& lits, enode_pair_vector const& eqs, euf::enode* x, euf::enode* y);
+        static th_explain* conflict(th_euf_solver& th, sat::literal_vector const& lits, enode_pair_vector const& eqs, th_proof_hint const* ph = nullptr);
+        static th_explain* conflict(th_euf_solver& th, sat::literal_vector const& lits, th_proof_hint const* ph = nullptr) { return conflict(th, lits.size(), lits.data(), 0, nullptr, nullptr); }
+        static th_explain* conflict(th_euf_solver& th, unsigned n_lits, sat::literal const* lits, unsigned n_eqs, enode_pair const* eqs, th_proof_hint const* ph = nullptr);
+        static th_explain* conflict(th_euf_solver& th, enode_pair_vector const& eqs, th_proof_hint const* ph = nullptr);
+        static th_explain* conflict(th_euf_solver& th, sat::literal lit, th_proof_hint const* ph = nullptr);
+        static th_explain* conflict(th_euf_solver& th, sat::literal lit, euf::enode* x, euf::enode* y, th_proof_hint const* ph = nullptr);
+        static th_explain* conflict(th_euf_solver& th, euf::enode* x, euf::enode* y, th_proof_hint const* ph = nullptr);
+        static th_explain* propagate(th_euf_solver& th, sat::literal lit, euf::enode* x, euf::enode* y, th_proof_hint const* ph = nullptr);
+        static th_explain* propagate(th_euf_solver& th, enode_pair_vector const& eqs, euf::enode* x, euf::enode* y, th_proof_hint const* ph = nullptr);
+        static th_explain* propagate(th_euf_solver& th, sat::literal_vector const& lits, enode_pair_vector const& eqs, sat::literal consequent, th_proof_hint const* ph = nullptr);
+        static th_explain* propagate(th_euf_solver& th, sat::literal_vector const& lits, enode_pair_vector const& eqs, euf::enode* x, euf::enode* y, th_proof_hint const* ph = nullptr);
 
         sat::ext_constraint_idx to_index() const {
             return sat::constraint_base::mem2base(this);
@@ -253,6 +281,8 @@ namespace euf {
         sat::literal lit_consequent() const { return m_consequent; }
 
         enode_pair eq_consequent() const { return m_eq; }
+
+        th_proof_hint const* get_pragma() const { return m_proof_hint; } 
 
     };
 

@@ -113,19 +113,19 @@ namespace datalog {
                         }
                     }
                 }
-                premises[i] = m.mk_hyper_resolve(premises2.size(), premises2.c_ptr(), l2, positions2, substs2);
+                premises[i] = m.mk_hyper_resolve(premises2.size(), premises2.data(), l2, positions2, substs2);
             }        
             conclusion = conclusion1;
-            pr = m.mk_hyper_resolve(premises.size(), premises.c_ptr(), conclusion, positions, substs);
+            pr = m.mk_hyper_resolve(premises.size(), premises.data(), conclusion, positions, substs);
         }
     }
     
     void boogie_proof::set_proof(proof* p) {
-        std::cout << "set proof\n";
+        //std::cout << "set proof\n";
         m_proof = p;
         proof_utils::push_instantiations_up(m_proof);
         mk_input_resolution(m_proof);
-        std::cout << "proof set\n";
+        //std::cout << "proof set\n";
     }
         
     void boogie_proof::set_model(model* m) {
@@ -201,7 +201,7 @@ namespace datalog {
         ptr_vector<proof> todo;
         todo.push_back(p);
         ast_mark visited;
-        std::cout << "get_subst\n" << mk_pp(p, m) << "\n";
+        //std::cout << "get_subst\n" << mk_pp(p, m) << "\n";
         while (!todo.empty()) {
             proof* p = todo.back();
             todo.pop_back();

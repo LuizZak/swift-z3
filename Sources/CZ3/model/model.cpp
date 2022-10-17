@@ -22,8 +22,10 @@ Revision History:
 #include "ast/ast_ll_pp.h"
 #include "ast/rewriter/var_subst.h"
 #include "ast/rewriter/th_rewriter.h"
+#include "ast/rewriter/expr_safe_replace.h"
 #include "ast/array_decl_plugin.h"
 #include "ast/bv_decl_plugin.h"
+#include "ast/recfun_decl_plugin.h"
 #include "ast/well_sorted.h"
 #include "ast/used_symbols.h"
 #include "ast/for_each_expr.h"
@@ -49,7 +51,7 @@ model::model(ast_manager & m):
 model::~model() {
     for (auto & kv : m_usort2universe) {
         m.dec_ref(kv.m_key);
-        m.dec_array_ref(kv.m_value->size(), kv.m_value->c_ptr());
+        m.dec_array_ref(kv.m_value->size(), kv.m_value->data());
         dealloc(kv.m_value);
     }
 }
@@ -73,7 +75,7 @@ void model::copy_func_interps(model const & source) {
 
 void model::copy_usort_interps(model const & source) {
     for (auto const& kv : source.m_usort2universe) 
-        register_usort(kv.m_key, kv.m_value->size(), kv.m_value->c_ptr());
+        register_usort(kv.m_key, kv.m_value->size(), kv.m_value->data());
 }
 
 model * model::copy() const {
@@ -161,7 +163,7 @@ void model::register_usort(sort * s, unsigned usize, expr * const * universe) {
         u->append(usize, universe);
     }
     else {
-        m.dec_array_ref(u->size(), u->c_ptr());
+        m.dec_array_ref(u->size(), u->data());
         u->reset();
         u->append(usize, universe);
     }
@@ -190,7 +192,7 @@ model * model::translate(ast_translation & translator) const {
         }
         res->register_usort(translator(kv.m_key),
                             new_universe.size(),
-                            new_universe.c_ptr());
+                            new_universe.data());
     }
 
     return res;
@@ -221,11 +223,23 @@ struct model::top_sort : public ::top_sort<func_decl> {
         m_occur_count.find(f, count);
         return count;
     }
-
-    ~top_sort() override {}
 };
 
-void model::compress() {
+void model::evaluate_constants() {
+    for (auto& [k, p] : m_interp) {
+        auto & [i, e] = p;
+        if (m.is_value(e))
+            continue;
+        expr_ref val(m);
+        val = (*this)(e);
+        m.dec_ref(e);
+        m.inc_ref(val);
+        p.second = val;
+    }
+}
+
+
+void model::compress(bool force_inline) {
     if (m_cleaned) return;
 
     // stratify m_finterp and m_decls in a topological sort
@@ -238,15 +252,13 @@ void model::compress() {
         top_sort ts(m);
         collect_deps(ts);
         ts.topological_sort();
-        for (func_decl * f : ts.top_sorted()) {
-            cleanup_interp(ts, f);
-        }
+        for (func_decl * f : ts.top_sorted())
+            cleanup_interp(ts, f, force_inline);
 
         func_decl_set removed;
         ts.m_occur_count.reset();
-        for (func_decl * f : ts.top_sorted()) {
+        for (func_decl * f : ts.top_sorted()) 
             collect_occs(ts, f);
-        }
         
         // remove auxiliary declarations that are not used.
         for (func_decl * f : ts.top_sorted()) {
@@ -256,7 +268,8 @@ void model::compress() {
                 removed.insert(f);
             }
         }
-        if (removed.empty()) break;
+        if (removed.empty())
+            break;
         TRACE("model", tout << "remove\n"; for (func_decl* f : removed) tout << f->get_name() << "\n";);
         remove_decls(m_decls, removed);
         remove_decls(m_func_decls, removed);
@@ -268,12 +281,14 @@ void model::compress() {
 
 
 void model::collect_deps(top_sort& ts) {
-    for (auto const& kv : m_finterp) {
-        ts.insert(kv.m_key, collect_deps(ts, kv.m_value));
-    }
-    for (auto const& kv : m_interp) {
-        ts.insert(kv.m_key, collect_deps(ts, kv.m_value.second));
-    }
+    recfun::util u(m);
+    for (auto const& [f, v] : m_finterp) 
+        if (!u.has_def(f))
+            ts.insert(f, collect_deps(ts, v));
+        
+    for (auto const& [f,v] : m_interp)
+        if (!u.has_def(f))
+            ts.insert(f, collect_deps(ts, v.second));
 }
 
 struct model::deps_collector {
@@ -333,11 +348,12 @@ model::func_decl_set* model::collect_deps(top_sort& ts, func_interp * fi) {
    \brief Inline interpretations of skolem functions
 */
 
-void model::cleanup_interp(top_sort& ts, func_decl* f) {
+void model::cleanup_interp(top_sort& ts, func_decl* f, bool force_inline) {
+    
     unsigned pid = ts.partition_id(f);
     expr * e1 = get_const_interp(f);
     if (e1) {
-        expr_ref e2 = cleanup_expr(ts, e1, pid);
+        expr_ref e2 = cleanup_expr(ts, e1, pid, force_inline);
         if (e2 != e1) 
             register_decl(f, e2);
         return;
@@ -345,11 +361,11 @@ void model::cleanup_interp(top_sort& ts, func_decl* f) {
     func_interp* fi = get_func_interp(f);
     if (fi) {
         e1 = fi->get_else();
-        expr_ref e2 = cleanup_expr(ts, e1, pid);
+        expr_ref e2 = cleanup_expr(ts, e1, pid, force_inline);
         if (e1 != e2) 
             fi->set_else(e2);
         for (auto& fe : *fi) {
-            e2 = cleanup_expr(ts, fe->get_result(), pid);
+            e2 = cleanup_expr(ts, fe->get_result(), pid, force_inline);
             if (e2 != fe->get_result()) {
                 fi->insert_entry(fe->get_args(), e2);
             }
@@ -383,21 +399,26 @@ void model::collect_occs(top_sort& ts, expr* e) {
     for_each_ast(collector, e, true);
 }
 
-bool model::can_inline_def(top_sort& ts, func_decl* f) {
+bool model::can_inline_def(top_sort& ts, func_decl* f, bool force_inline) {
     if (ts.occur_count(f) <= 1) return true;
     func_interp* fi = get_func_interp(f);
-    if (!fi) return false;
-    if (fi->get_else() == nullptr) return false;
-    if (m_inline) return true;
+    if (!fi) 
+        return false;
+    if (fi->get_else() == nullptr) 
+        return false;
+    if (m_inline) 
+        return true;
     expr* e = fi->get_else();
     obj_hashtable<expr> subs;
     ptr_buffer<expr> todo;
     todo.push_back(e);
     while (!todo.empty()) {
-        if (fi->num_entries() + subs.size() > 8) return false;
+        if (!force_inline && fi->num_entries() + subs.size() > 8) 
+            return false;
         expr* e = todo.back();
         todo.pop_back();
-        if (subs.contains(e)) continue;
+        if (subs.contains(e)) 
+            continue;
         subs.insert(e);
         if (is_app(e)) {
             for (expr* arg : *to_app(e)) {
@@ -412,7 +433,7 @@ bool model::can_inline_def(top_sort& ts, func_decl* f) {
 }
 
 
-expr_ref model::cleanup_expr(top_sort& ts, expr* e, unsigned current_partition) {
+expr_ref model::cleanup_expr(top_sort& ts, expr* e, unsigned current_partition, bool force_inline) {
     if (!e) return expr_ref(nullptr, m);
 
     TRACE("model", tout << "cleaning up:\n" << mk_pp(e, m) << "\n";);
@@ -456,7 +477,7 @@ expr_ref model::cleanup_expr(top_sort& ts, expr* e, unsigned current_partition) 
             if (autil.is_as_array(a)) {
                 func_decl* f = autil.get_as_array_func_decl(a);
                 // only expand auxiliary definitions that occur once.
-                if (can_inline_def(ts, f)) {
+                if (can_inline_def(ts, f, force_inline)) {
                     fi = get_func_interp(f);
                     if (fi) {
                         new_t = fi->get_array_interp(f);
@@ -468,10 +489,10 @@ expr_ref model::cleanup_expr(top_sort& ts, expr* e, unsigned current_partition) 
             if (new_t) {
                 // noop
             }
-            else if (f->is_skolem() && can_inline_def(ts, f) && (fi = get_func_interp(f)) && 
-                     fi->get_interp() && (!ts.partition_ids().find(f, pid) || pid != current_partition)) {
+            else if (f->is_skolem() && can_inline_def(ts, f, force_inline) && (fi = get_func_interp(f)) && 
+                     fi->get_interp() && (!ts.find(f, pid) || pid != current_partition)) {
                 var_subst vs(m, false);
-                new_t = vs(fi->get_interp(), args.size(), args.c_ptr());
+                new_t = vs(fi->get_interp(), args.size(), args.data());
             }
             else if (bv.is_bit2bool(t)) {
                 unsigned idx = f->get_parameter(0).get_int();
@@ -484,7 +505,7 @@ expr_ref model::cleanup_expr(top_sort& ts, expr* e, unsigned current_partition) 
             }
 #endif
             else {
-                new_t = ts.m_rewrite.mk_app(f, args.size(), args.c_ptr());                
+                new_t = ts.m_rewrite.mk_app(f, args.size(), args.data());                
             }
             
             if (t != new_t.get()) trail.push_back(new_t);
@@ -527,15 +548,15 @@ expr_ref model::unfold_as_array(expr* e) {
 }
 
 
-expr_ref model::get_inlined_const_interp(func_decl* f) {
+expr_ref model::get_inlined_const_interp(func_decl* f, bool force_inline) {
     expr* v = get_const_interp(f);
     if (!v) return expr_ref(nullptr, m);
     top_sort st(m);
     expr_ref result1(v, m);
-    expr_ref result2 = cleanup_expr(st, v, UINT_MAX);
+    expr_ref result2 = cleanup_expr(st, v, UINT_MAX, force_inline);
     while (result1 != result2) {
         result1 = result2;
-        result2 = cleanup_expr(st, result1, UINT_MAX);
+        result2 = cleanup_expr(st, result1, UINT_MAX, force_inline);
     }
     return result2;
 }
@@ -584,3 +605,33 @@ void model::reset_eval_cache() {
     m_mev.reset();
 }
 
+void model::add_rec_funs() {
+    recfun::util u(m);
+    func_decl_ref_vector recfuns = u.get_rec_funs();
+    for (func_decl* f : recfuns) {
+        auto& def = u.get_def(f);
+        expr* rhs = def.get_rhs();
+        if (!rhs) 
+            continue;
+        if (has_interpretation(f))
+            continue;
+        if (f->get_arity() == 0) {
+            register_decl(f, rhs);
+            continue;
+        }
+                
+        func_interp* fi = alloc(func_interp, m, f->get_arity());
+        // reverse argument order so that variable 0 starts at the beginning.
+        expr_safe_replace subst(m);
+        unsigned arity = f->get_arity();
+        for (unsigned i = 0; i < arity; ++i) {
+            subst.insert(m.mk_var(arity - i - 1, f->get_domain(i)), m.mk_var(i, f->get_domain(i)));            
+        }
+        expr_ref bodyr(m);
+        subst(rhs, bodyr);
+        
+        fi->set_else(bodyr);
+        register_decl(f, fi);
+    }
+    TRACE("model", tout << *this << "\n";);
+}

@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __NNF_PARAMS_HPP_
-#define __NNF_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct nnf_params {
@@ -23,4 +22,3 @@ struct nnf_params {
   symbol mode() const { return p.get_sym("mode", g, symbol("skolem")); }
   bool ignore_labels() const { return p.get_bool("ignore_labels", g, false); }
 };
-#endif

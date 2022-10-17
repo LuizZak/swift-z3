@@ -84,7 +84,7 @@ class elim_small_bv_tactic : public tactic {
 
             // (VAR num_decls) ... (VAR num_decls+sz-1); are in positions num_decls .. num_decls+sz-1
 
-            std::reverse(substitution.c_ptr(), substitution.c_ptr() + substitution.size());
+            std::reverse(substitution.data(), substitution.data() + substitution.size());
 
             // (VAR 0) should be in the last position of substitution.
 
@@ -98,7 +98,7 @@ class elim_small_bv_tactic : public tactic {
                                     });
 
             var_subst vsbst(m);
-            res = vsbst(e, substitution.size(), substitution.c_ptr());
+            res = vsbst(e, substitution.size(), substitution.data());
             SASSERT(is_well_sorted(m, res));
 
             proof_ref pr(m);
@@ -145,11 +145,13 @@ class elim_small_bv_tactic : public tactic {
                         "; sort = " << mk_ismt2_pp(s, m) <<
                         "; body = " << mk_ismt2_pp(body, m) << std::endl;);
 
-                    if (bv_sz >= 31ul || ((unsigned)(1ul << bv_sz)) + num_steps > m_max_steps) {
+                    if (bv_sz >= 31)
                         return false;
-                    }
+                    unsigned max_num = 1u << bv_sz;
+                    if (max_num > m_max_steps || max_num + num_steps > m_max_steps)
+                        return false;
                     
-                    for (unsigned j = 0; j < (1ul << bv_sz) && !max_steps_exceeded(num_steps); j++) {
+                    for (unsigned j = 0; j < max_num && !max_steps_exceeded(num_steps); j++) {
                         expr_ref n(m_util.mk_numeral(j, bv_sz), m);
                         new_bodies.push_back(replace_var(uv, num_decls, max_var_idx_p1, i, s, body, n));
                         num_steps++;
@@ -171,8 +173,8 @@ class elim_small_bv_tactic : public tactic {
                       for (unsigned k = 0; k < new_bodies.size(); k++)
                           tout << mk_ismt2_pp(new_bodies[k].get(), m) << std::endl; );
                 
-                body = is_forall(q) ? m.mk_and(new_bodies.size(), new_bodies.c_ptr()) :
-                    m.mk_or(new_bodies.size(), new_bodies.c_ptr());
+                body = is_forall(q) ? m.mk_and(new_bodies.size(), new_bodies.data()) :
+                    m.mk_or(new_bodies.size(), new_bodies.data());
                 SASSERT(is_well_sorted(m, body));
                 
                 proof_ref pr(m);
@@ -207,10 +209,10 @@ class elim_small_bv_tactic : public tactic {
         }
 
         void updt_params(params_ref const & p) {
-            m_params = p;
-            m_max_memory = megabytes_to_bytes(p.get_uint("max_memory", UINT_MAX));
-            m_max_steps = p.get_uint("max_steps", UINT_MAX);
-            m_max_bits = p.get_uint("max_bits", 4);
+            m_params.append(p);
+            m_max_memory = megabytes_to_bytes(m_params.get_uint("max_memory", UINT_MAX));
+            m_max_steps = m_params.get_uint("max_steps", UINT_MAX);
+            m_max_bits = m_params.get_uint("max_bits", 4);
         }
     };
 
@@ -234,13 +236,15 @@ public:
         m_params(p) {
     }
 
+    char const* name() const override { return "elim_small_bv"; }
+
     tactic * translate(ast_manager & m) override {
         return alloc(elim_small_bv_tactic, m, m_params);
     }
 
     void updt_params(params_ref const & p) override {
-        m_params = p;
-        m_rw.cfg().updt_params(p);
+        m_params.append(p);
+        m_rw.cfg().updt_params(m_params);
     }
 
     void collect_param_descrs(param_descrs & r) override {

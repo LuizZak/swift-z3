@@ -101,9 +101,16 @@ namespace array {
             else if (!turn[idx] && add_interface_equalities())
                 return sat::check_result::CR_CONTINUE;
         }
-        if (m_delay_qhead < m_axiom_trail.size()) 
+
+        if (add_diff_select_axioms())
             return sat::check_result::CR_CONTINUE;
             
+        if (m_delay_qhead < m_axiom_trail.size()) 
+            return sat::check_result::CR_CONTINUE;
+
+        if (!check_lambdas())
+            return sat::check_result::CR_GIVEUP;
+
         // validate_check();
         return sat::check_result::CR_DONE;
     }
@@ -157,6 +164,10 @@ namespace array {
         auto& d2 = get_var_data(v2);
         if (d2.m_prop_upward && !d1.m_prop_upward)
             set_prop_upward(v1);
+        if (d1.m_has_default && !d2.m_has_default)
+            add_parent_default(v2);
+        if (!d1.m_has_default && d2.m_has_default)
+            add_parent_default(v1);
         for (euf::enode* lambda : d2.m_lambdas)
             add_lambda(v1, lambda);
         for (euf::enode* lambda : d2.m_parent_lambdas)
@@ -174,8 +185,10 @@ namespace array {
         ctx.push_vec(get_var_data(v_child).m_parent_selects, select);
         euf::enode* child = var2enode(v_child);
         TRACE("array", tout << "v" << v_child << " - " << ctx.bpp(select) << " " << ctx.bpp(child) << " prop: " << should_prop_upward(get_var_data(v_child)) << "\n";);
+        TRACE("array", tout << "can beta reduce " << can_beta_reduce(child) << "\n";);
         if (can_beta_reduce(child)) 
             push_axiom(select_axiom(select, child));
+        propagate_parent_select_axioms(v_child);
     }
 
     void solver::add_lambda(theory_var v, euf::enode* lambda) {
@@ -184,23 +197,23 @@ namespace array {
         if (should_set_prop_upward(d))
             set_prop_upward(d);
         ctx.push_vec(d.m_lambdas, lambda);
-        if (should_set_prop_upward(d)) {
-            set_prop_upward(lambda);
-            propagate_select_axioms(d, lambda);
-        }
+        propagate_select_axioms(d, lambda);
+        if (should_set_prop_upward(d)) 
+            set_prop_upward_store(lambda);                    
     }
 
     void solver::add_parent_lambda(theory_var v_child, euf::enode* lambda) {
         SASSERT(can_beta_reduce(lambda));
         auto& d = get_var_data(find(v_child));
         ctx.push_vec(d.m_parent_lambdas, lambda);
-        if (should_set_prop_upward(d))
+        if (should_prop_upward(d))        
             propagate_select_axioms(d, lambda);
     }
 
-    void solver::add_parent_default(theory_var v, euf::enode* def) {
-        SASSERT(a.is_default(def->get_expr()));
+    void solver::add_parent_default(theory_var v) {
         auto& d = get_var_data(find(v));
+        ctx.push(value_trail(d.m_has_default));
+        d.m_has_default = true;
         for (euf::enode* lambda : d.m_lambdas)
             push_axiom(default_axiom(lambda));
         if (should_prop_upward(d))
@@ -226,6 +239,12 @@ namespace array {
         
         auto& d = get_var_data(v);
 
+        for (euf::enode* lambda : d.m_lambdas) 
+            propagate_select_axioms(d, lambda);        
+        
+        if (!should_prop_upward(d))
+            return;
+
         for (euf::enode* lambda : d.m_parent_lambdas)
             propagate_select_axioms(d, lambda);
     }
@@ -241,14 +260,14 @@ namespace array {
         set_prop_upward(d);
     }
 
-    void solver::set_prop_upward(euf::enode* n) {
+    void solver::set_prop_upward_store(euf::enode* n) {
         if (a.is_store(n->get_expr()))
             set_prop_upward(n->get_arg(0)->get_th_var(get_id()));
     }
 
     void solver::set_prop_upward(var_data& d) {
         for (auto* p : d.m_lambdas)
-            set_prop_upward(p);
+            set_prop_upward_store(p);
     }
 
     /**
@@ -267,8 +286,7 @@ namespace array {
         return !get_config().m_array_delay_exp_axiom && d.m_prop_upward;
     }
 
-    bool solver::can_beta_reduce(euf::enode* n) const {
-        expr* c = n->get_expr();
-        return a.is_const(c) || a.is_as_array(c) || a.is_store(c) || is_lambda(c);
+    bool solver::can_beta_reduce(expr* c) const {
+        return a.is_const(c) || a.is_as_array(c) || a.is_store(c) || is_lambda(c) || is_map_combinator(c);
     }
 }

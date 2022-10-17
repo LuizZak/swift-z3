@@ -37,6 +37,8 @@ public:
     }
     
     ~symmetry_reduce_tactic() override;
+
+    char const* name() const override { return "symmetry_reduce"; }
     
     void operator()(goal_ref const & g, 
                     goal_ref_buffer & result) override;
@@ -164,7 +166,7 @@ private:
         for (unsigned i = 0; i < g.size(); ++i) {
             conjs.push_back(g.form(i));
         }
-        fml = m().mk_and(conjs.size(), conjs.c_ptr());
+        fml = m().mk_and(conjs.size(), conjs.data());
         normalize(fml);
     }
 
@@ -338,10 +340,8 @@ private:
         app_parents const& get_parents() { return m_use_funs; }
 
         void operator()(app* n) {
-            func_decl* f;
-            unsigned sz = n->get_num_args();
-            for (unsigned i = 0; i < sz; ++i) {
-                expr* e = n->get_arg(i);
+            func_decl* f = n->get_decl();
+            for (expr* e : *n) {
                 if (is_app(e)) {
                     auto& value = m_use_funs.insert_if_not_there(to_app(e), 0);
                     if (!value) value = alloc(fun_set);
@@ -613,7 +613,7 @@ private:
         for (unsigned i = 0; i < C.size(); ++i) {
             eqs.push_back(m().mk_eq(t, C[i]));
         }
-        return m().mk_or(eqs.size(), eqs.c_ptr());
+        return m().mk_or(eqs.size(), eqs.data());
     }
 };
 

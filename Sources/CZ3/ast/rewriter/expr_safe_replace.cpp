@@ -27,6 +27,7 @@ void expr_safe_replace::insert(expr* src, expr* dst) {
     SASSERT(src->get_sort() == dst->get_sort());
     m_src.push_back(src);
     m_dst.push_back(dst);
+    m_cache.clear();
 }
 
 void expr_safe_replace::operator()(expr_ref_vector& es) {
@@ -45,13 +46,15 @@ void expr_safe_replace::operator()(expr* e, expr_ref& res) {
         return;
     }
 
-    for (unsigned i = 0, e = m_src.size(); i < e; ++i) {
-        m_cache.emplace(m_src.get(i), m_dst.get(i));
+    if (m_cache.empty()) {
+        for (unsigned i = 0, e = m_src.size(); i < e; ++i) 
+            m_cache.emplace(m_src.get(i), m_dst.get(i));
     }
-
+    
     m_todo.push_back(e);
     expr* a, *b;
-    
+
+    m_refs.push_back(e);
     while (!m_todo.empty()) {
         a = m_todo.back();
         auto &cached = m_cache[a];
@@ -159,17 +162,19 @@ void expr_safe_replace::operator()(expr* e, expr_ref& res) {
                 }
                 replace(q->get_expr(), new_body);
             }
-            b = m.update_quantifier(q, pats.size(), pats.c_ptr(), nopats.size(), nopats.c_ptr(), new_body);
+            b = m.update_quantifier(q, pats.size(), pats.data(), nopats.size(), nopats.data(), new_body);
             m_refs.push_back(b);
             cached = b;
             m_todo.pop_back();
         }        
     }
     res = m_cache.at(e);
-    m_cache.clear();
+    if (m_refs.size() > 1 << 20) {
+        m_cache.clear();
+        m_refs.reset();
+    }
     m_todo.reset();
     m_args.reset();
-    m_refs.reset();    
 }
 
 void expr_safe_replace::reset() {
@@ -184,4 +189,18 @@ void expr_safe_replace::apply_substitution(expr* s, expr* def, expr_ref& t) {
     insert(s, def);
     (*this)(t, t);
     reset();
+}
+
+void expr_safe_replace::push_scope() {
+    m_limit.push_back(m_src.size());
+}
+
+void expr_safe_replace::pop_scope(unsigned n) {
+    unsigned old_sz = m_limit[m_limit.size() - n];
+    if (old_sz != m_src.size()) {
+        m_cache.clear();
+        m_src.shrink(old_sz);
+        m_dst.shrink(old_sz);
+    }
+    m_limit.shrink(m_limit.size() - n);
 }

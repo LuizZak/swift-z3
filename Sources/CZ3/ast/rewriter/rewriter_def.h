@@ -16,6 +16,8 @@ Author:
 Notes:
 
 --*/
+#pragma once
+
 #include "ast/rewriter/rewriter.h"
 #include "ast/ast_smt2_pp.h"
 #include "ast/ast_ll_pp.h"
@@ -192,10 +194,21 @@ bool rewriter_tpl<Config>::visit(expr * t, unsigned max_depth) {
     switch (t->get_kind()) {
     case AST_APP:
         if (to_app(t)->get_num_args() == 0) {
-            if (process_const<ProofGen>(to_app(t))) 
-                return true; 
-            TRACE("rewriter", tout << "process const: " << mk_bounded_pp(t, m()) << " -> " << mk_bounded_pp(m_r,m()) << "\n";);
-            t = m_r;
+            if (process_const<ProofGen>(to_app(t)))
+                return true;
+            TRACE("rewriter_const", tout << "process const: " << mk_bounded_pp(t, m()) << " -> " << mk_bounded_pp(m_r, m()) << "\n";);
+            if (!is_blocked(t)) {
+                rewriter_tpl rw(m(), false, m_cfg);
+                for (auto* s : m_blocked)
+                    rw.block(s);
+                rw.block(t);
+                expr_ref result(m());
+                rw(m_r, result, m_pr);
+                m_r = result;
+            }
+            set_new_child_flag(t, m_r);
+            result_stack().push_back(m_r);
+            return true;
         }
         if (max_depth != RW_UNBOUNDED_DEPTH)
             max_depth--;
@@ -284,7 +297,7 @@ void rewriter_tpl<Config>::process_app(app * t, frame & fr) {
         }
 
         unsigned new_num_args   = result_stack().size() - fr.m_spos;
-        expr * const * new_args = result_stack().c_ptr() + fr.m_spos;
+        expr * const * new_args = result_stack().data() + fr.m_spos;
         app_ref new_t(m());
         if (ProofGen) {
             elim_reflex_prs(fr.m_spos);
@@ -295,7 +308,7 @@ void rewriter_tpl<Config>::process_app(app * t, frame & fr) {
             }
             else {
                 new_t = m().mk_app(f, new_num_args, new_args);
-                m_pr  = m().mk_congruence(t, new_t, num_prs, result_pr_stack().c_ptr() + fr.m_spos);
+                m_pr  = m().mk_congruence(t, new_t, num_prs, result_pr_stack().data() + fr.m_spos);
                 SASSERT(rewrites_from(t, m_pr));
                 SASSERT(rewrites_to(new_t, m_pr));
             }
@@ -537,7 +550,7 @@ void rewriter_tpl<Config>::process_quantifier(quantifier * q, frame & fr) {
         }
     }
     SASSERT(fr.m_spos + num_children == result_stack().size());
-    expr * const * it = result_stack().c_ptr() + fr.m_spos;
+    expr * const * it = result_stack().data() + fr.m_spos;
     expr * new_body   = *it;
     unsigned num_pats = q->get_num_patterns();
     unsigned num_no_pats = q->get_num_no_patterns();
@@ -561,7 +574,7 @@ void rewriter_tpl<Config>::process_quantifier(quantifier * q, frame & fr) {
         num_no_pats = j;
     }
     if (ProofGen) {
-        quantifier_ref new_q(m().update_quantifier(q, num_pats, new_pats.c_ptr(), num_no_pats, new_no_pats.c_ptr(), new_body), m());
+        quantifier_ref new_q(m().update_quantifier(q, num_pats, new_pats.data(), num_no_pats, new_no_pats.data(), new_body), m());
         m_pr = nullptr;
         if (q != new_q) {
             m_pr = result_pr_stack().get(fr.m_spos);
@@ -575,7 +588,7 @@ void rewriter_tpl<Config>::process_quantifier(quantifier * q, frame & fr) {
         }
         m_r = new_q;
         proof_ref pr2(m());
-        if (m_cfg.reduce_quantifier(new_q, new_body, new_pats.c_ptr(), new_no_pats.c_ptr(), m_r, pr2)) {
+        if (m_cfg.reduce_quantifier(new_q, new_body, new_pats.data(), new_no_pats.data(), m_r, pr2)) {
             m_pr = m().mk_transitivity(m_pr, pr2);
         }
         TRACE("reduce_quantifier_bug",if (m_pr) tout << mk_ismt2_pp(m_pr, m()) << "\n"; else tout << "m_pr is_null\n";);
@@ -584,9 +597,9 @@ void rewriter_tpl<Config>::process_quantifier(quantifier * q, frame & fr) {
     }
     else {
         TRACE("reduce_quantifier_bug", tout << mk_ismt2_pp(q, m()) << " " << mk_ismt2_pp(new_body, m()) << "\n";);
-        if (!m_cfg.reduce_quantifier(q, new_body, new_pats.c_ptr(), new_no_pats.c_ptr(), m_r, m_pr)) {
+        if (!m_cfg.reduce_quantifier(q, new_body, new_pats.data(), new_no_pats.data(), m_r, m_pr)) {
             if (fr.m_new_child) {
-                m_r = m().update_quantifier(q, num_pats, new_pats.c_ptr(), num_no_pats, new_no_pats.c_ptr(), new_body);
+                m_r = m().update_quantifier(q, num_pats, new_pats.data(), num_no_pats, new_no_pats.data(), new_body);
             }
             else {
                 TRACE("rewriter_reuse", tout << "reusing:\n" << mk_ismt2_pp(q, m()) << "\n";);

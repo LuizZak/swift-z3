@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __SAT_PARAMS_HPP_
-#define __SAT_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct sat_params {
@@ -54,6 +53,10 @@ struct sat_params {
     d.insert("backtrack.conflicts", CPK_UINT, "number of conflicts before enabling chronological backtracking", "4000","sat");
     d.insert("threads", CPK_UINT, "number of parallel threads to use", "1","sat");
     d.insert("dimacs.core", CPK_BOOL, "extract core from DIMACS benchmarks", "false","sat");
+    d.insert("drat.disable", CPK_BOOL, "override anything that enables DRAT", "false","sat");
+    d.insert("smt.proof", CPK_SYMBOL, "add SMT proof to file", "","sat");
+    d.insert("smt.proof.check", CPK_BOOL, "check SMT proof while it is created", "false","sat");
+    d.insert("smt.proof.check_rup", CPK_BOOL, "apply forward RUP proof checking", "true","sat");
     d.insert("drat.file", CPK_SYMBOL, "file to dump DRAT proofs", "","sat");
     d.insert("drat.binary", CPK_BOOL, "use Binary DRAT output format", "false","sat");
     d.insert("drat.check_unsat", CPK_BOOL, "build up internal proof and check", "false","sat");
@@ -156,6 +159,10 @@ struct sat_params {
   unsigned backtrack_conflicts() const { return p.get_uint("backtrack.conflicts", g, 4000u); }
   unsigned threads() const { return p.get_uint("threads", g, 1u); }
   bool dimacs_core() const { return p.get_bool("dimacs.core", g, false); }
+  bool drat_disable() const { return p.get_bool("drat.disable", g, false); }
+  symbol smt_proof() const { return p.get_sym("smt.proof", g, symbol("")); }
+  bool smt_proof_check() const { return p.get_bool("smt.proof.check", g, false); }
+  bool smt_proof_check_rup() const { return p.get_bool("smt.proof.check_rup", g, true); }
   symbol drat_file() const { return p.get_sym("drat.file", g, symbol("")); }
   bool drat_binary() const { return p.get_bool("drat.binary", g, false); }
   bool drat_check_unsat() const { return p.get_bool("drat.check_unsat", g, false); }
@@ -209,4 +216,3 @@ struct sat_params {
   double lookahead_delta_fraction() const { return p.get_double("lookahead.delta_fraction", g, 1.0); }
   symbol lookahead_reward() const { return p.get_sym("lookahead.reward", g, symbol("march_cu")); }
 };
-#endif

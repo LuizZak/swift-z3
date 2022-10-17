@@ -28,6 +28,12 @@ Revision History:
 #include "util/map.h"
 
 struct static_features {
+    struct to_process {
+        expr* e;
+        bool form_ctx;
+        bool and_or_ctx;
+        bool ite_ctx;        
+    };
     ast_manager &            m;
     arith_util               m_autil;
     bv_util                  m_bvutil;
@@ -39,7 +45,7 @@ struct static_features {
     family_id                m_lfid;    
     family_id                m_arrfid;
     family_id                m_srfid;
-    ast_mark                 m_already_visited;
+    ast_mark                 m_pre_processed, m_post_processed;
     bool                     m_cnf;
     unsigned                 m_num_exprs;             // 
     unsigned                 m_num_roots;             //
@@ -53,13 +59,7 @@ struct static_features {
     unsigned                 m_sum_clause_size;
     unsigned                 m_num_nested_formulas; //
     unsigned                 m_num_bool_exprs;      // 
-    unsigned                 m_num_bool_constants;  //
-    unsigned                 m_num_formula_trees;
-    unsigned                 m_max_formula_depth;
-    unsigned                 m_sum_formula_depth;
-    unsigned                 m_num_or_and_trees;
-    unsigned                 m_max_or_and_tree_depth;
-    unsigned                 m_sum_or_and_tree_depth;
+    unsigned                 m_num_bool_constants;  //    
     unsigned                 m_num_ite_trees;
     unsigned                 m_max_ite_tree_depth;
     unsigned                 m_sum_ite_tree_depth;
@@ -111,14 +111,17 @@ struct static_features {
     u_map<unsigned>          m_expr2formula_depth;
 
     unsigned                 m_num_theories; 
-    bool_vector            m_theories;       // mapping family_id -> bool
+    bool_vector              m_theories;       // mapping family_id -> bool
 
     symbol                   m_label_sym;
     symbol                   m_pattern_sym;
     symbol                   m_expr_list_sym;
+    svector<to_process>      m_to_process;
 
-    bool is_marked(ast * e) const { return m_already_visited.is_marked(e); }
-    void mark(ast * e) { m_already_visited.mark(e, true); }
+    bool is_marked_pre(ast * e) const { return m_pre_processed.is_marked(e); }
+    void mark_pre(ast * e) { m_pre_processed.mark(e, true); }
+    bool is_marked_post(ast * e) const { return m_post_processed.is_marked(e); }
+    void mark_post(ast * e) { m_post_processed.mark(e, true); }
     bool is_bool(expr const * e) const { return m.is_bool(e); }
     bool is_basic_expr(expr const * e) const { return is_app(e) && to_app(e)->get_family_id() == m_bfid; }
     bool is_arith_expr(expr const * e) const { return is_app(e) && to_app(e)->get_family_id() == m_afid; }
@@ -153,7 +156,7 @@ struct static_features {
 
     bool arith_k_sum_is_small() const { return m_arith_k_sum < rational(INT_MAX / 8); }
 
-    void inc_num_apps(func_decl const * d) { unsigned id = d->get_decl_id(); m_num_apps.reserve(id+1, 0); m_num_apps[id]++; }
+    void inc_num_apps(func_decl const * d) { unsigned id = d->get_small_id(); m_num_apps.reserve(id+1, 0); m_num_apps[id]++; }
     void inc_theory_terms(family_id fid) { m_num_theory_terms.reserve(fid+1, 0); m_num_theory_terms[fid]++; }
     void inc_theory_atoms(family_id fid) { m_num_theory_atoms.reserve(fid+1, 0); m_num_theory_atoms[fid]++; }
     void inc_theory_constants(family_id fid) { m_num_theory_constants.reserve(fid+1, 0); m_num_theory_constants[fid]++; }
@@ -161,16 +164,18 @@ struct static_features {
     void inc_num_aliens(family_id fid) { m_num_aliens_per_family.reserve(fid+1, 0); m_num_aliens_per_family[fid]++; }
     void update_core(expr * e);
     void update_core(sort * s);
-    void process(expr * e, bool form_ctx, bool or_and_ctx, bool ite_ctx, unsigned stack_depth);
+    // void process(expr * e, bool form_ctx, bool or_and_ctx, bool ite_ctx, unsigned stack_depth);
+    bool pre_process(expr * e, bool form_ctx, bool or_and_ctx, bool ite_ctx);
+    void post_process(expr * e, bool form_ctx, bool or_and_ctx, bool ite_ctx);
+    void add_process(expr * e, bool form_ctx, bool or_and_ctx, bool ite_ctx) { m_to_process.push_back({e, form_ctx, or_and_ctx, ite_ctx}); }
+    void process_all();
+    std::tuple<bool, bool, bool> new_ctx(expr* );
     void process_root(expr * e);
     unsigned get_depth(expr const * e) const { return m_expr2depth.get(e->get_id(), 1); }
     void set_depth(expr const * e, unsigned d) { m_expr2depth.setx(e->get_id(), d, 1); }
-    unsigned get_or_and_depth(expr const * e) const { unsigned d = 0; m_expr2or_and_depth.find(e->get_id(), d); return d; }
-    void set_or_and_depth(expr const * e, unsigned d) { m_expr2or_and_depth.insert(e->get_id(), d); }
+    
     unsigned get_ite_depth(expr const * e) const { unsigned d = 0; m_expr2ite_depth.find(e->get_id(), d); return d; }
     void set_ite_depth(expr const * e, unsigned d) { m_expr2ite_depth.insert(e->get_id(), d); }
-    unsigned get_form_depth(expr const * e) const { unsigned d = 0; m_expr2formula_depth.find(e->get_id(), d); return d; }
-    void set_form_depth(expr const * e, unsigned d) { m_expr2formula_depth.insert(e->get_id(), d); }
     static_features(ast_manager & m);
     void reset();
     void flush_cache();

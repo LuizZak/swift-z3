@@ -40,6 +40,22 @@ public:
         remove_from(list, head);
         return head;
     }
+
+    void insert_after(T* elem) {
+        T* next = this->m_next;
+        elem->m_prev = next->m_prev;
+        elem->m_next = next;
+        this->m_next = elem;
+        next->m_prev = elem;
+    }
+
+    void insert_before(T* elem) {
+        T* prev = this->m_prev;
+        elem->m_next = prev->m_next;
+        elem->m_prev = prev;
+        prev->m_next = elem;
+        this->m_prev = elem;
+    }
     
     static void remove_from(T*& list, T* elem) {
         if (list->m_next == list) {
@@ -74,6 +90,10 @@ public:
         }
     }
 
+    static void detach(T* elem) {
+        elem->init(elem);
+    }
+
     bool invariant() const {
         auto* e = this;
         do {
@@ -83,6 +103,20 @@ public:
         }
         while (e != this);
         return true;
+    }
+
+
+    static bool contains(T* list, T* elem) {
+        if (!list)
+            return false;
+        T* first = list;
+        do {
+            if (list == elem)
+                return true;
+            list = list->m_next;
+        }         
+        while (list != first);
+        return false;
     }
 };
 

@@ -175,7 +175,7 @@ class occf_tactic : public tactic {
                 }
                 if (keep != nullptr)
                     new_lits.push_back(keep);
-                g->update(i, m.mk_or(new_lits.size(), new_lits.c_ptr()), nullptr, d);
+                g->update(i, m.mk_or(new_lits.size(), new_lits.data()), nullptr, d);
             }
             g->inc_depth();
             result.push_back(g.get());
@@ -195,6 +195,8 @@ public:
     ~occf_tactic() override {
         dealloc(m_imp);
     }
+
+    char const* name() const override { return "occf"; }
 
     void updt_params(params_ref const & p) override {}
     void collect_param_descrs(param_descrs & r) override {}

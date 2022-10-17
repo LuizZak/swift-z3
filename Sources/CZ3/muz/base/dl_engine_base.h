@@ -42,7 +42,7 @@ namespace datalog {
         std::string m_name;
     public:
         engine_base(ast_manager& m, char const* name): m(m), m_name(name) {}
-        virtual ~engine_base() {}
+        virtual ~engine_base() = default;
 
         virtual expr_ref get_answer() = 0;
         virtual expr_ref get_ground_sat_answer () {
@@ -63,9 +63,9 @@ namespace datalog {
             }
             sorts.reverse();
             names.reverse();
-            q = m.mk_app(r, args.size(), args.c_ptr());
+            q = m.mk_app(r, args.size(), args.data());
             if (!args.empty()) {
-                q = m.mk_exists(sorts.size(), sorts.c_ptr(), names.c_ptr(), q);
+                q = m.mk_exists(sorts.size(), sorts.data(), names.data(), q);
             }
             return query(q);
         }
@@ -122,6 +122,7 @@ namespace datalog {
 
     class register_engine_base {
     public:
+        virtual ~register_engine_base() = default;
         virtual engine_base* mk_engine(DL_ENGINE engine_type) = 0;
         virtual void set_context(context* ctx) = 0;
     };

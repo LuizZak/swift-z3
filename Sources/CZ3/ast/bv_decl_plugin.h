@@ -241,7 +241,6 @@ protected:
 public:
     bv_decl_plugin();
 
-    ~bv_decl_plugin() override {}
     void finalize() override;
 
     decl_plugin * mk_fresh() override { return alloc(bv_decl_plugin); }
@@ -310,6 +309,7 @@ public:
     unsigned get_extract_high(expr const * n) const { SASSERT(is_extract(n)); return get_extract_high(to_app(n)->get_decl()); }
     unsigned get_extract_low(expr const * n) const { SASSERT(is_extract(n)); return get_extract_low(to_app(n)->get_decl()); }
     bool is_extract(expr const * e, unsigned & low, unsigned & high, expr * & b) const;
+    bool is_repeat(expr const * e, expr*& arg, unsigned& n) const;
     bool is_bv2int(expr const * e, expr * & r) const;
     bool is_bv_add(expr const * e) const { return is_app_of(e, get_fid(), OP_BADD); }
     bool is_bv_sub(expr const * e) const { return is_app_of(e, get_fid(), OP_BSUB); }
@@ -342,6 +342,14 @@ public:
     bool is_bv_not(expr const * e) const { return is_app_of(e, get_fid(), OP_BNOT); }
     bool is_bv_ule(expr const * e) const { return is_app_of(e, get_fid(), OP_ULEQ); }
     bool is_bv_sle(expr const * e) const { return is_app_of(e, get_fid(), OP_SLEQ); }
+    bool is_ule(expr const * e) const { return is_app_of(e, get_fid(), OP_ULEQ); }
+    bool is_sle(expr const * e) const { return is_app_of(e, get_fid(), OP_SLEQ); }
+    bool is_ult(expr const * e) const { return is_app_of(e, get_fid(), OP_ULT); }
+    bool is_slt(expr const * e) const { return is_app_of(e, get_fid(), OP_SLT); }
+    bool is_ugt(expr const * e) const { return is_app_of(e, get_fid(), OP_UGT); }
+    bool is_sgt(expr const * e) const { return is_app_of(e, get_fid(), OP_SGT); }
+    bool is_uge(expr const * e) const { return is_app_of(e, get_fid(), OP_UGEQ); }
+    bool is_sge(expr const * e) const { return is_app_of(e, get_fid(), OP_SGEQ); }
     bool is_bit2bool(expr const * e) const { return is_app_of(e, get_fid(), OP_BIT2BOOL); }
     bool is_bv2int(expr const* e) const { return is_app_of(e, get_fid(), OP_BV2INT); }
     bool is_int2bv(expr const* e) const { return is_app_of(e, get_fid(), OP_INT2BV); }
@@ -355,9 +363,19 @@ public:
     MATCH_UNARY(is_bv_not);
 
     MATCH_BINARY(is_bv_add);
+    MATCH_BINARY(is_bv_sub);
     MATCH_BINARY(is_bv_mul);
     MATCH_BINARY(is_bv_sle);
     MATCH_BINARY(is_bv_ule);
+    MATCH_BINARY(is_ule);
+    MATCH_BINARY(is_sle);
+    MATCH_BINARY(is_ult);
+    MATCH_BINARY(is_slt);
+    MATCH_BINARY(is_uge);
+    MATCH_BINARY(is_sge);
+    MATCH_BINARY(is_ugt);
+    MATCH_BINARY(is_sgt);
+    MATCH_BINARY(is_bv_umul_no_ovfl);
     MATCH_BINARY(is_bv_ashr);
     MATCH_BINARY(is_bv_lshr);
     MATCH_BINARY(is_bv_shl);
@@ -379,7 +397,6 @@ public:
     rational norm(rational const & val, unsigned bv_size, bool is_signed) const ;
     rational norm(rational const & val, unsigned bv_size) const { return norm(val, bv_size, false); }
     bool has_sign_bit(rational const & n, unsigned bv_size) const;
-    bool mult_inverse(rational const & n, unsigned bv_size, rational & result);
 };
 
 class bv_util : public bv_recognizers {
@@ -406,12 +423,13 @@ public:
 
     app * mk_ule(expr * arg1, expr * arg2) { return m_manager.mk_app(get_fid(), OP_ULEQ, arg1, arg2); }
     app * mk_sle(expr * arg1, expr * arg2) { return m_manager.mk_app(get_fid(), OP_SLEQ, arg1, arg2); }
+    app * mk_slt(expr * arg1, expr * arg2) { return m_manager.mk_app(get_fid(), OP_SLT, arg1, arg2); }
     app * mk_extract(unsigned high, unsigned low, expr * n) {
         parameter params[2] = { parameter(high), parameter(low) };
         return m_manager.mk_app(get_fid(), OP_EXTRACT, 2, params, 1, &n);
     }
     app * mk_concat(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_CONCAT, num, args);  }
-    app * mk_concat(expr_ref_vector const& es) { return m_manager.mk_app(get_fid(), OP_CONCAT, es.size(), es.c_ptr());  }
+    app * mk_concat(expr_ref_vector const& es) { return m_manager.mk_app(get_fid(), OP_CONCAT, es.size(), es.data());  }
     app * mk_bv_or(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_BOR, num, args);  }
     app * mk_bv_and(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_BAND, num, args);  }
     app * mk_bv_xor(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_BXOR, num, args);  }

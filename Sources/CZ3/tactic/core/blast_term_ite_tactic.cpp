@@ -80,14 +80,14 @@ class blast_term_ite_tactic : public tactic {
                     expr_ref e1(m), e2(m);
                     ptr_vector<expr> args1(num_args, args);
                     args1[i] = t;
-                    e1 = m.mk_app(f, num_args, args1.c_ptr());
+                    e1 = m.mk_app(f, num_args, args1.data());
                     if (m.are_equal(t, e)) {
                         result = e1;
                         return BR_REWRITE1;
                     }
                     else {
                         args1[i] = e;
-                        e2 = m.mk_app(f, num_args, args1.c_ptr());
+                        e2 = m.mk_app(f, num_args, args1.data());
                         result = m.mk_ite(c, e1, e2);
                         ++m_num_fresh;
                         return BR_REWRITE3;
@@ -171,9 +171,11 @@ public:
         dealloc(m_imp);
     }
 
+    char const* name() const override { return "blast_term_ite"; }
+
     void updt_params(params_ref const & p) override {
-        m_params = p;
-        m_imp->m_rw.m_cfg.updt_params(p);
+        m_params.append(p);
+        m_imp->m_rw.m_cfg.updt_params(m_params);
     }
 
     void collect_param_descrs(param_descrs & r) override {

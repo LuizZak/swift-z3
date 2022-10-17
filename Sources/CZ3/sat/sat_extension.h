@@ -40,6 +40,7 @@ namespace sat {
     class literal_occs_fun {
     public:
         virtual double operator()(literal l) = 0;        
+        virtual ~literal_occs_fun() = default;
     };
 
 
@@ -68,10 +69,10 @@ namespace sat {
         symbol m_name;
         solver* m_solver { nullptr };
     public:        
-        extension(symbol const& name, int id): m_id(id), m_name(name) {}
-        virtual ~extension() {}
+        extension(symbol const& name, int id): m_id(id), m_name(name) { }
+        virtual ~extension() = default;
         int get_id() const { return m_id; }
-        void set_solver(solver* s) { m_solver = s; }        
+        virtual void set_solver(solver* s) { m_solver = s; }        
         solver& s() { return *m_solver; }
         solver const& s() const { return *m_solver; }
         symbol const& name() const { return m_name;  }
@@ -90,8 +91,10 @@ namespace sat {
         virtual double get_reward(literal l, ext_constraint_idx idx, literal_occs_fun& occs) const { return 0; }
         virtual void get_antecedents(literal l, ext_justification_idx idx, literal_vector & r, bool probing) = 0;
         virtual bool is_extended_binary(ext_justification_idx idx, literal_vector & r) { return false; }
-        virtual void asserted(literal l) {};
-        virtual void set_eliminated(bool_var v) {};
+        virtual bool decide(bool_var& var, lbool& phase) { return false; }
+        virtual bool get_case_split(bool_var& var, lbool& phase) { return false; }
+        virtual void asserted(literal l) {}
+        virtual void set_eliminated(bool_var v) {}
         virtual check_result check() = 0;
         virtual lbool resolve_conflict() { return l_undef; } // stores result in sat::solver::m_lemma
         virtual void push() = 0;
@@ -120,7 +123,7 @@ namespace sat {
         virtual bool check_model(model const& m) const { return true; }
         virtual void gc_vars(unsigned num_vars) {}
         virtual bool should_research(sat::literal_vector const& core) { return false;}
-        virtual void add_assumptions() {}
+        virtual void add_assumptions(literal_set& ext_assumptions) {}
         virtual bool tracking_assumptions() { return false; }
         virtual bool enable_self_propagate() const { return false; }
 
@@ -128,6 +131,9 @@ namespace sat {
                                 std::function<void(unsigned sz, literal const* c, unsigned const* coeffs, unsigned k)>& pb) {                                
             return false;
         }
+        virtual bool is_pb() { return false; }
+
+        virtual std::string reason_unknown() { return "unknown"; }
     };
 
 };

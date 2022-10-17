@@ -204,12 +204,7 @@ namespace smt {
         inc_conflicts();
         literal_vector const& lits = m_nc_functor.get_lits();
         IF_VERBOSE(20, ctx.display_literals_smt2(verbose_stream() << "conflict:\n", lits));
-        TRACE("utvpi", ctx.display_literals_smt2(tout << "conflict:\n", lits););
-        
-        if (m_params.m_arith_dump_lemmas) {
-            symbol logic(m_lra ? (m_lia?"QF_LIRA":"QF_LRA") : "QF_LIA");
-            ctx.display_lemma_as_smt_problem(lits.size(), lits.c_ptr(), false_literal, logic);
-        }
+        TRACE("utvpi", ctx.display_literals_smt2(tout << "conflict:\n", lits););        
         
         vector<parameter> params;
         if (m.proofs_enabled()) {
@@ -222,8 +217,8 @@ namespace smt {
         ctx.set_conflict(
             ctx.mk_justification(
                 ext_theory_conflict_justification(
-                    get_id(), ctx.get_region(), 
-                    lits.size(), lits.c_ptr(), 0, nullptr, params.size(), params.c_ptr())));
+                    get_id(), ctx,  
+                    lits.size(), lits.data(), 0, nullptr, params.size(), params.data())));
 
         m_nc_functor.reset();
     }

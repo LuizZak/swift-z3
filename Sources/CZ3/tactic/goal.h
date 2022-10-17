@@ -55,6 +55,7 @@ protected:
     proof_converter_ref   m_pc;
     dependency_converter_ref m_dc;
     unsigned              m_ref_count;
+    std::string           m_reason_unknown;
     expr_array            m_forms;
     expr_array            m_proofs;
     expr_dependency_array m_dependencies;
@@ -119,7 +120,7 @@ public:
 
     unsigned num_exprs() const;
   
-    expr * form(unsigned i) const { return m().get(m_forms, i); }
+    expr * form(unsigned i) const { return inconsistent() ? m().mk_false() : m().get(m_forms, i); }
     proof * pr(unsigned i) const { return m().size(m_proofs) > i ? static_cast<proof*>(m().get(m_proofs, i)) : nullptr; }
     expr_dependency * dep(unsigned i) const { return unsat_core_enabled() ? m().get(m_dependencies, i) : nullptr; }
 
@@ -159,6 +160,8 @@ public:
     void set(model_converter* m) { m_mc = m; }
     void set(proof_converter* p) { m_pc = p; }
 
+    void set_reason_unknown(std::string const& reason_unknown) { m_reason_unknown = reason_unknown; }
+    std::string const& get_reason_unknown() { return m_reason_unknown; }
     bool is_cnf() const;
 
     goal * translate(ast_translation & translator) const;
@@ -176,6 +179,8 @@ template<typename GoalCollection>
 inline bool is_decided_sat(GoalCollection const & c) { return c.size() == 1 && c[0]->is_decided_sat(); }
 template<typename GoalCollection>
 inline bool is_decided_unsat(GoalCollection const & c) { return c.size() == 1 && c[0]->is_decided_unsat(); }
+template<typename GoalCollection>
+inline std::string get_reason_unknown(GoalCollection const & c) { return c.size() == 1 ? c[0]->get_reason_unknown() : std::string("unknown"); }
 
 template<typename ForEachProc>
 void for_each_expr_at(ForEachProc& proc, goal const & s) {

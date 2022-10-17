@@ -58,7 +58,7 @@ public:
         cmd * c = ctx.find_cmd(s);
         if (c == nullptr) {
             std::string err_msg("unknown command '");
-            err_msg = err_msg + s.bare_str() + "'";
+            err_msg = err_msg + s.str() + "'";
             throw cmd_exception(std::move(err_msg));
         }
         m_cmds.push_back(s);
@@ -177,10 +177,10 @@ ATOMIC_CMD(get_proof_cmd, "get-proof", "retrieve proof", {
     if (!ctx.has_manager())
         throw cmd_exception("proof is not available");
 
-    if (ctx.ignore_check())
-        return;
     expr_ref pr(ctx.m());
     auto* chsr = ctx.get_check_sat_result();
+    if (!chsr && ctx.ignore_check())
+        return;
     if (!chsr)
         throw cmd_exception("proof is not available");
     pr = chsr->get_proof();
@@ -219,9 +219,8 @@ ATOMIC_CMD(get_proof_graph_cmd, "get-proof-graph", "retrieve proof and print it 
     pr = ctx.get_check_sat_result()->get_proof();
     if (pr == 0)
         throw cmd_exception("proof is not available");
-    if (ctx.well_sorted_check_enabled() && !is_well_sorted(ctx.m(), pr)) {
+    if (ctx.well_sorted_check_enabled() && !is_well_sorted(ctx.m(), pr)) 
         throw cmd_exception("proof is not well sorted");
-    }
 
     context_params& params = ctx.params();
     const std::string& file = params.m_dot_proof_file;
@@ -235,11 +234,11 @@ static void print_core(cmd_context& ctx) {
     ctx.regular_stream() << "(";
     bool first = true;
     for (expr* e : core) {
-    if (first)
-        first = false;
-    else
-        ctx.regular_stream() << " ";
-    ctx.regular_stream() << mk_ismt2_pp(e, ctx.m());
+        if (first)
+            first = false;
+        else
+            ctx.regular_stream() << " ";
+        ctx.regular_stream() << mk_ismt2_pp(e, ctx.m());
     }
     ctx.regular_stream() << ")" << std::endl;
 }
@@ -260,9 +259,8 @@ ATOMIC_CMD(get_unsat_assumptions_cmd, "get-unsat-assumptions", "retrieve subset 
             return;
         if (!ctx.produce_unsat_assumptions())
             throw cmd_exception("unsat assumptions construction is not enabled, use command (set-option :produce-unsat-assumptions true)");
-        if (!ctx.has_manager() || ctx.cs_state() != cmd_context::css_unsat) {
+        if (!ctx.has_manager() || ctx.cs_state() != cmd_context::css_unsat) 
             throw cmd_exception("unsat assumptions is not available");
-        }
         print_core(ctx);
     });
 
@@ -301,10 +299,23 @@ UNARY_CMD(pp_cmd, "display", "<term>", "display the given term.", CPK_EXPR, expr
     ctx.regular_stream() << std::endl;
 });
 
-UNARY_CMD(echo_cmd, "echo", "<string>", "display the given string", CPK_STRING, char const *,
-    bool smt2c = ctx.params().m_smtlib2_compliant;
-    ctx.regular_stream() << (smt2c ? "\"" : "") << arg << (smt2c ? "\"" : "") << std::endl;);
+static std::string escape_string(char const* arg) {
+    std::string result;
+    while (*arg) {
+        auto ch = *arg++;
+        if (ch == '"')
+            result.push_back(ch);
+        result.push_back(ch);
+    }
+    return result;
+}
 
+UNARY_CMD(echo_cmd, "echo", "<string>", "display the given string", CPK_STRING, char const *,
+          bool smt2c = ctx.params().m_smtlib2_compliant;
+          if (smt2c) 
+              ctx.regular_stream() << "\"" << escape_string(arg) << "\"" << std::endl;
+          else
+              ctx.regular_stream() << arg << std::endl;);
 
 class set_get_option_cmd : public cmd {
 protected:
@@ -368,8 +379,6 @@ public:
         m_int_real_coercions(":int-real-coercions"),
         m_reproducible_resource_limit(":reproducible-resource-limit") {
     }
-    ~set_get_option_cmd() override {}
-
 };
 
 class set_option_cmd : public set_get_option_cmd {
@@ -393,6 +402,15 @@ class set_option_cmd : public set_get_option_cmd {
             std::string msg = "error setting '";
             msg += opt_name.str();
             msg += "', option value cannot be modified after initialization";
+            throw cmd_exception(std::move(msg));
+        }
+    }
+
+    static void check_no_assertions(cmd_context & ctx, symbol const & opt_name) {
+        if (ctx.has_assertions()) {
+            std::string msg = "error setting '";
+            msg += opt_name.str();
+            msg += "', option value cannot be modified after assertions have been added";
             throw cmd_exception(std::move(msg));
         }
     }
@@ -424,11 +442,11 @@ class set_option_cmd : public set_get_option_cmd {
             ctx.set_interactive_mode(to_bool(value));
         }
         else if (m_option == m_produce_proofs) {
-            check_not_initialized(ctx, m_produce_proofs);
+            check_no_assertions(ctx, m_produce_proofs);
             ctx.set_produce_proofs(to_bool(value));
         }
         else if (m_option == m_produce_unsat_cores) {
-            check_not_initialized(ctx, m_produce_unsat_cores);
+            check_no_assertions(ctx, m_produce_unsat_cores);
             ctx.set_produce_unsat_cores(to_bool(value));
         }
         else if (m_option == m_produce_unsat_assumptions) {
@@ -798,15 +816,15 @@ public:
         unsigned arity = m_f->get_arity();
         for (unsigned i = 0; i < arity; i++) {
             array_sort_args.push_back(m_f->get_domain(i));
-            domain.push_back(array_sort->instantiate(ctx.pm(), array_sort_args.size(), array_sort_args.c_ptr()));
+            domain.push_back(array_sort->instantiate(ctx.pm(), array_sort_args.size(), array_sort_args.data()));
             array_sort_args.pop_back();
         }
         sort_ref range(ctx.m());
         array_sort_args.push_back(m_f->get_range());
-        range = array_sort->instantiate(ctx.pm(), array_sort_args.size(), array_sort_args.c_ptr());
-        parameter p[1] = { parameter(m_f) };
+        range = array_sort->instantiate(ctx.pm(), array_sort_args.size(), array_sort_args.data());
+        parameter p(m_f);
         func_decl_ref new_map(ctx.m());
-        new_map = ctx.m().mk_func_decl(get_array_fid(ctx), OP_ARRAY_MAP, 1, p, domain.size(), domain.c_ptr(), range.get());
+        new_map = ctx.m().mk_func_decl(get_array_fid(ctx), OP_ARRAY_MAP, 1, &p, domain.size(), domain.data(), range.get());
         if (new_map == 0)
             throw cmd_exception("invalid array map operator");
         ctx.insert(m_name, new_map);
@@ -836,8 +854,8 @@ public:
     void execute(cmd_context & ctx) override {
         ast_manager& m = ctx.m();
         expr_ref_vector assumptions(m), variables(m), consequences(m);
-        assumptions.append(m_assumptions.size(), m_assumptions.c_ptr());
-        variables.append(m_variables.size(), m_variables.c_ptr());
+        assumptions.append(m_assumptions.size(), m_assumptions.data());
+        variables.append(m_variables.size(), m_variables.data());
         ctx.get_consequences(assumptions, variables, consequences);
         ctx.regular_stream() << consequences << "\n";
     }

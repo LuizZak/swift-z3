@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __BOOL_REWRITER_PARAMS_HPP_
-#define __BOOL_REWRITER_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct bool_rewriter_params {
@@ -30,4 +29,3 @@ struct bool_rewriter_params {
   bool blast_distinct() const { return p.get_bool("blast_distinct", g, false); }
   unsigned blast_distinct_threshold() const { return p.get_uint("blast_distinct_threshold", g, 4294967295u); }
 };
-#endif

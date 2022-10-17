@@ -49,14 +49,14 @@ namespace opt {
                 dst[i] = src[i];
                 m_models.set(i, m_s->get_model_idx(i));
                 m_s->get_labels(m_labels);
-                m_lower_fmls[i] = fmls[i].get();
+                m_lower_fmls[i] = fmls.get(i);
                 if (dst[i].is_pos() && !dst[i].is_finite()) { // review: likely done already.
                     m_lower_fmls[i] = m.mk_false();
                     fmls[i] = m.mk_false();
                 }
             }
-            else if (src[i] < dst[i] && !m.is_true(m_lower_fmls[i].get())) {
-                fmls[i] = m_lower_fmls[i].get();                
+            else if (src[i] < dst[i] && !m.is_true(m_lower_fmls.get(i))) {
+                fmls[i] = m_lower_fmls.get(i);                
             }
         }
     }
@@ -195,24 +195,28 @@ namespace opt {
     lbool optsmt::geometric_lex(unsigned obj_index, bool is_maximize) {
         TRACE("opt", tout << "index: " << obj_index << " is-max: " << is_maximize << "\n";);
         arith_util arith(m);
-        bool is_int = arith.is_int(m_objs[obj_index].get());
+        bool is_int = arith.is_int(m_objs.get(obj_index));
         lbool is_sat = l_true;
         expr_ref bound(m), last_bound(m);
 
-        for (unsigned i = 0; i < obj_index; ++i) {
+        for (unsigned i = 0; i < obj_index; ++i) 
             commit_assignment(i);
-        }
+
+//        m_s->maximize_objective(obj_index, bound);
+//        m_s->assert_expr(bound);
 
         unsigned steps = 0;
         unsigned step_incs = 0;
         rational delta_per_step(1);
         unsigned num_scopes = 0;
+        inf_eps last_objective = inf_eps(rational(-1), inf_rational(0));
 
         while (m.inc()) {
             SASSERT(delta_per_step.is_int());
             SASSERT(delta_per_step.is_pos());
             is_sat = m_s->check_sat(0, nullptr);
             TRACE("opt", tout << "check " << is_sat << "\n";
+                  tout << "last bound: " << last_bound << "\n";
                   tout << "lower: " << m_lower[obj_index] << "\n";
                   tout << "upper: " << m_upper[obj_index] << "\n";
                   );
@@ -221,6 +225,7 @@ namespace opt {
                 m_s->get_model(m_model);
                 SASSERT(m_model);
                 inf_eps obj = m_s->saved_objective_value(obj_index);
+                TRACE("opt", tout << "saved objective: " << obj << "\n";);
                 update_lower_lex(obj_index, obj, is_maximize);
                 if (!is_int || !m_lower[obj_index].is_finite()) {
                     delta_per_step = rational(1);
@@ -233,12 +238,12 @@ namespace opt {
                 else {
                     ++steps;
                 }
-                if (delta_per_step > rational::one()) {
+                if (delta_per_step > rational::one() || (obj == last_objective && is_int)) {
                     m_s->push();
                     ++num_scopes;
                     bound = m_s->mk_ge(obj_index, obj + inf_eps(delta_per_step));
                 }
-                TRACE("opt", tout << "delta: " << delta_per_step << " " << bound << "\n";);
+                last_objective = obj;
                 if (bound == last_bound) {
                     break;
                 }
@@ -280,7 +285,7 @@ namespace opt {
     bool optsmt::can_increment_delta(vector<inf_eps> const& lower, unsigned i) {
         arith_util arith(m);
         inf_eps max_delta;
-        if (m_lower[i] < m_upper[i] && arith.is_int(m_objs[i].get())) {
+        if (m_lower[i] < m_upper[i] && arith.is_int(m_objs.get(i))) {
             inf_eps delta = m_lower[i] - lower[i];  
             if (m_lower[i].is_finite() && delta > max_delta) {
                 return true;
@@ -303,11 +308,9 @@ namespace opt {
         expr_ref fml(m), bound(m.mk_true(), m), tmp(m);
         expr* vars[1];
         {
-            for (unsigned i = 0; i < m_upper.size(); ++i) {
+            for (unsigned i = 0; i < m_upper.size(); ++i) 
                 ors.push_back(m_s->mk_ge(i, m_upper[i]));
-            }
-            
-            
+                        
             fml = mk_or(ors);
             tmp = m.mk_fresh_const("b", m.mk_bool_sort());
             fml = m.mk_implies(tmp, fml);
@@ -321,12 +324,12 @@ namespace opt {
                 is_sat = m_s->check_sat(1,vars);
                 if (is_sat == l_true) {
                     disj.reset();
-                    m_s->maximize_objectives(disj);
+                    if (!m_s->maximize_objectives1(disj)) 
+                        return l_undef;
                     m_s->get_model(m_model);       
                     m_s->get_labels(m_labels);            
                     for (unsigned i = 0; i < ors.size(); ++i) {
-                        expr_ref tmp(m);
-                        if (m_model->is_true(ors[i].get())) {
+                        if (m_model->is_true(ors.get(i))) {       
                             m_lower[i] = m_upper[i];
                             ors[i]  = m.mk_false();
                             disj[i] = m.mk_false();
@@ -356,6 +359,7 @@ namespace opt {
     }
 
     void optsmt::update_lower_lex(unsigned idx, inf_eps const& v, bool is_maximize) {
+        TRACE("opt", tout << v << " lower: " << m_lower[idx] << "\n";);
         if (v > m_lower[idx]) {
             m_lower[idx] = v;                
             IF_VERBOSE(1, 
@@ -367,6 +371,7 @@ namespace opt {
             for (unsigned i = idx+1; i < m_vars.size(); ++i) {
                 m_lower[i] = m_s->saved_objective_value(i);
             }
+            TRACE("opt", tout << "update best model " << *m_model << "\n";);
             m_best_model = m_model;
             m_s->get_labels(m_labels);
             m_context.set_model(m_model);
@@ -395,7 +400,8 @@ namespace opt {
         expr_ref_vector disj(m);
         m_s->get_model(m_model);
         m_s->get_labels(m_labels);
-        m_s->maximize_objectives(disj);
+        if (!m_s->maximize_objectives1(disj))
+            return expr_ref(m.mk_true(), m);
         set_max(m_lower, m_s->get_objective_values(), disj);
         TRACE("opt", model_pp(tout << m_lower << "\n", *m_model););
         IF_VERBOSE(2, verbose_stream() << "(optsmt.lower " << m_lower << ")\n";);
@@ -432,8 +438,8 @@ namespace opt {
         bool progress = false;
         for (unsigned i = 0; i < m_lower.size() && m.inc(); ++i) {
             if (m_lower[i] <= mid[i] && mid[i] <= m_upper[i] && m_lower[i] < m_upper[i]) {
-                th.enable_record_conflict(bounds[i].get());
-                lbool is_sat = m_s->check_sat(1, bounds.c_ptr() + i);
+                th.enable_record_conflict(bounds.get(i));
+                lbool is_sat = m_s->check_sat(1, bounds.data() + i);
                 switch(is_sat) {
                 case l_true:
                     IF_VERBOSE(2, verbose_stream() << "(optsmt lower bound for v" << m_vars[i] << " := " << m_upper[i] << ")\n";);
@@ -481,10 +487,10 @@ namespace opt {
         }
 
         for (unsigned i = 0; i < m_objs.size(); ++i) {
-            smt::theory_var v = solver.add_objective(m_objs[i].get());
+            smt::theory_var v = solver.add_objective(m_objs.get(i));
             if (v == smt::null_theory_var) {
                 std::ostringstream out;
-                out << "Objective function '" << mk_pp(m_objs[i].get(), m) << "' is not supported";
+                out << "Objective function '" << mk_pp(m_objs.get(i), m) << "' is not supported";
                 throw default_exception(out.str());
             }
             m_vars.push_back(v);
@@ -530,10 +536,6 @@ namespace opt {
         return m_lower[i];
     }
 
-    bool optsmt::objective_is_model_valid(unsigned index) const {
-        return m_s->objective_is_model_valid(index);
-    }
-
     inf_eps optsmt::get_upper(unsigned i) const {
         if (i >= m_upper.size()) return inf_eps();
         return m_upper[i];
@@ -541,13 +543,14 @@ namespace opt {
 
     void optsmt::get_model(model_ref& mdl, svector<symbol> & labels) {        
         mdl = m_best_model.get();
+        TRACE("opt", tout << *mdl << "\n";);
         labels = m_labels;
     }
 
     // force lower_bound(i) <= objective_value(i)    
     void optsmt::commit_assignment(unsigned i) {
         inf_eps lo = m_lower[i];
-        TRACE("opt", tout << "set lower bound of " << mk_pp(m_objs[i].get(), m) << " to: " << lo << "\n";
+        TRACE("opt", tout << "set lower bound of " << mk_pp(m_objs.get(i), m) << " to: " << lo << "\n";
               tout << get_lower(i) << ":" << get_upper(i) << "\n";);    
         // Only assert bounds for bounded objectives
         if (lo.is_finite()) {

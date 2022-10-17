@@ -28,8 +28,8 @@ namespace smt {
             ptr_vector<enode>  m_maps;
             ptr_vector<enode>  m_consts;
             ptr_vector<enode>  m_as_arrays;
+            ptr_vector<enode>  m_lambdas;
             ptr_vector<enode>  m_parent_maps;
-            var_data_full() {}
         };
 
         ptr_vector<var_data_full> m_var_data_full;
@@ -42,6 +42,7 @@ namespace smt {
         static unsigned const m_default_store_fingerprint = UINT_MAX - 113;
         static unsigned const m_default_const_fingerprint = UINT_MAX - 115;
         static unsigned const m_default_as_array_fingerprint = UINT_MAX - 116;
+        static unsigned const m_default_lambda_fingerprint = UINT_MAX - 117;
 
     protected:
 
@@ -67,6 +68,7 @@ namespace smt {
         void add_map(theory_var v, enode* s);
         void add_parent_map(theory_var v, enode* s);
         void add_as_array(theory_var v, enode* arr);
+        void add_lambda(theory_var v, enode* lam);
 
         void add_parent_select(theory_var v, enode * s) override;
         void add_parent_default(theory_var v);        
@@ -77,11 +79,14 @@ namespace smt {
         bool instantiate_default_store_axiom(enode* store);
         bool instantiate_default_map_axiom(enode* map);
         bool instantiate_default_as_array_axiom(enode* arr);
+        bool instantiate_default_lambda_def_axiom(enode* arr);
         bool instantiate_parent_stores_default(theory_var v);
 
         bool has_large_domain(app* array_term);
         bool has_unitary_domain(app* array_term);
         std::pair<app*,func_decl*> mk_epsilon(sort* s);
+        enode_vector m_as_array;
+        bool has_non_beta_as_array();
 
         bool instantiate_select_const_axiom(enode* select, enode* cnst);
         bool instantiate_select_as_array_axiom(enode* select, enode* arr);

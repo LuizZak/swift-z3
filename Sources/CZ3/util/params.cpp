@@ -24,15 +24,14 @@ Notes:
 
 params_ref params_ref::g_empty_params_ref;
 
-std::string norm_param_name(char const * n) {
-    if (n == nullptr)
-        return "_";
+std::string norm_param_name(char const* n) {
     if (*n == ':')
         n++;
     std::string r = n;
     unsigned sz = static_cast<unsigned>(r.size());
     if (sz == 0)
         return "_";
+        
     for (unsigned i = 0; i < sz; i++) {
         char curr = r[i];
         if ('A' <= curr && curr <= 'Z')
@@ -44,6 +43,8 @@ std::string norm_param_name(char const * n) {
 }
 
 std::string norm_param_name(symbol const & n) {
+    if (n.is_null())
+        return "_";
     return norm_param_name(n.bare_str());
 }
 
@@ -105,7 +106,7 @@ struct param_descrs::imp {
         if (!period) return false;
         svector<char> prefix_((unsigned)(period-str), str);
         prefix_.push_back(0);
-        prefix = symbol(prefix_.c_ptr());
+        prefix = symbol(prefix_.data());
         suffix = symbol(period + 1);
         return true;
     }
@@ -156,22 +157,26 @@ struct param_descrs::imp {
         return m_names[idx];
     }
 
-    struct lt {
-        bool operator()(symbol const & s1, symbol const & s2) const { return strcmp(s1.bare_str(), s2.bare_str()) < 0; }
+    struct symlt {
+        bool operator()(symbol const & s1, symbol const & s2) const { return ::lt(s1, s2); }        
     };
 
-    void display(std::ostream & out, unsigned indent, bool smt2_style, bool include_descr) const {
+    void display(std::ostream & out, unsigned indent, bool smt2_style, bool include_descr, bool markdown) const {
         svector<symbol> names;
         for (auto const& kv : m_info) {
             names.push_back(kv.m_key);
         }
-        std::sort(names.begin(), names.end(), lt());
+        std::sort(names.begin(), names.end(), symlt());
+        if (markdown) {
+            out << " Parameter | Type | Description | Default\n";
+            out << " ----------|------|-------------|--------\n";            
+        }
         for (symbol const& name : names) {
             for (unsigned i = 0; i < indent; i++) out << " ";
             if (smt2_style)
                 out << ':';
-            char const * s = name.bare_str();
-            unsigned n = static_cast<unsigned>(strlen(s));
+            std::string s = name.str();
+            unsigned n = static_cast<unsigned>(s.length());
             for (unsigned i = 0; i < n; i++) {
                 if (smt2_style && s[i] == '_')
                     out << '-';
@@ -185,10 +190,30 @@ struct param_descrs::imp {
             info d;
             m_info.find(name, d);
             SASSERT(d.m_descr);
-            out << " (" << d.m_kind << ")";
-            if (include_descr)
+            if (markdown) 
+                out << " | " << d.m_kind << " ";
+            else
+                out << " (" << d.m_kind << ")";
+            if (markdown) {
+                out << " | ";
+                std::string desc;
+                for (auto ch : std::string(d.m_descr)) {
+                    switch (ch) {
+                    case '<': desc += "&lt;"; break;
+                    case '>': desc += "&gt;"; break;
+                    default: desc.push_back(ch);
+                    }
+                }
+                out << " " << desc;
+            }
+            else if (include_descr)
                 out << " " << d.m_descr;
-            if (d.m_default != nullptr)
+            if (markdown) {
+                out << " | ";
+                if (d.m_default)
+                    out << d.m_default;
+            }
+            else if (d.m_default != nullptr)
                 out << " (default: " << d.m_default << ")";
             out << "\n";
         }
@@ -279,7 +304,11 @@ char const* param_descrs::get_module(symbol const& name) const {
 }
 
 void param_descrs::display(std::ostream & out, unsigned indent, bool smt2_style, bool include_descr) const {
-    return m_imp->display(out, indent, smt2_style, include_descr);
+    return m_imp->display(out, indent, smt2_style, include_descr, false);
+}
+
+void param_descrs::display_markdown(std::ostream & out, bool smt2_style, bool include_descr) const {
+    return m_imp->display(out, 0, smt2_style, include_descr, true);
 }
 
 void insert_max_memory(param_descrs & r) {
@@ -520,7 +549,7 @@ params_ref::~params_ref() {
 
 params_ref::params_ref(params_ref const & p):
     m_params(nullptr) {
-    operator=(p);
+    set(p);
 }
 
 void params_ref::display(std::ostream & out) const {
@@ -553,18 +582,20 @@ void params_ref::validate(param_descrs const & p) {
         m_params->validate(p);
 }
 
-params_ref & params_ref::operator=(params_ref const & p) {
+
+void params_ref::set(params_ref const & p) {
     if (p.m_params)
         p.m_params->inc_ref();
     if (m_params)
         m_params->dec_ref();
     m_params = p.m_params;
-    return *this;
 }
 
 void params_ref::copy(params_ref const & src) {
-    if (m_params == nullptr)
-        operator=(src);
+    if (m_params == nullptr || m_params->empty())
+        set(src);
+    else if (src.empty())
+        return;
     else {
         init();
         copy_core(src.m_params);
@@ -1043,6 +1074,7 @@ void params::set_sym(char const * k, symbol const & v) {
 }
 
 #ifdef Z3DEBUG
+#include <iostream>
 void pp(params_ref const & p) {
     std::cout << p << std::endl;
 }

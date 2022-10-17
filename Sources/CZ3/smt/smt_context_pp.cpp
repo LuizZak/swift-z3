@@ -56,6 +56,8 @@ namespace smt {
             return out;
         case QUANTIFIERS:
             return out << "QUANTIFIERS";
+        case LAMBDAS:
+            return out << "LAMBDAS";
         }
         UNREACHABLE();
         return out << "?";
@@ -79,6 +81,7 @@ namespace smt {
         }
         case RESOURCE_LIMIT: r = "(resource limits reached)"; break;
         case QUANTIFIERS: r = "(incomplete quantifiers)"; break;
+        case LAMBDAS: r = "(incomplete lambdas)"; break;
         case UNKNOWN: r = m_unknown; break;
         }
         return r;
@@ -89,11 +92,11 @@ namespace smt {
     }
 
     std::ostream& context::display_literal(std::ostream & out, literal l) const {
-        l.display_compact(out, m_bool_var2expr.c_ptr()); return out;
+        smt::display_compact(out, l, m_bool_var2expr.data()); return out;
     }
 
     std::ostream& context::display_literals(std::ostream & out, unsigned num_lits, literal const * lits) const {
-        display_compact(out, num_lits, lits, m_bool_var2expr.c_ptr()); return out;
+        display_compact(out, num_lits, lits, m_bool_var2expr.data()); return out;
     }
 
     std::ostream& context::display_literal_verbose(std::ostream & out, literal lit) const {
@@ -101,7 +104,7 @@ namespace smt {
     }
 
     std::ostream& context::display_literals_verbose(std::ostream & out, unsigned num_lits, literal const * lits) const {
-        display_verbose(out, m, num_lits, lits, m_bool_var2expr.c_ptr(), "\n"); return out;
+        display_verbose(out, m, num_lits, lits, m_bool_var2expr.data(), "\n"); return out;
     }
 
     std::ostream& context::display_literal_smt2(std::ostream& out, literal l) const {
@@ -113,14 +116,22 @@ namespace smt {
     }
 
     std::ostream& context::display_literals_smt2(std::ostream& out, unsigned num_lits, literal const* lits) const {
-        for (unsigned i = 0; i < num_lits; ++i) {
+        out << literal_vector(num_lits, lits) << ":\n";
+#if 1
+        expr_ref_vector fmls(m);
+        for (unsigned i = 0; i < num_lits; ++i)
+            fmls.push_back(literal2expr(lits[i]));
+        expr_ref c = mk_or(fmls);
+        out << c << "\n";
+#else
+        for (unsigned i = 0; i < num_lits; ++i) 
             display_literal_smt2(out, lits[i]) << "\n";
-        }
+#endif
         return out;
     }
 
     void context::display_literal_info(std::ostream & out, literal l) const {
-        l.display_compact(out, m_bool_var2expr.c_ptr());
+        smt::display_compact(out, l, m_bool_var2expr.data());
         display_literal_smt2(out, l);
         out << "relevant: " << is_relevant(bool_var2expr(l.var())) << ", val: " << get_assignment(l) << "\n";
     }
@@ -171,7 +182,7 @@ namespace smt {
     }
 
     std::ostream& context::display_clause(std::ostream & out, clause const * cls) const {
-        cls->display_compact(out, m, m_bool_var2expr.c_ptr());
+        cls->display_compact(out, m, m_bool_var2expr.data());
         return out;
     }
 
@@ -220,12 +231,22 @@ namespace smt {
     void context::display_assignment(std::ostream & out) const {
         if (!m_assigned_literals.empty()) {
             out << "current assignment:\n";
+            unsigned level = 0;
             for (literal lit : m_assigned_literals) {
-                display_literal(out, lit);
+                if (level < get_assign_level(lit.var())) {
+                    level = get_assign_level(lit.var());
+                    out << "level " << level << "\n";
+                }
+                display_literal(out << lit << " ", lit);
                 if (!is_relevant(lit)) out << " n ";
                 out << ": ";
-                display_verbose(out, m, 1, &lit, m_bool_var2expr.c_ptr());
-                out << "\n";
+                display_verbose(out, m, 1, &lit, m_bool_var2expr.data());
+                if (level > 0) {
+                    auto j = get_justification(lit.var());
+                    display(out << " ", j);
+                }
+                else 
+                    out << "\n";
             }
         }
     }
@@ -244,22 +265,30 @@ namespace smt {
     }
 
     void context::display_eqc(std::ostream & out) const {
-        bool first = true;
-        for (enode * x : m_enodes) {
-            expr * n = x->get_expr();
-            expr * r = x->get_root()->get_expr();
-            if (n != r) {
-                if (first) {
-                    out << "equivalence classes:\n";
-                    first = false;
-                }
-                out << "#" << n->get_id() << " -> #" << r->get_id() << ": ";
-                out << mk_pp(n, m) << " -> " << mk_pp(r, m) << "\n";
+        if (m_enodes.empty())
+            return;
+        unsigned count = 0;
+        for (enode * r : m_enodes) 
+            if (r->is_root())
+                ++count;
+            
+        out << "equivalence classes: " << count << "\n";        
+        for (enode * r : m_enodes) {
+            if (!r->is_root())
+                continue;
+            out << "#" << enode_pp(r, *this) << "\n";
+            if (r->get_class_size() == 1)
+                continue;
+            for (enode* n : *r) {
+                if (n != r)
+                    out << "   #" << enode_pp(n, *this) << "\n";
             }
         }
     }
 
     void context::display_app_enode_map(std::ostream & out) const {
+        return;
+        // mainly useless 
         if (!m_e_internalized_stack.empty()) {
             out << "expression -> enode:\n";
             unsigned sz = m_e_internalized_stack.size();
@@ -286,7 +315,7 @@ namespace smt {
 
     void context::display_hot_bool_vars(std::ostream & out) const {
         out << "hot bool vars:\n";
-        int num = get_num_bool_vars();
+        unsigned num = get_num_bool_vars();
         for (bool_var v = 0; v < num; v++) {
             double val = get_activity(v)/m_bvar_inc;
             if (val > 10.00) {
@@ -386,6 +415,7 @@ namespace smt {
         st.update("final checks", m_stats.m_num_final_checks);
         st.update("added eqs", m_stats.m_num_add_eq);
         st.update("mk clause", m_stats.m_num_mk_clause);
+        st.update("mk clause binary", m_stats.m_num_mk_bin_clause);        
         st.update("del clause", m_stats.m_num_del_clause);
         st.update("dyn ack", m_stats.m_num_dyn_ack);
         st.update("interface eqs", m_stats.m_num_interface_eqs);
@@ -598,14 +628,14 @@ namespace smt {
             clause * cls = j.get_clause();
             out << "clause ";
             if (cls) out << literal_vector(cls->get_num_literals(), cls->begin());
-            if (cls) display_literals_smt2(out << "\n", cls->get_num_literals(), cls->begin());
+            // if (cls) display_literals_smt2(out << "\n", cls->get_num_literals(), cls->begin());
             break;
         }
         case b_justification::JUSTIFICATION: {
             literal_vector lits;
             const_cast<conflict_resolution&>(*m_conflict_resolution).justification2literals(j.get_justification(), lits);
             out << "justification " << j.get_justification()->get_from_theory() << ": ";
-            display_literals_smt2(out, lits);
+            // display_literals_smt2(out, lits);
             break;
         }
         default:
@@ -658,7 +688,7 @@ namespace smt {
     std::ostream& operator<<(std::ostream& out, enode_pp const& p) {
         ast_manager& m = p.ctx.get_manager();
         enode* n = p.n;
-        return out << "[#" << n->get_owner_id() << " " << mk_bounded_pp(n->get_expr(), m) << "]";
+        return out << n->get_owner_id() << ": " << mk_bounded_pp(n->get_expr(), m);
     }
 
     std::ostream& operator<<(std::ostream& out, enode_eq_pp const& p) {
@@ -736,11 +766,11 @@ namespace smt {
             for (; p2 + 2 < str.size(); ++p2) l2 << " ";            
             l1 << ")\n";
             l2 << ")\n";
-            IF_VERBOSE(1, verbose_stream() << l1.str() << l2.str());
+            IF_VERBOSE(2, verbose_stream() << l1.str() << l2.str());
             m_last_positions.reset();
             m_last_positions.append(offsets);
         }
-        IF_VERBOSE(1, verbose_stream() << str);
+        IF_VERBOSE(2, verbose_stream() << str);
     }
 
 };

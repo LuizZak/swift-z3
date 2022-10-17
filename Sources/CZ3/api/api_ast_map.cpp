@@ -15,7 +15,6 @@ Author:
 Revision History:
 
 --*/
-#include<iostream>
 #include "api/z3.h"
 #include "api/api_log_macros.h"
 #include "api/api_context.h"
@@ -52,8 +51,8 @@ extern "C" {
     void Z3_API Z3_ast_map_dec_ref(Z3_context c, Z3_ast_map m) {
         Z3_TRY;
         LOG_Z3_ast_map_dec_ref(c, m);
-        RESET_ERROR_CODE();
-        to_ast_map(m)->dec_ref();
+        if (m)
+            to_ast_map(m)->dec_ref();
         Z3_CATCH;
     }
 

@@ -36,7 +36,7 @@ namespace smt {
         if (!m_next) {
             sort* s = decl()->get_domain(0);
             sort* domain[2] = {s, s};
-            m_next = m.mk_fresh_func_decl("next", "", 2, domain, s);
+            m_next = m.mk_fresh_func_decl("specrel.next", "", 2, domain, s, false);
         }
         return m_next;
     }
@@ -135,7 +135,7 @@ namespace smt {
 
     bool theory_special_relations::internalize_atom(app * atm, bool gate_ctx) {
         SASSERT(m_util.is_special_relation(atm));
-        relation* r = 0;
+        relation* r = nullptr;
         ast_manager& m = get_manager();
         if (!m_relations.find(atm->get_decl(), r)) {
             r = alloc(relation, m_util.get_property(atm), atm->get_decl(), m);
@@ -279,7 +279,7 @@ namespace smt {
                 enode* tcn = ensure_enode(tc_app);
                 if (ctx.get_assignment(tcn) != l_true) {
                     literal consequent = ctx.get_literal(tc_app);
-                    justification* j = ctx.mk_justification(theory_propagation_justification(get_id(), ctx.get_region(), 1, &lit, consequent));
+                    justification* j = ctx.mk_justification(theory_propagation_justification(get_id(), ctx, 1, &lit, consequent));
                     TRACE("special_relations", tout << "propagate: " << tc_app << "\n";);
                     ctx.assign(consequent, j);
                     new_assertion = true;
@@ -325,14 +325,12 @@ namespace smt {
                           );
                     continue;
                 }
-                expr_ref f_app(m.mk_app(f, arg1, arg2), m);                
+                expr_ref f_app(m.mk_app(f, arg1, arg2), m);   
                 ensure_enode(f_app);
                 literal f_lit = ctx.get_literal(f_app);
                 switch (ctx.get_assignment(f_lit)) {
                 case l_true:
-                    UNREACHABLE(); 
-                    // it should already be the case that v1 and reach v2 in the graph.
-                    // whenever f(n1, n2) is asserted.
+                    SASSERT(new_assertion);
                     break;
                 case l_false: {
                     //
@@ -471,8 +469,8 @@ namespace smt {
         ctx.set_conflict(
             ctx.mk_justification(
                 ext_theory_conflict_justification(
-                    get_id(), ctx.get_region(),
-                    lits.size(), lits.c_ptr(), 0, 0, params.size(), params.c_ptr())));
+                    get_id(), ctx, 
+                    lits.size(), lits.data(), 0, nullptr, params.size(), params.data())));
     }
 
     lbool theory_special_relations::final_check(relation& r) {
@@ -534,7 +532,7 @@ namespace smt {
                     literal_vector const& lits = r.m_explanation;
                     TRACE("special_relations", ctx.display_literals_verbose(tout << mk_pp(x->get_expr(), m) << " = " << mk_pp(y->get_expr(), m) << "\n", lits) << "\n";);
                     IF_VERBOSE(20, ctx.display_literals_verbose(verbose_stream() << mk_pp(x->get_expr(), m) << " = " << mk_pp(y->get_expr(), m) << "\n", lits) << "\n";);
-                    eq_justification js(ctx.mk_justification(ext_theory_eq_propagation_justification(get_id(), ctx.get_region(), lits.size(), lits.c_ptr(), 0, nullptr, 
+                    eq_justification js(ctx.mk_justification(ext_theory_eq_propagation_justification(get_id(), ctx, lits.size(), lits.data(), 0, nullptr, 
                                                                                                      x, y)));
                     ctx.assign_eq(x, y, js);
                 }
@@ -903,7 +901,7 @@ namespace smt {
                                          m.mk_app(memf, x, m.mk_app(tl, S))));            
             recfun_replace rep(m);
             var* vars[2] = { xV, SV };
-            p.set_definition(rep, mem, 2, vars, mem_body);
+            p.set_definition(rep, mem, false, 2, vars, mem_body);
         }
 
         sort_ref tup(dt.mk_pair_datatype(listS, listS, fst, snd, pair), m);
@@ -926,7 +924,7 @@ namespace smt {
 
             recfun_replace rep(m);
             var* vars[5] = { aV, bV, AV, SV, tupV };
-            p.set_definition(rep, nxt, 5, vars, next_body);
+            p.set_definition(rep, nxt, false, 5, vars, next_body);
         }
 
         {
@@ -961,7 +959,7 @@ namespace smt {
             TRACE("special_relations", tout << connected_body << "\n";);
             recfun_replace rep(m);
             var* vars[3] = { AV, dstV, SV };
-            p.set_definition(rep, connected, 3, vars, connected_body);            
+            p.set_definition(rep, connected, false, 3, vars, connected_body);
         }
 
         {
@@ -1148,5 +1146,11 @@ namespace smt {
         expr* e = ctx.bool_var2expr(a.var());
         out << (a.phase() ? "" : "(not ") << mk_pp(e, get_manager()) << (a.phase() ? "" : ")") << "\n";
     }
-    
+
+
+    void theory_special_relations::get_specrels(func_decl_set& rels) const {
+        for (auto [f, r] : m_relations) 
+            rels.insert(r->m_decl);
+    }
+
 }

@@ -43,11 +43,11 @@ Notes:
 
 
 class func_decls {
-    func_decl * m_decls;
+    func_decl * m_decls { nullptr };
     bool signatures_collide(func_decl* f, func_decl* g) const;
     bool signatures_collide(unsigned n, sort*const* domain, sort* range, func_decl* g) const;
 public:
-    func_decls():m_decls(nullptr) {}
+    func_decls() {}
     func_decls(ast_manager & m, func_decl * f);
     void finalize(ast_manager & m);
     bool contains(func_decl * f) const;
@@ -58,10 +58,11 @@ public:
     bool clash(func_decl * f) const;
     bool empty() const { return m_decls == nullptr; }
     func_decl * first() const;
-    func_decl * find(unsigned arity, sort * const * domain, sort * range) const;
-    func_decl * find(ast_manager & m, unsigned num_args, expr * const * args, sort * range) const;
+    func_decl * find(ast_manager & m, unsigned arity, sort * const * domain, sort * range) const;
+    func_decl * find(ast_manager & m, unsigned arity, expr * const * args, sort * range) const;
     unsigned get_num_entries() const;
     func_decl * get_entry(unsigned inx);
+    bool check_signature(ast_manager& m, func_decl* f, unsigned arityh, sort * const* domain, sort * range, bool& coerced) const;
 };
 
 struct macro_decl {
@@ -89,14 +90,25 @@ public:
     vector<macro_decl>::iterator end() const { return m_decls->end(); }
 };
 
+
+class proof_cmds {
+public:
+    virtual ~proof_cmds() {}
+    virtual void add_literal(expr* e) = 0;
+    virtual void end_assumption() = 0;
+    virtual void end_infer() = 0;
+    virtual void end_deleted() = 0;
+    virtual void updt_params(params_ref const& p) = 0;
+};
+
+
 /**
    \brief Generic wrapper.
 */
 class object_ref {
-    unsigned m_ref_count;
+    unsigned m_ref_count = 0;
 public:
-    object_ref():m_ref_count(0) {}
-    virtual ~object_ref() {}
+    virtual ~object_ref() = default;
     virtual void finalize(cmd_context & ctx) = 0;
     void inc_ref(cmd_context & ctx) {
         m_ref_count++;
@@ -148,6 +160,7 @@ struct builtin_decl {
 
 class opt_wrapper : public check_sat_result {
 public:
+    opt_wrapper(ast_manager& m): check_sat_result(m) {}
     virtual bool empty() = 0;
     virtual void push() = 0;
     virtual void pop(unsigned n) = 0;
@@ -172,6 +185,7 @@ public:
     bool owns_manager() const { return m_manager != nullptr; }
 };
 
+
 class cmd_context : public progress_callback, public tactic_manager, public ast_printer_context {
 public:
     enum status {
@@ -191,24 +205,41 @@ public:
         ~scoped_watch() { m_ctx.m_watch.stop(); }
     };
 
+    struct scoped_redirect {
+        cmd_context& m_ctx;
+        std::ostream& m_verbose;
+        std::ostream* m_warning;
+
+        scoped_redirect(cmd_context& ctx): m_ctx(ctx), m_verbose(verbose_stream()), m_warning(warning_stream()) {
+            set_warning_stream(&(*m_ctx.m_diagnostic));
+            set_verbose_stream(m_ctx.diagnostic_stream());
+        }
+
+        ~scoped_redirect() {
+            set_verbose_stream(m_verbose);
+            set_warning_stream(m_warning);
+        }
+    };
+
     
 
 protected:
-    ast_context_params                  m_params;
+    ast_context_params           m_params;
     bool                         m_main_ctx;
     symbol                       m_logic;
-    bool                         m_interactive_mode;
-    bool                         m_global_decls;
+    bool                         m_interactive_mode = false;
+    bool                         m_global_decls = false;
     bool                         m_print_success;
-    unsigned                     m_random_seed;
-    bool                         m_produce_unsat_cores;
-    bool                         m_produce_unsat_assumptions;
-    bool                         m_produce_assignments;
-    status                       m_status;
-    bool                         m_numeral_as_real;
-    bool                         m_ignore_check;      // used by the API to disable check-sat() commands when parsing SMT 2.0 files.
-    bool                         m_exit_on_error;
-    bool                         m_allow_duplicate_declarations { false };
+    unsigned                     m_random_seed = 0;
+    bool                         m_produce_unsat_cores = false;
+    bool                         m_produce_unsat_assumptions = false;
+    bool                         m_produce_assignments = false;
+    status                       m_status = UNKNOWN;
+    bool                         m_numeral_as_real = false;
+    bool                         m_ignore_check = false;      // used by the API to disable check-sat() commands when parsing SMT 2.0 files.
+    bool                         m_exit_on_error = false;
+    bool                         m_allow_duplicate_declarations = false;
+    scoped_ptr<proof_cmds>       m_proof_cmds;
 
     static std::ostringstream    g_error_stream;
 
@@ -216,9 +247,9 @@ protected:
     sref_vector<generic_model_converter> m_mcs;
     ast_manager *                m_manager;
     bool                         m_own_manager;
-    bool                         m_manager_initialized;
-    pdecl_manager *              m_pmanager;
-    sexpr_manager *              m_sexpr_manager;
+    bool                         m_manager_initialized = false;
+    pdecl_manager *              m_pmanager = nullptr;
+    sexpr_manager *              m_sexpr_manager = nullptr;
     check_logic                  m_check_logic;
     stream_ref                   m_regular;
     stream_ref                   m_diagnostic;
@@ -267,6 +298,7 @@ protected:
         cmd_context &             m_owner;
         datatype_util             m_dt_util;
     public:
+        void reset() { m_dt_util.reset(); }
         dt_eh(cmd_context & owner);
         ~dt_eh() override;
         void operator()(sort * dt, pdecl* pd) override;
@@ -330,6 +362,7 @@ public:
     cmd_context(bool main_ctx = true, ast_manager * m = nullptr, symbol const & l = symbol::null);
     ~cmd_context() override;
     void set_cancel(bool f);
+    void register_plist();
     context_params  & params() { return m_params; }
     solver_factory &get_solver_factory() { return *m_solver_factory; }
     opt_wrapper*  get_opt();
@@ -360,6 +393,7 @@ public:
     bool produce_unsat_cores() const;
     bool well_sorted_check_enabled() const;
     bool validate_model_enabled() const;
+    bool has_assertions() const { return !m_assertions.empty(); }
     void set_produce_models(bool flag);
     void set_produce_unsat_cores(bool flag);
     void set_produce_proofs(bool flag);
@@ -377,6 +411,10 @@ public:
     ast_manager & get_ast_manager() override { return m(); }
     pdecl_manager & pm() const { if (!m_pmanager) const_cast<cmd_context*>(this)->init_manager(); return *m_pmanager; }
     sexpr_manager & sm() const { if (!m_sexpr_manager) const_cast<cmd_context*>(this)->m_sexpr_manager = alloc(sexpr_manager); return *m_sexpr_manager; }
+
+    proof_cmds* get_proof_cmds() { return m_proof_cmds.get(); }
+    solver* get_solver() { return m_solver.get(); }
+    void set_proof_cmds(proof_cmds* pc) { m_proof_cmds = pc; }
 
     void set_solver_factory(solver_factory * s);
     void set_check_sat_result(check_sat_result * r) { m_check_sat_result = r; }
@@ -404,6 +442,7 @@ public:
     void insert_aux_pdecl(pdecl * p);
     void model_add(symbol const & s, unsigned arity, sort *const* domain, expr * t);
     void model_del(func_decl* f);
+    void register_fun(symbol const& s, func_decl* f);
     void insert_rec_fun(func_decl* f, expr_ref_vector const& binding, svector<symbol> const& ids, expr* e);
     func_decl * find_func_decl(symbol const & s) const;
     func_decl * find_func_decl(symbol const & s, unsigned num_indices, unsigned const * indices,
@@ -416,6 +455,14 @@ public:
     void mk_const(symbol const & s, expr_ref & result) const;
     void mk_app(symbol const & s, unsigned num_args, expr * const * args, unsigned num_indices, parameter const * indices, sort * range,
                 expr_ref & r) const;
+    bool try_mk_macro_app(symbol const & s, unsigned num_args, expr * const * args, unsigned num_indices, parameter const * indices, sort * range,
+                expr_ref & r) const;
+    bool try_mk_builtin_app(symbol const & s, unsigned num_args, expr * const * args, unsigned num_indices, parameter const * indices, sort * range,
+                expr_ref & r) const;
+    bool try_mk_declared_app(symbol const & s, unsigned num_args, expr * const * args, 
+                             unsigned num_indices, parameter const * indices, sort * range,
+                             func_decls& fs, expr_ref & result) const;
+    bool try_mk_pdecl_app(symbol const & s, unsigned num_args, expr * const * args, unsigned num_indices, parameter const * indices, expr_ref & r) const;
     void erase_cmd(symbol const & s);
     void erase_func_decl(symbol const & s);
     void erase_func_decl(symbol const & s, func_decl * f);
@@ -474,6 +521,7 @@ public:
     ptr_vector<expr> const& assertions() const { return m_assertions; }
     ptr_vector<expr> const& assertion_names() const { return m_assertion_names; }
     expr_ref_vector tracked_assertions();
+    void reset_tracked_assertions();
 
     /**
        \brief Hack: consume assertions if there are no scopes.

@@ -19,7 +19,7 @@
 
         Extended Linear Simplification (as exploited in Bosphorus AAAI 2019):
         - multiply each polynomial by one variable from their orbits.
-        - The orbit of a varible are the variables that occur in the same monomial as it in some polynomial.
+        - The orbit of a variable are the variables that occur in the same monomial as it in some polynomial.
         - The extended set of polynomials is fed to a linear Gauss Jordan Eliminator that extracts
           additional linear equalities.
         - Bosphorus uses M4RI to perform efficient GJE to scale on large bit-matrices.
@@ -32,7 +32,7 @@
           The method seems rather specific to hardware multipliers so not clear it is useful to 
           generalize.
         - find monomials that contain pairs of vanishing polynomials, transitively 
-          withtout actually inlining.
+          without actually inlining.
           Then color polynomial variables w by p, resp, q if they occur in polynomial equalities
           w - r = 0, such that all paths in r contain a node colored by p, resp q. 
           polynomial variables that get colored by both p and q can be set to 0.
@@ -223,6 +223,8 @@ namespace dd {
         for (unsigned i = 0; i < s.m_to_simplify.size(); ++i) {
             equation* e = s.m_to_simplify[i];
             pdd p = e->poly();
+            if (p.is_val())
+                continue;
             if (!p.hi().is_val()) {
                 continue;
             }
@@ -502,7 +504,7 @@ namespace dd {
                 unsigned_vector& vars;
                 hash(unsigned_vector& vars):vars(vars) {}
                 bool operator()(mon const& m) const {
-                    return unsigned_ptr_hash(vars.c_ptr() + m.offset, m.sz, 1);
+                    return unsigned_ptr_hash(vars.data() + m.offset, m.sz, 1);
                 };
             };
             struct eq {
@@ -539,7 +541,7 @@ namespace dd {
         for (pdd const& p : eqs) {
             for (auto const& m : p) {
                 if (m.vars.size() <= 1) continue;
-                insert_mon(m.vars.size(), m.vars.c_ptr());
+                insert_mon(m.vars.size(), m.vars.data());
             }
         }
         
@@ -572,7 +574,7 @@ namespace dd {
                 }
                 unsigned n = m.vars.size();
                 mon mm(n, vars.size());
-                vars.append(n, m.vars.c_ptr());
+                vars.append(n, m.vars.data());
                 VERIFY(mon2idx.find(mm, mm));
                 vars.shrink(vars.size() - n);
                 row.set(mm.index);

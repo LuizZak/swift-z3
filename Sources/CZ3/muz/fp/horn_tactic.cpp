@@ -160,13 +160,13 @@ class horn_tactic : public tactic {
             }
             if (head) {
                 if (!is_implication(f)) {
-                    f = m.mk_and(body.size(), body.c_ptr());
+                    f = m.mk_and(body.size(), body.data());
                     f = m.mk_implies(f, head);
                 }
                 return IS_RULE;
             }
             else {
-                f = m.mk_and(body.size(), body.c_ptr());
+                f = m.mk_and(body.size(), body.data());
                 return IS_QUERY;
             }
         }
@@ -241,7 +241,7 @@ class horn_tactic : public tactic {
                 verify(q, g, result, mc, pc);
             }
             g->set(pc.get());
-            g->set(mc.get());
+            g->add(mc.get());
         }
 
         void verify(expr* q,
@@ -282,12 +282,11 @@ class horn_tactic : public tactic {
             }
             case l_false: {
                 // goal is sat
-                mc = concat(g->mc(), mc.get());
                 g->reset();
                 if (produce_models) {
                     model_ref md = m_ctx.get_model();
                     model_converter_ref mc2 = model2model_converter(md.get());
-                    mc = concat(mc.get(), mc2.get());
+                    mc = mc2.get();
                     TRACE("dl", mc->display(tout << *md << "\n"););
                 }
                 break;
@@ -308,7 +307,7 @@ class horn_tactic : public tactic {
                 for (unsigned i = 0; i < m_free_vars.size(); ++i) {
                     names.push_back(symbol(m_free_vars.size() - i - 1));
                 }
-                f = m.mk_forall(m_free_vars.size(), m_free_vars.c_ptr(), names.c_ptr(), f);
+                f = m.mk_forall(m_free_vars.size(), m_free_vars.data(), names.data(), f);
             }
         }
 
@@ -345,6 +344,7 @@ class horn_tactic : public tactic {
                 g->assert_expr(fml);
             }
             g->set_prec(goal::UNDER_OVER);
+            mc = g->mc();
         }
 
         void check_parameters() {
@@ -392,9 +392,11 @@ public:
         dealloc(m_imp);
     }
 
+    char const* name() const override { return "horn"; }
+
     void updt_params(params_ref const & p) override {
-        m_params = p;
-        m_imp->updt_params(p);
+        m_params.append(p);
+        m_imp->updt_params(m_params);
     }
 
 

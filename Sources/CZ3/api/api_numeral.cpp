@@ -16,7 +16,6 @@ Revision History:
 
 --*/
 #include<cmath>
-#include<iostream>
 #include "api/z3.h"
 #include "api/api_log_macros.h"
 #include "api/api_context.h"
@@ -459,5 +458,34 @@ extern "C" {
         RETURN_Z3(of_ast(a));
         Z3_CATCH_RETURN(nullptr);
     }
+
+#if 0
+    Z3_ast Z3_API Z3_mk_mpz_numeral(Z3_context c, bool sign, unsigned n, unsigned const nums[], Z3_sort* srt) {
+        LOG_TRY;
+        LOG_Z3_mk_mpz_numeral(c, sign, n, nums, srt);
+        RESET_ERROR_CODE();
+        rational z;
+
+        // todo fill in z
+        if (!z.size())
+            z.neg();
+        arith_util & a = mk_c(c)->autil();
+        auto* a = mk_c(c)->mk_numeral_core(r, a.mk_int_sort());
+        Z3_CATCH_RETURN(nullptr);
+            
+    }
+
+    Z3_ast Z3_API Z3_mk_mpq_numeral1(Z3_context c, bool sign, unsigned n, unsigned const nums[], unsigned d, unsigned const dens[]) {
+        LOG_TRY;
+        LOG_Z3_mk_mpq_numeral(c, sign, n, nums, d, dens);
+        RESET_ERROR_CODE();
+        rational q;
+
+        if (!sign)
+            q.neg();
+
+        Z3_CATCH_RETURN(nullptr);
+    }
+#endif
 
 };

@@ -18,6 +18,7 @@ Notes:
 
 #include "util/symbol.h"
 #include "util/z3_exception.h"
+#include <ostream>
 #include<sstream>
 class rational;
 class expr;
@@ -77,7 +78,7 @@ typedef std::pair<symbol, sort*> sorted_var;
 /**
    \brief Command abstract class.
 
-   Commands may have variable number of argumets.
+   Commands may have variable number of arguments.
 */
 class cmd {
     symbol m_name;
@@ -86,7 +87,7 @@ protected:
     int    m_pos;
 public:
     cmd(char const * n):m_name(n), m_line(0), m_pos(0) {}
-    virtual ~cmd() {}
+    virtual ~cmd() = default;
     virtual void reset(cmd_context & ctx) {}
     virtual void finalize(cmd_context & ctx) {}
     virtual symbol get_name() const { return m_name; }

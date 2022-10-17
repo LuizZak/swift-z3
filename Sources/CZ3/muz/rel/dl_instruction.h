@@ -18,7 +18,7 @@ Revision History:
 --*/
 #pragma once
 
-#include<iostream>
+#include<ostream>
 #include<string>
 #include<utility>
 #include "ast/ast.h"
@@ -317,7 +317,7 @@ namespace datalog {
     class instruction_block {
     public:
         struct instruction_observer {
-            virtual ~instruction_observer() {}
+            virtual ~instruction_observer() = default;
             virtual void notify(instruction * i) {}
         };
     private:

@@ -272,12 +272,14 @@ namespace smt {
             std::cout << smt << "\n";
             std::cout << tns << "\n";
 #endif
+#if 0
             if (tns == sz1) {
                 std::cout << "SEEN " << tms << "\n";
             }
             if (tns == sz2) {
                 std::cout << "SEEN " << smt << "\n";                
             }
+#endif
             ctx().push_trail(value_trail<bool>(i1.m_is_leaf, false));
             ctx().push_trail(value_trail<bool>(i2.m_is_leaf, false));
             expr_ref k1(m), k2(m), k3(m);
@@ -430,13 +432,13 @@ namespace smt {
                         lits.push_back(mk_eq(args[0], args[1]));
                     }
                     else {
-                        expr_ref diff(m.mk_distinct_expanded(args.size(), args.c_ptr()), m);
+                        expr_ref diff(m.mk_distinct_expanded(args.size(), args.data()), m);
                         lits.push_back(~mk_literal(diff));
                     }
                 }
                 expr_ref ge(m_arith.mk_ge(sz->get_arg(1), m_arith.mk_int(info.m_selects.size())), m);
                 lits.push_back(mk_literal(ge));
-                mk_th_axiom(lits.size(), lits.c_ptr());
+                mk_th_axiom(lits.size(), lits.data());
                 return l_false;
             }
             return l_true;
@@ -448,7 +450,6 @@ namespace smt {
             app*                     m_obj;
         public:
             remove_sz(ast_manager& m, obj_map<app, sz_info*>& tab, app* t): m(m), m_table(tab), m_obj(t) { }
-            ~remove_sz() override {}
             void undo() override { m.dec_ref(m_obj); dealloc(m_table[m_obj]); m_table.remove(m_obj); }
         };
 

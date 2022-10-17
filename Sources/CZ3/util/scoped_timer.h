@@ -20,14 +20,17 @@ Revision History:
 
 #include "util/event_handler.h"
 
+struct scoped_timer_state;
+
 class scoped_timer {
-    struct imp;
-    imp *  m_imp;
+    scoped_timer_state *s = nullptr;
 public:
     scoped_timer(unsigned ms, event_handler * eh);
     ~scoped_timer();
     static void initialize();
     static void finalize();
+private:
+    void init_state(unsigned ms, event_handler * eh);
 };
 
 /*

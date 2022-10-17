@@ -165,10 +165,6 @@ public:
         m_bounds(m) {
     }
 
-    ~eq2bv_tactic() override {
-    }
-        
-        
     void updt_params(params_ref const & p) override {
     }
     
@@ -268,6 +264,8 @@ public:
     tactic * translate(ast_manager & m) override {
         return alloc(eq2bv_tactic, m);
     }
+
+    char const* name() const override { return "eq2bv"; }
         
     void collect_param_descrs(param_descrs & r) override {
     }

@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __SLS_PARAMS_HPP_
-#define __SLS_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct sls_params {
@@ -59,4 +58,3 @@ struct sls_params {
   bool track_unsat() const { return p.get_bool("track_unsat", g, false); }
   unsigned random_seed() const { return p.get_uint("random_seed", g, 0u); }
 };
-#endif

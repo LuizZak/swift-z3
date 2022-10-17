@@ -37,31 +37,35 @@ typedef obj_map<expr, expr *> expr2expr_map;
 
 
 class smt_tactic : public tactic {
+    ast_manager&                 m;
     smt_params                   m_params;
     params_ref                   m_params_ref;
+    expr_ref_vector              m_vars;
     statistics                   m_stats;
-    smt::kernel *                m_ctx;
+    smt::kernel*                 m_ctx = nullptr;
     symbol                       m_logic;
-    progress_callback *          m_callback;
-    bool                         m_candidate_models;
-    bool                         m_fail_if_inconclusive;
+    progress_callback*           m_callback = nullptr;
+    bool                         m_candidate_models = false;
+    bool                         m_fail_if_inconclusive = false;
 
 public:
-    smt_tactic(params_ref const & p):
+    smt_tactic(ast_manager& m, params_ref const & p):
+        m(m),
         m_params_ref(p),
-        m_ctx(nullptr),
-        m_callback(nullptr) {
+        m_vars(m) {
         updt_params_core(p);
         TRACE("smt_tactic", tout << "p: " << p << "\n";);
     }
 
     tactic * translate(ast_manager & m) override {
-        return alloc(smt_tactic, m_params_ref);
+        return alloc(smt_tactic, m, m_params_ref);
     }
 
     ~smt_tactic() override {
         SASSERT(m_ctx == nullptr);
     }
+
+    char const* name() const override { return "smt"; }
 
     smt_params & fparams() {
         return m_params;
@@ -124,7 +128,8 @@ public:
 
         scoped_init_ctx(smt_tactic & o, ast_manager & m):m_owner(o) {
             m_params = o.fparams();
-            m_params_ref = o.params();
+            m_params_ref.reset();
+            m_params_ref.append(o.params());
             smt::kernel * new_ctx = alloc(smt::kernel, m, m_params, m_params_ref);
             TRACE("smt_tactic", tout << "logic: " << o.m_logic << "\n";);
             new_ctx->set_logic(o.m_logic);
@@ -137,6 +142,7 @@ public:
         ~scoped_init_ctx() {
             smt::kernel * d = m_owner.m_ctx;
             m_owner.m_ctx = nullptr;
+            m_owner.m_user_ctx = nullptr;
 
             if (d)
                 dealloc(d);
@@ -151,7 +157,6 @@ public:
                     goal_ref_buffer & result) override {
         try {
             IF_VERBOSE(10, verbose_stream() << "(smt.tactic start)\n";);
-            ast_manager & m = in->m();
             tactic_report report("smt", *in);
             TRACE("smt_tactic", tout << this << "\nAUTO_CONFIG: " << fparams().m_auto_config << " HIDIV0: " << fparams().m_hi_div0 << " "
                   << " PREPROCESS: " << fparams().m_preprocess << "\n";
@@ -163,7 +168,7 @@ public:
             TRACE("smt_tactic_detail", in->display(tout););
             TRACE("smt_tactic_memory", tout << "wasted_size: " << m.get_allocator().get_wasted_size() << "\n";);
             scoped_init_ctx  init(*this, m);
-            SASSERT(m_ctx != 0);
+            SASSERT(m_ctx);
 
             expr_ref_vector clauses(m);
             expr2expr_map               bool2dep;
@@ -194,13 +199,14 @@ public:
             if (m_ctx->canceled()) {                
                 throw tactic_exception(Z3_CANCELED_MSG);
             }
+            user_propagate_delay_init();
 
             lbool r;
             try {
-                if (assumptions.empty())
+                if (assumptions.empty() && !m_user_ctx)
                     r = m_ctx->setup_and_check();
                 else
-                    r = m_ctx->check(assumptions.size(), assumptions.c_ptr());
+                    r = m_ctx->check(assumptions.size(), assumptions.data());
             }
             catch(...) {
                 TRACE("smt_tactic", tout << "exception\n";);
@@ -225,7 +231,7 @@ public:
                     buffer<symbol> r;
                     m_ctx->get_relevant_labels(nullptr, r);
                     labels_vec rv;
-                    rv.append(r.size(), r.c_ptr());
+                    rv.append(r.size(), r.data());
                     model_converter_ref mc;
                     mc = model_and_labels2model_converter(md.get(), rv);
                     mc = concat(fmc.get(), mc.get());
@@ -288,7 +294,7 @@ public:
                             buffer<symbol> r;
                             m_ctx->get_relevant_labels(nullptr, r);
                             labels_vec rv;
-                            rv.append(r.size(), r.c_ptr());
+                            rv.append(r.size(), r.data());
                             in->add(model_and_labels2model_converter(md.get(), rv));
                         }
                         return;
@@ -306,10 +312,88 @@ public:
             throw tactic_exception(ex.msg());
         }
     }
+
+    void* m_user_ctx = nullptr;
+    user_propagator::push_eh_t  m_push_eh;
+    user_propagator::pop_eh_t   m_pop_eh;
+    user_propagator::fresh_eh_t m_fresh_eh;
+    user_propagator::fixed_eh_t m_fixed_eh;
+    user_propagator::final_eh_t m_final_eh;
+    user_propagator::eq_eh_t    m_eq_eh;
+    user_propagator::eq_eh_t    m_diseq_eh;
+    user_propagator::created_eh_t m_created_eh;
+    user_propagator::decide_eh_t m_decide_eh;
+   
+
+    void user_propagate_delay_init() {
+        if (!m_user_ctx)
+            return;
+        m_ctx->user_propagate_init(m_user_ctx, m_push_eh, m_pop_eh, m_fresh_eh);
+        if (m_fixed_eh)   m_ctx->user_propagate_register_fixed(m_fixed_eh);
+        if (m_final_eh)   m_ctx->user_propagate_register_final(m_final_eh);
+        if (m_eq_eh)      m_ctx->user_propagate_register_eq(m_eq_eh);
+        if (m_diseq_eh)   m_ctx->user_propagate_register_diseq(m_diseq_eh);
+        if (m_created_eh) m_ctx->user_propagate_register_created(m_created_eh);
+        if (m_decide_eh) m_ctx->user_propagate_register_decide(m_decide_eh);
+
+        for (expr* v : m_vars) 
+            m_ctx->user_propagate_register_expr(v);
+    }
+
+    void user_propagate_clear() override {
+        m_user_ctx = nullptr;
+        m_vars.reset();
+        m_fixed_eh = nullptr;
+        m_final_eh = nullptr;
+        m_eq_eh = nullptr;
+        m_diseq_eh = nullptr;
+        m_created_eh = nullptr;
+        m_decide_eh = nullptr;
+    }
+
+    void user_propagate_init(
+        void* ctx,
+        user_propagator::push_eh_t& push_eh,
+        user_propagator::pop_eh_t& pop_eh,
+        user_propagator::fresh_eh_t& fresh_eh) override {
+        user_propagate_clear();
+        m_user_ctx = ctx;
+        m_push_eh = push_eh;
+        m_pop_eh = pop_eh;
+        m_fresh_eh = fresh_eh;
+    }
+
+    void user_propagate_register_fixed(user_propagator::fixed_eh_t& fixed_eh) override {
+        m_fixed_eh = fixed_eh;
+    }
+
+    void user_propagate_register_final(user_propagator::final_eh_t& final_eh) override {
+        m_final_eh = final_eh;
+    }
+
+    void user_propagate_register_eq(user_propagator::eq_eh_t& eq_eh) override {
+        m_eq_eh = eq_eh;
+    }
+
+    void user_propagate_register_diseq(user_propagator::eq_eh_t& diseq_eh) override {
+        m_diseq_eh = diseq_eh;
+    }
+
+    void user_propagate_register_expr(expr* e) override {
+        m_vars.push_back(e);
+    }
+
+    void user_propagate_register_created(user_propagator::created_eh_t& created_eh) override {
+        m_created_eh = created_eh;
+    }
+    
+    void user_propagate_register_decide(user_propagator::decide_eh_t& decide_eh) override {
+        m_decide_eh = decide_eh;
+    }
 };
 
-static tactic * mk_seq_smt_tactic(params_ref const & p) {
-    return alloc(smt_tactic, p);
+static tactic * mk_seq_smt_tactic(ast_manager& m, params_ref const & p) {
+    return alloc(smt_tactic, m, p);
 }
 
 
@@ -319,13 +403,13 @@ tactic * mk_parallel_smt_tactic(ast_manager& m, params_ref const& p) {
 
 tactic * mk_smt_tactic_core(ast_manager& m, params_ref const& p, symbol const& logic) {
     parallel_params pp(p);
-    return pp.enable() ? mk_parallel_tactic(mk_smt_solver(m, p, logic), p) : mk_seq_smt_tactic(p);
+    return pp.enable() ? mk_parallel_tactic(mk_smt_solver(m, p, logic), p) : mk_seq_smt_tactic(m, p);
 }
 
 tactic * mk_smt_tactic_core_using(ast_manager& m, bool auto_config, params_ref const& _p) {
     parallel_params pp(_p);
     params_ref p = _p;
     p.set_bool("auto_config", auto_config);
-    return using_params(pp.enable() ? mk_parallel_smt_tactic(m, p) : mk_seq_smt_tactic(p), p);
+    return using_params(pp.enable() ? mk_parallel_smt_tactic(m, p) : mk_seq_smt_tactic(m, p), p);
 }
 

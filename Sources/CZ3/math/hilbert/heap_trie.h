@@ -66,7 +66,7 @@ class heap_trie {
         unsigned m_ref;
     public:
         node(node_t t): m_type(t), m_ref(0) {}
-        virtual ~node() {}
+        virtual ~node() = default;
         node_t type() const { return m_type; }
         void inc_ref() { ++m_ref; }
         void dec_ref() { SASSERT(m_ref > 0); --m_ref; }
@@ -80,7 +80,6 @@ class heap_trie {
         Value m_value;
     public:
         leaf(): node(leaf_t) {}
-        ~leaf() override {}
         Value const& get_value() const { return m_value; }
         void set_value(Value const& v) { m_value = v; }
         void display(std::ostream& out, unsigned indent) const override {
@@ -97,9 +96,6 @@ class heap_trie {
         children_t m_nodes;
     public:
         trie(): node(trie_t) {}
-
-        ~trie() override {
-        }
 
         node* find_or_insert(Key k, node* n) {
             for (unsigned i = 0; i < m_nodes.size(); ++i) {
@@ -225,7 +221,7 @@ public:
 
     void insert(Key const* keys, Value const& val) {
         ++m_stats.m_num_inserts;
-        insert(m_root, num_keys(), keys, m_keys.c_ptr(), val);
+        insert(m_root, num_keys(), keys, m_keys.data(), val);
 #if 0
         if (m_stats.m_num_inserts == (1 << m_do_reshuffle)) {
             m_do_reshuffle++;
@@ -270,6 +266,7 @@ public:
     class check_value {
     public:
         virtual bool operator()(Value const& v) = 0;
+        virtual ~check_value() = default;
     };
 
     bool find_le(Key const* keys, check_value& check) {
@@ -364,7 +361,7 @@ public:
             }
         }
         Key const* keys() {
-            return m_keys.c_ptr();
+            return m_keys.data();
         }
 
         Value const& value() const {
@@ -532,7 +529,7 @@ private:
                        }
                        verbose_stream() << " |-> " << it.value() << "\n";);
 
-            insert(new_root, num_keys(), it.keys(), sorted_keys.c_ptr(), it.value());
+            insert(new_root, num_keys(), it.keys(), sorted_keys.data(), it.value());
         }
         del_node(m_root);
         m_root = new_root;

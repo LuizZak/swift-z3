@@ -32,12 +32,9 @@ public:
     mpq(mpq &&) noexcept = default;
     mpq & operator=(mpq&&) = default;
     mpq & operator=(mpq const&) = delete;
-    void swap(mpq & other) { m_num.swap(other.m_num); m_den.swap(other.m_den); }
     mpz const & numerator() const { return m_num; }
     mpz const & denominator() const { return m_den; }
 };
-
-inline void swap(mpq & m1, mpq & m2) { m1.swap(m2); }
 
 template<bool SYNCH = true>
 class mpq_manager : public mpz_manager<SYNCH> {
@@ -115,7 +112,7 @@ public:
     static bool precise() { return true; }
     static bool field() { return true; }
 
-    mpq_manager();
+    mpq_manager() = default;
 
     ~mpq_manager();
 
@@ -799,6 +796,8 @@ public:
     unsigned bitsize(mpq const & a) { return is_int(a) ? bitsize(a.m_num) : bitsize(a.m_num) + bitsize(a.m_den); }
     unsigned storage_size(mpz const & a) { return mpz_manager<SYNCH>::size_info(a); }
     unsigned storage_size(mpq const & a) { return mpz_manager<SYNCH>::size_info(a.m_num) + mpz_manager<SYNCH>::size_info(a.m_den); }
+
+    bool get_bit(mpq const& a, unsigned index) { SASSERT(is_int(a) && !is_neg(a)); return mpz_manager<SYNCH>::get_bit(a.m_num, index); }
 
     /**
        \brief Return true if the number is a perfect square, and 

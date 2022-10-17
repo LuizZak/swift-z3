@@ -83,7 +83,7 @@ public:
 
 class expr_solver {
 public:
-    virtual ~expr_solver() {}
+    virtual ~expr_solver() = default;
     virtual lbool check_sat(expr* e) = 0;
 };
 
@@ -103,7 +103,6 @@ class re2automaton {
     eautomaton* seq2aut(expr* e);
 public:
     re2automaton(ast_manager& m);
-    ~re2automaton();
     eautomaton* operator()(expr* e);
     void set_solver(expr_solver* solver);
     bool has_solver() const { return m_solver; }
@@ -118,20 +117,20 @@ class seq_rewriter {
     class op_cache {
         struct op_entry {
             decl_kind k;
-            expr* a, *b, *r;
-            op_entry(decl_kind k, expr* a, expr* b, expr* r): k(k), a(a), b(b), r(r) {}
-            op_entry():k(0), a(nullptr), b(nullptr), r(nullptr) {}
+            expr* a, *b, *c, *r;
+            op_entry(decl_kind k, expr* a, expr* b, expr* c, expr* r): k(k), a(a), b(b), c(c), r(r) {}
+            op_entry():k(0), a(nullptr), b(nullptr), c(nullptr), r(nullptr) {}
         };
 
         struct hash_entry {
             unsigned operator()(op_entry const& e) const { 
-                return mk_mix(e.k, e.a ? e.a->get_id() : 0, e.b ? e.b->get_id() : 0);
+                return combine_hash(mk_mix(e.k, e.a ? e.a->get_id() : 0, e.b ? e.b->get_id() : 0), e.c ? e.c->get_id() : 0);
             }
         };
 
         struct eq_entry {
-            bool operator()(op_entry const& a, op_entry const& b) const { 
-                return a.k == b.k && a.a == b.a && a.b == b.b;
+            bool operator()(op_entry const& a, op_entry const& b) const {
+                return a.k == b.k && a.a == b.a && a.b == b.b && a.c == b.c;
             }
         };
 
@@ -144,8 +143,8 @@ class seq_rewriter {
 
     public:
         op_cache(ast_manager& m);
-        expr* find(decl_kind op, expr* a, expr* b);
-        void insert(decl_kind op, expr* a, expr* b, expr* r);
+        expr* find(decl_kind op, expr* a, expr* b, expr* c);
+        void insert(decl_kind op, expr* a, expr* b, expr* c, expr* r);
     };
 
     seq_util       m_util;
@@ -166,7 +165,7 @@ class seq_rewriter {
 
 
     length_comparison compare_lengths(expr_ref_vector const& as, expr_ref_vector const& bs) {
-        return compare_lengths(as.size(), as.c_ptr(), bs.size(), bs.c_ptr());
+        return compare_lengths(as.size(), as.data(), bs.size(), bs.data());
     }
     length_comparison compare_lengths(unsigned sza, expr* const* as, unsigned szb, expr* const* bs);
 
@@ -181,6 +180,16 @@ class seq_rewriter {
 
     expr_ref mk_seq_concat(expr* a, expr* b);    
 
+    // Construct the expressions for taking the first element, the last element, the rest, and the butlast element
+    expr_ref mk_seq_first(expr* s);
+    expr_ref mk_seq_rest(expr* s);
+    expr_ref mk_seq_last(expr* s);
+    expr_ref mk_seq_butlast(expr* s);
+
+    bool try_get_unit_values(expr* s, expr_ref_vector& result);
+    //replace b in a by c into result
+    void replace_all_subvectors(expr_ref_vector const& as, expr_ref_vector const& bs, expr* c, expr_ref_vector& result);
+
     // Calculate derivative, memoized and enforcing a normal form
     expr_ref is_nullable_rec(expr* r);
     expr_ref mk_derivative_rec(expr* ele, expr* r);
@@ -191,7 +200,7 @@ class seq_rewriter {
     expr_ref mk_der_inter(expr* a, expr* b);
     expr_ref mk_der_compl(expr* a);
     expr_ref mk_der_cond(expr* cond, expr* ele, sort* seq_sort);
-    expr_ref mk_der_antimorov_union(expr* r1, expr* r2);
+    expr_ref mk_der_antimirov_union(expr* r1, expr* r2);
     bool ite_bdds_compatabile(expr* a, expr* b);
     /* if r has the form deriv(en..deriv(e1,to_re(s))..) returns 's = [e1..en]' else returns '() in r'*/
     expr_ref is_nullable_symbolic_regex(expr* r, sort* seq_sort);
@@ -199,8 +208,29 @@ class seq_rewriter {
     bool check_deriv_normal_form(expr* r, int level = 3);
     #endif
 
+    void mk_antimirov_deriv_rec(expr* e, expr* r, expr* path, expr_ref& result);
+
+    expr_ref mk_antimirov_deriv(expr* e, expr* r, expr* path);
+    expr_ref mk_in_antimirov_rec(expr* s, expr* d);
+    expr_ref mk_in_antimirov(expr* s, expr* d);
+
+    expr_ref mk_antimirov_deriv_intersection(expr* elem, expr* d1, expr* d2, expr* path);
+    expr_ref mk_antimirov_deriv_concat(expr* d, expr* r);
+    expr_ref mk_antimirov_deriv_negate(expr* elem, expr* d);
+    expr_ref mk_antimirov_deriv_union(expr* d1, expr* d2);
+    expr_ref mk_antimirov_deriv_restrict(expr* elem, expr* d1, expr* cond);
+    expr_ref mk_regex_reverse(expr* r);
+    expr_ref mk_regex_concat(expr* r1, expr* r2);
+
+    expr_ref merge_regex_sets(expr* r1, expr* r2, expr* unit, std::function<bool(expr*, expr*&, expr*&)>& decompose, std::function<expr* (expr*, expr*)>& compose);
+
+    // elem is (:var 0) and path a condition that may have (:var 0) as a free variable
+    // simplify path, e.g., (:var 0) = 'a' & (:var 0) = 'b' is simplified to false
+    expr_ref simplify_path(expr* elem, expr* path);
+
     bool lt_char(expr* ch1, expr* ch2);
     bool eq_char(expr* ch1, expr* ch2);
+    bool neq_char(expr* ch1, expr* ch2);
     bool le_char(expr* ch1, expr* ch2);
     bool pred_implies(expr* a, expr* b);
     bool are_complements(expr* r1, expr* r2) const;
@@ -226,9 +256,15 @@ class seq_rewriter {
     br_status mk_seq_replace_re(expr* a, expr* b, expr* c, expr_ref& result);
     br_status mk_seq_prefix(expr* a, expr* b, expr_ref& result);
     br_status mk_seq_suffix(expr* a, expr* b, expr_ref& result);
+    br_status mk_seq_map(expr* f, expr* s, expr_ref& result);
+    br_status mk_seq_mapi(expr* f, expr* i, expr* s, expr_ref& result);
+    br_status mk_seq_foldl(expr* f, expr* b, expr* s, expr_ref& result);
+    br_status mk_seq_foldli(expr* f, expr* i, expr* b, expr* s, expr_ref& result);
     br_status mk_str_units(func_decl* f, expr_ref& result);
     br_status mk_str_itos(expr* a, expr_ref& result);
     br_status mk_str_stoi(expr* a, expr_ref& result);
+    br_status mk_str_ubv2s(expr* a, expr_ref& result);
+    br_status mk_str_sbv2s(expr* a, expr_ref& result);
     br_status mk_str_in_regexp(expr* a, expr* b, expr_ref& result);
     br_status mk_str_to_regexp(expr* a, expr_ref& result);
     br_status mk_str_le(expr* a, expr* b, expr_ref& result);
@@ -275,6 +311,8 @@ class seq_rewriter {
     expr_ref zero() { return expr_ref(m_autil.mk_int(0), m()); }
     expr_ref one() { return expr_ref(m_autil.mk_int(1), m()); }
     expr_ref minus_one() { return expr_ref(m_autil.mk_int(-1), m()); }
+    expr_ref mk_sub(expr* a, rational const& n);
+    expr_ref mk_sub(expr* a, unsigned n) { return mk_sub(a, rational(n)); }
 
     bool is_suffix(expr* s, expr* offset, expr* len);
     bool is_prefix(expr* s, expr* offset, expr* len);
@@ -284,11 +322,14 @@ class seq_rewriter {
     bool reduce_non_overlap(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
     bool reduce_subsequence(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
     bool reduce_by_length(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
+    bool has_var(expr_ref_vector const& es);
     bool reduce_itos(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
     bool reduce_eq_empty(expr* l, expr* r, expr_ref& result);    
-    bool min_length(expr_ref_vector const& es, unsigned& len);
-    bool min_length(expr* e, unsigned& len);
-    bool max_length(expr* e, rational& len);
+    std::pair<bool, unsigned> min_length(expr_ref_vector const& es);
+    std::pair<bool, unsigned> min_length(expr* e);
+    std::pair<bool, unsigned> min_length(unsigned sz, expr* const* es);
+    std::pair<bool, rational> max_length(expr* e);
+    bool max_length(expr* e, rational& len) { auto ml = max_length(e); len = ml.second; return ml.first; }
     lbool eq_length(expr* x, expr* y);
     expr* concat_non_empty(expr_ref_vector& es);
     bool reduce_by_char(expr_ref& r, expr* ch, unsigned depth);
@@ -331,14 +372,25 @@ public:
 
     br_status mk_app_core(func_decl * f, unsigned num_args, expr * const * args, expr_ref & result);
     br_status mk_eq_core(expr * lhs, expr * rhs, expr_ref & result);
+    br_status mk_le_core(expr* lhs, expr* rhs, expr_ref& result);
     br_status mk_bool_app(func_decl* f, unsigned n, expr* const* args, expr_ref& result);
 
-    expr_ref mk_app(func_decl* f, expr_ref_vector const& args) { return mk_app(f, args.size(), args.c_ptr()); }
+    expr_ref mk_app(func_decl* f, expr_ref_vector const& args) { return mk_app(f, args.size(), args.data()); }
     expr_ref mk_app(func_decl* f, unsigned n, expr* const* args) { 
         expr_ref result(m());
         if (f->get_family_id() != u().get_family_id() || 
             BR_FAILED == mk_app_core(f, n, args, result))
             result = m().mk_app(f, n, args);
+        return result;
+    }
+
+    /*
+    * makes concat and simplifies
+    */
+    expr_ref mk_re_append(expr* r1, expr* r2) {
+        expr_ref result(m());
+        if (mk_re_concat(r1, r2, result) == BR_FAILED)
+            result = re().mk_concat(r1, r2);
         return result;
     }
 
@@ -357,12 +409,27 @@ public:
 
     void add_seqs(expr_ref_vector const& ls, expr_ref_vector const& rs, expr_ref_pair_vector& new_eqs);
 
-    // Expose derivative and nullability check
+    /*
+    create the nullability check for r
+    */
     expr_ref is_nullable(expr* r);
+    /*
+    make the derivative of r wrt the given element ele
+    */
     expr_ref mk_derivative(expr* ele, expr* r);
+    /*
+    make the derivative of r wrt the canonical variable v0 = (:var 0), 
+    for example mk_derivative(a+) = (if (v0 = 'a') then a* else [])
+    */
+    expr_ref mk_derivative(expr* r);
 
     // heuristic elimination of element from condition that comes form a derivative.
     // special case optimization for conjunctions of equalities, disequalities and ranges.
     void elim_condition(expr* elem, expr_ref& cond);
+
+    /* Apply simplifications to the union to keep the union normalized (r1 and r2 are not normalized)*/
+    expr_ref mk_regex_union_normalize(expr* r1, expr* r2);
+    /* Apply simplifications to the intersection to keep it normalized (r1 and r2 are not normalized)*/
+    expr_ref mk_regex_inter_normalize(expr* r1, expr* r2);
 };
 

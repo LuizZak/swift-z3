@@ -34,6 +34,7 @@ namespace qe {
 
     class i_nnf_atom {
     public:
+        virtual ~i_nnf_atom() = default;
         virtual void operator()(expr* e, bool pol, expr_ref& result) = 0;
     };
 
@@ -148,7 +149,7 @@ namespace qe {
             m_ctx(ctx)
         {}
         
-        virtual ~qe_solver_plugin() {}
+        virtual ~qe_solver_plugin() = default;
         
         family_id get_family_id() { return m_fid; }
 

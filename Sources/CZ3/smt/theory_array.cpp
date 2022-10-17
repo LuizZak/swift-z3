@@ -91,9 +91,9 @@ namespace smt {
         d->m_parent_selects.push_back(s);
         TRACE("array", tout << v << " " << mk_pp(s->get_expr(), m) << " " << mk_pp(get_enode(v)->get_expr(), m) << "\n";);
         m_trail_stack.push(push_back_trail<enode *, false>(d->m_parent_selects));
-        for (enode* n : d->m_stores) {
+        for (enode* n : d->m_stores) 
             instantiate_axiom2a(s, n);
-        }
+
         if (!m_params.m_array_delay_exp_axiom && d->m_prop_upward) {
             for (enode* store : d->m_parent_stores) {
                 SASSERT(is_store(store));
@@ -239,13 +239,16 @@ namespace smt {
     // 
     bool theory_array::internalize_term_core(app * n) {
         TRACE("array_bug", tout << mk_bounded_pp(n, m) << "\n";);
-        unsigned num_args = n->get_num_args();
-        for (unsigned i = 0; i < num_args; i++)
-            ctx.internalize(n->get_arg(i), false);
-        if (ctx.e_internalized(n)) {
+        for (expr* arg : *n)
+            ctx.internalize(arg, false);
+        // force merge-tf by re-internalizing expression.
+        for (expr* arg : *n)
+            if (m.is_bool(arg))
+                ctx.internalize(arg, false);
+        if (ctx.e_internalized(n)) 
             return false;
-        }
-        enode * e        = ctx.mk_enode(n, false, false, true);
+
+        enode * e = ctx.mk_enode(n, false, false, true);
         if (!is_attached_to_var(e))
             mk_var(e);
 
@@ -454,11 +457,11 @@ namespace smt {
         out << std::right;
         out << " is_array: " << d->m_is_array  << " is_select: " << d->m_is_select << " upward: " << d->m_prop_upward;
         out << " stores: {";
-        display_ids(out, d->m_stores.size(), d->m_stores.c_ptr());
+        display_ids(out, d->m_stores.size(), d->m_stores.data());
         out << "} p_stores: {";
-        display_ids(out, d->m_parent_stores.size(), d->m_parent_stores.c_ptr());
+        display_ids(out, d->m_parent_stores.size(), d->m_parent_stores.data());
         out << "} p_selects: {";
-        display_ids(out, d->m_parent_selects.size(), d->m_parent_selects.c_ptr());
+        display_ids(out, d->m_parent_selects.size(), d->m_parent_selects.data());
         out << "}";
         out << "\n";
      }

@@ -52,7 +52,6 @@ class pb_decl_plugin : public decl_plugin {
     func_decl * mk_eq(unsigned arity, rational const* coeffs, int k);
 public:
     pb_decl_plugin();
-    ~pb_decl_plugin() override {}
 
     sort * mk_sort(decl_kind k, unsigned num_parameters, parameter const * parameters) override {
         UNREACHABLE();
@@ -90,8 +89,8 @@ public:
     family_id get_family_id() const { return m_fid; }
     app * mk_at_most_k(unsigned num_args, expr * const * args, unsigned k);
     app * mk_at_least_k(unsigned num_args, expr * const * args, unsigned k);
-    app * mk_at_most_k(expr_ref_vector const& args, unsigned k) { return mk_at_most_k(args.size(), args.c_ptr(), k); }
-    app * mk_at_least_k(expr_ref_vector const& args, unsigned k) { return mk_at_least_k(args.size(), args.c_ptr(), k); }
+    app * mk_at_most_k(expr_ref_vector const& args, unsigned k) { return mk_at_most_k(args.size(), args.data(), k); }
+    app * mk_at_least_k(expr_ref_vector const& args, unsigned k) { return mk_at_least_k(args.size(), args.data(), k); }
     app * mk_le(unsigned num_args, rational const * coeffs, expr * const * args, rational const& k);
     app * mk_ge(unsigned num_args, rational const * coeffs, expr * const * args, rational const& k);
     app * mk_eq(unsigned num_args, rational const * coeffs, expr * const * args, rational const& k);

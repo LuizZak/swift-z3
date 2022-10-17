@@ -51,13 +51,12 @@ public:
     str_value_factory(ast_manager & m, family_id fid) :
         value_factory(m, fid),
         u(m), delim("!"), m_next(0) {}
-    ~str_value_factory() override {}
     expr * get_some_value(sort * s) override {
-        return u.str.mk_string(symbol("some value"));
+        return u.str.mk_string("some value");
     }
     bool get_some_values(sort * s, expr_ref & v1, expr_ref & v2) override {
-        v1 = u.str.mk_string(symbol("value 1"));
-        v2 = u.str.mk_string(symbol("value 2"));
+        v1 = u.str.mk_string("value 1");
+        v2 = u.str.mk_string("value 2");
         return true;
     }
     expr * get_fresh_value(sort * s) override {
@@ -65,10 +64,11 @@ public:
             while (true) {
                 std::ostringstream strm;
                 strm << delim << std::hex << (m_next++) << std::dec << delim;
-                symbol sym(strm.str());
+                std::string s(strm.str());
+                symbol sym(s);
                 if (m_strings.contains(sym)) continue;
                 m_strings.insert(sym);
-                return u.str.mk_string(sym);
+                return u.str.mk_string(s);
             }
         }
         sort* seq = nullptr;
@@ -92,7 +92,6 @@ class binary_search_trail : public trail {
 public:
     binary_search_trail(obj_map<expr, ptr_vector<expr> > & target, expr * entry) :
         target(target), entry(entry) {}
-    ~binary_search_trail() override {}
     void undo() override {
         TRACE("t_str_binary_search", tout << "in binary_search_trail::undo()" << std::endl;);
         if (target.contains(entry)) {
@@ -105,54 +104,6 @@ public:
             TRACE("t_str_binary_search", tout << "WARNING: attempt to access length tester map via invalid key" << std::endl;);
         }
     }
-};
-
-struct c_hash { unsigned operator()(char u) const { return (unsigned)u; } };
-struct c_eq { bool operator()(char u1, char u2) const { return u1 == u2; } };
-
-class nfa {
-protected:
-    bool m_valid;
-    unsigned m_next_id;
-
-    unsigned next_id() {
-        unsigned retval = m_next_id;
-        ++m_next_id;
-        return retval;
-    }
-
-    unsigned m_start_state;
-    unsigned m_end_state;
-
-    std::map<unsigned, std::map<char, unsigned> > transition_map;
-    std::map<unsigned, std::set<unsigned> > epsilon_map;
-
-    void make_transition(unsigned start, char symbol, unsigned end) {
-        transition_map[start][symbol] = end;
-    }
-
-    void make_epsilon_move(unsigned start, unsigned end) {
-        epsilon_map[start].insert(end);
-    }
-
-    // Convert a regular expression to an e-NFA using Thompson's construction
-    void convert_re(expr * e, unsigned & start, unsigned & end, seq_util & u);
-
-public:
-    nfa(seq_util & u, expr * e)
-: m_valid(true), m_next_id(0), m_start_state(0), m_end_state(0) {
-        convert_re(e, m_start_state, m_end_state, u);
-    }
-
-    nfa() : m_valid(false), m_next_id(0), m_start_state(0), m_end_state(0) {}
-
-    bool is_valid() const {
-        return m_valid;
-    }
-
-    void epsilon_closure(unsigned start, std::set<unsigned> & closure);
-
-    bool matches(zstring input);
 };
 
 class regex_automaton_under_assumptions {
@@ -440,6 +391,8 @@ protected:
     // does not introduce equalities when they weren't enforced.
     unsigned m_unused_id;
 
+    const char* newOverlapStr = "!!NewOverlapAssumption!!";
+
     // terms we couldn't go through set_up_axioms() with because they weren't internalized
     expr_ref_vector m_delayed_axiom_setup_terms;
 
@@ -489,7 +442,6 @@ protected:
     obj_hashtable<expr> regex_terms;
     obj_map<expr, ptr_vector<expr> > regex_terms_by_string; // S --> [ (str.in.re S *) ]
     obj_map<expr, svector<regex_automaton_under_assumptions> > regex_automaton_assumptions; // RegEx --> [ aut+assumptions ]
-    obj_map<expr, nfa> regex_nfa_cache; // Regex term --> NFA
     obj_hashtable<expr> regex_terms_with_path_constraints; // set of string terms which have had path constraints asserted in the current scope
     obj_hashtable<expr> regex_terms_with_length_constraints; // set of regex terms which had had length constraints asserted in the current scope
     obj_map<expr, expr*> regex_term_to_length_constraint; // (str.in.re S R) -> (length constraint over S wrt. R)
@@ -540,7 +492,7 @@ protected:
     obj_map<expr, std::tuple<rational, expr*, expr*>> fixed_length_lesson; //keep track of information for the lesson
     unsigned preprocessing_iteration_count; // number of attempts we've made to solve by preprocessing length information
     obj_map<expr, zstring> candidate_model;
-    
+
     stats m_stats;
 
 protected:
@@ -718,15 +670,14 @@ protected:
     void check_consistency_contains(expr * e, bool is_true);
 
     int ctx_dep_analysis(std::map<expr*, int> & strVarMap, std::map<expr*, int> & freeVarMap,
-            std::map<expr*, std::set<expr*> > & unrollGroupMap, std::map<expr*, std::map<expr*, int> > & var_eq_concat_map);
+            std::map<expr*, std::map<expr*, int> > & var_eq_concat_map);
     void trace_ctx_dep(std::ofstream & tout,
             std::map<expr*, expr*> & aliasIndexMap,
             std::map<expr*, expr*> & var_eq_constStr_map,
             std::map<expr*, std::map<expr*, int> > & var_eq_concat_map,
             std::map<expr*, std::map<expr*, int> > & var_eq_unroll_map,
             std::map<expr*, expr*> & concat_eq_constStr_map,
-            std::map<expr*, std::map<expr*, int> > & concat_eq_concat_map,
-            std::map<expr*, std::set<expr*> > & unrollGroupMap);
+            std::map<expr*, std::map<expr*, int> > & concat_eq_concat_map);
 
     bool term_appears_as_subterm(expr * needle, expr * haystack);
     void classify_ast_by_type(expr * node, std::map<expr*, int> & varMap,
@@ -826,4 +777,3 @@ protected:
 };
 
 };
-

@@ -56,9 +56,6 @@ public:
         m_opt(opt)
     {}
 
-    ~assert_soft_cmd() override {
-    }
-
     void reset(cmd_context & ctx) override {
         m_idx = 0; 
         m_formula = nullptr;
@@ -105,6 +102,7 @@ public:
         get_opt(ctx, m_opt).add_soft_constraint(m_formula, weight, id);
         ctx.print_success();
         reset(ctx);
+        reset_params();
     }
 
     void finalize(cmd_context & ctx) override {

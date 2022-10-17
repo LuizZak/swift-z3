@@ -42,10 +42,8 @@ bool zstring::is_escape_char(char const *& s, unsigned& result) {
                 result = 16*result + d;
             }
             else if (*(s+3+i) == '}') {
-                if (result > 255 && !uses_unicode())
-                    throw default_exception("unicode characters outside of byte range are not supported");
-                if (result > unicode_max_char()) 
-                    throw default_exception("unicode characters outside of byte range are not supported");
+                if (result > max_char())
+                    return false;
                 s += 4 + i;
                 return true;                
             }
@@ -65,8 +63,8 @@ bool zstring::is_escape_char(char const *& s, unsigned& result) {
         result = 16*result + d2;
         result = 16*result + d3;
         result = 16*result + d4;
-        if (result > unicode_max_char()) 
-            throw default_exception("unicode characters outside of byte range are not supported");
+        if (result > max_char())
+            return false;
         s += 6;
         return true;
     }
@@ -87,13 +85,19 @@ zstring::zstring(char const* s) {
     SASSERT(well_formed());
 }
 
-bool zstring::uses_unicode() const {
-    return gparams::get_value("unicode") != "false";
+string_encoding zstring::get_encoding() {
+    if (gparams::get_value("encoding") == "unicode") 
+        return string_encoding::unicode;
+    if (gparams::get_value("encoding") == "bmp") 
+        return string_encoding::bmp;
+    if (gparams::get_value("encoding") == "ascii") 
+        return string_encoding::ascii;
+    return string_encoding::unicode;
 }
 
 bool zstring::well_formed() const {
     for (unsigned ch : m_buffer) {
-        if (ch > unicode_max_char()) {
+        if (ch > max_char()) {
             IF_VERBOSE(0, verbose_stream() << "large character: " << ch << "\n";);
             return false;
         }
@@ -146,7 +150,7 @@ std::string zstring::encode() const {
 #define _flush() if (offset > 0) { buffer[offset] = 0; strm << buffer; offset = 0; }
     for (unsigned i = 0; i < m_buffer.size(); ++i) {
         unsigned ch = m_buffer[i];
-        if (ch < 32 || ch >= 128 || ch == '\\') {
+        if (ch < 32 || ch >= 128 || ('\\' == ch && i + 1 < m_buffer.size() && 'u' == m_buffer[i+1])) {
             _flush();
             strm << "\\u{" << std::hex << ch << std::dec << "}";
         }
@@ -212,7 +216,7 @@ int zstring::indexofu(zstring const& other, unsigned offset) const {
 int zstring::last_indexof(zstring const& other) const {
     if (other.length() == 0) return length();
     if (other.length() > length()) return -1;
-    for (unsigned last = length() - other.length(); last-- > 0; ) {
+    for (unsigned last = length() - other.length() + 1; last-- > 0; ) {
         bool suffix = true;
         for (unsigned j = 0; suffix && j < other.length(); ++j) {
             suffix = m_buffer[last + j] == other[j];
@@ -234,11 +238,16 @@ zstring zstring::extract(unsigned offset, unsigned len) const {
     return result;
 }
 
+unsigned zstring::hash() const {
+    return unsigned_ptr_hash(m_buffer.data(), m_buffer.size(), 23);
+}
+
 zstring zstring::operator+(zstring const& other) const {
     zstring result(*this);
     result.m_buffer.append(other.m_buffer);
     return result;
 }
+
 
 bool zstring::operator==(const zstring& other) const {
     // two strings are equal iff they have the same length and characters
@@ -270,16 +279,10 @@ bool operator<(const zstring& lhs, const zstring& rhs) {
     for (unsigned i = 0; i < len; ++i) {
         unsigned Li = lhs[i];
         unsigned Ri = rhs[i];
-        if (Li < Ri) {
-            return true;
-        } 
-        else if (Li > Ri) {
-            return false;
-        } 
+        if (Li != Ri)
+            return Li < Ri;
     }
     // at this point, all compared characters are equal,
     // so decide based on the relative lengths
     return lhs.length() < rhs.length();
 }
-
-

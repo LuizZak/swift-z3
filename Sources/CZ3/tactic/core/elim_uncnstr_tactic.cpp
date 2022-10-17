@@ -21,6 +21,7 @@ Notes:
 #include "ast/rewriter/rewriter_def.h"
 #include "ast/arith_decl_plugin.h"
 #include "ast/bv_decl_plugin.h"
+#include "ast/recfun_decl_plugin.h"
 #include "ast/array_decl_plugin.h"
 #include "ast/datatype_decl_plugin.h"
 #include "tactic/core/collect_occs.h"
@@ -37,6 +38,7 @@ class elim_uncnstr_tactic : public tactic {
     struct rw_cfg : public default_rewriter_cfg {
         bool                   m_produce_proofs;
         obj_hashtable<expr> &  m_vars;
+        obj_hashtable<expr>&   m_nonvars;
         ref<mc>                m_mc;
         arith_util             m_a_util;
         bv_util                m_bv_util;
@@ -48,10 +50,11 @@ class elim_uncnstr_tactic : public tactic {
         unsigned long long     m_max_memory;
         unsigned               m_max_steps;
         
-        rw_cfg(ast_manager & m, bool produce_proofs, obj_hashtable<expr> & vars, mc * _m, 
-                unsigned long long max_memory, unsigned max_steps):
+        rw_cfg(ast_manager & m, bool produce_proofs, obj_hashtable<expr> & vars, obj_hashtable<expr> & nonvars, mc * _m, 
+               unsigned long long max_memory, unsigned max_steps):
             m_produce_proofs(produce_proofs),
             m_vars(vars),
+            m_nonvars(nonvars),
             m_mc(_m),
             m_a_util(m),
             m_bv_util(m),
@@ -72,7 +75,7 @@ class elim_uncnstr_tactic : public tactic {
         }
         
         bool uncnstr(expr * arg) const {
-            return m_vars.contains(arg);
+            return m_vars.contains(arg) && !m_nonvars.contains(arg);
         }
         
         bool uncnstr(unsigned num, expr * const * args) const {
@@ -161,12 +164,12 @@ class elim_uncnstr_tactic : public tactic {
                 for (unsigned i = 0; i < arity; i++)
                     new_args.push_back(m().get_some_value(get_array_domain(s, i)));
                 expr_ref sel(m());
-                sel = m().mk_app(fid, OP_SELECT, new_args.size(), new_args.c_ptr());
+                sel = m().mk_app(fid, OP_SELECT, new_args.size(), new_args.data());
                 expr_ref diff_sel(m());
                 if (!mk_diff(sel, diff_sel))
                     return false;
                 new_args.push_back(diff_sel);
-                r = m().mk_app(fid, OP_STORE, new_args.size(), new_args.c_ptr());
+                r = m().mk_app(fid, OP_STORE, new_args.size(), new_args.data());
                 return true;
             }
             if (fid == m_dt_util.get_family_id()) {
@@ -197,7 +200,7 @@ class elim_uncnstr_tactic : public tactic {
                             new_args.push_back(m().get_some_value(constructor->get_domain(i)));
                         }
                     }
-                    r = m().mk_app(constructor, new_args.size(), new_args.c_ptr());
+                    r = m().mk_app(constructor, new_args.size(), new_args.data());
                     return true;
                 }
                 // TODO: handle more cases.
@@ -396,7 +399,7 @@ class elim_uncnstr_tactic : public tactic {
                 if (new_args.size() == 1)
                     rest = new_args[0];
                 else
-                    rest = m().mk_app(fid, add_k, new_args.size(), new_args.c_ptr());
+                    rest = m().mk_app(fid, add_k, new_args.size(), new_args.data());
                 add_def(v, m().mk_app(fid, sub_k, u, rest));
             }
             return u;
@@ -470,7 +473,7 @@ class elim_uncnstr_tactic : public tactic {
             if (num == 2 && 
                 uncnstr(args[1]) && 
                 m_bv_util.is_numeral(args[0], val, bv_size) &&
-                m_bv_util.mult_inverse(val, bv_size, inv)) {
+                val.mult_inverse(bv_size, inv)) {
                 app * r;
                 if (!mk_fresh_uncnstr_var_for(f, num, args, r))
                     return r;
@@ -503,7 +506,7 @@ class elim_uncnstr_tactic : public tactic {
                 args.push_back(r);
                 if (low > 0)
                     args.push_back(m_bv_util.mk_numeral(rational(0), low));
-                add_def(arg, m_bv_util.mk_concat(args.size(), args.c_ptr()));
+                add_def(arg, m_bv_util.mk_concat(args.size(), args.data()));
             }
             return r;
         }
@@ -698,7 +701,7 @@ class elim_uncnstr_tactic : public tactic {
                         else
                             new_args.push_back(m().get_some_value(c->get_domain(i)));
                     }
-                    add_def(args[0], m().mk_app(c, new_args.size(), new_args.c_ptr()));
+                    add_def(args[0], m().mk_app(c, new_args.size(), new_args.data()));
                     return u;
                 }
             }
@@ -748,16 +751,17 @@ class elim_uncnstr_tactic : public tactic {
     class rw : public rewriter_tpl<rw_cfg> {
         rw_cfg m_cfg;
     public:
-        rw(ast_manager & m, bool produce_proofs, obj_hashtable<expr> & vars, mc * _m, 
+        rw(ast_manager & m, bool produce_proofs, obj_hashtable<expr> & vars, obj_hashtable<expr>& nonvars, mc * _m,
             unsigned long long max_memory, unsigned max_steps):
             rewriter_tpl<rw_cfg>(m, produce_proofs, m_cfg),
-            m_cfg(m, produce_proofs, vars, _m, max_memory, max_steps) {
+            m_cfg(m, produce_proofs, vars, nonvars, _m, max_memory, max_steps) {
         }
     };
     
     ast_manager &                    m_manager;
     ref<mc>                          m_mc;
     obj_hashtable<expr>              m_vars;
+    obj_hashtable<expr>              m_nonvars;
     scoped_ptr<rw>                   m_rw;
     unsigned                         m_num_elim_apps = 0;
     unsigned long long               m_max_memory;
@@ -773,18 +777,17 @@ class elim_uncnstr_tactic : public tactic {
     }
     
     void init_rw(bool produce_proofs) {
-        m_rw = alloc(rw, m(), produce_proofs, m_vars, m_mc.get(), m_max_memory, m_max_steps);            
+        m_rw = alloc(rw, m(), produce_proofs, m_vars, m_nonvars, m_mc.get(), m_max_memory, m_max_steps);            
     }
 
     void run(goal_ref const & g, goal_ref_buffer & result) {
         bool produce_proofs = g->proofs_enabled();
-        
         TRACE("goal", g->display(tout););
         tactic_report report("elim-uncnstr", *g);
         m_vars.reset();
         collect_occs p;
         p(*g, m_vars);
-        if (m_vars.empty()) {
+        if (m_vars.empty() || recfun::util(m()).has_defs()) {
             result.push_back(g.get());
             // did not increase depth since it didn't do anything.
             return;
@@ -852,14 +855,16 @@ public:
         updt_params(p);
     }
 
+   char const* name() const override { return "elim_uncstr"; }
+
     tactic * translate(ast_manager & m) override {
         return alloc(elim_uncnstr_tactic, m, m_params);
     }
 
     void updt_params(params_ref const & p) override {
-        m_params = p;
-        m_max_memory = megabytes_to_bytes(p.get_uint("max_memory", UINT_MAX));
-        m_max_steps  = p.get_uint("max_steps", UINT_MAX);
+        m_params.append(p);
+        m_max_memory = megabytes_to_bytes(m_params.get_uint("max_memory", UINT_MAX));
+        m_max_steps  = m_params.get_uint("max_steps", UINT_MAX);
     }
     
     void collect_param_descrs(param_descrs & r) override {
@@ -886,6 +891,15 @@ public:
     void reset_statistics() override {
         m_num_elim_apps = 0;
     }
+
+    void user_propagate_register_expr(expr* e) override { 
+        m_nonvars.insert(e);
+    }
+
+    void user_propagate_clear() override {
+        m_nonvars.reset();
+    }
+
 
 };
 }

@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __BV_REWRITER_PARAMS_HPP_
-#define __BV_REWRITER_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct bv_rewriter_params {
@@ -20,6 +19,7 @@ struct bv_rewriter_params {
     d.insert("bv_not_simpl", CPK_BOOL, "apply simplifications for bvnot", "false","rewriter");
     d.insert("bv_ite2id", CPK_BOOL, "rewrite ite that can be simplified to identity", "false","rewriter");
     d.insert("bv_le_extra", CPK_BOOL, "additional bu_(u/s)le simplifications", "false","rewriter");
+    d.insert("bv_le2extract", CPK_BOOL, "disassemble bvule to extract", "true","rewriter");
   }
   /*
      REG_MODULE_PARAMS('rewriter', 'bv_rewriter_params::collect_param_descrs')
@@ -35,5 +35,5 @@ struct bv_rewriter_params {
   bool bv_not_simpl() const { return p.get_bool("bv_not_simpl", g, false); }
   bool bv_ite2id() const { return p.get_bool("bv_ite2id", g, false); }
   bool bv_le_extra() const { return p.get_bool("bv_le_extra", g, false); }
+  bool bv_le2extract() const { return p.get_bool("bv_le2extract", g, true); }
 };
-#endif

@@ -26,7 +26,7 @@ public:
     class simplifier {
         goal_num_occurs* m_occs;
     public:
-        virtual ~simplifier() {}
+        virtual ~simplifier() = default;
         virtual bool assert_expr(expr * t, bool sign) = 0;
         virtual bool simplify(expr* t, expr_ref& result) = 0;
         virtual bool may_simplify(expr* t) { return true; }
@@ -48,6 +48,8 @@ public:
     tactic * translate(ast_manager & m) override;
 
     ~ctx_simplify_tactic() override;
+
+    char const* name() const override { return "ctx_simplify"; }
 
     void updt_params(params_ref const & p) override;
     static  void get_param_descrs(param_descrs & r);

@@ -17,6 +17,8 @@ Revision History:
 
 
 --*/
+#pragma once
+
 #include <cmath>
 #include <string>
 #include "util/vector.h"
@@ -45,9 +47,9 @@ const char* lp_status_to_string(lp_status status) {
     case lp_status::FEASIBLE: return "FEASIBLE";
     case lp_status::FLOATING_POINT_ERROR: return "FLOATING_POINT_ERROR";
     case lp_status::TIME_EXHAUSTED: return "TIME_EXHAUSTED";
-    case lp_status::ITERATIONS_EXHAUSTED: return "ITERATIONS_EXHAUSTED";
     case lp_status::EMPTY: return "EMPTY";
     case lp_status::UNSTABLE: return "UNSTABLE";
+    case lp_status::CANCELLED: return "CANCELLED";
     default:
         lp_unreachable();
     }
@@ -62,7 +64,6 @@ lp_status lp_status_from_string(std::string status) {
     if (status == "FEASIBLE") return lp_status::FEASIBLE;
     if (status == "FLOATING_POINT_ERROR") return lp_status::FLOATING_POINT_ERROR;
     if (status == "TIME_EXHAUSTED") return lp_status::TIME_EXHAUSTED;
-    if (status == "ITERATIONS_EXHAUSTED") return lp_status::ITERATIONS_EXHAUSTED;
     if (status == "EMPTY") return lp_status::EMPTY;
     lp_unreachable();
     return lp_status::UNKNOWN; // it is unreachable

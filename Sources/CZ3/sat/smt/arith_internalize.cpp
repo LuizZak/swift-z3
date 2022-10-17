@@ -42,6 +42,7 @@ namespace arith {
     void solver::init_internalize() {
         force_push();
         // initialize 0, 1 variables:
+        
         if (!m_internalize_initialized) {
             get_one(true);
             get_one(false);
@@ -68,23 +69,23 @@ namespace arith {
                 m_nla->push();
             }
             smt_params_helper prms(s().params());
-            m_nla->settings().run_order() = prms.arith_nl_order();
-            m_nla->settings().run_tangents() = prms.arith_nl_tangents();
-            m_nla->settings().run_horner() = prms.arith_nl_horner();
-            m_nla->settings().horner_subs_fixed() = prms.arith_nl_horner_subs_fixed();
-            m_nla->settings().horner_frequency() = prms.arith_nl_horner_frequency();
-            m_nla->settings().horner_row_length_limit() = prms.arith_nl_horner_row_length_limit();
-            m_nla->settings().run_grobner() = prms.arith_nl_grobner();
-            m_nla->settings().run_nra() = prms.arith_nl_nra();
-            m_nla->settings().grobner_subs_fixed() = prms.arith_nl_grobner_subs_fixed();
-            m_nla->settings().grobner_eqs_growth() = prms.arith_nl_grobner_eqs_growth();
-            m_nla->settings().grobner_expr_size_growth() = prms.arith_nl_grobner_expr_size_growth();
-            m_nla->settings().grobner_expr_degree_growth() = prms.arith_nl_grobner_expr_degree_growth();
-            m_nla->settings().grobner_max_simplified() = prms.arith_nl_grobner_max_simplified();
-            m_nla->settings().grobner_number_of_conflicts_to_report() = prms.arith_nl_grobner_cnfl_to_report();
-            m_nla->settings().grobner_quota() = prms.arith_nl_gr_q();
-            m_nla->settings().grobner_frequency() = prms.arith_nl_grobner_frequency();
-            m_nla->settings().expensive_patching() = prms.arith_nl_expp();
+            m_nla->settings().run_order = prms.arith_nl_order();
+            m_nla->settings().run_tangents = prms.arith_nl_tangents();
+            m_nla->settings().run_horner = prms.arith_nl_horner();
+            m_nla->settings().horner_subs_fixed = prms.arith_nl_horner_subs_fixed();
+            m_nla->settings().horner_frequency = prms.arith_nl_horner_frequency();
+            m_nla->settings().horner_row_length_limit = prms.arith_nl_horner_row_length_limit();
+            m_nla->settings().run_grobner = prms.arith_nl_grobner();
+            m_nla->settings().run_nra = prms.arith_nl_nra();
+            m_nla->settings().grobner_subs_fixed = prms.arith_nl_grobner_subs_fixed();
+            m_nla->settings().grobner_eqs_growth = prms.arith_nl_grobner_eqs_growth();
+            m_nla->settings().grobner_expr_size_growth = prms.arith_nl_grobner_expr_size_growth();
+            m_nla->settings().grobner_expr_degree_growth = prms.arith_nl_grobner_expr_degree_growth();
+            m_nla->settings().grobner_max_simplified = prms.arith_nl_grobner_max_simplified();
+            m_nla->settings().grobner_number_of_conflicts_to_report = prms.arith_nl_grobner_cnfl_to_report();
+            m_nla->settings().grobner_quota = prms.arith_nl_gr_q();
+            m_nla->settings().grobner_frequency = prms.arith_nl_grobner_frequency();
+            m_nla->settings().expensive_patching = false;
         }
     }
 
@@ -97,6 +98,7 @@ namespace arith {
     void solver::found_underspecified(expr* n) {
         if (a.is_underspecified(n)) {
             TRACE("arith", tout << "Unhandled: " << mk_pp(n, m) << "\n";);
+            ctx.push(push_back_vector(m_underspecified));
             m_underspecified.push_back(to_app(n));
         }
         expr* e = nullptr, * x = nullptr, * y = nullptr;
@@ -164,7 +166,7 @@ namespace arith {
         unsigned index = 0;
         while (index < terms.size()) {
             SASSERT(index >= vars.size());
-            expr* n = terms[index].get();
+            expr* n = terms.get(index);
             st.to_ensure_enode().push_back(n);
             if (a.is_add(n)) {
                 for (expr* arg : *to_app(n)) {
@@ -236,11 +238,13 @@ namespace arith {
                 if (!is_first) {
                     // skip recursive internalization
                 }
-                else if (a.is_to_int(n, n1)) {
-                    mk_to_int_axiom(t);
-                }
+                else if (a.is_to_int(n, n1)) 
+                    mk_to_int_axiom(t);                
+                else if (a.is_abs(n)) 
+                    mk_abs_axiom(t);                
                 else if (a.is_idiv(n, n1, n2)) {
                     if (!a.is_numeral(n2, r) || r.is_zero()) found_underspecified(n);
+                    ctx.push(push_back_vector(m_idiv_terms));
                     m_idiv_terms.push_back(n);
                     app_ref mod(a.mk_mod(n1, n2), m);
                     internalize(mod, m_is_redundant);
@@ -267,14 +271,16 @@ namespace arith {
                 }
                 else if (!a.is_div0(n) && !a.is_mod0(n) && !a.is_idiv0(n) && !a.is_rem0(n) && !a.is_power0(n)) {
                     found_unsupported(n);
+                    ensure_arg_vars(to_app(n));
                 }
                 else {
-                    // no-op
+                    ensure_arg_vars(to_app(n));
                 }
             }
             else {
                 if (is_app(n)) {
                     internalize_args(to_app(n));
+                    ensure_arg_vars(to_app(n));
                 }
                 theory_var v = mk_evar(n);
                 coeffs[vars.size()] = coeffs[index];
@@ -291,9 +297,8 @@ namespace arith {
         st.to_ensure_enode().reset();
         for (unsigned i = st.to_ensure_var().size(); i-- > 0; ) {
             expr* n = st.to_ensure_var()[i];
-            if (is_app(n)) {
+            if (is_app(n)) 
                 internalize_term(to_app(n));
-            }
         }
         st.to_ensure_var().reset();
     }
@@ -305,7 +310,6 @@ namespace arith {
 
     bool solver::internalize_atom(expr* atom) {
         TRACE("arith", tout << mk_pp(atom, m) << "\n";);
-        SASSERT(!ctx.get_enode(atom));
         expr* n1, *n2;
         rational r;
         lp_api::bound_kind k;
@@ -333,21 +337,18 @@ namespace arith {
         }
         else if (a.is_le(atom, n1, n2)) {
             expr_ref n3(a.mk_sub(n1, n2), m);
-            rewrite(n3);
             v = internalize_def(n3);
             k = lp_api::upper_t;
             r = 0;
         }
         else if (a.is_ge(atom, n1, n2)) {
             expr_ref n3(a.mk_sub(n1, n2), m);
-            rewrite(n3);
             v = internalize_def(n3);
             k = lp_api::lower_t;
             r = 0;
         }
         else if (a.is_lt(atom, n1, n2)) {
             expr_ref n3(a.mk_sub(n1, n2), m);
-            rewrite(n3);
             v = internalize_def(n3);
             k = lp_api::lower_t;
             r = 0;
@@ -355,7 +356,6 @@ namespace arith {
         }
         else if (a.is_gt(atom, n1, n2)) {
             expr_ref n3(a.mk_sub(n1, n2), m);
-            rewrite(n3);
             v = internalize_def(n3);
             k = lp_api::upper_t;
             r = 0;
@@ -382,16 +382,15 @@ namespace arith {
         updt_unassigned_bounds(v, +1);
         m_bounds_trail.push_back(v);
         m_bool_var2bound.insert(bv, b);
-        TRACE("arith_verbose", tout << "Internalized " << bv << ": " << mk_pp(atom, m) << "\n";);
+        TRACE("arith_verbose", tout << "Internalized " << lit << ": " << mk_pp(atom, m) << " " << *b << "\n";);
         m_new_bounds.push_back(b);
         //add_use_lists(b);
         return true;
     }
 
-
     bool solver::internalize_term(expr* term) {
         if (!has_var(term))
-            internalize_def(term);
+            register_theory_var_in_lar_solver(internalize_def(term));
         return true;
     }
 
@@ -424,8 +423,14 @@ namespace arith {
         TRACE("arith", tout << mk_pp(t, m) << " " << force << " " << reflect(t) << "\n";);
         if (!force && !reflect(t))
             return;
-        for (expr* arg : *t)
+        for (expr* arg : *t) 
             e_internalize(arg);
+    }
+
+    void solver::ensure_arg_vars(app* n) {
+        for (expr* arg : *to_app(n))
+            if (a.is_real(arg) || a.is_int(arg))
+                internalize_term(arg);
     }
 
     theory_var solver::internalize_power(app* t, app* n, unsigned p) {
@@ -435,8 +440,8 @@ namespace arith {
         theory_var v = mk_evar(t);
         if (_has_var)
             return v;
-        theory_var w = mk_evar(n);
         internalize_term(n);
+        theory_var w = mk_evar(n);
 
         if (p == 0) {
             mk_power0_axioms(t, n);
@@ -447,7 +452,7 @@ namespace arith {
                 vars.push_back(register_theory_var_in_lar_solver(w));
             ensure_nla();
             m_solver->register_existing_terms();
-            m_nla->add_monic(register_theory_var_in_lar_solver(v), vars.size(), vars.c_ptr());
+            m_nla->add_monic(register_theory_var_in_lar_solver(v), vars.size(), vars.data());
         }
         return v;
     }
@@ -470,7 +475,7 @@ namespace arith {
             TRACE("arith", tout << "v" << v << " := " << mk_pp(t, m) << "\n" << vars << "\n";);
             m_solver->register_existing_terms();
             ensure_nla();
-            m_nla->add_monic(register_theory_var_in_lar_solver(v), vars.size(), vars.c_ptr());
+            m_nla->add_monic(register_theory_var_in_lar_solver(v), vars.size(), vars.data());
         }
         return v;
     }
@@ -483,10 +488,10 @@ namespace arith {
             return st.vars()[0];
         }
         else if (is_one(st) && a.is_numeral(term)) {
-            return get_one(a.is_int(term));
+            return lp().local_to_external(get_one(a.is_int(term)));
         }
         else if (is_zero(st) && a.is_numeral(term)) {
-            return get_zero(a.is_int(term));
+            return lp().local_to_external(get_zero(a.is_int(term)));
         }
         else {
             init_left_side(st);
@@ -496,6 +501,7 @@ namespace arith {
                     vi = lp().add_var(v, a.is_int(term));
                     add_def_constraint_and_equality(vi, lp::GE, st.offset());
                     add_def_constraint_and_equality(vi, lp::LE, st.offset());
+                    register_fixed_var(v, st.offset());
                     return v;
                 }
                 if (!st.offset().is_zero()) {
@@ -547,11 +553,13 @@ namespace arith {
         }
         m_left_side.clear();
         // reset the coefficients after they have been used.
-        for (unsigned i = 0; i < vars.size(); ++i) {
-            theory_var var = vars[i];
+        for (theory_var var : vars) {
             rational const& r = m_columns[var];
             if (!r.is_zero()) {
-                m_left_side.push_back(std::make_pair(r, register_theory_var_in_lar_solver(var)));
+                auto vi = register_theory_var_in_lar_solver(var);
+                if (lp::tv::is_term(vi))
+                    vi = lp().map_term_index_to_column_index(vi);
+                m_left_side.push_back(std::make_pair(r, vi));
                 m_columns[var].reset();
             }
         }
@@ -571,7 +579,7 @@ namespace arith {
             if (reflect(e))
                 for (expr* arg : *to_app(e))
                     args.push_back(e_internalize(arg));
-            n = ctx.mk_enode(e, args.size(), args.c_ptr());
+            n = ctx.mk_enode(e, args.size(), args.data());
             ctx.attach_node(n);
         }
         return n;
@@ -582,11 +590,10 @@ namespace arith {
         if (e->is_attached_to(get_id()))
             return e->get_th_var(get_id());
         theory_var v = mk_var(e);
-        TRACE("arith", tout << "fresh var: v" << v << " " << mk_pp(n, m) << "\n";);
+        TRACE("arith_verbose", tout << "v" << v << " " << mk_pp(n, m) << "\n";);
         SASSERT(m_bounds.size() <= static_cast<unsigned>(v) || m_bounds[v].empty());
         reserve_bounds(v);
         ctx.attach_th_var(e, this, v);
-        TRACE("arith", tout << mk_pp(n, m) << " " << v << "\n";);
         SASSERT(euf::null_theory_var != v);
         return v;
     }
@@ -673,6 +680,25 @@ namespace arith {
         }
         return false;
     }
+
+    struct solver::undo_value : public trail {
+        solver& s;
+        undo_value(solver& s):s(s) {}
+        void undo() override {
+            s.m_value2var.erase(s.m_fixed_values.back());
+            s.m_fixed_values.pop_back();
+        }
+    };
+
+
+    void solver::register_fixed_var(theory_var v, rational const& value) {
+        if (m_value2var.contains(value)) 
+            return;
+        m_fixed_values.push_back(value);
+        m_value2var.insert(value, v);
+        ctx.push(undo_value(*this));
+    }
+
 
 }
 

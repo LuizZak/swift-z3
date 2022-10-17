@@ -33,10 +33,10 @@ void bv_rewriter::updt_local_params(params_ref const & _p) {
     m_split_concat_eq = p.split_concat_eq();
     m_bvnot_simpl = p.bv_not_simpl();
     m_bv_sort_ac = p.bv_sort_ac();
-    m_mkbv2num = _p.get_bool("mkbv2num", false);
     m_extract_prop = p.bv_extract_prop();
     m_ite2id = p.bv_ite2id();
     m_le_extra = p.bv_le_extra();
+    m_le2extract = p.bv_le2extract();
     set_sort_sums(p.bv_sort_ac());
 }
 
@@ -48,9 +48,6 @@ void bv_rewriter::updt_params(params_ref const & p) {
 void bv_rewriter::get_param_descrs(param_descrs & r) {
     poly_rewriter<bv_rewriter_core>::get_param_descrs(r);
     bv_rewriter_params::collect_param_descrs(r);
-#ifndef _EXTERNAL_RELEASE
-    r.insert("mkbv2num", CPK_BOOL, "(default: false) convert (mkbv [true/false]*) into a numeral");
-#endif
 }
 
 br_status bv_rewriter::mk_app_core(func_decl * f, unsigned num_args, expr * const * args, expr_ref & result) {
@@ -196,11 +193,11 @@ br_status bv_rewriter::mk_app_core(func_decl * f, unsigned num_args, expr * cons
         SASSERT(num_args == 1);
         return mk_bit2bool(args[0], f->get_parameter(0).get_int(), result);
     case OP_BSMUL_NO_OVFL:
-        return mk_bvsmul_no_overflow(num_args, args, result);
+        return mk_bvsmul_no_overflow(num_args, args, true, result);
+    case OP_BSMUL_NO_UDFL:
+        return mk_bvsmul_no_overflow(num_args, args, false, result);
     case OP_BUMUL_NO_OVFL:
         return mk_bvumul_no_overflow(num_args, args, result);
-    case OP_BSMUL_NO_UDFL:
-        return mk_bvsmul_no_underflow(num_args, args, result);
     default:
         return BR_FAILED;
     }
@@ -374,7 +371,7 @@ br_status bv_rewriter::rw_leq_concats(bool is_signed, expr * _a, expr * _b, expr
                 ptr_buffer<expr> new_args;
                 new_args.push_back(mk_numeral(af, af_sz - sz_min));
                 for (unsigned i = 1; i < numa; ++i) new_args.push_back(a->get_arg(i));
-                new_a = concat(new_args.size(), new_args.c_ptr());
+                new_a = concat(new_args.size(), new_args.data());
             } else {
                 new_a = concat(numa - 1, a->get_args() + 1);
             }
@@ -382,7 +379,7 @@ br_status bv_rewriter::rw_leq_concats(bool is_signed, expr * _a, expr * _b, expr
                 ptr_buffer<expr> new_args;
                 new_args.push_back(mk_numeral(bf, bf_sz - sz_min));
                 for (unsigned i = 1; i < numb; ++i) new_args.push_back(b->get_arg(i));
-                new_b = concat(new_args.size(), new_args.c_ptr());
+                new_b = concat(new_args.size(), new_args.data());
             } else {
                 new_b = concat(numb - 1, b->get_args() + 1);
             }
@@ -577,7 +574,7 @@ br_status bv_rewriter::mk_leq_core(bool is_signed, expr * a, expr * b, expr_ref 
             result = m().mk_eq(a, m_util.mk_numeral(numeral(0), bv_sz));
             return BR_REWRITE1;
         }
-        else if (first_non_zero < bv_sz - 1) {
+        else if (first_non_zero < bv_sz - 1 && m_le2extract) {
             result = m().mk_and(m().mk_eq(m_mk_extract(bv_sz - 1, first_non_zero + 1, a), m_util.mk_numeral(numeral(0), bv_sz - first_non_zero - 1)),
                                 m_util.mk_ule(m_mk_extract(first_non_zero, 0, a), m_mk_extract(first_non_zero, 0, b)));
             return BR_REWRITE3;
@@ -659,7 +656,7 @@ unsigned bv_rewriter::propagate_extract(unsigned high, expr * arg, expr_ref & re
                 new_concat_args.push_back(new_first);
                 for (unsigned j = 1; j < conc_num; ++j)
                     new_concat_args.push_back(to_app(curr)->get_arg(j));
-                new_arg = m_util.mk_concat(new_concat_args.size(), new_concat_args.c_ptr());
+                new_arg = m_util.mk_concat(new_concat_args.size(), new_concat_args.data());
             } else {
                 // remove first element of concat
                 expr * const * const old_conc_args = to_app(curr)->get_args();
@@ -675,7 +672,7 @@ unsigned bv_rewriter::propagate_extract(unsigned high, expr * arg, expr_ref & re
         }
         if (new_arg) new_args.push_back(new_arg);
     }
-    result = m().mk_app(get_fid(), a->get_decl()->get_decl_kind(), new_args.size(), new_args.c_ptr());
+    result = m().mk_app(get_fid(), a->get_decl()->get_decl_kind(), new_args.size(), new_args.data());
     SASSERT(m_util.is_bv(result));
     return removable;
 }
@@ -755,11 +752,11 @@ br_status bv_rewriter::mk_extract(unsigned high, unsigned low, expr * arg, expr_
                     }
                     if (idx == low) {
                         new_args.push_back(curr);
-                        result = m_util.mk_concat(new_args.size(), new_args.c_ptr());
+                        result = m_util.mk_concat(new_args.size(), new_args.data());
                         return used_extract ? BR_REWRITE2 : BR_DONE;
                     }
                     new_args.push_back(m_mk_extract(curr_sz - 1, low - idx, curr));
-                    result = m_util.mk_concat(new_args.size(), new_args.c_ptr());
+                    result = m_util.mk_concat(new_args.size(), new_args.data());
                     return BR_REWRITE2;
                 }
                 UNREACHABLE();
@@ -779,7 +776,7 @@ br_status bv_rewriter::mk_extract(unsigned high, unsigned low, expr * arg, expr_
             expr * curr = to_app(arg)->get_arg(i);
             new_args.push_back(m_mk_extract(high, low, curr));
         }
-        result = m().mk_app(get_fid(), to_app(arg)->get_decl()->get_decl_kind(), new_args.size(), new_args.c_ptr());
+        result = m().mk_app(get_fid(), to_app(arg)->get_decl()->get_decl_kind(), new_args.size(), new_args.data());
         return BR_REWRITE2;
     }
 
@@ -853,6 +850,16 @@ br_status bv_rewriter::mk_bv_shl(expr * arg1, expr * arg2, expr_ref & result) {
                                mk_numeral(0, k) };
         result = m_util.mk_concat(2, new_args);
         return BR_REWRITE2;
+    }
+
+    expr* x = nullptr, *y = nullptr;    
+    if (m_util.is_bv_shl(arg1, x, y)) {
+        expr_ref sum(m_util.mk_bv_add(y, arg2), m());
+        expr_ref cond(m_util.mk_ule(y, sum), m());
+        result = m().mk_ite(cond, 
+                            m_util.mk_bv_shl(x, sum),
+                            mk_numeral(0, bv_size));
+        return BR_REWRITE3;
     }
 
     return BR_FAILED;
@@ -1415,19 +1422,19 @@ br_status bv_rewriter::mk_bv2int(expr * arg, expr_ref & result) {
             args[i] = std::move(tmp);
             sz += get_bv_size(to_app(arg)->get_arg(i));
         }
-        result = m_autil.mk_add(args.size(), args.c_ptr());
+        result = m_autil.mk_add(args.size(), args.data());
         return BR_REWRITE2;
     }
     if (is_mul_no_overflow(arg)) {
         expr_ref_vector args(m());
         for (expr* x : *to_app(arg)) args.push_back(m_util.mk_bv2int(x));
-        result = m_autil.mk_mul(args.size(), args.c_ptr());
+        result = m_autil.mk_mul(args.size(), args.data());
         return BR_REWRITE2;
     }
     if (is_add_no_overflow(arg)) {
         expr_ref_vector args(m());
         for (expr* x : *to_app(arg)) args.push_back(m_util.mk_bv2int(x));
-        result = m_autil.mk_add(args.size(), args.c_ptr());
+        result = m_autil.mk_add(args.size(), args.data());
         return BR_REWRITE2;
     }
 
@@ -1436,18 +1443,34 @@ br_status bv_rewriter::mk_bv2int(expr * arg, expr_ref & result) {
 
 
 bool bv_rewriter::is_mul_no_overflow(expr* e) {
-    if (!m_util.is_bv_mul(e)) return false;
+    if (!m_util.is_bv_mul(e)) 
+        return false;
     unsigned sz = get_bv_size(e);
     unsigned sum = 0;
-    for (expr* x : *to_app(e)) sum += sz-num_leading_zero_bits(x);
-    return sum < sz;
+    for (expr* x : *to_app(e)) 
+        sum += sz - num_leading_zero_bits(x);
+    if (sum > sz + 1)
+        return false;
+    if (sum <= sz)
+        return true;
+    rational v;
+    unsigned shift;
+    for (expr* x : *to_app(e)) 
+        if (m_util.is_numeral(x, v) && v.is_power_of_two(shift))
+            return true;
+    return false;
 }
 
 bool bv_rewriter::is_add_no_overflow(expr* e) {
-    if (!is_add(e)) return false;
-    for (expr* x : *to_app(e)) {
-        if (0 == num_leading_zero_bits(x)) return false;
-    }
+    if (!is_add(e)) 
+        return false;
+    unsigned num_args = to_app(e)->get_num_args();
+    if (num_args <= 1)
+        return true;
+    num_args -= 2;
+    for (expr* x : *to_app(e)) 
+        if (num_args >= num_leading_zero_bits(x)) 
+            return false;
     return true;
 }
 
@@ -1528,7 +1551,7 @@ br_status bv_rewriter::mk_concat(unsigned num_args, expr * const * args, expr_re
         result = new_args.back();
         return fused_extract ? BR_REWRITE1 : BR_DONE;
     }
-    result = m_util.mk_concat(new_args.size(), new_args.c_ptr());
+    result = m_util.mk_concat(new_args.size(), new_args.data());
     if (fused_extract)
         return BR_REWRITE2;
     else if (expanded)
@@ -1574,7 +1597,7 @@ br_status bv_rewriter::mk_sign_extend(unsigned n, expr * arg, expr_ref & result)
         for (unsigned i = 0; i < n; i++)
             args.push_back(sign);
         args.push_back(arg);
-        result = m_util.mk_concat(args.size(), args.c_ptr());
+        result = m_util.mk_concat(args.size(), args.data());
         return BR_REWRITE2;
     }
 
@@ -1589,7 +1612,7 @@ br_status bv_rewriter::mk_repeat(unsigned n, expr * arg, expr_ref & result) {
     ptr_buffer<expr> args;
     for (unsigned i = 0; i < n; i++)
         args.push_back(arg);
-    result = m_util.mk_concat(args.size(), args.c_ptr());
+    result = m_util.mk_concat(args.size(), args.data());
     return BR_REWRITE1;
 }
 
@@ -1617,7 +1640,7 @@ br_status bv_rewriter::mk_bv_or(unsigned num, expr * const * args, expr_ref & re
         if (flat_args.size() != num) {
             flattened = true;
             num  = flat_args.size();
-            args = flat_args.c_ptr();
+            args = flat_args.data();
         }
     }
 
@@ -1696,7 +1719,7 @@ br_status bv_rewriter::mk_bv_or(unsigned num, expr * const * args, expr_ref & re
                 if (j != high)
                     non_zero_args.push_back(m_mk_extract(high, j+1, concat1));
             }
-            result = m_util.mk_concat(non_zero_args.size(), non_zero_args.c_ptr());
+            result = m_util.mk_concat(non_zero_args.size(), non_zero_args.data());
             return BR_REWRITE2;
         }
     }
@@ -1713,7 +1736,7 @@ br_status bv_rewriter::mk_bv_or(unsigned num, expr * const * args, expr_ref & re
         unsigned low = 0;
         unsigned i = 0;
         while (i < sz) {
-            while (i < sz && mod(v1, two).is_one()) {
+            while (i < sz && v1.is_odd()) {
                 i++;
                 div(v1, two, v1);
             }
@@ -1722,7 +1745,7 @@ br_status bv_rewriter::mk_bv_or(unsigned num, expr * const * args, expr_ref & re
                 exs.push_back(m_util.mk_numeral(rational::power_of_two(num_sz) - numeral(1), num_sz));
                 low = i;
             }
-            while (i < sz && mod(v1, two).is_zero()) {
+            while (i < sz && v1.is_even()) {
                 i++;
                 div(v1, two, v1);
             }
@@ -1732,7 +1755,7 @@ br_status bv_rewriter::mk_bv_or(unsigned num, expr * const * args, expr_ref & re
             }
         }
         std::reverse(exs.begin(), exs.end());
-        result = m_util.mk_concat(exs.size(), exs.c_ptr());
+        result = m_util.mk_concat(exs.size(), exs.data());
         TRACE("mask_bug",
               tout << "(assert (distinct (bvor (_ bv" << old_v1 << " " << sz << ")\n" << mk_ismt2_pp(t, m()) << ")\n";
               tout << mk_ismt2_pp(result, m()) << "))\n";);
@@ -1757,10 +1780,10 @@ br_status bv_rewriter::mk_bv_or(unsigned num, expr * const * args, expr_ref & re
     default:
         if (m_bv_sort_ac)
             std::sort(new_args.begin(), new_args.end(), ast_to_lt());
-        if (distribute_concat(OP_BOR, new_args.size(), new_args.c_ptr(), result)) {
+        if (distribute_concat(OP_BOR, new_args.size(), new_args.data(), result)) {
             return BR_REWRITE3;
         }
-        result = m_util.mk_bv_or(new_args.size(), new_args.c_ptr());
+        result = m_util.mk_bv_or(new_args.size(), new_args.data());
         return BR_DONE;
     }
 }
@@ -1789,7 +1812,7 @@ br_status bv_rewriter::mk_bv_xor(unsigned num, expr * const * args, expr_ref & r
         if (flat_args.size() != num) {
             flattened = true;
             num  = flat_args.size();
-            args = flat_args.c_ptr();
+            args = flat_args.data();
         }
     }
 
@@ -1877,11 +1900,11 @@ br_status bv_rewriter::mk_bv_xor(unsigned num, expr * const * args, expr_ref & r
                 low = i;
             }
         }
-        std::reverse(exs.c_ptr(), exs.c_ptr() + exs.size());
+        std::reverse(exs.data(), exs.data() + exs.size());
         if (exs.size() == 1)
             result = exs[0];
         else
-            result = m_util.mk_concat(exs.size(), exs.c_ptr());
+            result = m_util.mk_concat(exs.size(), exs.data());
         return BR_REWRITE3;
     }
 
@@ -1933,10 +1956,10 @@ br_status bv_rewriter::mk_bv_xor(unsigned num, expr * const * args, expr_ref & r
     default:
         if (m_bv_sort_ac)
             std::sort(new_args.begin(), new_args.end(), ast_to_lt());
-        if (distribute_concat(OP_BXOR, new_args.size(), new_args.c_ptr(), result)) {
+        if (distribute_concat(OP_BXOR, new_args.size(), new_args.data(), result)) {
             return BR_REWRITE3;
         }
-        result = m_util.mk_bv_xor(new_args.size(), new_args.c_ptr());
+        result = m_util.mk_bv_xor(new_args.size(), new_args.data());
         return BR_DONE;
     }
 }
@@ -1953,8 +1976,8 @@ bool bv_rewriter::distribute_concat(decl_kind k, unsigned n, expr* const* args, 
                 args1.push_back(m_mk_extract(sz2 - 1, sz2 - sz1, args[j]));
                 args2.push_back(m_mk_extract(sz2 - sz1 - 1, 0, args[j]));
             }
-            expr* arg1 = m().mk_app(get_fid(), k, args1.size(), args1.c_ptr());
-            expr* arg2 = m().mk_app(get_fid(), k, args2.size(), args2.c_ptr());
+            expr* arg1 = m().mk_app(get_fid(), k, args1.size(), args1.data());
+            expr* arg2 = m().mk_app(get_fid(), k, args2.size(), args2.data());
             result = m_util.mk_concat(arg1, arg2);
             return true;
         }
@@ -1981,7 +2004,7 @@ br_status bv_rewriter::mk_bv_not(expr * arg, expr_ref & result) {
         for (expr* a : *to_app(arg)) {
             new_args.push_back(m_util.mk_bv_not(a));
         }
-        result = m_util.mk_concat(new_args.size(), new_args.c_ptr());
+        result = m_util.mk_concat(new_args.size(), new_args.data());
         return BR_REWRITE2;
     }
 
@@ -2017,7 +2040,7 @@ br_status bv_rewriter::mk_bv_and(unsigned num, expr * const * args, expr_ref & r
         new_args.push_back(m_util.mk_bv_not(args[i]));
     }
     SASSERT(num == new_args.size());
-    result = m_util.mk_bv_not(m_util.mk_bv_or(new_args.size(), new_args.c_ptr()));
+    result = m_util.mk_bv_not(m_util.mk_bv_or(new_args.size(), new_args.data()));
     return BR_REWRITE3;
 }
 
@@ -2026,7 +2049,7 @@ br_status bv_rewriter::mk_bv_nand(unsigned num, expr * const * args, expr_ref & 
     for (unsigned i = 0; i < num; i++) {
         new_args.push_back(m_util.mk_bv_not(args[i]));
     }
-    result = m_util.mk_bv_or(new_args.size(), new_args.c_ptr());
+    result = m_util.mk_bv_or(new_args.size(), new_args.data());
     return BR_REWRITE2;
 }
 
@@ -2520,7 +2543,7 @@ br_status bv_rewriter::mk_mul_eq(expr * lhs, expr * rhs, expr_ref & result) {
     unsigned sz;
     if (m_util.is_bv_mul(lhs, c, x) &&
         m_util.is_numeral(c, c_val, sz) &&
-        m_util.mult_inverse(c_val, sz, c_inv_val)) {
+        c_val.mult_inverse(sz, c_inv_val)) {
 
         SASSERT(m_util.norm(c_val * c_inv_val, sz).is_one());
 
@@ -2562,7 +2585,7 @@ br_status bv_rewriter::mk_mul_eq(expr * lhs, expr * rhs, expr_ref & result) {
         for (; !found && i < num_args; ++i) {
             expr* arg = to_app(rhs)->get_arg(i);
             if (m_util.is_bv_mul(arg, c2, x2) && m_util.is_numeral(c2, c2_val, sz) &&
-                m_util.mult_inverse(c2_val, sz, c2_inv_val)) {
+                c2_val.mult_inverse(sz, c2_inv_val)) {
                 found = true;
             }
         }
@@ -2776,30 +2799,52 @@ br_status bv_rewriter::mk_ite_core(expr * c, expr * t, expr * e, expr_ref & resu
     return BR_FAILED;
 }
 
-br_status bv_rewriter::mk_bvsmul_no_overflow(unsigned num, expr * const * args, expr_ref & result) {
+br_status bv_rewriter::mk_distinct(unsigned num_args, expr * const * args, expr_ref & result) {
+    if (num_args <= 1) {
+        result = m().mk_true();
+        return BR_DONE;
+    }
+    unsigned sz = get_bv_size(args[0]);
+    // check if num_args > 2^sz
+    if (sz >= 32) 
+        return BR_FAILED;
+    if (num_args <= 1u << sz)
+        return BR_FAILED;
+    result = m().mk_false();
+    return BR_DONE;     
+}
+
+br_status bv_rewriter::mk_bvsmul_no_overflow(unsigned num, expr * const * args, bool is_overflow, expr_ref & result) {
     SASSERT(num == 2);
     unsigned bv_sz;
     rational a0_val, a1_val;
 
     bool is_num1 = is_numeral(args[0], a0_val, bv_sz);
     bool is_num2 = is_numeral(args[1], a1_val, bv_sz);
-    if (is_num1 && (a0_val.is_zero() || a0_val.is_one())) {
+    
+    if (is_num1 && (a0_val.is_zero() || (bv_sz != 1 && a0_val.is_one()))) {
         result = m().mk_true();
         return BR_DONE;
     }
-    if (is_num2 && (a1_val.is_zero() || a1_val.is_one())) {
+    if (is_num2 && (a1_val.is_zero() || (bv_sz != 1 && a1_val.is_one()))) {
         result = m().mk_true();
         return BR_DONE;
     }
 
-    if (is_num1 && is_num2) {
-        rational mr = a0_val * a1_val;
-        rational lim = rational::power_of_two(bv_sz-1);
-        result = m().mk_bool_val(mr < lim);
-        return BR_DONE;
-    }
+    if (!is_num1 || !is_num2)
+        return BR_FAILED;
 
-    return BR_FAILED;
+    bool sign0 = m_util.has_sign_bit(a0_val, bv_sz);
+    bool sign1 = m_util.has_sign_bit(a1_val, bv_sz);
+    if (sign0) a0_val = rational::power_of_two(bv_sz) - a0_val;
+    if (sign1) a1_val = rational::power_of_two(bv_sz) - a1_val;
+    rational lim = rational::power_of_two(bv_sz-1);
+    rational r = a0_val * a1_val;
+    if (is_overflow)
+        result = m().mk_bool_val(sign0 != sign1 || r < lim);
+    else
+        result = m().mk_bool_val(sign0 == sign1 || r <= lim);
+    return BR_DONE;
 }
 
 br_status bv_rewriter::mk_bvumul_no_overflow(unsigned num, expr * const * args, expr_ref & result) {
@@ -2822,37 +2867,6 @@ br_status bv_rewriter::mk_bvumul_no_overflow(unsigned num, expr * const * args, 
         rational mr = a0_val * a1_val;
         rational lim = rational::power_of_two(bv_sz);
         result = m().mk_bool_val(mr < lim);
-        return BR_DONE;
-    }
-
-    return BR_FAILED;
-}
-
-br_status bv_rewriter::mk_bvsmul_no_underflow(unsigned num, expr * const * args, expr_ref & result) {
-    SASSERT(num == 2);
-    unsigned bv_sz;
-    rational a0_val, a1_val;
-
-    bool is_num1 = is_numeral(args[0], a0_val, bv_sz);
-    bool is_num2 = is_numeral(args[1], a1_val, bv_sz);
-    if (is_num1 && (a0_val.is_zero() || a0_val.is_one())) {
-        result = m().mk_true();
-        return BR_DONE;
-    }
-    if (is_num2 && (a1_val.is_zero() || a1_val.is_one())) {
-        result = m().mk_true();
-        return BR_DONE;
-    }
-
-    if (is_num1 && is_num2) {
-        rational ul = rational::power_of_two(bv_sz);
-        rational lim = rational::power_of_two(bv_sz-1);
-        if (a0_val >= lim) a0_val -= ul;
-        if (a1_val >= lim) a1_val -= ul;        
-        rational mr = a0_val * a1_val;
-        rational neg_lim = -lim;
-        TRACE("bv_rewriter_bvsmul_no_underflow", tout << "a0:" << a0_val << " a1:" << a1_val << " mr:" << mr << " neg_lim:" << neg_lim << std::endl;);
-        result = m().mk_bool_val(mr >= neg_lim);
         return BR_DONE;
     }
 

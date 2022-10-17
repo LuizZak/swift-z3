@@ -64,9 +64,7 @@ public:
 
 class dom_simplifier {
  public:
-    dom_simplifier() {}
-    
-    virtual ~dom_simplifier() {}
+    virtual ~dom_simplifier() = default;
     /**
        \brief assert_expr performs an implicit push
     */
@@ -132,6 +130,8 @@ public:
         m_dominators(m), m_depth(0), m_max_depth(1024), m_forward(true) {}
 
     ~dom_simplify_tactic() override;
+
+    char const* name() const override { return "dom_simplify"; }
 
     tactic * translate(ast_manager & m) override;
     void updt_params(params_ref const & p) override {}

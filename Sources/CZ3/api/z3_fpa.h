@@ -23,10 +23,10 @@ extern "C" {
 #endif // __cplusplus
 
     /** \defgroup capi C API */
-    /*@{*/
+    /**@{*/
 
     /** @name Floating-Point Arithmetic */
-    /*@{*/
+    /**@{*/
     /**
         \brief Create the RoundingMode sort.
 
@@ -841,7 +841,7 @@ extern "C" {
 
 
     /** @name Z3-specific floating-point extensions */
-    /*@{*/
+    /**@{*/
     /**
         \brief Retrieves the number of bits reserved for the exponent in a FloatingPoint sort.
 
@@ -961,7 +961,8 @@ extern "C" {
 
         \param c logical context
         \param t a floating-point numeral
-        \param sgn sign
+        \param sgn the retrieved sign
+        \returns true if \c t corresponds to a floating point numeral, otherwise invokes exception handler or returns false
 
         Remarks: sets \c sgn to 0 if `t' is positive and to 1 otherwise, except for
         NaN, which is an invalid argument.
@@ -975,6 +976,7 @@ extern "C" {
 
         \param c logical context
         \param t a floating-point numeral
+        \returns true if \c t corresponds to a floating point numeral, otherwise invokes exception handler or returns false
 
         Remarks: The significand \c s is always \ccode{0.0 <= s < 2.0}; the resulting string is long
         enough to represent the real significand precisely.
@@ -1004,6 +1006,7 @@ extern "C" {
         \param c logical context
         \param t a floating-point numeral
         \param biased flag to indicate whether the result is in biased representation
+        \returns true if \c t corresponds to a floating point numeral, otherwise invokes exception handler or returns false
 
         Remarks: This function extracts the exponent in `t`, without normalization.
         NaN is an invalid argument.
@@ -1019,6 +1022,7 @@ extern "C" {
         \param t a floating-point numeral
         \param n exponent
         \param biased flag to indicate whether the result is in biased representation
+        \returns true if \c t corresponds to a floating point numeral, otherwise invokes exception handler or returns false
 
         Remarks: This function extracts the exponent in `t`, without normalization.
         NaN is an invalid argument.
@@ -1076,9 +1080,9 @@ extern "C" {
         def_API('Z3_mk_fpa_to_fp_int_real', AST, (_in(CONTEXT),_in(AST),_in(AST),_in(AST),_in(SORT)))
     */
     Z3_ast Z3_API Z3_mk_fpa_to_fp_int_real(Z3_context c, Z3_ast rm, Z3_ast exp, Z3_ast sig, Z3_sort s);
-    /*@}*/
-    /*@}*/
-    /*@}*/
+    /**@}*/
+    /**@}*/
+    /**@}*/
 
 #ifdef __cplusplus
 }

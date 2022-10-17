@@ -54,6 +54,20 @@ namespace smt {
         return r;
     }
 
+    app * theory_array_base::mk_select_reduce(unsigned num_args, expr * * args) {
+        array_util util(m);
+        while (util.is_store(args[0])) {
+            bool are_distinct = false;
+            for (unsigned i = 1; i < num_args && !are_distinct; ++i) 
+                are_distinct |= m.are_distinct(args[i], to_app(args[0])->get_arg(i));
+            if (!are_distinct)
+                break;
+            args[0] = to_app(to_app(args[0])->get_arg(0));
+        }
+        return mk_select(num_args, args);
+    }
+
+
     app * theory_array_base::mk_store(unsigned num_args, expr * const * args) {
         return m.mk_app(get_family_id(), OP_STORE, 0, nullptr, num_args, args);
     }
@@ -101,10 +115,10 @@ namespace smt {
         SASSERT(num_args >= 3);
         sel_args.push_back(n);
         for (unsigned i = 1; i < num_args - 1; ++i) {
-            sel_args.push_back(to_app(n->get_arg(i)));
+            sel_args.push_back(n->get_arg(i));
         }
         expr_ref sel(m);
-        sel = mk_select(sel_args.size(), sel_args.c_ptr());
+        sel = mk_select(sel_args.size(), sel_args.data());
         expr * val = n->get_arg(num_args - 1);
         TRACE("array", tout << mk_bounded_pp(sel, m) << " = " << mk_bounded_pp(val, m) << "\n";);
         if (m.proofs_enabled()) {
@@ -167,8 +181,8 @@ namespace smt {
             }
 
             if (!init) {
-                sel1 = mk_select(sel1_args.size(), sel1_args.c_ptr());
-                sel2 = mk_select(sel2_args.size(), sel2_args.c_ptr());
+                sel1 = mk_select(sel1_args.size(), sel1_args.data());
+                sel2 = mk_select(sel2_args.size(), sel2_args.data());
                 if (sel1 == sel2) {
                     TRACE("array_bug", tout << "sel1 and sel2 are equal:\n";);
                     break;
@@ -177,6 +191,12 @@ namespace smt {
                 TRACE("array", tout << mk_bounded_pp(sel1, m) << " " << mk_bounded_pp(sel2, m) << "\n";);
                 conseq = mk_eq(sel1, sel2, true);
                 conseq_expr = ctx.bool_var2expr(conseq.var());
+            }
+
+            if (m.are_distinct(idx1->get_expr(), idx2->get_expr())) {
+                ctx.mark_as_relevant(conseq);
+                assert_axiom(conseq);
+                continue;
             }
 
             literal ante = mk_eq(idx1->get_expr(), idx2->get_expr(), true);
@@ -331,8 +351,8 @@ namespace smt {
             args1.push_back(k);
             args2.push_back(k);
         }
-        expr_ref sel1(mk_select(args1.size(), args1.c_ptr()), m);
-        expr_ref sel2(mk_select(args2.size(), args2.c_ptr()), m);
+        expr_ref sel1(mk_select(args1.size(), args1.data()), m);
+        expr_ref sel2(mk_select(args2.size(), args2.data()), m);
         TRACE("ext", tout << mk_bounded_pp(sel1, m) << "\n" << mk_bounded_pp(sel2, m) << "\n";);
         literal n1_eq_n2     = mk_eq(e1, e2, true);
         literal sel1_eq_sel2 = mk_eq(sel1, sel2, true);
@@ -370,10 +390,10 @@ namespace smt {
             args1.push_back(k);
             args2.push_back(k);            
         }
-        expr * sel1 = mk_select(dimension+1, args1.c_ptr());
-        expr * sel2 = mk_select(dimension+1, args2.c_ptr());
+        expr * sel1 = mk_select(dimension+1, args1.data());
+        expr * sel2 = mk_select(dimension+1, args2.data());
         expr * eq = m.mk_eq(sel1, sel2);
-        expr_ref q(m.mk_forall(dimension, sorts.c_ptr(), names.c_ptr(), eq), m);
+        expr_ref q(m.mk_forall(dimension, sorts.data(), names.data(), eq), m);
         ctx.get_rewriter()(q);
         if (!ctx.b_internalized(q)) {
             ctx.internalize(q, true);
@@ -389,19 +409,7 @@ namespace smt {
         if (q) {
             // the variables in q are maybe not consecutive.
             var_subst sub(m, false);
-            expr_free_vars fv;
-            fv(q);
-            expr_ref_vector es(m);
-            es.resize(fv.size());
-            for (unsigned i = 0, j = 0; i < e->get_num_args(); ++i) {
-                SASSERT(j < es.size());
-                while (!fv[j]) {
-                    ++j; 
-                    SASSERT(j < es.size());
-                }
-                es[j++] = e->get_arg(i);
-            }
-            f = sub(q, es.size(), es.c_ptr());
+            f = sub(q, e->get_num_args(), e->get_args());
         }
         return f;
     }
@@ -485,39 +493,23 @@ namespace smt {
         return false;
     }
 
-#if 0
-    void theory_array_base::collect_shared_vars(sbuffer<theory_var> & result) {
-        TRACE("array_shared", tout << "collecting shared vars...\n";);
-        ptr_buffer<enode> to_unmark;
-        unsigned num_vars = get_num_vars();
-        for (unsigned i = 0; i < num_vars; i++) {
-            enode * n = get_enode(i);
-            if (ctx.is_relevant(n) && ctx.is_shared(n)) {
-                enode * r = n->get_root();
-                if (!r->is_marked() && is_array_sort(r)) {
-                    TRACE("array_shared", tout << "new shared var: #" << r->get_expr_id() << "\n";);
-                    r->set_mark();
-                    to_unmark.push_back(r);
-                    theory_var r_th_var = r->get_var(get_id());
-                    SASSERT(r_th_var != null_theory_var);
-                    result.push_back(r_th_var);
-                }
-            }
-        }
-        unmark_enodes(to_unmark.size(), to_unmark.c_ptr());
+    bool theory_array_base::is_beta_redex(enode* p, enode* n) const {
+        if (is_select(p))
+            return p->get_arg(0)->get_root() == n->get_root();
+        if (is_map(p))
+            return true;
+        if (is_store(p))
+            return true;
+        return false;
     }
-#else
+
 
     bool theory_array_base::is_select_arg(enode* r) {
-        for (enode* n : r->get_parents()) {
-            if (is_select(n)) {
-                for (unsigned i = 1; i < n->get_num_args(); ++i) {
-                    if (r == n->get_arg(i)->get_root()) {
+        for (enode* n : r->get_parents()) 
+            if (is_select(n)) 
+                for (unsigned i = 1; i < n->get_num_args(); ++i) 
+                    if (r == n->get_arg(i)->get_root()) 
                         return true;
-                    }
-                }
-            }
-        }
         return false;
     }
 
@@ -545,10 +537,9 @@ namespace smt {
             r->set_mark();
             to_unmark.push_back(r);            
         }
-        TRACE("array", tout << "collecting shared vars...\n" << unsigned_vector(result.size(), (unsigned*)result.c_ptr())  << "\n";);
-        unmark_enodes(to_unmark.size(), to_unmark.c_ptr());
+        TRACE("array", tout << "collecting shared vars...\n" << unsigned_vector(result.size(), (unsigned*)result.data())  << "\n";);
+        unmark_enodes(to_unmark.size(), to_unmark.data());
     }
-#endif
 
     /**
        \brief Create interface variables for shared array variables.
@@ -921,8 +912,6 @@ namespace smt {
             m_unspecified_else(true) {
         }
 
-        ~array_value_proc() override {}
-     
         void add_entry(unsigned num_args, enode * const * args, enode * value) {
             SASSERT(num_args > 0);
             SASSERT(m_dim == 0 || m_dim == num_args);
@@ -934,7 +923,7 @@ namespace smt {
         }
 
         void get_dependencies(buffer<model_value_dependency> & result) override {
-            result.append(m_dependencies.size(), m_dependencies.c_ptr());
+            result.append(m_dependencies.size(), m_dependencies.data());
         }
         
         app * mk_value(model_generator & mg, expr_ref_vector const & values) override {
@@ -967,11 +956,11 @@ namespace smt {
                     args.push_back(values[idx]);
                 expr * result = values[idx];
                 idx++;
-                fi->insert_entry(args.c_ptr(), result);
+                fi->insert_entry(args.data(), result);
             }
 
-            parameter p[1] = { parameter(f) };
-            return m.mk_app(m_fid, OP_AS_ARRAY, 1, p); 
+            parameter p(f);
+            return m.mk_app(m_fid, OP_AS_ARRAY, 1, &p);
         }
     };
 
@@ -1034,7 +1023,7 @@ namespace smt {
                 for (unsigned j = 1; j < num; ++j)
                     args.push_back(select->get_arg(j));
                 SASSERT(ctx.is_relevant(select));
-                result->add_entry(args.size(), args.c_ptr(), select);
+                result->add_entry(args.size(), args.data(), select);
             }
         }
         TRACE("array", 

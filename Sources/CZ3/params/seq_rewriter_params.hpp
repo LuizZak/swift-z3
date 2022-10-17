@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __SEQ_REWRITER_PARAMS_HPP_
-#define __SEQ_REWRITER_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct seq_rewriter_params {
@@ -16,4 +15,3 @@ struct seq_rewriter_params {
   */
   bool coalesce_chars() const { return p.get_bool("coalesce_chars", g, true); }
 };
-#endif

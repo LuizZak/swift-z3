@@ -19,6 +19,7 @@ Revision History:
 #include "smt/params/smt_params.h"
 #include "smt/params/smt_params_helper.hpp"
 #include "util/gparams.h"
+#include "params/solver_params.hpp"
 
 void smt_params::updt_local_params(params_ref const & _p) {
     smt_params_helper p(_p);
@@ -50,6 +51,7 @@ void smt_params::updt_local_params(params_ref const & _p) {
     m_core_validate = p.core_validate();
     m_logic = _p.get_sym("logic", m_logic);
     m_string_solver = p.string_solver();
+    validate_string_solver(m_string_solver);
     if (_p.get_bool("arith.greatest_error_pivot", false))
         m_arith_pivot_strategy = arith_pivot_strategy::ARITH_PIVOT_GREATEST_ERROR;
     else if (_p.get_bool("arith.least_error_pivot", false))
@@ -58,6 +60,10 @@ void smt_params::updt_local_params(params_ref const & _p) {
     m_dump_benchmarks = false;
     m_dump_min_time = 0.5;
     m_dump_recheck = false;
+    solver_params sp(_p);
+    m_axioms2files = sp.axioms2files();
+    m_lemmas2console = sp.lemmas2console();
+    m_instantiations2console = sp.instantiations2console();
 }
 
 void smt_params::updt_params(params_ref const & p) {
@@ -149,7 +155,8 @@ void smt_params::display(std::ostream & out) const {
     DISPLAY_PARAM(m_old_clause_relevancy);
     DISPLAY_PARAM(m_inv_clause_decay);
 
-    DISPLAY_PARAM(m_smtlib_dump_lemmas);
+    DISPLAY_PARAM(m_axioms2files);
+    DISPLAY_PARAM(m_lemmas2console);
     DISPLAY_PARAM(m_logic);
     DISPLAY_PARAM(m_string_solver);
 
@@ -172,4 +179,10 @@ void smt_params::display(std::ostream & out) const {
     DISPLAY_PARAM(m_check_at_labels);
     DISPLAY_PARAM(m_dump_goal_as_smt);
     DISPLAY_PARAM(m_auto_config);
+}
+
+void smt_params::validate_string_solver(symbol const& s) const {
+    if (s == "z3str3" || s == "seq" || s == "empty" || s == "auto" || s == "none")
+        return;
+    throw default_exception("Invalid string solver value. Legal values are z3str3, seq, empty, auto, none");
 }

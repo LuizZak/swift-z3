@@ -39,6 +39,7 @@ namespace datalog {
     }
 
     rule_set * mk_array_instantiation::operator()(rule_set const & source)  {
+#if 0
         std::cout<<"Array Instantiation called with parameters :"
                  <<" enforce="<<m_ctx.get_params().xform_instantiate_arrays_enforce()
                  <<" nb_quantifier="<<m_ctx.get_params().xform_instantiate_arrays_nb_quantifier()
@@ -46,6 +47,7 @@ namespace datalog {
                  <<"\n";
         std::cout<<"Input rules = \n";
         source.display(std::cout);
+#endif
         src_set = &source;
         scoped_ptr<rule_set> result = alloc(rule_set, m_ctx);
         dst = result.get();
@@ -55,8 +57,10 @@ namespace datalog {
             rule & r = *source.get_rule(i);
             instantiate_rule(r, *result);
         }
+#if 0
         std::cout<<"\n\nOutput rules = \n";
         result->display(std::cout);
+#endif
         return result.detach();
     }
 
@@ -96,7 +100,7 @@ namespace datalog {
             new_tail.push_back(m.mk_eq(it->get_value(), tmp));
         }
         proof_ref pr(m);
-        src_manager->mk_rule(m.mk_implies(m.mk_and(new_tail.size(), new_tail.c_ptr()), new_head), pr, dest, r.name());
+        src_manager->mk_rule(m.mk_implies(m.mk_and(new_tail.size(), new_tail.data()), new_head), pr, dest, r.name());
     }
 
     expr_ref mk_array_instantiation::create_head(app* old_head)  {
@@ -112,7 +116,7 @@ namespace datalog {
                         cnt++;
                     }
                     expr_ref select(m);
-                    select = m_a.mk_select(dummy_args.size(), dummy_args.c_ptr());
+                    select = m_a.mk_select(dummy_args.size(), dummy_args.data());
                     new_args.push_back(select);
                     selects.insert_if_not_there(arg, ptr_vector<expr>());
                     selects[arg].push_back(select);
@@ -183,11 +187,11 @@ namespace datalog {
             new_sorts.push_back(new_args.get(i)->get_sort());
         expr_ref res(m);
         func_decl_ref fun_decl(m);
-        fun_decl = m.mk_func_decl(symbol((old_pred->get_decl()->get_name().str()+"!inst").c_str()), new_sorts.size(), new_sorts.c_ptr(), old_pred->get_decl()->get_range());
+        fun_decl = m.mk_func_decl(symbol((old_pred->get_decl()->get_name().str()+"!inst").c_str()), new_sorts.size(), new_sorts.data(), old_pred->get_decl()->get_range());
         m_ctx.register_predicate(fun_decl, false);
         if(src_set->is_output_predicate(old_pred->get_decl()))
             dst->set_output_predicate(fun_decl);
-        res=m.mk_app(fun_decl,new_args.size(), new_args.c_ptr());
+        res=m.mk_app(fun_decl,new_args.size(), new_args.data());
         return res;
     }
 
@@ -212,7 +216,7 @@ namespace datalog {
         for(unsigned i=1; i<s->get_num_args();i++)   {
             args.push_back(s->get_arg(i));
         }
-        res = m_a.mk_select(args.size(), args.c_ptr());
+        res = m_a.mk_select(args.size(), args.data());
         return res;
     }
 
@@ -234,7 +238,7 @@ namespace datalog {
                 dummy_args.push_back(m.mk_var(cnt, get_array_domain(array->get_sort(), i)));
                 cnt++;
             }
-            all_selects.push_back(m_a.mk_select(dummy_args.size(), dummy_args.c_ptr()));
+            all_selects.push_back(m_a.mk_select(dummy_args.size(), dummy_args.data()));
         }
         return all_selects;
     }

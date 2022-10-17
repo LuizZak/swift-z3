@@ -50,6 +50,7 @@ namespace smt {
 
         class evaluator {
         public:
+            virtual ~evaluator() = default;
             virtual expr* eval(expr* n, bool model_completion) = 0;
         };
 
@@ -74,7 +75,6 @@ namespace smt {
                 for (auto const& kv : m_elems) {
                     m.dec_ref(kv.m_key);
                 }
-                m_elems.reset();
             }
 
             obj_map<expr, unsigned> const& get_elems() const { return m_elems; }
@@ -83,7 +83,6 @@ namespace smt {
                 if (m_elems.contains(n) || contains_model_value(n)) {
                     return;
                 }
-                TRACE("model_finder", tout << mk_pp(n, m) << "\n";);
                 m.inc_ref(n);
                 m_elems.insert(n, generation);
                 SASSERT(!m.is_model_value(n));
@@ -403,6 +402,7 @@ namespace smt {
 
             expr_ref_vector*          m_new_constraints{ nullptr };
             random_gen                m_rand;
+            func_decl_set             m_specrels;
 
 
             void reset_sort2k() {
@@ -464,7 +464,7 @@ namespace smt {
                 m.limit().inc();
             }
 
-            virtual ~auf_solver() {
+            ~auf_solver() override {
                 flush_nodes();
                 reset_eval_cache();
             }
@@ -472,6 +472,7 @@ namespace smt {
             ast_manager& get_manager() const { return m; }
 
             void reset() {
+                m_specrels.reset();
                 flush_nodes();
                 m_nodes.reset();
                 m_next_node_id = 0;
@@ -479,6 +480,11 @@ namespace smt {
                 m_A_f_is.reset();
                 m_root_nodes.reset();
                 reset_sort2k();
+            }
+
+            void set_specrels(context& c) {
+                m_specrels.reset();
+                c.get_specrels(m_specrels);
             }
 
             void set_model(proto_model* m) {
@@ -522,6 +528,38 @@ namespace smt {
             // For each instantiation_set, remove entries that do not evaluate to values.
             ptr_vector<expr> to_delete;
 
+            bool should_cleanup(expr* e) {
+                if (!e)
+                    return true;
+                if (m.is_value(e))
+                    return false;
+                if (m_array.is_array(e))
+                    return false;
+                if (!is_app(e))
+                    return true;
+                if (to_app(e)->get_num_args() == 0)
+                    return true;
+                return !contains_array(e);
+            }
+
+            struct found_array {};
+            expr_mark m_visited;
+            void operator()(expr* n) {
+                if (m_array.is_array(n))
+                    throw found_array();
+            }
+            bool contains_array(expr* e) {
+                m_visited.reset();
+                try {
+                    for_each_expr(*this, m_visited, e);
+                }
+                catch (const found_array&) {
+                    return true;
+                }
+                return false;                
+            }
+
+           
             void cleanup_instantiation_sets() {
                 for (node* curr : m_nodes) {
                     if (curr->is_root()) {
@@ -531,7 +569,8 @@ namespace smt {
                         for (auto const& kv : elems) {
                             expr* n = kv.m_key;
                             expr* n_val = eval(n, true);
-                            if (!n_val || (!m.is_value(n_val) && !m_array.is_array(n_val))) {
+                            if (should_cleanup(n_val)) {
+                                TRACE("model_finder", tout << "cleanup " << s << " " << mk_pp(n, m) << " " << mk_pp(n_val, m) << "\n";);
                                 to_delete.push_back(n);
                             }
                         }
@@ -777,7 +816,6 @@ namespace smt {
                     if (t_val && !m.is_unique_value(t_val))                         
                         for (expr* v : values)
                             found |= m.are_equal(v, t_val);
-                    
                     if (t_val && !found && !already_found.contains(t_val)) {
                         values.push_back(t_val);
                         already_found.insert(t_val);
@@ -1019,8 +1057,12 @@ namespace smt {
              */
             void complete_partial_funcs(func_decl_set const& partial_funcs) {
                 for (func_decl* f : partial_funcs) {
+
                     // Complete the current interpretation
                     m_model->complete_partial_func(f, true);
+
+                    if (m_specrels.contains(f))
+                        continue;
 
                     unsigned arity = f->get_arity();
                     func_interp* fi = m_model->get_func_interp(f);
@@ -1044,7 +1086,7 @@ namespace smt {
                         // f_aux will be assigned to the old interpretation of f.
                         func_decl* f_aux = m.mk_fresh_func_decl(f->get_name(), symbol::null, arity, f->get_domain(), f->get_range());
                         func_interp* new_fi = alloc(func_interp, m, arity);
-                        new_fi->set_else(m.mk_app(f_aux, args.size(), args.c_ptr()));
+                        new_fi->set_else(m.mk_app(f_aux, args.size(), args.data()));
                         TRACE("model_finder", tout << "Setting new interpretation for " << f->get_name() << "\n" <<
                             mk_pp(new_fi->get_else(), m) << "\n";
                         tout << "old interpretation: " << mk_pp(fi->get_interp(), m) << "\n";);
@@ -1082,9 +1124,14 @@ namespace smt {
                 mk_inverses();
                 complete_partial_funcs(partial_funcs);
                 TRACE("model_finder", tout << "after auf_solver fixing the model\n";
-                display_nodes(tout);
-                tout << "NEW MODEL:\n";
-                model_pp(tout, *m_model););
+                      display_nodes(tout);
+                      tout << "NEW MODEL:\n";
+                      model_pp(tout, *m_model););
+            }
+
+            bool is_default_representative(expr* t) {
+                app* tt = nullptr;
+                return t && m_sort2k.find(t->get_sort(), tt) && (tt == t);
             }
         };
 
@@ -1110,7 +1157,7 @@ namespace smt {
             ast_manager& m;
         public:
             qinfo(ast_manager& m) :m(m) {}
-            virtual ~qinfo() {}
+            virtual ~qinfo() = default;
             virtual char const* get_kind() const = 0;
             virtual bool is_equal(qinfo const* qi) const = 0;
             virtual void display(std::ostream& out) const { out << "[" << get_kind() << "]"; }
@@ -1133,7 +1180,6 @@ namespace smt {
             unsigned    m_var_j;
         public:
             f_var(ast_manager& m, func_decl* f, unsigned i, unsigned j) : qinfo(m), m_f(f), m_arg_i(i), m_var_j(j) {}
-            ~f_var() override {}
 
             char const* get_kind() const override {
                 return "f_var";
@@ -1154,15 +1200,15 @@ namespace smt {
                 node* n1 = s.get_A_f_i(m_f, m_arg_i);
                 node* n2 = s.get_uvar(q, m_var_j);
                 CTRACE("model_finder", n1->get_sort() != n2->get_sort(),
-                    tout << "sort bug:\n" << mk_ismt2_pp(q->get_expr(), m) << "\n" << mk_ismt2_pp(q, m) << "\n";
-                tout << "decl(0): " << q->get_decl_name(0) << "\n";
-                tout << "f: " << m_f->get_name() << " i: " << m_arg_i << "\n";
-                tout << "v: " << m_var_j << "\n";
-                n1->get_root()->display(tout, m);
-                n2->get_root()->display(tout, m);
-                tout << "f signature: ";
-                for (unsigned i = 0; i < m_f->get_arity(); i++) tout << mk_pp(m_f->get_domain(i), m) << " ";
-                tout << "-> " << mk_pp(m_f->get_range(), m) << "\n";
+                       tout << "sort bug:\n" << mk_ismt2_pp(q->get_expr(), m) << "\n" << mk_ismt2_pp(q, m) << "\n";
+                       tout << "decl(0): " << q->get_decl_name(0) << "\n";
+                       tout << "f: " << m_f->get_name() << " i: " << m_arg_i << "\n";
+                       tout << "v: " << m_var_j << "\n";
+                       n1->get_root()->display(tout, m);
+                       n2->get_root()->display(tout, m);
+                       tout << "f signature: ";
+                       for (unsigned i = 0; i < m_f->get_arity(); i++) tout << mk_pp(m_f->get_domain(i), m) << " ";
+                       tout << "-> " << mk_pp(m_f->get_range(), m) << "\n";
                 );
 
                 n1->merge(n2);
@@ -1214,7 +1260,6 @@ namespace smt {
                 f_var(m, f, i, j),
                 m_offset(offset, m) {
             }
-            ~f_var_plus_offset() override {}
 
             char const* get_kind() const override {
                 return "f_var_plus_offset";
@@ -1380,7 +1425,6 @@ namespace smt {
 
         public:
             select_var(ast_manager& m, app* s, unsigned i, unsigned j) :qinfo(m), m_array(m), m_select(s), m_arg_i(i), m_var_j(j) {}
-            ~select_var() override {}
 
             char const* get_kind() const override {
                 return "select_var";
@@ -1449,8 +1493,6 @@ namespace smt {
                 if (m_var_i > m_var_j)
                     std::swap(m_var_i, m_var_j);
             }
-
-            ~var_pair() override {}
 
             bool is_equal(qinfo const* qi) const override {
                 if (qi->get_kind() != get_kind())
@@ -1530,7 +1572,6 @@ namespace smt {
             var_expr_pair(ast_manager& m, unsigned i, expr* t) :
                 qinfo(m),
                 m_var_i(i), m_t(t, m) {}
-            ~var_expr_pair() override {}
 
             bool is_equal(qinfo const* qi) const override {
                 if (qi->get_kind() != get_kind())
@@ -2364,9 +2405,11 @@ namespace smt {
         }
     }
 
+
     void model_finder::process_auf(ptr_vector<quantifier> const& qs, proto_model* mdl) {
         m_auf_solver->reset();
         m_auf_solver->set_model(mdl);
+        m_auf_solver->set_specrels(*m_context);
 
         for (quantifier* q : qs) {
             quantifier_info* qi = get_quantifier_info(q);
@@ -2480,6 +2523,8 @@ namespace smt {
         if (s == nullptr)
             return nullptr;
         expr* t = s->get_inv(val);
+        if (m_auf_solver->is_default_representative(t))
+            return val;
         if (t != nullptr) {
             generation = s->get_generation(t);
         }
@@ -2519,7 +2564,7 @@ namespace smt {
                 eqs.push_back(m.mk_eq(sk, val));
             }
             expr_ref new_cnstr(m);
-            new_cnstr = m.mk_or(eqs.size(), eqs.c_ptr());
+            new_cnstr = m.mk_or(eqs.size(), eqs.data());
             TRACE("model_finder", tout << "assert_restriction:\n" << mk_pp(new_cnstr, m) << "\n";);
             aux_ctx->assert_expr(new_cnstr);
             asserted_something = true;

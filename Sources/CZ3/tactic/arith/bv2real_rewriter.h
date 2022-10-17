@@ -65,6 +65,7 @@ class bv2real_util {
     rational m_default_divisor;
     rational m_max_divisor;
     unsigned m_max_num_bits;
+    uint64_t m_max_memory;
 
     class contains_bv2real_proc;
 
@@ -80,6 +81,8 @@ public:
     bool is_bv2real(expr* e, expr*& n, expr*& m, rational& d);    
 
     bool contains_bv2real(expr* e) const;
+
+    bool memory_exceeded() const;
 
     bool mk_bv2real(expr* s, expr* t, rational& d, rational& r, expr_ref& result);
     expr* mk_bv2real_c(expr* s, expr* t, rational const& d, rational const& r);
@@ -110,7 +113,7 @@ public:
 
     void add_side_condition(expr* e) { m_side_conditions.push_back(e); }
     unsigned num_side_conditions() const { return m_side_conditions.size(); }
-    expr* const* side_conditions() const { return m_side_conditions.c_ptr(); }
+    expr* const* side_conditions() const { return m_side_conditions.data(); }
 
     bool      is_zero(expr* e);
 

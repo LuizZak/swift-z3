@@ -42,7 +42,7 @@ namespace smt {
 
         class atom {
         public:
-            virtual ~atom() {}
+            virtual ~atom() = default;
             virtual bool is_bit() const = 0;
         };
 
@@ -56,7 +56,6 @@ namespace smt {
         struct bit_atom : public atom {
             var_pos_occ * m_occs;
             bit_atom():m_occs(nullptr) {}
-            ~bit_atom() override {}
             bool is_bit() const override { return true; }
         };
 
@@ -64,7 +63,6 @@ namespace smt {
             literal    m_var;
             literal    m_def;
             le_atom(literal v, literal d):m_var(v), m_def(d) {}
-            ~le_atom() override {}
             bool is_bit() const override { return false; }
         };
 
@@ -114,6 +112,7 @@ namespace smt {
         svector<unsigned>        m_wpos;     // per var, watch position for fixed variable detection. 
         vector<zero_one_bits>    m_zero_one_bits; // per var, see comment in the struct zero_one_bit
         bool_var2atom            m_bool_var2atom;
+        enode_vector             m_bv2int;
         typedef svector<theory_var> vars;
 
         typedef std::pair<numeral, unsigned> value_sort_pair;
@@ -189,6 +188,7 @@ namespace smt {
         void internalize_urem(app * n);
         void internalize_srem(app * n);
         void internalize_smod(app * n);
+        void internalize_udiv_quot_rem(app* n);
         void internalize_shl(app * n);
         void internalize_lshr(app * n);
         void internalize_ashr(app * n);
@@ -228,6 +228,8 @@ namespace smt {
         void assign_bit(literal consequent, theory_var v1, theory_var v2, unsigned idx, literal antecedent, bool propagate_eqc);
         void assert_int2bv_axiom(app* n);
         void assert_bv2int_axiom(app* n);
+        void assert_udiv_quot_rem_axiom(app * n);
+
 
     protected:
         theory_var mk_var(enode * n) override;
@@ -260,6 +262,9 @@ namespace smt {
 
         smt_params const& params() const;
     public:
+        
+        typedef std::pair<enode*, unsigned> var_enode_pos;
+        
         theory_bv(context& ctx);
         ~theory_bv() override;
         
@@ -282,6 +287,10 @@ namespace smt {
         void collect_statistics(::statistics & st) const override;
 
         bool get_fixed_value(app* x, numeral & result) const;
+        bool is_fixed_propagated(theory_var v, expr_ref& val, literal_vector& explain) override;
+
+        var_enode_pos get_bv_with_theory(bool_var v, theory_id id) const;
+        bool_var get_first_unassigned(unsigned start_bit, enode* n) const;
 
         bool check_assignment(theory_var v);
         bool check_invariant();

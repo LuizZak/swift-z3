@@ -17,6 +17,7 @@ Notes:
 
 --*/
 #include "tactic/tactical.h"
+#include "ast/recfun_decl_plugin.h"
 #include "ast/macros/macro_manager.h"
 #include "ast/macros/macro_finder.h"
 #include "tactic/generic_model_converter.h"
@@ -41,6 +42,12 @@ class macro_finder_tactic : public tactic {
                         goal_ref_buffer & result) {
             tactic_report report("macro-finder", *g);
             TRACE("macro-finder", g->display(tout););
+
+            recfun::util rec(m());
+            if (!rec.get_rec_funs().empty()) {
+                result.push_back(g.get());
+                return;
+            }
 
             bool produce_proofs = g->proofs_enabled();
             bool unsat_core_enabled = g->unsat_core_enabled();
@@ -98,9 +105,11 @@ public:
         dealloc(m_imp);
     }
 
+    char const* name() const override { return "macro_finder"; }
+
     void updt_params(params_ref const & p) override {
-        m_params = p;
-        m_imp->updt_params(p);
+        m_params.append(p);
+        m_imp->updt_params(m_params);
     }
 
     void collect_param_descrs(param_descrs & r) override {

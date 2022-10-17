@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __SAT_SIMPLIFIER_PARAMS_HPP_
-#define __SAT_SIMPLIFIER_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct sat_simplifier_params {
@@ -76,4 +75,3 @@ struct sat_simplifier_params {
   bool subsumption() const { return p.get_bool("subsumption", g, true); }
   unsigned subsumption_limit() const { return p.get_uint("subsumption.limit", g, 100000000u); }
 };
-#endif

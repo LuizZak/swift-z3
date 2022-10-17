@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __POLY_REWRITER_PARAMS_HPP_
-#define __POLY_REWRITER_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct poly_rewriter_params {
@@ -24,4 +23,3 @@ struct poly_rewriter_params {
   bool hoist_ite() const { return p.get_bool("hoist_ite", g, false); }
   bool flat() const { return p.get_bool("flat", g, true); }
 };
-#endif

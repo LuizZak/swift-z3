@@ -115,7 +115,8 @@ private:
     }
 
 public:
-    combined_solver(solver * s1, solver * s2, params_ref const & p) {
+    combined_solver(solver * s1, solver * s2, params_ref const & p):
+        solver(s1->get_manager()) {
         m_solver1 = s1;
         m_solver2 = s2;
         updt_local_params(p);
@@ -311,18 +312,18 @@ public:
             m_solver2->get_levels(vars, depth);
     }
 
-    expr_ref_vector get_trail() override {
+    expr_ref_vector get_trail(unsigned max_level) override {
         if (m_use_solver1_results)
-            return m_solver1->get_trail();
+            return m_solver1->get_trail(max_level);
         else
-            return m_solver2->get_trail();
+            return m_solver2->get_trail(max_level);
     }
 
-    proof * get_proof() override {
+    proof * get_proof_core() override {
         if (m_use_solver1_results)
-            return m_solver1->get_proof();
+            return m_solver1->get_proof_core();
         else
-            return m_solver2->get_proof();
+            return m_solver2->get_proof_core();
     }
 
     std::string reason_unknown() const override {
@@ -343,7 +344,49 @@ public:
         else
             return m_solver2->get_labels(r);
     }
+    
 
+    void user_propagate_init(
+        void* ctx, 
+        user_propagator::push_eh_t&                                   push_eh,
+        user_propagator::pop_eh_t&                                    pop_eh,
+        user_propagator::fresh_eh_t&                                  fresh_eh) override {
+        switch_inc_mode();
+        m_solver2->user_propagate_init(ctx, push_eh, pop_eh, fresh_eh);
+    }        
+    
+    void user_propagate_register_fixed(user_propagator::fixed_eh_t& fixed_eh) override {
+        m_solver2->user_propagate_register_fixed(fixed_eh);
+    }
+    
+    void user_propagate_register_final(user_propagator::final_eh_t& final_eh) override {
+        m_solver2->user_propagate_register_final(final_eh);
+    }
+    
+    void user_propagate_register_eq(user_propagator::eq_eh_t& eq_eh) override {
+        m_solver2->user_propagate_register_eq(eq_eh);
+    }
+    
+    void user_propagate_register_diseq(user_propagator::eq_eh_t& diseq_eh) override {
+        m_solver2->user_propagate_register_diseq(diseq_eh);
+    }
+    
+    void user_propagate_register_expr(expr* e) override {
+        m_solver2->user_propagate_register_expr(e);
+    }
+    
+    void user_propagate_register_created(user_propagator::created_eh_t& r) override {
+        m_solver2->user_propagate_register_created(r);
+    }
+    
+    void user_propagate_register_decide(user_propagator::decide_eh_t& r) override {
+        m_solver2->user_propagate_register_decide(r);
+    }
+    
+    void user_propagate_clear() override {
+        m_solver2->user_propagate_clear();
+    }
+    
 };
 
 
@@ -356,7 +399,6 @@ class combined_solver_factory : public solver_factory {
     scoped_ptr<solver_factory> m_f2;
 public:
     combined_solver_factory(solver_factory * f1, solver_factory * f2):m_f1(f1), m_f2(f2) {}
-    ~combined_solver_factory() override {}
 
     solver * operator()(ast_manager & m, params_ref const & p, bool proofs_enabled, bool models_enabled, bool unsat_core_enabled, symbol const & logic) override {
         return mk_combined_solver((*m_f1)(m, p, proofs_enabled, models_enabled, unsat_core_enabled, logic),

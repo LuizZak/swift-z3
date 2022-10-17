@@ -48,15 +48,68 @@ namespace arith {
     typedef sat::literal_vector literal_vector;
     typedef lp_api::bound<sat::literal> api_bound;
 
+    enum class hint_type {
+        farkas_h,
+        bound_h,
+        implied_eq_h
+    };
+
+    struct arith_proof_hint : public euf::th_proof_hint {
+        hint_type m_ty;
+        unsigned  m_num_le;
+        unsigned  m_lit_head, m_lit_tail, m_eq_head, m_eq_tail;
+        arith_proof_hint(hint_type t, unsigned num_le, unsigned lh, unsigned lt, unsigned eh, unsigned et):
+            m_ty(t), m_num_le(num_le), m_lit_head(lh), m_lit_tail(lt), m_eq_head(eh), m_eq_tail(et) {}
+        expr* get_hint(euf::solver& s) const override;
+    };
+
+    class arith_proof_hint_builder {
+        vector<std::pair<rational, literal>>   m_literals;
+        svector<std::tuple<euf::enode*,euf::enode*,bool>> m_eqs;
+        hint_type                              m_ty;
+        unsigned                               m_num_le = 0;
+        unsigned                               m_lit_head = 0, m_lit_tail = 0, m_eq_head = 0, m_eq_tail = 0;
+        void reset() { m_lit_head = m_lit_tail; m_eq_head = m_eq_tail; }
+        void add(euf::enode* a, euf::enode* b, bool is_eq) {
+            if (m_eq_tail < m_eqs.size())
+                m_eqs[m_eq_tail] = { a, b, is_eq };
+            else
+                m_eqs.push_back({a, b, is_eq });
+            m_eq_tail++; 
+        }
+    public:
+        void set_type(euf::solver& ctx, hint_type ty) { 
+            ctx.push(value_trail<unsigned>(m_eq_tail)); 
+            ctx.push(value_trail<unsigned>(m_lit_tail)); 
+            m_ty = ty; 
+            reset(); 
+        }
+        void set_num_le(unsigned n) { m_num_le = n; }
+        void add_eq(euf::enode* a, euf::enode* b) { add(a, b, true); }
+        void add_diseq(euf::enode* a, euf::enode* b) { add(a, b, false); }
+        void add_lit(rational const& coeff, literal lit) { 
+            if (m_lit_tail < m_literals.size())
+                m_literals[m_lit_tail] = {coeff, lit};
+            else
+                m_literals.push_back({coeff, lit}); 
+            m_lit_tail++;
+        }
+        std::pair<rational, literal> const& lit(unsigned i) const { return m_literals[i]; }
+        std::tuple<enode*, enode*, bool> const& eq(unsigned i) const { return m_eqs[i]; }
+        arith_proof_hint* mk(euf::solver& s) { 
+            return new (s.get_region()) arith_proof_hint(m_ty, m_num_le, m_lit_head, m_lit_tail, m_eq_head, m_eq_tail);
+        }
+    };
+
+
     class solver : public euf::th_euf_solver {
+
+        friend struct arith_proof_hint;
 
         struct scope {
             unsigned m_bounds_lim;
-            unsigned m_idiv_lim;
             unsigned m_asserted_qhead;
             unsigned m_asserted_lim;
-            unsigned m_underspecified_lim;
-            expr* m_not_handled;
         };
 
         class resource_limit : public lp::lp_resource_limit {
@@ -112,7 +165,7 @@ namespace arith {
             }
         };
         scoped_ptr_vector<internalize_state> m_internalize_states;
-        unsigned                      m_internalize_head{ 0 };
+        unsigned                      m_internalize_head = 0;
 
         class scoped_internalize_state {
             solver& m_imp;
@@ -149,10 +202,10 @@ namespace arith {
         vector<rational>         m_columns;
         var_coeffs               m_left_side;              // constraint left side
 
-        lpvar m_one_var   { UINT_MAX };
-        lpvar m_zero_var  { UINT_MAX };
-        lpvar m_rone_var  { UINT_MAX };
-        lpvar m_rzero_var { UINT_MAX };
+        lpvar m_one_var   = UINT_MAX;
+        lpvar m_zero_var  = UINT_MAX;
+        lpvar m_rone_var  = UINT_MAX;
+        lpvar m_rzero_var = UINT_MAX;
 
         enum constraint_source {
             inequality_source,
@@ -167,7 +220,7 @@ namespace arith {
         svector<std::pair<euf::th_eq, bool>>          m_delayed_eqs;
 
         literal_vector  m_asserted;
-        expr* m_not_handled{ nullptr };
+        expr* m_not_handled = nullptr;
         ptr_vector<app>        m_underspecified;
         ptr_vector<expr>       m_idiv_terms;
         vector<ptr_vector<api_bound> > m_use_list;        // bounds where variables are used.
@@ -177,7 +230,7 @@ namespace arith {
         vector<lp_bounds>      m_bounds;
         unsigned_vector        m_unassigned_bounds;
         unsigned_vector        m_bounds_trail;
-        unsigned               m_asserted_qhead{ 0 };
+        unsigned               m_asserted_qhead = 0;
 
         svector<std::pair<theory_var, theory_var> >       m_assume_eq_candidates;
         unsigned                                          m_assume_eq_head{ 0 };
@@ -239,6 +292,7 @@ namespace arith {
         void add_def_constraint(lp::constraint_index index, theory_var v);
         void add_def_constraint_and_equality(lpvar vi, lp::lconstraint_kind kind, const rational& bound);
         void internalize_args(app* t, bool force = false);
+        void ensure_arg_vars(app* t);
         theory_var internalize_power(app* t, app* n, unsigned p);
         theory_var internalize_mul(app* t);
         theory_var internalize_def(expr* term);
@@ -263,6 +317,7 @@ namespace arith {
         // axioms
         void mk_div_axiom(expr* p, expr* q);
         void mk_to_int_axiom(app* n);
+        void mk_abs_axiom(app* n);
         void mk_is_int_axiom(expr* n);
         void mk_idiv_mod_axioms(expr* p, expr* q);
         void mk_rem_axiom(expr* dividend, expr* divisor);
@@ -270,6 +325,7 @@ namespace arith {
         void mk_bound_axiom(api_bound& b1, api_bound& b2);
         void mk_power0_axioms(app* t, app* n);
         void flush_bound_axioms();
+        void add_farkas_clause(sat::literal l1, sat::literal l2);
 
         // bounds
         struct compare_bounds {
@@ -310,7 +366,7 @@ namespace arith {
         void assert_idiv_mod_axioms(theory_var u, theory_var v, theory_var w, rational const& r);
         api_bound* mk_var_bound(sat::literal lit, theory_var v, lp_api::bound_kind bk, rational const& bound);
         lp::lconstraint_kind bound2constraint_kind(bool is_int, lp_api::bound_kind bk, bool is_true);
-        void fixed_var_eh(theory_var v1, rational const& bound) {}
+        void fixed_var_eh(theory_var v1, lp::constraint_index ci1, lp::constraint_index ci2, rational const& bound);
         bool set_upper_bound(lp::tv t, lp::constraint_index ci, rational const& v) { return set_bound(t, ci, v, false); }
         bool set_lower_bound(lp::tv t, lp::constraint_index ci, rational const& v) { return set_bound(t, ci, v, true); }
         bool set_bound(lp::tv tv, lp::constraint_index ci, rational const& v, bool is_lower);
@@ -323,6 +379,11 @@ namespace arith {
         bool can_get_value(theory_var v) const {
             return is_registered_var(v) && m_model_is_initialized;
         }
+
+        vector<rational>     m_fixed_values;
+        map<rational, theory_var, rational::hash_proc, rational::eq_proc> m_value2var;
+        struct undo_value;
+        void register_fixed_var(theory_var v, rational const& value);
 
         // solving
         void report_equality_of_fixed_vars(unsigned vi1, unsigned vi2);
@@ -379,7 +440,7 @@ namespace arith {
 
         obj_map<expr, expr*>      m_predicate2term;
         obj_map<expr, bound_info> m_term2bound_info;
-        bool                      m_model_is_initialized{ false };
+        bool                      m_model_is_initialized = false;
 
         unsigned small_lemma_size() const { return get_config().m_arith_small_lemma_size; }
         bool propagate_eqs() const { return get_config().m_arith_propagate_eqs && m_num_conflicts < get_config().m_arith_propagation_threshold; }
@@ -406,11 +467,19 @@ namespace arith {
         void get_infeasibility_explanation_and_set_conflict();
         void set_conflict();
         void set_conflict_or_lemma(literal_vector const& core, bool is_conflict);
-        void set_evidence(lp::constraint_index idx, literal_vector& core, svector<enode_pair>& eqs);
-        void assign(literal lit, literal_vector const& core, svector<enode_pair> const& eqs, vector<parameter> const& params);
+        void set_evidence(lp::constraint_index idx);
+        void assign(literal lit, literal_vector const& core, svector<enode_pair> const& eqs, euf::th_proof_hint const* pma);
 
         void false_case_of_check_nla(const nla::lemma& l);        
         void dbg_finalize_model(model& mdl);
+
+        arith_proof_hint_builder m_arith_hint;
+
+        arith_proof_hint const* explain(hint_type ty, sat::literal lit = sat::null_literal);
+        arith_proof_hint const* explain_implied_eq(lp::explanation const& e, euf::enode* a, euf::enode* b);
+        arith_proof_hint const* explain_trichotomy(sat::literal le, sat::literal ge, sat::literal eq);
+        void explain_assumptions(lp::explanation const& e);
+
 
     public:
         solver(euf::solver& ctx, theory_id id);
@@ -419,6 +488,8 @@ namespace arith {
         void get_antecedents(literal l, sat::ext_justification_idx idx, literal_vector& r, bool probing) override;
         void asserted(literal l) override;
         sat::check_result check() override;
+        void simplify() override {}
+        void init_search() override {}
 
         std::ostream& display(std::ostream& out) const override;
         std::ostream& display_justification(std::ostream& out, sat::ext_justification_idx idx) const override;
@@ -439,12 +510,15 @@ namespace arith {
         void apply_sort_cnstr(euf::enode* n, sort* s) override {}
         bool is_shared(theory_var v) const override;
         lbool get_phase(bool_var v) override;
+        bool include_func_interp(func_decl* f) const override;
+        bool enable_ackerman_axioms(euf::enode* n) const override { return !a.is_add(n->get_expr()); }
+        bool has_unhandled() const override { return m_not_handled != nullptr; }
 
         // bounds and equality propagation callbacks
         lp::lar_solver& lp() { return *m_solver; }
         lp::lar_solver const& lp() const { return *m_solver; }
         bool is_equal(theory_var x, theory_var y) const;
-        void add_eq(lpvar u, lpvar v, lp::explanation const& e);
+        bool add_eq(lpvar u, lpvar v, lp::explanation const& e, bool is_fixed);
         void consume(rational const& v, lp::constraint_index j);
         bool bound_is_interesting(unsigned vi, lp::lconstraint_kind kind, const rational& bval) const;
     };

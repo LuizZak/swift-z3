@@ -28,10 +28,9 @@ class array_factory : public struct_factory {
     expr * mk_array_interp(sort * s, func_interp * & fi);
     void get_some_args_for(sort * s, ptr_buffer<expr> & args);
     bool mk_two_diff_values_for(sort * s);
+    ptr_vector<sort> m_ranges;
 public:
     array_factory(ast_manager & m, model_core & md);
-
-    ~array_factory() override {}
 
     expr * get_some_value(sort * s) override;
 

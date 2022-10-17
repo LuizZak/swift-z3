@@ -39,10 +39,26 @@ Notes:
 #include "solver/parallel_tactic.h"
 #include "solver/parallel_params.hpp"
 
+
+class non_parallel_tactic : public tactic {
+public:
+    non_parallel_tactic(solver* s, params_ref const& p) {
+    }
+
+    char const* name() const override { return "parallel_tactic"; }
+
+    void operator()(const goal_ref & g,goal_ref_buffer & result) override {
+        throw default_exception("parallel tactic is disabled in single threaded mode");
+    }
+    tactic * translate(ast_manager & m) override { return nullptr; }
+    void cleanup() override {}
+
+};
+
 #ifdef SINGLE_THREAD
 
 tactic * mk_parallel_tactic(solver* s, params_ref const& p) {
-    throw default_exception("parallel tactic is disabled in single threaded mode");
+    return alloc(non_parallel_tactic, s, p);
 }
 
 #else
@@ -97,9 +113,9 @@ class parallel_tactic : public tactic {
 
         void shutdown() {
             if (!m_shutdown) {
+                std::lock_guard<std::mutex> lock(m_mutex);
                 m_shutdown = true;
                 m_cond.notify_all();
-                std::lock_guard<std::mutex> lock(m_mutex);
                 for (solver_state* st : m_active) {
                     st->m().limit().cancel();
                 }
@@ -131,7 +147,9 @@ class parallel_tactic : public tactic {
                 }
                 {
                     std::unique_lock<std::mutex> lock(m_mutex);
-                    m_cond.wait(lock);
+                    if (!m_shutdown) {
+                        m_cond.wait(lock);
+                    }
                 }
                 dec_wait();
             }
@@ -226,7 +244,7 @@ class parallel_tactic : public tactic {
         solver const& get_solver() const { return *m_solver; }
 
         void set_assumptions(ptr_vector<expr> const& asms) {
-            m_assumptions.append(asms.size(), asms.c_ptr());
+            m_assumptions.append(asms.size(), asms.data());
         }
         
         bool has_assumptions() const { return !m_assumptions.empty(); }
@@ -503,7 +521,10 @@ private:
         cube.append(s.split_cubes(1));
         SASSERT(cube.size() <= 1);
         IF_VERBOSE(2, verbose_stream() << "(tactic.parallel :split-cube " << cube.size() << ")\n";);
-        if (!s.cubes().empty()) m_queue.add_task(s.clone());
+        {
+            // std::lock_guard<std::mutex> lock(m_mutex);
+            if (!s.cubes().empty()) m_queue.add_task(s.clone());
+        }
         if (!cube.empty()) {
             s.assert_cube(cube.get(0).cube());
             vars.reset();
@@ -611,8 +632,12 @@ private:
     void spawn_cubes(solver_state& s, unsigned width, vector<cube_var>& cubes) {
         if (cubes.empty()) return;
         add_branches(cubes.size());
-        s.set_cubes(cubes);
-        solver_state* s1 = s.clone();
+        s.set_cubes(cubes);        
+        solver_state* s1 = nullptr;
+        {
+            // std::lock_guard<std::mutex> lock(m_mutex);
+            s1 = s.clone();
+        }
         s1->inc_width(width);
         m_queue.add_task(s1);
     }
@@ -749,6 +774,8 @@ public:
         m_core(m_manager) {
         init();
     }
+
+    char const* name() const override { return "parallel_tactic"; }
 
     void operator()(const goal_ref & g,goal_ref_buffer & result) override {
         cleanup();

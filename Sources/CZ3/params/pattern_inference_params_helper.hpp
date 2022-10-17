@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __PATTERN_INFERENCE_PARAMS_HELPER_HPP_
-#define __PATTERN_INFERENCE_PARAMS_HELPER_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct pattern_inference_params_helper {
@@ -31,4 +30,3 @@ struct pattern_inference_params_helper {
   bool pull_quantifiers() const { return p.get_bool("pull_quantifiers", g, true); }
   bool warnings() const { return p.get_bool("warnings", g, false); }
 };
-#endif

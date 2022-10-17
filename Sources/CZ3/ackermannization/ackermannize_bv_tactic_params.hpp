@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __ACKERMANNIZE_BV_TACTIC_PARAMS_HPP_
-#define __ACKERMANNIZE_BV_TACTIC_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct ackermannize_bv_tactic_params {
@@ -16,4 +15,3 @@ struct ackermannize_bv_tactic_params {
   */
   unsigned div0_ackermann_limit() const { return p.get_uint("div0_ackermann_limit", g, 1000u); }
 };
-#endif

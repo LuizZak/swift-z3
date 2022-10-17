@@ -17,6 +17,8 @@ Revision History:
 
 
 --*/
+#pragma once
+
 #include "math/lp/random_updater.h"
 #include "math/lp/static_matrix.h"
 #include "math/lp/lar_solver.h"
@@ -51,25 +53,23 @@ bool random_updater::shift_var(unsigned j) {
 
 
 void random_updater::update() {
+    // VERIFY(m_lar_solver.check_feasible());
     auto columns = m_var_set.index();  // m_var_set is going to change during the loop
     for (auto j : columns) {
         if (!m_var_set.contains(j)) {
             TRACE("lar_solver_rand", tout << "skipped " << j << "\n";);
             continue;
         }
-        if (!m_lar_solver.is_base(j)) {
+        if (!m_lar_solver.is_base(j)) 
             shift_var(j);
-        } else {
+        else {
             unsigned row_index = m_lar_solver.r_heading()[j];
             for (auto & row_c : m_lar_solver.get_row(row_index)) {
                 unsigned cj = row_c.var();
                 if (!m_lar_solver.is_base(cj) &&
-                    !m_lar_solver.column_is_fixed(cj)
-                    &&
-                    shift_var(cj)
-                    ) {
-                    break; // done with the basic var j
-                }
+                    !m_lar_solver.column_is_fixed(cj) &&
+                    shift_var(cj)) 
+                    break; // done with the basic var j                
             }
         }            
     }

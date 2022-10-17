@@ -33,6 +33,7 @@ struct push_app_ite_cfg : public default_rewriter_cfg {
     virtual bool is_target(func_decl * decl, unsigned num_args, expr * const * args);
     br_status reduce_app(func_decl * f, unsigned num, expr * const * args, expr_ref & result, proof_ref & result_pr);
     push_app_ite_cfg(ast_manager& m): m(m), m_conservative(true) {}
+    virtual ~push_app_ite_cfg() = default;
     void set_conservative(bool c) { m_conservative = c; }
     bool rewrite_patterns() const { return false; }
 };
@@ -48,7 +49,6 @@ protected:
     bool is_target(func_decl * decl, unsigned num_args, expr * const * args) override;
 public:
     ng_push_app_ite_cfg(ast_manager& m): push_app_ite_cfg(m) {}
-    virtual ~ng_push_app_ite_cfg() {}
 };
 
 struct push_app_ite_rw : public rewriter_tpl<push_app_ite_cfg> {

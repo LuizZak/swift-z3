@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __ARRAY_REWRITER_PARAMS_HPP_
-#define __ARRAY_REWRITER_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct array_rewriter_params {
@@ -12,6 +11,7 @@ struct array_rewriter_params {
     d.insert("expand_select_store", CPK_BOOL, "conservatively replace a (select (store ...) ...) term by an if-then-else term", "false","rewriter");
     d.insert("blast_select_store", CPK_BOOL, "eagerly replace all (select (store ..) ..) term by an if-then-else term", "false","rewriter");
     d.insert("expand_nested_stores", CPK_BOOL, "replace nested stores by a lambda expression", "false","rewriter");
+    d.insert("expand_select_ite", CPK_BOOL, "expand select over ite expressions", "false","rewriter");
     d.insert("expand_store_eq", CPK_BOOL, "reduce (store ...) = (store ...) with a common base into selects", "false","rewriter");
     d.insert("sort_store", CPK_BOOL, "sort nested stores when the indices are known to be different", "false","rewriter");
   }
@@ -21,7 +21,7 @@ struct array_rewriter_params {
   bool expand_select_store() const { return p.get_bool("expand_select_store", g, false); }
   bool blast_select_store() const { return p.get_bool("blast_select_store", g, false); }
   bool expand_nested_stores() const { return p.get_bool("expand_nested_stores", g, false); }
+  bool expand_select_ite() const { return p.get_bool("expand_select_ite", g, false); }
   bool expand_store_eq() const { return p.get_bool("expand_store_eq", g, false); }
   bool sort_store() const { return p.get_bool("sort_store", g, false); }
 };
-#endif

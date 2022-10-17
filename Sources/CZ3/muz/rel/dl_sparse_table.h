@@ -19,7 +19,6 @@ Revision History:
 
 #pragma once
 
-#include<iostream>
 #include<list>
 #include<utility>
 
@@ -122,7 +121,7 @@ namespace datalog {
             offset_hash_proc(storage & s, unsigned unique_entry_sz) 
                 : m_storage(s), m_unique_entry_size(unique_entry_sz) {}
             unsigned operator()(store_offset ofs) const {
-                return string_hash(m_storage.c_ptr()+ofs, m_unique_entry_size, 0);
+                return string_hash(m_storage.data()+ofs, m_unique_entry_size, 0);
             } 
         };
 
@@ -133,7 +132,7 @@ namespace datalog {
             offset_eq_proc(storage & s, unsigned unique_entry_sz) 
                 : m_storage(s), m_unique_entry_size(unique_entry_sz) {}
             bool operator()(store_offset o1, store_offset o2) const {
-                const char * base = m_storage.c_ptr();
+                const char * base = m_storage.data();
                 return memcmp(base+o1, base+o2, m_unique_entry_size)==0;
             }
         };

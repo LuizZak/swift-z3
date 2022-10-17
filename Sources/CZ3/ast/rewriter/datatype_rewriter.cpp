@@ -32,6 +32,10 @@ br_status datatype_rewriter::mk_app_core(func_decl * f, unsigned num_args, expr 
         // simplify is_cons(nil) -> false
         //
         SASSERT(num_args == 1);
+        if (m_util.get_datatype_num_constructors(args[0]->get_sort()) == 1) {
+            result = m().mk_true();
+            return BR_DONE;
+        }
         if (!is_app(args[0]) || !m_util.is_constructor(to_app(args[0])))
             return BR_FAILED;
         if (to_app(args[0])->get_decl() == m_util.get_recognizer_constructor(f))
@@ -88,7 +92,7 @@ br_status datatype_rewriter::mk_app_core(func_decl * f, unsigned num_args, expr 
                 new_args.push_back(a->get_arg(i));
             }
         }
-        result = m().mk_app(c_decl, num, new_args.c_ptr());
+        result = m().mk_app(c_decl, num, new_args.data());
         return BR_DONE;        
     }
     default:
@@ -137,6 +141,6 @@ br_status datatype_rewriter::mk_eq_core(expr * lhs, expr * rhs, expr_ref & resul
     for (unsigned i = 0; i < num; ++i) {            
         eqs.push_back(m().mk_eq(to_app(lhs)->get_arg(i), to_app(rhs)->get_arg(i)));
     }
-    result = m().mk_and(eqs.size(), eqs.c_ptr());
+    result = m().mk_and(eqs.size(), eqs.data());
     return BR_REWRITE2;
 }

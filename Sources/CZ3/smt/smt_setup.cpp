@@ -150,7 +150,7 @@ namespace smt {
             IF_VERBOSE(100, verbose_stream() << "(smt.collecting-features)\n";);
             ptr_vector<expr> fmls;
             m_context.get_asserted_formulas(fmls);
-            st.collect(fmls.size(), fmls.c_ptr());
+            st.collect(fmls.size(), fmls.data());
             TRACE("setup", st.display_primitive(tout););
             IF_VERBOSE(1000, st.display_primitive(verbose_stream()););
             if (m_logic == "QF_UF") 
@@ -643,8 +643,8 @@ namespace smt {
         // It destroys the existing patterns.
         // m_params.m_macro_finder            = true; 
         
-        if (m_params.m_ng_lift_ite == LI_NONE)
-            m_params.m_ng_lift_ite         = LI_CONSERVATIVE;
+        if (m_params.m_ng_lift_ite == lift_ite_kind::LI_NONE)
+            m_params.m_ng_lift_ite = lift_ite_kind::LI_CONSERVATIVE;
         TRACE("setup", tout << "max_eager_multipatterns: " << m_params.m_qi_max_eager_multipatterns << "\n";);
         m_context.register_plugin(alloc(smt::theory_i_arith, m_context));
         setup_arrays();
@@ -668,8 +668,8 @@ namespace smt {
         m_params.m_qi_lazy_threshold       = 20;
         // 
         m_params.m_macro_finder            = true;
-        if (m_params.m_ng_lift_ite == LI_NONE)
-            m_params.m_ng_lift_ite         = LI_CONSERVATIVE;
+        if (m_params.m_ng_lift_ite == lift_ite_kind::LI_NONE)
+            m_params.m_ng_lift_ite         = lift_ite_kind::LI_CONSERVATIVE;
         m_params.m_pi_max_multi_patterns   = 10; //<< it was used for SMT-COMP
         m_params.m_array_lazy_ieq          = true;
         m_params.m_array_lazy_ieq_delay    = 4;
@@ -735,10 +735,6 @@ namespace smt {
         else if (m_params.m_string_solver == "none") {
             // don't register any solver.
         }
-        else if (m_params.m_string_solver == "char") {
-            setup_QF_BV();
-            setup_char();
-        }
         else {
             throw default_exception("invalid parameter for smt.string_solver, valid options are 'z3str3', 'seq', 'auto'");
         }
@@ -785,7 +781,7 @@ namespace smt {
         IF_VERBOSE(100, verbose_stream() << "(smt.collecting-features)\n";);
         ptr_vector<expr> fmls;
         m_context.get_asserted_formulas(fmls);
-        st.collect(fmls.size(), fmls.c_ptr());
+        st.collect(fmls.size(), fmls.data());
         IF_VERBOSE(1000, st.display_primitive(verbose_stream()););
         bool fixnum = st.arith_k_sum_is_small() && m_params.m_arith_fixnum;
         bool int_only = !st.m_has_rational && !st.m_has_real && m_params.m_arith_int_only;
@@ -953,7 +949,7 @@ namespace smt {
         static_features st(m_manager);
         ptr_vector<expr> fmls;
         m_context.get_asserted_formulas(fmls);
-        st.collect(fmls.size(), fmls.c_ptr());
+        st.collect(fmls.size(), fmls.data());
         TRACE("setup", tout << "setup_unknown\n";);
         setup_arith();
         setup_arrays();

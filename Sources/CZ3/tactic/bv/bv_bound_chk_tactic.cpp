@@ -109,8 +109,6 @@ struct bv_bound_chk_rewriter : public rewriter_tpl<bv_bound_chk_rewriter_cfg> {
         updt_params(p);
     }
 
-    ~bv_bound_chk_rewriter() override {}
-
     void updt_params(params_ref const & _p) {
         m_cfg.updt_params(_p);
     }
@@ -140,6 +138,7 @@ public:
     void cleanup() override;
     void collect_statistics(statistics & st) const override;
     void reset_statistics() override;
+    char const* name() const override { return "bv_bound_chk"; }
 };
 
 class bv_bound_chk_tactic::imp {
@@ -148,7 +147,7 @@ public:
     imp(ast_manager & m, params_ref const & p, bv_bound_chk_stats& stats)
         : m_rw(m, p, stats) {    }
 
-    virtual ~imp() {    }
+    virtual ~imp() = default;
 
     ast_manager& m() { return m_rw.m(); }
 
@@ -205,8 +204,8 @@ tactic * bv_bound_chk_tactic::translate(ast_manager & m) {
 
 
 void bv_bound_chk_tactic::updt_params(params_ref const & p) {
-    m_params = p;
-    m_imp->updt_params(p);
+    m_params.append(p);
+    m_imp->updt_params(m_params);
 }
 
 void bv_bound_chk_tactic::cleanup() {

@@ -30,7 +30,7 @@ Revision History:
 #include "qe/mbp/mbp_arith.h"
 #include "qe/mbp/mbp_arrays.h"
 #include "qe/mbp/mbp_datatypes.h"
-#include "qe/qe_lite.h"
+#include "qe/lite/qe_lite.h"
 #include "model/model_pp.h"
 #include "model/model_evaluator.h"
 
@@ -269,8 +269,6 @@ public:
     }
 
     bool validate_model(model& model, expr_ref_vector const& fmls) {
-        expr_ref val(m);
-        model_evaluator eval(model);
         for (expr* f : fmls) {
             VERIFY(!model.is_false(f));
         }

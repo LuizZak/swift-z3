@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __SAT_ASYMM_BRANCH_PARAMS_HPP_
-#define __SAT_ASYMM_BRANCH_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct sat_asymm_branch_params {
@@ -26,4 +25,3 @@ struct sat_asymm_branch_params {
   unsigned asymm_branch_limit() const { return p.get_uint("asymm_branch.limit", g, 100000000u); }
   bool asymm_branch_all() const { return p.get_bool("asymm_branch.all", g, false); }
 };
-#endif

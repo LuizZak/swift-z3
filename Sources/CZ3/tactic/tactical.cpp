@@ -39,8 +39,6 @@ public:
         SASSERT(m_t2);
     }
     
-    ~binary_tactical() override { }
-    
     void updt_params(params_ref const & p) override {
         m_t1->updt_params(p);
         m_t2->updt_params(p);
@@ -101,7 +99,8 @@ struct false_pred {
 class and_then_tactical : public binary_tactical {
 public:
     and_then_tactical(tactic * t1, tactic * t2):binary_tactical(t1, t2) {}
-    ~and_then_tactical() override {}
+
+    char const* name() const override { return "and_then"; }
 
     void operator()(goal_ref const & in, goal_ref_buffer& result) override { 
 
@@ -140,7 +139,7 @@ public:
                     }                                                                         
                 }                                                                                       
                 else {                                                                                      
-                    result.append(r2.size(), r2.c_ptr());
+                    result.append(r2.size(), r2.data());
                 }                                                                                           
             }
                         
@@ -165,6 +164,48 @@ public:
 
     tactic * translate(ast_manager & m) override {
         return translate_core<and_then_tactical>(m);
+    }
+
+    void user_propagate_init(
+        void* ctx,
+        user_propagator::push_eh_t& push_eh,
+        user_propagator::pop_eh_t& pop_eh,
+        user_propagator::fresh_eh_t& fresh_eh) override {
+        m_t2->user_propagate_init(ctx, push_eh, pop_eh, fresh_eh);
+    }
+
+    void user_propagate_register_fixed(user_propagator::fixed_eh_t& fixed_eh) override {
+        m_t2->user_propagate_register_fixed(fixed_eh);
+    }
+
+    void user_propagate_register_final(user_propagator::final_eh_t& final_eh) override {
+        m_t2->user_propagate_register_final(final_eh);
+    }
+
+    void user_propagate_register_eq(user_propagator::eq_eh_t& eq_eh) override {
+        m_t2->user_propagate_register_eq(eq_eh);
+    }
+
+    void user_propagate_register_diseq(user_propagator::eq_eh_t& diseq_eh) override {
+        m_t2->user_propagate_register_diseq(diseq_eh);
+    }
+
+    void user_propagate_register_expr(expr* e) override {
+        m_t1->user_propagate_register_expr(e);
+        m_t2->user_propagate_register_expr(e);
+    }
+
+    void user_propagate_clear() override {
+        m_t1->user_propagate_clear();
+        m_t2->user_propagate_clear();
+    }
+
+    void user_propagate_register_created(user_propagator::created_eh_t& created_eh) override {
+        m_t2->user_propagate_register_created(created_eh);
+    }
+
+    void user_propagate_register_decide(user_propagator::decide_eh_t& decide_eh) override {
+        m_t2->user_propagate_register_decide(decide_eh);
     }
 
 };
@@ -232,8 +273,6 @@ public:
         }
     }
 
-    ~nary_tactical() override { }
-
     void updt_params(params_ref const & p) override {
         TRACE("nary_tactical_updt_params", tout << "updt_params: " << p << "\n";);
         for (tactic* t : m_ts) t->updt_params(p);
@@ -275,7 +314,7 @@ protected:
         for (tactic* curr : m_ts) {
             new_ts.push_back(curr->translate(m));
         }
-        return alloc(T, new_ts.size(), new_ts.c_ptr());
+        return alloc(T, new_ts.size(), new_ts.data());
     }
 
 };
@@ -284,7 +323,7 @@ class or_else_tactical : public nary_tactical {
 public:
     or_else_tactical(unsigned num, tactic * const * ts):nary_tactical(num, ts) { SASSERT(num > 0); }
 
-    ~or_else_tactical() override {}
+    char const* name() const override { return "or_else"; }
 
     void operator()(goal_ref const & in, goal_ref_buffer& result) override {
         goal orig(*(in.get()));
@@ -300,6 +339,28 @@ public:
                 }
                 catch (tactic_exception &) {
                     result.reset();
+                }
+                catch (rewriter_exception&) {
+                    result.reset();
+                }
+                catch (z3_error & ex) {
+                    IF_VERBOSE(10, verbose_stream() << "z3 error: " << ex.error_code() << " in or-else\n");
+                    throw;
+                }
+                catch (z3_exception& ex) {
+                    IF_VERBOSE(10, verbose_stream() << ex.msg() << " in or-else\n");
+                    throw;
+                }
+                catch (const std::exception &ex) {
+                    IF_VERBOSE(10, verbose_stream() << ex.what() << " in or-else\n");
+                    throw;
+                }
+                catch (...) {
+                    IF_VERBOSE(10, verbose_stream() << " unclassified exception in or-else\n");
+                    // std::current_exception returns a std::exception_ptr, which apparently 
+                    // needs to be re-thrown to extract type information.
+                    // typeid(ex).name() would be nice.
+                    throw;
                 }
             }
             else {
@@ -363,10 +424,20 @@ tactic * or_else(tactic * t1, tactic * t2, tactic * t3, tactic * t4, tactic * t5
     return or_else(10, ts);
 }
 
+class no_par_tactical : public tactic {
+public:
+    char const* name() const override { return "par"; }
+    void operator()(goal_ref const & in, goal_ref_buffer& result) override {
+        throw default_exception("par_tactical is unavailable in single threaded mode");
+    }
+    tactic * translate(ast_manager & m) override { return nullptr; }
+    void cleanup() override {}
+};
+
 #ifdef SINGLE_THREAD
 
 tactic * par(unsigned num, tactic * const * ts) {
-    throw default_exception("par_tactical is unavailable in single threaded mode");
+    return alloc(no_par_tactical);
 }
 
 #else
@@ -386,9 +457,8 @@ public:
     par_tactical(unsigned num, tactic * const * ts):or_else_tactical(num, ts) {
 		error_code = 0;
 	}
-    ~par_tactical() override {}
 
-    
+    char const* name() const override { return "par"; }
 
     void operator()(goal_ref const & in, goal_ref_buffer& result) override {
         bool use_seq;
@@ -516,16 +586,29 @@ tactic * par(tactic * t1, tactic * t2, tactic * t3, tactic * t4) {
     return par(4, ts);
 }
 
+class no_par_and_then_tactical : public tactic {
+public:
+    char const* name() const override { return "par_then"; }
+    void operator()(goal_ref const & in, goal_ref_buffer& result) override {
+        throw default_exception("par_and_then is not available in single threaded mode");
+    }
+    tactic * translate(ast_manager & m) override { return nullptr; }
+    void cleanup() override {}
+};
+
+
 #ifdef SINGLE_THREAD
 
 tactic * par_and_then(tactic * t1, tactic * t2) {
-    throw default_exception("par_and_then is not available in single threaded mode");
+    return alloc(no_par_and_then_tactical);
 }
+
 #else
 class par_and_then_tactical : public and_then_tactical {
 public:
     par_and_then_tactical(tactic * t1, tactic * t2):and_then_tactical(t1, t2) {}
-    ~par_and_then_tactical() override {}
+
+    char const* name() const override { return "par_then"; }
 
     void operator()(goal_ref const & in, goal_ref_buffer& result) override {
         bool use_seq;
@@ -672,7 +755,7 @@ public:
                     else {                                                                                      
                         goal_ref_buffer * new_r2 = alloc(goal_ref_buffer);
                         goals_vect.set(i, new_r2);
-                        new_r2->append(r2.size(), r2.c_ptr());
+                        new_r2->append(r2.size(), r2.data());
                         dependency_converter* dc = r1[i]->dc();                           
                         if (cores_enabled && dc) {
                             expr_dependency_ref * new_dep = alloc(expr_dependency_ref, new_m);
@@ -718,7 +801,7 @@ public:
                 }
                 if (proofs_enabled) {
                     // update proof converter of r1[i]
-                    r1[i]->set(concat(r1[i]->pc(), result.size() - j, result.c_ptr() + j));
+                    r1[i]->set(concat(r1[i]->pc(), result.size() - j, result.data() + j));
                 }
                 expr_dependency_translation td(translator);
                 if (core_buffer[i] != nullptr) {
@@ -780,9 +863,7 @@ public:
     unary_tactical(tactic * t): 
         m_t(t) {
         SASSERT(t);  
-    }    
-
-    ~unary_tactical() override { }
+    }
 
     void operator()(goal_ref const & in, goal_ref_buffer& result) override { 
         m_t->operator()(in, result);
@@ -796,6 +877,9 @@ public:
     void reset() override { m_t->reset(); }
     void set_logic(symbol const& l) override { m_t->set_logic(l); }    
     void set_progress_callback(progress_callback * callback) override { m_t->set_progress_callback(callback); }
+    void user_propagate_register_expr(expr* e) override { m_t->user_propagate_register_expr(e); }
+    void user_propagate_clear() override { m_t->user_propagate_clear(); }
+
 protected:
 
     template<typename T>
@@ -865,7 +949,7 @@ class repeat_tactical : public unary_tactical {
 				}
 			}
 			else {
-				result.append(r2.size(), r2.c_ptr());
+				result.append(r2.size(), r2.data());
 			}
 		}
 
@@ -891,6 +975,8 @@ public:
         unary_tactical(t), 
         m_max_depth(max_depth) {
     }
+
+    char const* name() const override { return "repeat"; }
     
     void operator()(goal_ref const & in, goal_ref_buffer& result) override {
         operator()(0, in, result);
@@ -910,6 +996,8 @@ class fail_if_branching_tactical : public unary_tactical {
     unsigned m_threshold;
 public:
     fail_if_branching_tactical(tactic * t, unsigned threshold):unary_tactical(t), m_threshold(threshold) {}
+
+    char const* name() const override { return "fail_if_branching"; }
 
     void operator()(goal_ref const & in, goal_ref_buffer& result) override {
         m_t->operator()(in, result);
@@ -933,6 +1021,8 @@ class cleanup_tactical : public unary_tactical {
 public:
     cleanup_tactical(tactic * t):unary_tactical(t) {}
 
+    char const* name() const override { return "cleanup"; }
+
     void operator()(goal_ref const & in, goal_ref_buffer& result) override {
         m_t->operator()(in, result);
         m_t->cleanup();
@@ -952,11 +1042,12 @@ class try_for_tactical : public unary_tactical {
     unsigned m_timeout;
 public:
     try_for_tactical(tactic * t, unsigned ts):unary_tactical(t), m_timeout(ts) {}
+
+    char const* name() const override { return "try_for"; }
     
     void operator()(goal_ref const & in, goal_ref_buffer& result) override {
         cancel_eh<reslimit> eh(in->m().limit());
         { 
-            // Warning: scoped_timer is not thread safe in Linux.
             scoped_timer timer(m_timeout, &eh);
             m_t->operator()(in, result);            
         }
@@ -978,6 +1069,8 @@ public:
     using_params_tactical(tactic * t, params_ref const & p):unary_tactical(t), m_params(p) {
         t->updt_params(p);
     }
+
+    char const* name() const override { return "using_params"; }
 
     void updt_params(params_ref const & p) override {
         TRACE("using_params", 
@@ -1007,7 +1100,7 @@ tactic * using_params(tactic * t, params_ref const & p) {
 class annotate_tactical : public unary_tactical {
     std::string m_name;
     struct scope {
-        std::string m_name;
+        const std::string &m_name;
         scope(std::string const& name) : m_name(name) {
             IF_VERBOSE(TACTIC_VERBOSITY_LVL, verbose_stream() << "(" << m_name << " start)\n";);
         }
@@ -1028,6 +1121,8 @@ public:
         tactic * new_t = m_t->translate(m);
         return alloc(annotate_tactical, m_name.c_str(), new_t);
     }
+
+    char const* name() const override { return "annotate"; }
     
 };
 
@@ -1044,7 +1139,7 @@ public:
         SASSERT(m_p);
     }
 
-    ~cond_tactical() override {}
+    char const* name() const override { return "cond"; }
     
     void operator()(goal_ref const & in, goal_ref_buffer & result) override {
         if (m_p->operator()(*(in.get())).is_true()) 
@@ -1075,8 +1170,8 @@ public:
         m_p(p) { 
         SASSERT(m_p);
     }
-    
-    ~fail_if_tactic() override {}
+
+    char const* name() const override { return "fail_if"; }
 
     void cleanup() override {}
 
@@ -1103,6 +1198,8 @@ tactic * fail_if_not(probe * p) {
 class if_no_proofs_tactical : public unary_tactical {
 public:
     if_no_proofs_tactical(tactic * t):unary_tactical(t) {}
+
+    char const* name() const override { return "if_no_proofs"; }
     
     void operator()(goal_ref const & in, goal_ref_buffer & result) override {
         if (in->proofs_enabled()) {
@@ -1119,6 +1216,8 @@ public:
 class if_no_unsat_cores_tactical : public unary_tactical {
 public:
     if_no_unsat_cores_tactical(tactic * t):unary_tactical(t) {}
+
+    char const* name() const override { return "if_no_unsat_cores"; }
     
     void operator()(goal_ref const & in, goal_ref_buffer& result) override {
         if (in->unsat_core_enabled()) {
@@ -1135,6 +1234,8 @@ public:
 class if_no_models_tactical : public unary_tactical {
 public:
     if_no_models_tactical(tactic * t):unary_tactical(t) {}
+
+    char const* name() const override { return "if_no_models"; }
     
     void operator()(goal_ref const & in, goal_ref_buffer& result) override {
         if (in->models_enabled()) {

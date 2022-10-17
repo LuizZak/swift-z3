@@ -46,8 +46,6 @@ public:
         solver::updt_params(p);
     }
 
-    ~enum2bv_solver() override {}
-
     solver* translate(ast_manager& dst_m, params_ref const& p) override {   
         solver* result = alloc(enum2bv_solver, dst_m, p, m_solver->translate(dst_m, p));
         model_converter_ref mc = external_model_converter();
@@ -122,7 +120,7 @@ public:
         mc = concat(mc.get(), m_solver->get_model_converter().get());
         return mc;
     }
-    proof * get_proof() override { return m_solver->get_proof(); }
+    proof * get_proof_core() override { return m_solver->get_proof_core(); }
     std::string reason_unknown() const override { return m_solver->reason_unknown(); }
     void set_reason_unknown(char const* msg) override { m_solver->set_reason_unknown(msg); }
     void get_labels(svector<symbol> & r) override { m_solver->get_labels(r); }
@@ -189,8 +187,8 @@ public:
         m_solver->get_levels(vars, depth);
     }
 
-    expr_ref_vector get_trail() override {
-        return m_solver->get_trail();
+    expr_ref_vector get_trail(unsigned max_level) override {
+        return m_solver->get_trail(max_level);
     }
 
     unsigned get_num_assertions() const override {

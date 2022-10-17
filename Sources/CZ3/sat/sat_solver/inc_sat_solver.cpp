@@ -42,12 +42,12 @@ Notes:
 #include "sat/sat_params.hpp"
 #include "sat/smt/euf_solver.h"
 #include "sat/tactic/goal2sat.h"
+#include "sat/tactic/sat2goal.h"
 #include "sat/tactic/sat_tactic.h"
 #include "sat/sat_simplifier_params.hpp"
 
 // incremental SAT solver.
 class inc_sat_solver : public solver {
-    ast_manager&    m;
     mutable sat::solver     m_solver;
     stacked_value<bool> m_has_uninterpreted;
     goal2sat        m_goal2sat;
@@ -86,7 +86,7 @@ class inc_sat_solver : public solver {
     bool is_internalized() const { return m_fmls_head == m_fmls.size(); }
 public:
     inc_sat_solver(ast_manager& m, params_ref const& p, bool incremental_mode):
-        m(m), 
+        solver(m),
         m_solver(p, m.limit()),
         m_has_uninterpreted(false),
         m_fmls(m),
@@ -113,8 +113,6 @@ public:
     bool is_incremental() const {
         return m_solver.get_config().m_incremental;
     }
-
-    ~inc_sat_solver() override {}
 
     solver* translate(ast_manager& dst_m, params_ref const& p) override {
         if (m_num_scopes > 0) {
@@ -165,13 +163,13 @@ public:
             asms.push_back(a);
         }
         VERIFY(l_true == internalize_formulas());
-        VERIFY(l_true == internalize_assumptions(sz, asms.c_ptr()));
+        VERIFY(l_true == internalize_assumptions(sz, asms.data()));
         svector<unsigned> nweights;
         for (unsigned i = 0; i < m_asms.size(); ++i) {
             nweights.push_back((unsigned) m_weights[i]);
         }
         m_weights.reset();
-        m_solver.display_wcnf(out, m_asms.size(), m_asms.c_ptr(), nweights.c_ptr());
+        m_solver.display_wcnf(out, m_asms.size(), m_asms.data(), nweights.data());
     }
 
     bool is_literal(expr* e) const {
@@ -204,7 +202,7 @@ public:
         m_dep2asm.reset();
         lbool r = internalize_formulas();
         if (r != l_true) return r;
-        r = internalize_assumptions(sz, _assumptions.c_ptr());
+        r = internalize_assumptions(sz, _assumptions.data());
         if (r != l_true) return r;
 
         init_reason_unknown();
@@ -212,7 +210,7 @@ public:
         bool reason_set = false;
         try {
             // IF_VERBOSE(0, m_solver.display(verbose_stream()));
-            r = m_solver.check(m_asms.size(), m_asms.c_ptr());
+            r = m_solver.check(m_asms.size(), m_asms.data());
         }
         catch (z3_exception& ex) {
             IF_VERBOSE(1, verbose_stream() << "exception: " << ex.msg() << "\n";);
@@ -279,8 +277,8 @@ public:
         m_inserted_const2bits.reset();
         m_map.pop(n);
         SASSERT(n <= m_num_scopes);
-        m_solver.user_pop(n);
         m_goal2sat.user_pop(n);
+        m_solver.user_pop(n);
         m_num_scopes -= n;
         // ? m_internalized_converted = false;
         m_has_uninterpreted.pop(n);
@@ -337,7 +335,7 @@ public:
                 expr_ref_vector args(m);
                 args.push_back(::mk_not(m, a));
                 args.append(to_app(t)->get_num_args(), to_app(t)->get_args());
-                assert_expr_core(m.mk_or(args.size(), args.c_ptr()));
+                assert_expr_core(m.mk_or(args.size(), args.data()));
             }
             else {
                 m_is_cnf = false;
@@ -377,7 +375,7 @@ public:
     }
     void get_unsat_core(expr_ref_vector & r) override {
         r.reset();
-        r.append(m_core.size(), m_core.c_ptr());
+        r.append(m_core.size(), m_core.data());
     }
 
     void get_levels(ptr_vector<expr> const& vars, unsigned_vector& depth) override {
@@ -389,7 +387,7 @@ public:
         }
     }
 
-    expr_ref_vector get_trail() override {
+    expr_ref_vector get_trail(unsigned max_level) override {
         expr_ref_vector result(m);
         unsigned sz = m_solver.trail_size();
         expr_ref_vector lit2expr(m);
@@ -397,12 +395,16 @@ public:
         m_map.mk_inv(lit2expr);
         for (unsigned i = 0; i < sz; ++i) {
             sat::literal lit = m_solver.trail_literal(i);
-            result.push_back(lit2expr[lit.index()].get());
+            if (m_solver.lvl(lit) > max_level)
+                continue;
+            expr_ref e(lit2expr.get(lit.index()), m);
+            if (e)
+                result.push_back(e);
         }
         return result;
     }
 
-    proof * get_proof() override {
+    proof * get_proof_core() override {
         return nullptr;
     }
 
@@ -475,7 +477,7 @@ public:
         if (r != l_true) return r;
         r = internalize_vars(vars, bvars);
         if (r != l_true) return r;
-        r = internalize_assumptions(assumptions.size(), assumptions.c_ptr());
+        r = internalize_assumptions(assumptions.size(), assumptions.data());
         if (r != l_true) return r;
         r = m_solver.get_consequences(m_asms, bvars, lconseq);
         if (r == l_false) {
@@ -593,10 +595,10 @@ public:
 
     void convert_internalized() {
         m_solver.pop_to_base_level();
-        if (!is_internalized() && m_fmls_head > 0) {
-            internalize_formulas();
-        }
-        if (!is_internalized() || m_internalized_converted) return;
+        if (!is_internalized() && m_fmls_head > 0) 
+            internalize_formulas();        
+        if (!is_internalized() || m_internalized_converted) 
+            return;
         sat2goal s2g;
         m_cached_mc = nullptr;
         goal g(m, false, true, false);
@@ -654,39 +656,72 @@ public:
     }
 
     euf::solver* ensure_euf() {
-        auto* ext = dynamic_cast<euf::solver*>(m_solver.get_extension());
+        m_goal2sat.init(m, m_params, m_solver, m_map, m_dep2asm, is_incremental());
+        auto* ext = m_goal2sat.ensure_euf();
         return ext;
     }
 
     void user_propagate_init(
         void*                ctx, 
-        solver::push_eh_t&   push_eh,
-        solver::pop_eh_t&    pop_eh,
-        solver::fresh_eh_t&  fresh_eh) override {
+        user_propagator::push_eh_t&   push_eh,
+        user_propagator::pop_eh_t&    pop_eh,
+        user_propagator::fresh_eh_t&  fresh_eh) override {
         ensure_euf()->user_propagate_init(ctx, push_eh, pop_eh, fresh_eh);
     }
         
-    void user_propagate_register_fixed(solver::fixed_eh_t& fixed_eh) override {
+    void user_propagate_register_fixed(user_propagator::fixed_eh_t& fixed_eh) override {
         ensure_euf()->user_propagate_register_fixed(fixed_eh);
     }
     
-    void user_propagate_register_final(solver::final_eh_t& final_eh) override {
+    void user_propagate_register_final(user_propagator::final_eh_t& final_eh) override {
         ensure_euf()->user_propagate_register_final(final_eh);
     }
     
-    void user_propagate_register_eq(solver::eq_eh_t& eq_eh) override {
+    void user_propagate_register_eq(user_propagator::eq_eh_t& eq_eh) override {
         ensure_euf()->user_propagate_register_eq(eq_eh);
     }
     
-    void user_propagate_register_diseq(solver::eq_eh_t& diseq_eh) override {
+    void user_propagate_register_diseq(user_propagator::eq_eh_t& diseq_eh) override {
         ensure_euf()->user_propagate_register_diseq(diseq_eh);
     }
     
-    unsigned user_propagate_register(expr* e) override { 
-        return ensure_euf()->user_propagate_register(e);
+    void user_propagate_register_expr(expr* e) override { 
+        ensure_euf()->user_propagate_register_expr(e);
     }
 
+    void user_propagate_register_created(user_propagator::created_eh_t& r) override {
+        ensure_euf()->user_propagate_register_created(r);
+    }
+
+
 private:
+
+    lbool check_uninterpreted() {
+        func_decl_ref_vector funs(m);
+        m_goal2sat.get_interpreted_funs(funs);
+
+        if (!funs.empty()) {
+            m_has_uninterpreted = true;
+            std::stringstream strm;
+            strm << "(sat.giveup interpreted functions sent to SAT solver " << funs <<")";
+            TRACE("sat", tout << strm.str() << "\n";);
+            IF_VERBOSE(1, verbose_stream() << strm.str() << "\n";);
+            set_reason_unknown(strm.str());
+            return l_undef;
+        }
+        return l_true;        
+    }
+
+    lbool internalize_goal(unsigned sz, expr* const* fmls) {
+        m_solver.pop_to_base_level();
+        if (m_solver.inconsistent()) 
+            return l_false;        
+        m_pc.reset();
+        m_goal2sat(m, sz, fmls, m_params, m_solver, m_map, m_dep2asm, is_incremental());
+        if (!m_sat_mc) m_sat_mc = alloc(sat2goal::mc, m);
+        m_sat_mc->flush_smc(m_solver, m_map);
+        return check_uninterpreted();
+    }
 
     lbool internalize_goal(goal_ref& g) {        
         m_solver.pop_to_base_level();
@@ -702,12 +737,14 @@ private:
         }
         SASSERT(!g->proofs_enabled());
         TRACE("sat", m_solver.display(tout); g->display(tout););
+
         try {
             if (m_is_cnf) {
                 m_subgoals.push_back(g.get());
             }
             else {
                 (*m_preprocess)(g, m_subgoals);
+                m_is_cnf = true;
             }
         }
         catch (tactic_exception & ex) {
@@ -727,8 +764,8 @@ private:
             IF_VERBOSE(0, verbose_stream() << "size of subgoals is not 1, it is: " << m_subgoals.size() << "\n");
             return l_undef;
         }
+        
         g = m_subgoals[0];
-        func_decl_ref_vector funs(m);
         m_pc = g->pc();
         m_mcs.set(m_mcs.size()-1, concat(m_mcs.back(), g->mc()));
         TRACE("sat", g->display_with_dependencies(tout););
@@ -736,19 +773,10 @@ private:
         // ensure that if goal is already internalized, then import mc from m_solver.
 
         m_goal2sat(*g, m_params, m_solver, m_map, m_dep2asm, is_incremental());
-        m_goal2sat.get_interpreted_funs(funs);
+
         if (!m_sat_mc) m_sat_mc = alloc(sat2goal::mc, m);
         m_sat_mc->flush_smc(m_solver, m_map);
-        if (!funs.empty()) {
-            m_has_uninterpreted = true;
-            std::stringstream strm;
-            strm << "(sat.giveup interpreted functions sent to SAT solver " << funs <<")";
-            TRACE("sat", tout << strm.str() << "\n";);
-            IF_VERBOSE(1, verbose_stream() << strm.str() << "\n";);
-            set_reason_unknown(strm.str());
-            return l_undef;
-        }
-        return l_true;
+        return check_uninterpreted();
     }
 
     lbool internalize_assumptions(unsigned sz, expr* const* asms) {
@@ -756,17 +784,29 @@ private:
             m_asms.shrink(0);
             return l_true;
         }
+        for (unsigned i = 0; i < sz; ++i) 
+            m_is_cnf &= is_literal(asms[i]);
+        for (unsigned i = 0; i < get_num_assumptions(); ++i) 
+            m_is_cnf &= is_literal(get_assumption(i));
+
+        if (m_is_cnf) {
+            expr_ref_vector fmls(m);
+            fmls.append(sz, asms);
+            for (unsigned i = 0; i < get_num_assumptions(); ++i)
+                fmls.push_back(get_assumption(i));
+            m_goal2sat.assumptions(m, fmls.size(), fmls.data(), m_params, m_solver, m_map, m_dep2asm, is_incremental());
+            extract_assumptions(fmls.size(), fmls.data());
+            return l_true;
+        }
+
         goal_ref g = alloc(goal, m, true, true); // models and cores are enabled.
-        for (unsigned i = 0; i < sz; ++i) {
+        for (unsigned i = 0; i < sz; ++i) 
             g->assert_expr(asms[i], m.mk_leaf(asms[i]));
-        }
-        for (unsigned i = 0; i < get_num_assumptions(); ++i) {
+        for (unsigned i = 0; i < get_num_assumptions(); ++i) 
             g->assert_expr(get_assumption(i), m.mk_leaf(get_assumption(i)));
-        }
         lbool res = internalize_goal(g);
-        if (res == l_true) {
+        if (res == l_true) 
             extract_assumptions(sz, asms);
-        }
         return res;
     }
 
@@ -880,33 +920,40 @@ private:
     }
 
     bool is_clause(expr* fml) {
-        if (is_literal(fml)) {
+        if (get_depth(fml) > 4)
+            return false;
+
+        if (is_literal(fml)) 
+            return true;
+        
+        if (m.is_or(fml) || m.is_and(fml) || m.is_implies(fml) || m.is_not(fml) || m.is_iff(fml)) {
+            for (expr* n : *to_app(fml)) 
+                if (!is_clause(n)) 
+                    return false;                            
             return true;
         }
-        if (!m.is_or(fml)) {
-            return false;
-        }
-        for (expr* n : *to_app(fml)) {
-            if (!is_literal(n)) {
-                return false;
-            }
-        }
-        return true;
+        return false;
     }
 
     lbool internalize_formulas() {
-        if (m_fmls_head == m_fmls.size()) {
+        if (m_fmls_head == m_fmls.size()) 
             return l_true;
+
+        lbool res;
+        
+        if (m_is_cnf) {
+            res = internalize_goal(m_fmls.size() - m_fmls_head, m_fmls.data() + m_fmls_head);
         }
-        goal_ref g = alloc(goal, m, true, false); // models, maybe cores are enabled
-        for (unsigned i = m_fmls_head ; i < m_fmls.size(); ++i) {
-            expr* fml = m_fmls.get(i);
-            g->assert_expr(fml);
+        else {
+            goal_ref g = alloc(goal, m, true, false); // models, maybe cores are enabled
+            for (unsigned i = m_fmls_head ; i < m_fmls.size(); ++i) {
+                expr* fml = m_fmls.get(i);
+                g->assert_expr(fml);
+            }
+            res = internalize_goal(g);
         }
-        lbool res = internalize_goal(g);
-        if (res != l_undef) {
+        if (res != l_undef) 
             m_fmls_head = m_fmls.size();
-        }
         m_internalized_converted = false;
         return res;
     }
@@ -958,11 +1005,11 @@ private:
         extract_asm2dep(asm2dep);
         sat::literal_vector const& core = m_solver.get_core();
         TRACE("sat",
-              for (auto kv : m_dep2asm) {
+              for (auto const& kv : m_dep2asm) {
                   tout << mk_pp(kv.m_key, m) << " |-> " << sat::literal(kv.m_value) << "\n";
               }
               tout << "asm2fml: ";
-              for (auto kv : asm2fml) {
+              for (auto const& kv : asm2fml) {
                   tout << mk_pp(kv.m_key, m) << " |-> " << mk_pp(kv.m_value, m) << "\n";
               }
               tout << "core: "; for (auto c : core) tout << c << " ";  tout << "\n";
@@ -1050,6 +1097,8 @@ private:
         eval.set_model_completion(true);
         bool all_true = true;
         for (expr * f : m_fmls) {
+            if (has_quantifiers(f))
+                continue;
             expr_ref tmp(m);
             eval(f, tmp);
             if (m.limit().is_canceled())
@@ -1057,7 +1106,7 @@ private:
             CTRACE("sat", !m.is_true(tmp),
                    tout << "Evaluation failed: " << mk_pp(f, m) << " to " << tmp << "\n";
                    model_smt2_pp(tout, m, *(mdl.get()), 0););
-            if (!m.is_true(tmp)) {
+            if (m.is_false(tmp)) {
                 IF_VERBOSE(0, verbose_stream() << "failed to verify: " << mk_pp(f, m) << "\n");
                 IF_VERBOSE(0, verbose_stream() << "evaluated to " << tmp << "\n");
                 all_true = false;
@@ -1090,7 +1139,7 @@ void inc_sat_display(std::ostream& out, solver& _s, unsigned sz, expr*const* sof
         }
         weights.push_back(_weights[i].get_unsigned());
     }
-    s.display_weighted(out, sz, soft, weights.c_ptr());
+    s.display_weighted(out, sz, soft, weights.data());
 }
 
 

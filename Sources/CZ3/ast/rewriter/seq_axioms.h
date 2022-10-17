@@ -94,6 +94,10 @@ namespace seq {
         void stoi_axiom(expr* n);
         void stoi_axiom(expr* e, unsigned k);
         void itos_axiom(expr* s, unsigned k);
+        void ubv2s_axiom(expr* b, unsigned k);
+        void ubv2s_len_axiom(expr* b, unsigned k);
+        void ubv2s_len_axiom(expr* b);
+        void ubv2ch_axiom(sort* bv_sort);
         void lt_axiom(expr* n);
         void le_axiom(expr* n);
         void is_digit_axiom(expr* n);
@@ -102,6 +106,9 @@ namespace seq {
         void unit_axiom(expr* n);
         void length_axiom(expr* n);
         void unroll_not_contains(expr* e);
+        void replace_re_axiom(expr* e);
+        void replace_all_axiom(expr* e);
+        void replace_re_all_axiom(expr* e);
 
         expr_ref length_limit(expr* s, unsigned k);
         expr_ref is_digit(expr* ch);

@@ -102,10 +102,10 @@ public:
     }
 
 
-    proof * get_proof() override {
+    proof * get_proof_core() override {
         scoped_watch _t_(m_pool.m_proof_watch);
         if (!m_proof.get()) {
-            m_proof = m_base->get_proof();
+            m_proof = m_base->get_proof_core();
             if (m_proof) {
                 elim_aux_assertions pc(m_pred);
                 pc(m, m_proof, m_proof);
@@ -127,8 +127,8 @@ public:
         m_base->get_levels(vars, depth);
     }
 
-    expr_ref_vector get_trail() override {
-        return m_base->get_trail();
+    expr_ref_vector get_trail(unsigned max_level) override {
+        return m_base->get_trail(max_level);
     }
 
     lbool check_sat_core2(unsigned num_assumptions, expr * const * assumptions) override {
@@ -290,7 +290,7 @@ private:
         }
 
         out << "(set-info :status " << lbool2status(last_status) << ")\n";
-        m_base->display(out, cube.size(), cube.c_ptr());
+        m_base->display(out, cube.size(), cube.data());
         for (auto const& clause : clauses) {
             out << ";; extra clause\n";
             out << "(assert (or ";

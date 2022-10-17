@@ -100,9 +100,11 @@ public:
         dealloc(m_imp);
     }
 
+    char const* name() const override { return "qe"; }
+
     void updt_params(params_ref const & p) override {
-        m_params = p;
-        m_imp->updt_params(p);
+        m_params.append(p);
+        m_imp->updt_params(m_params);
     }
 
    

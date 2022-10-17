@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __FP_PARAMS_HPP_
-#define __FP_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct fp_params {
@@ -109,7 +108,6 @@ struct fp_params {
     d.insert("spacer.p3.share_lemmas", CPK_BOOL, "Share frame lemmas", "false","fp");
     d.insert("spacer.p3.share_invariants", CPK_BOOL, "Share invariants lemmas", "false","fp");
     d.insert("spacer.min_level", CPK_UINT, "Minimal level to explore", "0","fp");
-    d.insert("spacer.print_json", CPK_SYMBOL, "Print pobs tree in JSON format to a given file", "","fp");
     d.insert("spacer.trace_file", CPK_SYMBOL, "Log file for progress events", "","fp");
     d.insert("spacer.ctp", CPK_BOOL, "Enable counterexample-to-pushing", "true","fp");
     d.insert("spacer.use_inc_clause", CPK_BOOL, "Use incremental clause to represent trans", "true","fp");
@@ -121,6 +119,12 @@ struct fp_params {
     d.insert("spacer.use_lim_num_gen", CPK_BOOL, "Enable limit numbers generalizer to get smaller numbers", "false","fp");
     d.insert("spacer.logic", CPK_SYMBOL, "SMT-LIB logic to configure internal SMT solvers", "","fp");
     d.insert("spacer.arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "2","fp");
+    d.insert("spacer.global", CPK_BOOL, "Enable global guidance", "false","fp");
+    d.insert("spacer.gg.concretize", CPK_BOOL, "Enable global guidance concretize", "true","fp");
+    d.insert("spacer.gg.conjecture", CPK_BOOL, "Enable global guidance conjecture", "true","fp");
+    d.insert("spacer.gg.subsume", CPK_BOOL, "Enable global guidance subsume", "true","fp");
+    d.insert("spacer.use_iuc", CPK_BOOL, "Enable Interpolating Unsat Core(IUC) for lemma generalization", "true","fp");
+    d.insert("spacer.expand_bnd", CPK_BOOL, "Enable expand-bound lemma generalization", "false","fp");
   }
   /*
      REG_MODULE_PARAMS('fp', 'fp_params::collect_param_descrs')
@@ -226,7 +230,6 @@ struct fp_params {
   bool spacer_p3_share_lemmas() const { return p.get_bool("spacer.p3.share_lemmas", g, false); }
   bool spacer_p3_share_invariants() const { return p.get_bool("spacer.p3.share_invariants", g, false); }
   unsigned spacer_min_level() const { return p.get_uint("spacer.min_level", g, 0u); }
-  symbol spacer_print_json() const { return p.get_sym("spacer.print_json", g, symbol("")); }
   symbol spacer_trace_file() const { return p.get_sym("spacer.trace_file", g, symbol("")); }
   bool spacer_ctp() const { return p.get_bool("spacer.ctp", g, true); }
   bool spacer_use_inc_clause() const { return p.get_bool("spacer.use_inc_clause", g, true); }
@@ -238,5 +241,10 @@ struct fp_params {
   bool spacer_use_lim_num_gen() const { return p.get_bool("spacer.use_lim_num_gen", g, false); }
   symbol spacer_logic() const { return p.get_sym("spacer.logic", g, symbol("")); }
   unsigned spacer_arith_solver() const { return p.get_uint("spacer.arith.solver", g, 2u); }
+  bool spacer_global() const { return p.get_bool("spacer.global", g, false); }
+  bool spacer_gg_concretize() const { return p.get_bool("spacer.gg.concretize", g, true); }
+  bool spacer_gg_conjecture() const { return p.get_bool("spacer.gg.conjecture", g, true); }
+  bool spacer_gg_subsume() const { return p.get_bool("spacer.gg.subsume", g, true); }
+  bool spacer_use_iuc() const { return p.get_bool("spacer.use_iuc", g, true); }
+  bool spacer_expand_bnd() const { return p.get_bool("spacer.expand_bnd", g, false); }
 };
-#endif

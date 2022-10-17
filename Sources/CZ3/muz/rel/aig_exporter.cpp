@@ -35,7 +35,7 @@ namespace datalog {
         // reserve pred id = 0 for initialization purposes
         unsigned num_preds = (unsigned)predicates.size() + 1;
 
-        // poor's man round-up log2
+        // poor man's round-up log2
         unsigned preds_bitsize = log2(num_preds);
         if ((1U << preds_bitsize) < num_preds)
             ++preds_bitsize;
@@ -108,13 +108,11 @@ namespace datalog {
                 rule *r = *II;
                 unsigned numqs = r->get_positive_tail_size();
                 if (numqs > 1) {
-                    std::cerr << "non-linear clauses not supported\n";
-                    exit(-1);
+                    throw default_exception("non-linear clauses not supported");
                 }
 
                 if (numqs != r->get_uninterpreted_tail_size()) {
-                    std::cerr << "negation of queries not supported\n";
-                    exit(-1);
+                    throw default_exception("negation of queries not supported");
                 }
 
                 exprs.reset();
@@ -133,7 +131,7 @@ namespace datalog {
                     exprs.push_back(e);
                 }
 
-                transition_function.push_back(m.mk_and(exprs.size(), exprs.c_ptr()));
+                transition_function.push_back(m.mk_and(exprs.size(), exprs.data()));
             }
         }
 
@@ -148,11 +146,11 @@ namespace datalog {
                     exprs.push_back(m.mk_eq(get_latch_var(i, m_latch_varsp), I->second[i]));
                 }
 
-                transition_function.push_back(m.mk_and(exprs.size(), exprs.c_ptr()));
+                transition_function.push_back(m.mk_and(exprs.size(), exprs.data()));
             }
         }
 
-        expr *tr = m.mk_or(transition_function.size(), transition_function.c_ptr());
+        expr *tr = m.mk_or(transition_function.size(), transition_function.data());
         aig_ref aig = m_aigm.mk_aig(tr);
         expr_ref aig_expr(m);
         m_aigm.to_formula(aig, aig_expr);
@@ -194,10 +192,10 @@ namespace datalog {
             for (func_decl_set::iterator I = preds.begin(), E = preds.end(); I != E; ++I) {
                 exprs.reset();
                 assert_pred_id(*I, m_ruleid_var_set, exprs);
-                output.push_back(m.mk_and(exprs.size(), exprs.c_ptr()));
+                output.push_back(m.mk_and(exprs.size(), exprs.data()));
             }
 
-            expr *out = m.mk_or(output.size(), output.c_ptr());
+            expr *out = m.mk_or(output.size(), output.data());
             aig = m_aigm.mk_aig(out);
             m_aigm.to_formula(aig, aig_expr);
             output_id = expr_to_aig(aig_expr);

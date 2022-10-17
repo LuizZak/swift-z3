@@ -40,18 +40,11 @@ void context_params::set_bool(bool & opt, char const * param, char const * value
 }
 
 void context_params::set_uint(unsigned & opt, char const * param, char const * value) {
-    bool is_uint = true;
-    size_t sz = strlen(value);
-    for (unsigned i = 0; i < sz; i++) {
-        if (!(value[i] >= '0' && value[i] <= '9'))
-            is_uint = false;
-    }
+    char *endptr;
+    long val = strtol(value, &endptr, 10);
+    opt = static_cast<unsigned>(val);
 
-    if (is_uint) {
-        long val = strtol(value, nullptr, 10);
-        opt = static_cast<unsigned>(val);
-    }
-    else {
+    if (!*value || *endptr) {
         std::stringstream strm;
         strm << "invalid value '" << value << "' for unsigned int parameter '" << param << "'";
         throw default_exception(strm.str());
@@ -113,8 +106,15 @@ void context_params::set(char const * param, char const * value) {
     else if (p == "smtlib2_compliant") {
         set_bool(m_smtlib2_compliant, param, value);
     }
-    else if (p == "unicode") {
-        set_bool(m_unicode, param, value);
+    else if (p == "encoding") {
+        if (strcmp(value, "unicode") == 0 || strcmp(value, "bmp") == 0 || strcmp(value, "ascii") == 0) {
+            m_encoding = value;
+        }
+        else {
+            std::stringstream strm;
+            strm << "invalid value '" << value << "' for parameter '" << param << "' (supported: unicode, bmp, ascii)";
+            throw default_exception(strm.str());
+        }
     }
     else {
         param_descrs d;
@@ -147,7 +147,7 @@ void context_params::updt_params(params_ref const & p) {
     m_debug_ref_count   = p.get_bool("debug_ref_count", m_debug_ref_count);
     m_smtlib2_compliant = p.get_bool("smtlib2_compliant", m_smtlib2_compliant);
     m_statistics        = p.get_bool("stats", m_statistics);
-    m_unicode           = p.get_bool("unicode", m_unicode);
+    m_encoding          = p.get_str("encoding", m_encoding.c_str());
 }
 
 void context_params::collect_param_descrs(param_descrs & d) {
@@ -164,7 +164,7 @@ void context_params::collect_param_descrs(param_descrs & d) {
     d.insert("debug_ref_count", CPK_BOOL, "debug support for AST reference counting", "false");
     d.insert("smtlib2_compliant", CPK_BOOL, "enable/disable SMT-LIB 2.0 compliance", "false");
     d.insert("stats", CPK_BOOL, "enable/disable statistics", "false");
-    d.insert("unicode", CPK_BOOL, "use unicode strings instead of ASCII strings");
+    d.insert("encoding", CPK_STRING, "string encoding used internally: unicode|bmp|ascii", "unicode");
     // statistics are hidden as they are controlled by the /st option.
     collect_solver_param_descrs(d);
 }
@@ -190,7 +190,8 @@ void context_params::get_solver_params(params_ref & p, bool & proofs_enabled, bo
     proofs_enabled     &= p.get_bool("proof", m_proof);
     models_enabled     &= p.get_bool("model", m_model);
     unsat_core_enabled = m_unsat_core || p.get_bool("unsat_core", false);
-    p = merge_default_params(p);
+    if (!m_auto_config && !p.contains("auto_config"))
+        p.set_bool("auto_config", false);
 }
 
 

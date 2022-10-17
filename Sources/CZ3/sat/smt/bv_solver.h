@@ -26,6 +26,15 @@ namespace euf {
 
 namespace bv {
 
+    struct lazy_mul {
+        expr_ref_vector m_out;
+        unsigned        m_bits;
+        lazy_mul(app* a, expr_ref_vector& out):
+            m_out(out), 
+            m_bits(0) {
+        }
+    };
+
     class solver : public euf::th_euf_solver {
         typedef rational numeral;
         typedef euf::theory_var theory_var;
@@ -51,13 +60,15 @@ namespace bv {
         };
 
         struct bv_justification {
-            enum kind_t { eq2bit, ne2bit, bit2eq, bit2ne };
+            enum kind_t { eq2bit, ne2bit, bit2eq, bit2ne, bv2int };
             kind_t     m_kind;
-            unsigned   m_idx{ UINT_MAX };
-            theory_var m_v1{ euf::null_theory_var };
-            theory_var m_v2 { euf::null_theory_var };
+            unsigned   m_idx = UINT_MAX;
+            theory_var m_v1 = euf::null_theory_var;
+            theory_var m_v2 = euf::null_theory_var;
             sat::literal m_consequent;
             sat::literal m_antecedent;
+            euf::enode* a, *b, *c;
+                    
             bv_justification(theory_var v1, theory_var v2, sat::literal c, sat::literal a) :
                 m_kind(bv_justification::kind_t::eq2bit), m_v1(v1), m_v2(v2), m_consequent(c), m_antecedent(a) {}
             bv_justification(theory_var v1, theory_var v2):
@@ -66,6 +77,8 @@ namespace bv {
                 m_kind(bv_justification::kind_t::bit2ne), m_idx(idx), m_consequent(c) {}
             bv_justification(unsigned idx, theory_var v1, theory_var v2, sat::literal c, sat::literal a) :
                 m_kind(bv_justification::kind_t::ne2bit), m_idx(idx), m_v1(v1), m_v2(v2), m_consequent(c), m_antecedent(a) {}
+            bv_justification(theory_var v1, theory_var v2, euf::enode* a, euf::enode* b, euf::enode* c):
+                m_kind(bv_justification::kind_t::bv2int), m_v1(v1), m_v2(v2), a(a), b(b), c(c) {}
             sat::ext_constraint_idx to_index() const { 
                 return sat::constraint_base::mem2base(this); 
             }
@@ -79,6 +92,7 @@ namespace bv {
         sat::ext_justification_idx mk_bit2eq_justification(theory_var v1, theory_var v2);
         sat::justification mk_bit2ne_justification(unsigned idx, sat::literal c);
         sat::justification mk_ne2bit_justification(unsigned idx, theory_var v1, theory_var v2, sat::literal c, sat::literal a);
+        sat::ext_constraint_idx mk_bv2int_justification(theory_var v1, theory_var v2, euf::enode* a, euf::enode* b, euf::enode* c);
         void log_drat(bv_justification const& c);
  
 
@@ -102,6 +116,9 @@ namespace bv {
             unsigned   m_is_true:1;
             zero_one_bit(theory_var v = euf::null_theory_var, unsigned idx = UINT_MAX, bool is_true = false):
                 m_owner(v), m_idx(idx), m_is_true(is_true) {}
+            std::ostream& display(std::ostream& out) const {
+                return out << "v" << m_owner << " @ " << m_idx << " " << (m_is_true?"T":"F");
+            }
         };
 
         typedef svector<zero_one_bit> zero_one_bits;
@@ -158,11 +175,11 @@ namespace bv {
 
         struct atom {
             bool_var      m_bv;
-            eq_occurs*    m_eqs;
-            var_pos_occ * m_occs;
+            eq_occurs*    m_eqs = nullptr;
+            var_pos_occ * m_occs = nullptr;
             svector<std::pair<atom*, eq_occurs*>> m_bit2occ;
-            literal    m_var { sat::null_literal };
-            literal    m_def { sat::null_literal };
+            literal    m_var = sat::null_literal;
+            literal    m_def = sat::null_literal;
             atom(bool_var b) :m_bv(b), m_eqs(nullptr), m_occs(nullptr) {}
             ~atom() { m_bit2occ.clear(); }
             var_pos_it begin() const { return var_pos_it(m_occs); }
@@ -171,11 +188,12 @@ namespace bv {
         };
 
         struct propagation_item {
-            var_pos m_vp { var_pos(0, 0) };
-            atom* m_atom{ nullptr };
+            var_pos m_vp = var_pos(0, 0) ;
+            atom* m_atom = nullptr;
             explicit propagation_item(atom* a) : m_atom(a) {}
             explicit propagation_item(var_pos const& vp) : m_vp(vp) {}            
             bool operator==(propagation_item const& other) const { if (m_atom) return m_atom == other.m_atom; return false; }
+            bool is_atom() const { return m_atom != nullptr; }
         };
 
 
@@ -203,8 +221,10 @@ namespace bv {
         literal_vector             m_tmp_literals;
         svector<propagation_item>  m_prop_queue;
         unsigned_vector            m_prop_queue_lim;
-        unsigned                   m_prop_queue_head { 0 };
-        sat::literal               m_true { sat::null_literal };
+        unsigned                   m_prop_queue_head = 0;
+        sat::literal               m_true = sat::null_literal;
+        euf::enode_vector          m_bv2ints;
+        obj_map<app, lazy_mul*>   m_lazymul;
 
         // internalize
         void insert_bv2a(bool_var bv, atom * a) { m_bool_var2atom.setx(bv, a, 0); }
@@ -222,6 +242,7 @@ namespace bv {
         void get_bits(euf::enode* n, expr_ref_vector& r);
         void get_arg_bits(app* n, unsigned idx, expr_ref_vector& r);
         void fixed_var_eh(theory_var v);
+        bool is_fixed(euf::theory_var v, expr_ref& val, sat::literal_vector& lits) override;
         bool is_bv(theory_var v) const { return bv.is_bv(var2expr(v)); }
         void register_true_false_bit(theory_var v, unsigned i);
         void add_bit(theory_var v, sat::literal lit);
@@ -236,9 +257,9 @@ namespace bv {
         bool internalize_circuit(app* a);
         void internalize_unary(app* n, std::function<void(unsigned, expr* const*, expr_ref_vector&)>& fn);
         void internalize_binary(app* n, std::function<void(unsigned, expr* const*, expr* const*, expr_ref_vector&)>& fn);
-        void internalize_ac_binary(app* n, std::function<void(unsigned, expr* const*, expr* const*, expr_ref_vector&)>& fn);
         void internalize_par_unary(app* n, std::function<void(unsigned, expr* const*, unsigned p, expr_ref_vector&)>& fn);
         void internalize_novfl(app* n, std::function<void(unsigned, expr* const*, expr* const*, expr_ref&)>& fn);
+        void internalize_interp(app* n, std::function<expr*(expr*, expr*)>& ibin, std::function<expr*(expr*)>& un);
         void internalize_num(app * n);       
         void internalize_concat(app * n);        
         void internalize_bv2int(app* n);
@@ -248,14 +269,15 @@ namespace bv {
         void internalize_carry(app* n);
         void internalize_sub(app* n);
         void internalize_extract(app* n);
+        void internalize_repeat(app* n);
         void internalize_bit2bool(app* n);
-        void internalize_udiv(app* n);
         void internalize_udiv_i(app* n);
         template<bool Signed, bool Reverse, bool Negated>
         void internalize_le(app* n);
         void assert_bv2int_axiom(app * n);
         void assert_int2bv_axiom(app* n);
         void assert_ackerman(theory_var v1, theory_var v2);
+        bool reflect() const { return get_config().m_bv_reflect; }
 
         // delay internalize
         enum class internalize_mode {
@@ -268,6 +290,7 @@ namespace bv {
         bool m_cheap_axioms{ true };
         bool should_bit_blast(app * n);
         bool check_delay_internalized(expr* e);
+        bool check_lazy_mul(app* e, expr* mul_value, expr* arg_value);
         bool check_mul(app* e);
         bool check_mul_invertibility(app* n, expr_ref_vector const& arg_values, expr* value);
         bool check_mul_zero(app* n, expr_ref_vector const& arg_values, expr* value1, expr* value2);
@@ -307,7 +330,6 @@ namespace bv {
        
     public:
         solver(euf::solver& ctx, theory_id id);
-        ~solver() override {}
         void set_lookahead(sat::lookahead* s) override { }
         void init_search() override {}
         double get_reward(literal l, sat::ext_constraint_idx idx, sat::literal_occs_fun& occs) const override;
@@ -366,9 +388,12 @@ namespace bv {
         typedef std::pair<solver const*, theory_var> pp_var;
         pp_var pp(theory_var v) const { return pp_var(this, v); }
 
+        friend std::ostream& operator<<(std::ostream& out, solver::zero_one_bit const& zo) { return zo.display(out); }
+
     };
 
     inline std::ostream& operator<<(std::ostream& out, solver::pp_var const& p) { return p.first->display(out, p.second); }
+
 
 
 }

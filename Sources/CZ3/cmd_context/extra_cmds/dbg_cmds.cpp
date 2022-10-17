@@ -123,7 +123,7 @@ public:
     }
     void execute(cmd_context & ctx) override {
         beta_reducer p(ctx.m());
-        expr_ref r = p(m_source, m_subst.size(), m_subst.c_ptr());
+        expr_ref r = p(m_source, m_subst.size(), m_subst.data());
         store_expr_ref(ctx, m_target, r.get());
     }
 };
@@ -199,12 +199,12 @@ void tst_params(cmd_context & ctx) {
     params_ref p1;
     params_ref p2;
     p1.set_uint("val", 100);
-    p2 = p1;
+    p2.append(p1);
     SASSERT(p2.get_uint("val", 0) == 100);
     p2.set_uint("val", 200);
     SASSERT(p2.get_uint("val", 0) == 200);
     SASSERT(p1.get_uint("val", 0) == 100);
-    p2 = p1;
+    p2.append(p1);
     SASSERT(p2.get_uint("val", 0) == 100);
     SASSERT(p1.get_uint("val", 0) == 100);
     ctx.regular_stream() << "worked" << std::endl;
@@ -304,7 +304,7 @@ public:
     }
 
     void execute(cmd_context & ctx) override {
-        expr_ref r = instantiate(ctx.m(), m_q, m_args.c_ptr());
+        expr_ref r = instantiate(ctx.m(), m_q, m_args.data());
         ctx.display(ctx.regular_stream(), r);
         ctx.regular_stream() << std::endl;
     }
@@ -377,8 +377,8 @@ public:
 };
 
 class get_interpolant_cmd : public cmd {
-    expr* m_a;
-    expr* m_b;
+    scoped_ptr<expr_ref> m_a;
+    scoped_ptr<expr_ref> m_b;
 public:
     get_interpolant_cmd():cmd("get-interpolant") {}
     char const * get_usage() const override { return "<expr> <expr>"; }
@@ -388,17 +388,24 @@ public:
         return CPK_EXPR; 
     }
     void set_next_arg(cmd_context& ctx, expr * arg) override { 
-        if (m_a == nullptr) 
-            m_a = arg; 
+        ast_manager& m = ctx.m();
+        if (!m.is_bool(arg))
+            throw default_exception("argument to interpolation is not Boolean");
+        if (!m_a) 
+            m_a = alloc(expr_ref, arg, m); 
         else 
-            m_b = arg; 
+            m_b = alloc(expr_ref, arg, m); 
     }
     void prepare(cmd_context & ctx) override { m_a = nullptr; m_b = nullptr;  }
     void execute(cmd_context & ctx) override { 
         ast_manager& m = ctx.m();
         qe::interpolator mbi(m);
+        if (!m_a || !m_b)
+            throw default_exception("interpolation requires two arguments");
+        if (!m.is_bool(*m_a) || !m.is_bool(*m_b))
+            throw default_exception("interpolation requires two Boolean arguments");
         expr_ref itp(m);
-         mbi.pogo(ctx.get_solver_factory(), m_a, m_b, itp);
+        mbi.pogo(ctx.get_solver_factory(), *m_a, *m_b, itp);
         ctx.regular_stream() << itp << "\n";
     }
 };

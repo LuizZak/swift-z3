@@ -104,7 +104,9 @@ class arith_rewriter : public poly_rewriter<arith_rewriter_core> {
     bool divides(expr* d, expr* n, expr_ref& result);
     expr_ref remove_divisor(expr* arg, expr* num, expr* den); 
     void flat_mul(expr* e, ptr_buffer<expr>& args); 
-    void remove_divisor(expr* d, ptr_buffer<expr>& args); 
+    void remove_divisor(expr* d, ptr_buffer<expr>& args);
+
+    bool mk_eq_mod(expr* arg1, expr* arg2, expr_ref& result);
 public:
     arith_rewriter(ast_manager & m, params_ref const & p = params_ref()):
         poly_rewriter<arith_rewriter_core>(m, p) {
@@ -146,6 +148,8 @@ public:
     void mk_gt(expr * arg1, expr * arg2, expr_ref & result) { mk_gt_core(arg1, arg2, result); }
 
     br_status mk_abs_core(expr * arg, expr_ref & result);
+
+    br_status mk_and_core(unsigned n, expr* const* args, expr_ref& result);
 
     br_status mk_div_core(expr * arg1, expr * arg2, expr_ref & result);
     br_status mk_idiv_core(expr * arg1, expr * arg2, expr_ref & result);

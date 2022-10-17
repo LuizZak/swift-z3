@@ -15,7 +15,9 @@ Author:
 
 --*/
 
+#include "ast/ast_pp.h"
 #include "ast/rewriter/seq_eq_solver.h"
+#include "ast/bv_decl_plugin.h"
 
 namespace seq {
 
@@ -36,6 +38,10 @@ namespace seq {
         if (reduce_itos2(e, r))
             return true;
         if (reduce_itos3(e, r))
+            return true;
+        if (reduce_ubv2s1(e, r))
+            return true;
+        if (reduce_ubv2s2(e, r))
             return true;
         if (reduce_binary_eq(e, r))
             return true;
@@ -148,6 +154,7 @@ namespace seq {
         expr_ref_vector const* _es = nullptr;
         if (!match_itos3(e, n, _es))
             return false;
+
         expr_ref_vector const& es = *_es;
 
         if (es.empty()) {
@@ -183,6 +190,8 @@ namespace seq {
             expr_ref digit = m_ax.sk().mk_digit2int(u);
             add_consequence(m_ax.mk_ge(digit, 1));
         }
+	    expr_ref y(seq.str.mk_concat(es, es[0]->get_sort()), m);
+	    ctx.add_solution(seq.str.mk_itos(n), y);
         return true;
     }
 
@@ -203,6 +212,105 @@ namespace seq {
             return true;
         }
         return false;
+    }
+
+
+
+    /**
+     * from_ubv(s) == from_ubv(t)
+     * --------------------------
+     * s = t
+     */
+
+    bool eq_solver::match_ubv2s1(eqr const& e, expr*& a, expr*& b) {
+        return
+            e.ls.size() == 1 && e.rs.size() == 1 &&
+            seq.str.is_ubv2s(e.ls[0], a) && seq.str.is_ubv2s(e.rs[0], b);
+        return false;
+    }
+
+    bool eq_solver::reduce_ubv2s1(eqr const& e, eq_ptr& r) {
+        expr* s = nullptr, * t = nullptr;
+        if (!match_ubv2s1(e, s, t))
+            return false;
+        expr_ref eq = mk_eq(s, t);
+        add_consequence(eq);
+        return true;        
+    }
+
+    /**
+    *
+    *          bv2s(n) = [d1]+[d2]+...+[dk]
+    *       ---------------------------------
+    *           n = 10^{k-1}*d1 + ... + dk
+    *
+    *           k > 1 => d1 > 0
+    */
+    bool eq_solver::match_ubv2s2(eqr const& e, expr*& n, expr_ref_vector const*& es) {
+        if (e.ls.size() == 1 && seq.str.is_ubv2s(e.ls[0], n)) {
+            es = &e.rs;
+            return true;
+        }
+        if (e.rs.size() == 1 && seq.str.is_ubv2s(e.rs[0], n)) {
+            es = &e.ls;
+            return true;
+        }
+        return false;
+    }
+
+    bool eq_solver::reduce_ubv2s2(eqr const& e, eq_ptr& r) {
+        expr* n = nullptr;
+        expr_ref_vector const* _es = nullptr;
+        if (!match_ubv2s2(e, n, _es))
+            return false;
+
+        expr_ref_vector const& es = *_es;
+        if (es.empty()) {
+            set_conflict();
+            return true;
+        }
+        expr* u = nullptr;
+        for (expr* r : es) {
+            if (seq.str.is_unit(r, u)) {
+                expr_ref is_digit = m_ax.is_digit(u);
+                if (!m.is_true(ctx.expr2rep(is_digit)))
+                    add_consequence(is_digit);
+            }
+        }
+        if (!all_units(es, 0, es.size()))
+            return false;
+
+        expr_ref num(m);
+        bv_util bv(m);
+        sort* bv_sort = n->get_sort();
+        unsigned sz = bv.get_bv_size(n);
+        if (es.size() > (sz + log2(10)-1)/log2(10)) {
+            set_conflict();
+            return true;
+        }
+
+        for (expr* r : es) {
+            VERIFY(seq.str.is_unit(r, u));
+            expr_ref digit = m_ax.sk().mk_digit2bv(u, bv_sort);
+            if (!num)
+                num = digit;
+            else
+                num = bv.mk_bv_add(bv.mk_bv_mul(bv.mk_numeral(10, sz), num), digit);
+        }
+
+        expr_ref eq(m.mk_eq(n, num), m);
+        m_ax.rewrite(eq);
+        add_consequence(eq);
+        if (es.size() > 1) {
+            VERIFY(seq.str.is_unit(es[0], u));
+            expr_ref digit = m_ax.sk().mk_digit2bv(u, bv_sort);
+            expr_ref eq0(m.mk_eq(digit, bv.mk_numeral(0, sz)), m);
+            expr_ref neq0(m.mk_not(eq0), m);
+            add_consequence(neq0);
+        }
+        expr_ref y(seq.str.mk_concat(es, es[0]->get_sort()), m);
+        ctx.add_solution(seq.str.mk_ubv2s(n), y);
+        return true;     
     }
 
 
@@ -304,7 +412,7 @@ namespace seq {
         expr_ref eq_length(m.mk_eq(a.mk_int(lenX), seq.str.mk_length(X)), m);
         expr* val = ctx.expr2rep(eq_length);
         if (!m.is_false(val)) {
-            expr_ref Y(seq.str.mk_concat(lenX.get_unsigned(), units.c_ptr(), X->get_sort()), m);
+            expr_ref Y(seq.str.mk_concat(lenX.get_unsigned(), units.data(), X->get_sort()), m);
             expr_ref eq = m_ax.sk().mk_eq(X, Y);
             add_consequence(~eq_length, eq);
             return true;
@@ -330,6 +438,10 @@ namespace seq {
             !seq.str.is_unit(a) &&
             !seq.str.is_itos(a) &&
             !seq.str.is_nth_i(a) &&
+            !seq.str.is_map(a) &&
+            !seq.str.is_mapi(a) &&
+            !seq.str.is_foldl(a) &&
+            !seq.str.is_foldli(a) &&
             !m.is_ite(a);
     }
 
@@ -369,12 +481,12 @@ namespace seq {
 
     void eq_solver::set_prefix(expr_ref& x, expr_ref_vector const& xs, unsigned sz) const {
         SASSERT(0 < xs.size() && sz <= xs.size());
-        x = seq.str.mk_concat(sz, xs.c_ptr(), xs[0]->get_sort());
+        x = seq.str.mk_concat(sz, xs.data(), xs[0]->get_sort());
     }
 
     void eq_solver::set_suffix(expr_ref& x, expr_ref_vector const& xs, unsigned sz) const {
         SASSERT(0 < xs.size() && sz <= xs.size());
-        x = seq.str.mk_concat(sz, xs.c_ptr() + xs.size() - sz, xs[0]->get_sort());
+        x = seq.str.mk_concat(sz, xs.data() + xs.size() - sz, xs[0]->get_sort());
     }
 
     unsigned eq_solver::count_units_l2r(expr_ref_vector const& es, unsigned offset) const {
@@ -568,7 +680,7 @@ namespace seq {
             if (rs.size() > i) {
                 unsigned diff = rs.size() - (i + 1);
                 for (unsigned j = 0; same && j < i; ++j) 
-                    same = !m.are_distinct(ls[j], rs[diff + j]);                               
+                    same = !m.are_distinct(ls[j], rs[diff + j]);
             }
             // ls = x ++ rs ++ y, diff = |x|
             else {
@@ -597,8 +709,9 @@ namespace seq {
             bool same = true;
             // ls = x ++ rs' && rs = rs' ++ y, diff = |x|
             if (rs.size() > i) {
-                for (unsigned j = 1; same && j <= i; ++j) 
-                    same = !m.are_distinct(ls[diff + j], rs[j]);                
+                for (unsigned j = 1; same && j <= i; ++j) {
+                    same = !m.are_distinct(ls[diff + j], rs[j]);
+                }
             }
             // ls = x ++ rs ++ y, diff = |x|
             else {
@@ -608,6 +721,7 @@ namespace seq {
             if (same)
                 return true;
         }
+        
         return false;
     }
 

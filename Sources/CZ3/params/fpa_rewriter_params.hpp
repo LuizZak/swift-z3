@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __FPA_REWRITER_PARAMS_HPP_
-#define __FPA_REWRITER_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct fpa_rewriter_params {
@@ -16,4 +15,3 @@ struct fpa_rewriter_params {
   */
   bool hi_fp_unspecified() const { return p.get_bool("hi_fp_unspecified", g, false); }
 };
-#endif

@@ -20,6 +20,7 @@ Author:
 #include "qe/mbp/mbp_plugin.h"
 #include "sat/smt/sat_th.h"
 #include "sat/smt/q_model_fixer.h"
+#include "sat/sat_solver.h"
 
 namespace euf {
     class solver;
@@ -60,19 +61,22 @@ namespace q {
         stats                                  m_stats;
         model_fixer                            m_model_fixer;
         model_ref                              m_model;
+        sat::no_drat_params                    m_no_drat_params;
         ref<::solver>                          m_solver;
         scoped_ptr_vector<obj_hashtable<expr>> m_values;
         scoped_ptr_vector<mbp::project_plugin> m_plugins;
         obj_map<quantifier, q_body*>           m_q2body;
-        unsigned                               m_max_cex{ 1 };
-        unsigned                               m_max_quick_check_rounds { 100 };
-        unsigned                               m_max_unbounded_equalities { 10 };
-        unsigned                               m_max_choose_candidates { 10 };
-        unsigned                               m_generation_bound{ UINT_MAX };
-        unsigned                               m_generation_max { UINT_MAX };
-        typedef std::tuple<sat::literal, expr_ref, unsigned> instantiation_t;
+        unsigned                               m_max_cex = 1;
+        unsigned                               m_max_quick_check_rounds = 100;
+        unsigned                               m_max_unbounded_equalities = 10;
+        unsigned                               m_max_choose_candidates = 10;
+        unsigned                               m_generation_bound = UINT_MAX;
+        unsigned                               m_generation_max = UINT_MAX;
+        typedef std::tuple<sat::literal, expr_ref, expr_ref_vector, unsigned> instantiation_t;
         vector<instantiation_t> m_instantiations;
+        vector<mbp::def>        m_defs;
 
+        expr_ref_vector extract_binding(quantifier* q);
         void restrict_to_universe(expr * sk, ptr_vector<expr> const & universe);
         // void register_value(expr* e);
         expr_ref replace_model_value(expr* e);
@@ -81,7 +85,7 @@ namespace q {
         q_body* specialize(quantifier* q);
         q_body* q2body(quantifier* q);
         expr_ref solver_project(model& mdl, q_body& qb, expr_ref_vector& eqs, bool use_inst);
-        void add_universe_restriction(quantifier* q, q_body& qb);
+        void add_universe_restriction(q_body& qb);
         void add_domain_eqs(model& mdl, q_body& qb);
         void add_domain_bounds(model& mdl, q_body& qb);
         void eliminate_nested_vars(expr_ref_vector& fmls, q_body& qb);
@@ -96,7 +100,7 @@ namespace q {
         bool check_forall_default(quantifier* q, q_body& qb, model& mdl);
         bool check_forall_subst(quantifier* q, q_body& qb, model& mdl);
 
-        bool quick_check(quantifier* q, q_body& qb);
+        bool quick_check(quantifier* q, quantifier* q_flat, q_body& qb);
         bool next_offset(unsigned_vector& offsets, app_ref_vector const& vars);
         bool first_offset(unsigned_vector& offsets, app_ref_vector const& vars);
         bool next_offset(unsigned_vector& offsets, app_ref_vector const& vars, unsigned i, unsigned start);

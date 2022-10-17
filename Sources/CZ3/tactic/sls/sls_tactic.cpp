@@ -50,9 +50,11 @@ public:
         dealloc(m_engine);
     }
 
+    char const* name() const override { return "sls"; }
+
     void updt_params(params_ref const & p) override {
-        m_params = p;
-        m_engine->updt_params(p);
+        m_params.append(p);
+        m_engine->updt_params(m_params);
     }
 
     void collect_param_descrs(param_descrs & r) override {

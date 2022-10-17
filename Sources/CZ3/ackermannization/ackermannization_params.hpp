@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __ACKERMANNIZATION_PARAMS_HPP_
-#define __ACKERMANNIZATION_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct ackermannization_params {
@@ -17,4 +16,3 @@ struct ackermannization_params {
   */
   bool eager() const { return p.get_bool("eager", g, true); }
 };
-#endif

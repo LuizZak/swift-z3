@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __COMBINED_SOLVER_PARAMS_HPP_
-#define __COMBINED_SOLVER_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct combined_solver_params {
@@ -21,4 +20,3 @@ struct combined_solver_params {
   bool ignore_solver1() const { return p.get_bool("ignore_solver1", g, false); }
   unsigned solver2_unknown() const { return p.get_uint("solver2_unknown", g, 1u); }
 };
-#endif

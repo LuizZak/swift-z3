@@ -424,7 +424,7 @@ namespace mbp {
             for (expr * arg : *a) {
                 kids.push_back (mk_app(arg));
             }
-            app* res = m.mk_app(a->get_decl(), a->get_num_args(), kids.c_ptr());
+            app* res = m.mk_app(a->get_decl(), a->get_num_args(), kids.data());
             m_pinned.push_back(res);
             return res;
         }
@@ -610,7 +610,7 @@ namespace mbp {
                 }
                 TRACE("qe_verbose", tout << *ch << " -> " << mk_pp(e, m) << "\n";);
             }
-            expr* pure = m.mk_app(a->get_decl(), kids.size(), kids.c_ptr());
+            expr* pure = m.mk_app(a->get_decl(), kids.size(), kids.data());
             m_pinned.push_back(pure);
             add_term2app(t, pure);
             return pure;
@@ -712,7 +712,7 @@ namespace mbp {
                         }
                     }
                     if (diff.size() > 1) {
-                        res.push_back(m.mk_distinct(diff.size(), diff.c_ptr()));
+                        res.push_back(m.mk_distinct(diff.size(), diff.data()));
                     }
                     else {
                         TRACE("qe", tout << "skipping " << mk_pp(lit, m) << "\n";);
@@ -755,7 +755,7 @@ namespace mbp {
                 app* a = to_app(e);
                 func_decl* d = a->get_decl();
                 if (d->get_arity() == 0) continue;
-                unsigned id = d->get_decl_id();
+                unsigned id = d->get_small_id();
                 m_decl2terms.reserve(id+1);
                 if (m_decl2terms[id].empty()) m_decls.push_back(d);
                 m_decl2terms[id].push_back(t);
@@ -770,7 +770,7 @@ namespace mbp {
             // are distinct.
             //
             for (func_decl* d : m_decls) {
-                unsigned id = d->get_decl_id();
+                unsigned id = d->get_small_id();
                 ptr_vector<term> const& terms = m_decl2terms[id];
                 if (terms.size() <= 1) continue;
                 unsigned arity = d->get_arity();
@@ -802,7 +802,7 @@ namespace mbp {
                             args.push_back(r);
                         }
                         TRACE("qe", tout << "function: " << d->get_name() << "\n";);
-                        res.push_back(m.mk_distinct(args.size(), args.c_ptr()));
+                        res.push_back(m.mk_distinct(args.size(), args.data()));
                     }
                 }
             }
@@ -915,7 +915,7 @@ namespace mbp {
 
             // -- sort representatives, call mk_distinct on any range
             // -- of the same sort longer than 1
-            std::sort(reps.c_ptr(), reps.c_ptr() + reps.size(), sort_lt_proc());
+            std::sort(reps.data(), reps.data() + reps.size(), sort_lt_proc());
             unsigned i = 0;
             unsigned sz = reps.size();
             while (i < sz) {
@@ -928,7 +928,7 @@ namespace mbp {
                     if (!m.is_true(d)) res.push_back(d);
                 }
                 else if (j - i > 2)
-                    res.push_back(m.mk_distinct(j - i, reps.c_ptr() + i));
+                    res.push_back(m.mk_distinct(j - i, reps.data() + i));
                 i = j;
             }
             TRACE("qe", tout << "after distinct: " << res << "\n";);
@@ -1020,12 +1020,7 @@ namespace mbp {
             vector<expr_ref_vector> result;
             expr_ref_vector pinned(m);
             obj_map<expr, unsigned> pid;
-            model::scoped_model_completion _smc(mdl, true);
-            for (term *t : m_tg.m_terms) {
-                expr* a = t->get_expr();
-                if (!is_app(a)) continue;
-                if (m.is_bool(a) && !include_bool) continue;
-                expr_ref val = mdl(a);
+            auto insert_val = [&](expr* a, expr* val) {
                 unsigned p = 0;
                 // NB. works for simple domains Integers, Rationals, 
                 // but not for algebraic numerals.
@@ -1036,7 +1031,18 @@ namespace mbp {
                     result.push_back(expr_ref_vector(m));
                 }
                 result[p].push_back(a);
+            };
+            model::scoped_model_completion _smc(mdl, true);
+            for (term *t : m_tg.m_terms) {
+                expr* a = t->get_expr();
+                if (!is_app(a)) 
+                    continue;
+                if (m.is_bool(a) && !include_bool) 
+                    continue;
+                expr_ref val = mdl(a);
+                insert_val(a, val);
             }            
+
             return result;
         }
 
@@ -1238,7 +1244,13 @@ namespace mbp {
             for (expr* e : vec) term2pid.insert(e, id);
             ++id;
         }
-        auto partition_of = [&](expr* e) { return partitions[term2pid[e]]; }; 
+        expr_ref_vector empty(m);
+        auto partition_of = [&](expr* e) { 
+            unsigned pid;
+            if (!term2pid.find(e, pid))
+                return empty;
+            return partitions[pid]; 
+        }; 
         auto in_table = [&](expr* a, expr* b) { 
             return diseqs.contains(pair_t(a, b));
         };

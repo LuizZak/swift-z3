@@ -248,7 +248,7 @@ class lia2pb_tactic : public tactic {
                         a *= rational(2);
                     }
                     SASSERT(def_args.size() > 1);
-                    expr * def = m_util.mk_add(def_args.size(), def_args.c_ptr());
+                    expr * def = m_util.mk_add(def_args.size(), def_args.data());
                     expr_dependency * dep = nullptr;
                     if (m_produce_unsat_cores) {
                         dep = m.mk_join(m_bm.lower_dep(x), m_bm.upper_dep(x));
@@ -305,9 +305,11 @@ public:
         dealloc(m_imp);
     }
 
+    char const* name() const override { return "lia2pb"; }
+
     void updt_params(params_ref const & p) override {
-        m_params = p;
-        m_imp->updt_params(p);
+        m_params.append(p);
+        m_imp->updt_params(m_params);
     }
 
     void collect_param_descrs(param_descrs & r) override {

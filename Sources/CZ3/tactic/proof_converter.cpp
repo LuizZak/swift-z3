@@ -71,7 +71,7 @@ public:
         proof_converter_ref pc1 = m_pc->translate(tr);
         goal_ref_buffer goals;
         for (goal_ref g : m_goals) goals.push_back(g->translate(tr));
-        return alloc(subgoal_proof_converter, pc1.get(), goals.size(), goals.c_ptr());
+        return alloc(subgoal_proof_converter, pc1.get(), goals.size(), goals.data());
     }
 
     void display(std::ostream& out) override {}
@@ -86,7 +86,6 @@ class proof2pc : public proof_converter {
     proof_ref m_pr;
 public:
     proof2pc(ast_manager & m, proof * pr):m_pr(pr, m) {}
-    ~proof2pc() override {}
 
     proof_ref operator()(ast_manager & m, unsigned num_source, proof * const * source) override {
         SASSERT(num_source == 0);
@@ -133,5 +132,5 @@ proof_ref apply(ast_manager & m, proof_converter_ref & pc1, proof_converter_ref_
         pr = pc2s[i]->operator()(m, 0, nullptr);
         prs.push_back(pr);
     }
-    return (*pc1)(m, sz, prs.c_ptr());
+    return (*pc1)(m, sz, prs.data());
 }

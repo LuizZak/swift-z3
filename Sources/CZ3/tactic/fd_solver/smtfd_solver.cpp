@@ -317,13 +317,13 @@ namespace smtfd {
                         r = m.mk_eq(m_args.get(0), m_args.get(1));
                     }
                     else if (m.is_distinct(a)) {
-                        r = m.mk_distinct(m_args.size(), m_args.c_ptr());
+                        r = m.mk_distinct(m_args.size(), m_args.data());
                     }
                     else if (m.is_ite(a)) {
                         r = m.mk_ite(m_args.get(0), m_args.get(1), m_args.get(2));
                     }
                     else if (bvfid == fid || bfid == fid || pbfid == fid) {
-                        r = m.mk_app(a->get_decl(), m_args.size(), m_args.c_ptr());
+                        r = m.mk_app(a->get_decl(), m_args.size(), m_args.data());
                     }
                     else if (is_uninterp_const(t) && m.is_bool(t)) {
                         r = t;
@@ -509,6 +509,8 @@ namespace smtfd {
             m_context.add_plugin(this);
         }
 
+        virtual ~theory_plugin() = default;
+
         table& ast2table(ast* f, sort* s) {
             unsigned idx = 0;
             if (!m_ast2table.find(f, s, idx)) {
@@ -619,7 +621,7 @@ namespace smtfd {
             return false;
         }
         else if (round < max_rounds) {
-            for (expr* t : subterms(core)) {
+            for (expr* t : subterms::ground(core)) {
                 for (theory_plugin* p : m_plugins) {
                     p->check_term(t, round);
                 }
@@ -697,7 +699,7 @@ namespace smtfd {
     }
 
     unsigned f_app_hash::operator()(f_app const& a) const {
-        return get_composite_hash(p.values().c_ptr() + a.m_val_offset, a.m_t->get_num_args(), *this, *this);
+        return get_composite_hash(p.values().data() + a.m_val_offset, a.m_t->get_num_args(), *this, *this);
     }
     
     class basic_plugin : public theory_plugin {
@@ -779,7 +781,7 @@ namespace smtfd {
                 values.push_back(m.mk_model_value(values.size(), s));
                 m_pinned.push_back(values.back());                
             }
-            m_context.get_model().register_usort(s, values.size(), values.c_ptr());
+            m_context.get_model().register_usort(s, values.size(), values.data());
             for (unsigned i = 0; i < keys.size(); ++i) {
                 v2e.insert(keys[i], values[i]);
             }
@@ -859,11 +861,11 @@ namespace smtfd {
                     }
                     expr_ref val = model_value(f.m_t);
                     TRACE("smtfd_verbose", tout << mk_bounded_pp(f.m_t, m, 2) << " := " << val << "\n";);
-                    fi->insert_new_entry(args.c_ptr(), val);
+                    fi->insert_new_entry(args.data(), val);
                 }
                 mdl->register_decl(fn, fi);
             }
-            for (expr* t : subterms(terms)) {
+            for (expr* t : subterms::ground(terms)) {
                 if (is_uninterp_const(t) && sort_covered(t->get_sort())) {
                     expr_ref val = model_value(t);
                     mdl->register_decl(to_app(t)->get_decl(), val);
@@ -1305,7 +1307,7 @@ namespace smtfd {
 
 
         void populate_model(model_ref& mdl, expr_ref_vector const& terms) override {
-            for (expr* t : subterms(terms)) {
+            for (expr* t : subterms::ground(terms)) {
                 if (is_uninterp_const(t) && m_autil.is_array(t)) {
                     mdl->register_decl(to_app(t)->get_decl(), model_value_core(t));
                 }
@@ -1317,7 +1319,7 @@ namespace smtfd {
         void global_check(expr_ref_vector const& core) override {  
             expr_mark seen;
             expr_ref_vector shared(m), sharedvals(m);
-            for (expr* t : subterms(core)) {
+            for (expr* t : subterms::ground(core)) {
                 if (!is_app(t)) continue;
                 app* a = to_app(t);
                 unsigned offset = 0;
@@ -1410,7 +1412,7 @@ namespace smtfd {
                 for (expr* arg : *to_app(e)) {
                     args.push_back(replace_model_value(arg));
                 }
-                return expr_ref(m.mk_app(to_app(e)->get_decl(), args.size(), args.c_ptr()), m);
+                return expr_ref(m.mk_app(to_app(e)->get_decl(), args.size(), args.data()), m);
             }
             return expr_ref(e, m);
         }
@@ -1450,7 +1452,7 @@ namespace smtfd {
                 }
             }
             var_subst subst(m);
-            expr_ref body = subst(tmp, vars.size(), vars.c_ptr());
+            expr_ref body = subst(tmp, vars.size(), vars.data());
             
             if (is_forall(q)) {
                 body = m.mk_not(body);
@@ -1463,7 +1465,7 @@ namespace smtfd {
             
             if (r == l_true) {
                 expr_ref qq(q->get_expr(), m);
-                for (expr* t : subterms(qq)) {
+                for (expr* t : subterms::ground(qq)) {
                     init_term(t);
                 }
                 m_solver->get_model(mdl);
@@ -1489,7 +1491,7 @@ namespace smtfd {
             }
 
             if (r == l_true) {                
-                body = subst(q->get_expr(), vals.size(), vals.c_ptr());
+                body = subst(q->get_expr(), vals.size(), vals.data());
                 m_context.rewrite(body);
                 TRACE("smtfd", tout << "vals: " << vals << "\n" << body << "\n";);
                 if (is_forall(q)) {
@@ -1518,7 +1520,7 @@ namespace smtfd {
                 vars[i] = m.mk_fresh_const(q->get_decl_name(i), q->get_decl_sort(i));    
             }
             var_subst subst(m);
-            expr_ref body = subst(q->get_expr(), vars.size(), vars.c_ptr());
+            expr_ref body = subst(q->get_expr(), vars.size(), vars.data());
             if (is_exists(q)) {
                 body = m.mk_implies(q, body);
             }
@@ -1558,10 +1560,10 @@ namespace smtfd {
         void init_val2term(expr_ref_vector const& fmls, expr_ref_vector const& core) {
             m_val2term_trail.reset();
             m_val2term.reset();
-            for (expr* t : subterms(core)) {
+            for (expr* t : subterms::ground(core)) {
                 init_term(t);
             }
-            for (expr* t : subterms(fmls)) {
+            for (expr* t : subterms::ground(fmls)) {
                 init_term(t);
             }
         }
@@ -1646,7 +1648,7 @@ namespace smtfd {
             unsigned sz = m_assertions.size() - m_assertions_qhead;
             if (sz > 0) {
                 m_assertions.push_back(m_toggles.back());                
-                expr_ref fml(m.mk_and(sz + 1, m_assertions.c_ptr() + m_assertions_qhead), m);
+                expr_ref fml(m.mk_and(sz + 1, m_assertions.data() + m_assertions_qhead), m);
                 m_assertions.pop_back();                
                 expr* toggle = add_toggle(m.mk_fresh_const("toggle", m.mk_bool_sort()));
                 m_assertions_qhead = m_assertions.size();
@@ -1719,12 +1721,12 @@ namespace smtfd {
             m_context.reset(m_model);
             expr_ref_vector terms(core);
             terms.append(m_axioms);
-            for (expr* t : subterms(core)) {
+            for (expr* t : subterms::ground(core)) {
                 if (is_forall(t) || is_exists(t)) {
                     has_q = true;
                 }
             }
-            for (expr* t : subterms(terms)) {
+            for (expr* t : subterms::ground(terms)) {
                 if (!is_forall(t) && !is_exists(t) && (!m_context.term_covered(t) || !m_context.sort_covered(t->get_sort()))) {
                     is_decided = l_false;
                 }
@@ -1733,7 +1735,7 @@ namespace smtfd {
 
             TRACE("smtfd", 
                   tout << "axioms: " << m_axioms << "\n";
-                  for (expr* a : subterms(terms)) {
+                  for (expr* a : subterms::ground(terms)) {
                       expr_ref val0 = (*m_model)(a);
                       expr_ref val1 = (*m_model)(abs(a));
                       if (is_ground(a) && val0 != val1 && val0->get_sort() == val1->get_sort()) {
@@ -1750,18 +1752,18 @@ namespace smtfd {
 
             DEBUG_CODE(
                 bool found_bad = false;
-                for (expr* a : subterms(core)) {
+                for (expr* a : subterms::ground(core)) {
                     expr_ref val0 = (*m_model)(a);
                     expr_ref val1 = (*m_model)(abs(a));
                     if (is_ground(a) && val0 != val1 && val0->get_sort() == val1->get_sort()) {
-                        std::cout << mk_bounded_pp(a, m, 2) << " := " << val0 << " " << val1 << "\n";
+                        //std::cout << mk_bounded_pp(a, m, 2) << " := " << val0 << " " << val1 << "\n";
                         found_bad = true;
                     }
                 }
                 if (found_bad) {
-                    std::cout << "core: " << core << "\n";
-                    std::cout << *m_model.get() << "\n";
-                    exit(0);
+                    //std::cout << "core: " << core << "\n";
+                    //std::cout << *m_model.get() << "\n";
+                    UNREACHABLE();
                 });
 
             if (!has_q) {
@@ -1865,9 +1867,7 @@ namespace smtfd {
             updt_params(p);
             add_toggle(m.mk_true());
         }
-        
-        ~solver() override {}
-        
+
         ::solver* translate(ast_manager& dst_m, params_ref const& p) override {
             solver* result = alloc(solver, m_indent, dst_m, p);
             if (m_fd_sat_solver) result->m_fd_sat_solver = m_fd_sat_solver->translate(dst_m, p);
@@ -2010,7 +2010,7 @@ namespace smtfd {
                 }        
                 m_stats.m_num_lemmas += m_context.size();
                 m_context.reset(m_model);
-                r = check_abs(core.size(), core.c_ptr());
+                r = check_abs(core.size(), core.data());
                 update_reason_unknown(r, m_fd_sat_solver);
                 switch (r) {
                 case l_false:
@@ -2075,7 +2075,7 @@ namespace smtfd {
             return m_fd_sat_solver->get_model_converter();
         }
         
-        proof * get_proof() override { return nullptr; }
+        proof * get_proof_core() override { return nullptr; }
         std::string reason_unknown() const override { return m_reason_unknown; }
         void set_reason_unknown(char const* msg) override { m_reason_unknown = msg; }
         void get_labels(svector<symbol> & r) override { }
@@ -2096,9 +2096,9 @@ namespace smtfd {
             m_fd_sat_solver->get_levels(vars, depth);
         }
         
-        expr_ref_vector get_trail() override {
+        expr_ref_vector get_trail(unsigned max_level) override {
             init();
-            return m_fd_sat_solver->get_trail();
+            return m_fd_sat_solver->get_trail(max_level);
         }
         
         unsigned get_num_assertions() const override {

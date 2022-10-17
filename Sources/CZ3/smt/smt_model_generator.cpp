@@ -105,7 +105,7 @@ namespace smt {
                     else
                         proc = alloc(expr_wrapper_proc, m.mk_false());
                 }
-                else if (m.is_value(r->get_expr()))
+                else if (m.is_model_value(r->get_expr()))
                     proc = alloc(expr_wrapper_proc, r->get_expr());                    
                 else {
                     family_id fid = s->get_family_id();
@@ -293,6 +293,7 @@ namespace smt {
         obj_map<enode, model_value_proc *> root2proc;
         ptr_vector<enode> roots;
         ptr_vector<model_value_proc> procs;
+        scoped_reset _scoped_reset(*this, procs);
         svector<source> sources;
         buffer<model_value_dependency> dependencies;
         expr_ref_vector dependency_values(m);
@@ -315,7 +316,6 @@ namespace smt {
               m_context->display(tout);
               );
 
-        scoped_reset _scoped_reset(*this, procs);
 
         for (source const& curr : sources) {
             if (curr.is_fresh_value()) {
@@ -389,8 +389,7 @@ namespace smt {
         if (fid == null_family_id) return !m_hidden_ufs.contains(f); 
         if (fid == m.get_basic_family_id()) return false;
         theory * th = m_context->get_theory(fid);
-        if (!th) return true;
-        return th->include_func_interp(f);
+        return !th || th->include_func_interp(f);
     }
     
     /**
@@ -437,8 +436,8 @@ namespace smt {
                       }
                       tout << "\n";
                       tout << "value: #" << n->get_owner_id() << "\n" << mk_ismt2_pp(result, m) << "\n";);
-                if (fi->get_entry(args.c_ptr()) == nullptr)
-                    fi->insert_new_entry(args.c_ptr(), result);
+                if (fi->get_entry(args.data()) == nullptr)
+                    fi->insert_new_entry(args.data(), result);
             }
         }
     }

@@ -33,12 +33,14 @@ Revision History:
 #include <pthread.h>
 #endif
 
+enum scoped_timer_work_state { IDLE = 0, WORKING = 1, EXITING = 2 };
+
 struct scoped_timer_state {
     std::thread m_thread;
     std::timed_mutex m_mutex;
     event_handler * eh;
     unsigned ms;
-    std::atomic<int> work;
+    std::atomic<scoped_timer_work_state> work;
     std::condition_variable_any cv;
 };
 
@@ -49,11 +51,10 @@ static atomic<unsigned> num_workers(0);
 static void thread_func(scoped_timer_state *s) {
     workers.lock();
     while (true) {
-        s->cv.wait(workers, [=]{ return s->work > 0; });
+        s->cv.wait(workers, [=]{ return s->work != IDLE; });
         workers.unlock();
 
-        // exiting..
-        if (s->work == 2)
+        if (s->work == EXITING)
             return;
 
         auto end = std::chrono::steady_clock::now() + std::chrono::milliseconds(s->ms);
@@ -68,60 +69,45 @@ static void thread_func(scoped_timer_state *s) {
         s->m_mutex.unlock();
 
     next:
-        s->work = 0;
+        s->work = IDLE;
         workers.lock();
-        available_workers.push_back(s);
     }
 }
 
 
-struct scoped_timer::imp {
-private:
-    scoped_timer_state *s;
-
-public:
-    imp(unsigned ms, event_handler * eh) {
-        workers.lock();
-        bool new_worker = false;
-        if (available_workers.empty()) {
-            workers.unlock();
-            s = new scoped_timer_state;
-            new_worker = true;
-            ++num_workers;
-        } 
-        else {
-            s = available_workers.back();
-            available_workers.pop_back();
-            workers.unlock();
-        }
-        s->ms = ms;
-        s->eh = eh;
-        s->m_mutex.lock();
-        s->work = 1;
-        if (new_worker) {
-            s->m_thread = std::thread(thread_func, s);
-        } 
-        else {
-            s->cv.notify_one();
-        }
-    }
-
-    ~imp() {
-        s->m_mutex.unlock();
-        while (s->work == 1)
-            std::this_thread::yield();
-    }
-};
-
 scoped_timer::scoped_timer(unsigned ms, event_handler * eh) {
-    if (ms != UINT_MAX && ms != 0)
-        m_imp = alloc(imp, ms, eh);
-    else
-        m_imp = nullptr;
+    if (ms == 0 || ms == UINT_MAX)
+        return;
+
+    workers.lock();
+    if (available_workers.empty()) {
+        // start new thead
+        workers.unlock();
+        s = new scoped_timer_state;
+        ++num_workers;
+        init_state(ms, eh);
+        s->m_thread = std::thread(thread_func, s);
+    }
+    else {
+        // re-use existing thread
+        s = available_workers.back();
+        available_workers.pop_back();
+        init_state(ms, eh);
+        workers.unlock();
+        s->cv.notify_one();
+    }
 }
     
 scoped_timer::~scoped_timer() {
-    dealloc(m_imp);
+    if (!s)
+        return;
+
+    s->m_mutex.unlock();
+    while (s->work == WORKING)
+        std::this_thread::yield();
+    workers.lock();
+    available_workers.push_back(s);
+    workers.unlock();
 }
 
 void scoped_timer::initialize() {
@@ -139,7 +125,7 @@ void scoped_timer::finalize() {
     while (deleted < num_workers) {
         workers.lock();
         for (auto w : available_workers) {
-            w->work = 2;
+            w->work = EXITING;
             w->cv.notify_one();
         }
         decltype(available_workers) cleanup_workers;
@@ -153,4 +139,12 @@ void scoped_timer::finalize() {
         }
     }
     num_workers = 0;
+    available_workers.clear();
+}
+
+void scoped_timer::init_state(unsigned ms, event_handler * eh) {
+    s->ms = ms;
+    s->eh = eh;
+    s->m_mutex.lock();
+    s->work = WORKING;
 }

@@ -17,6 +17,8 @@ Revision History:
 
 
 --*/
+#pragma once
+
 #include <algorithm>
 #include <string>
 #include "util/vector.h"
@@ -100,10 +102,7 @@ template <typename T, typename X> bool lp_dual_core_solver<T, X>::done() {
     if (this->get_status() == lp_status::OPTIMAL) {
         return true;
     }
-    if (this->total_iterations() > this->m_settings.max_total_number_of_iterations) { // debug !!!!
-        this->set_status(lp_status::ITERATIONS_EXHAUSTED);
-        return true;
-    }
+   
     return false; // todo, need to be more cases
 }
 
@@ -747,6 +746,6 @@ template <typename T, typename X> void lp_dual_core_solver<T, X>::solve() { // s
         one_iteration();
     } while (this->get_status() != lp_status::FLOATING_POINT_ERROR && this->get_status() != lp_status::DUAL_UNBOUNDED && this->get_status() != lp_status::OPTIMAL &&
              this->iters_with_no_cost_growing() <= this->m_settings.max_number_of_iterations_with_no_improvements
-             && this->total_iterations() <= this->m_settings.max_total_number_of_iterations);
+            );
 }
 }

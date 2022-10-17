@@ -52,7 +52,6 @@ namespace api {
             m_context(m, m_register_engine, p),
             m_trail(m) {}
 
-        ~fixedpoint_context() override {}
         family_id get_family_id() const override { return const_cast<datalog::context&>(m_context).get_decl_util().get_family_id(); }
         void set_state(void* state) {
             SASSERT(!m_state);
@@ -243,7 +242,8 @@ extern "C" {
         Z3_TRY;
         LOG_Z3_fixedpoint_dec_ref(c, s);
         RESET_ERROR_CODE();
-        to_fixedpoint(s)->dec_ref();
+        if (s)
+            to_fixedpoint(s)->dec_ref();
         Z3_CATCH;
     }
 
@@ -448,7 +448,7 @@ extern "C" {
         for (unsigned i = 0; i < num_relations; ++i) {
             kinds.push_back(to_symbol(relation_kinds[i]));
         }
-        to_fixedpoint_ref(d)->ctx().set_predicate_representation(to_func_decl(f), num_relations, kinds.c_ptr());
+        to_fixedpoint_ref(d)->ctx().set_predicate_representation(to_func_decl(f), num_relations, kinds.data());
         Z3_CATCH;
     }
 
@@ -584,7 +584,7 @@ extern "C" {
         to_fixedpoint_ref(d)->collect_param_descrs(descrs);
         to_params(p)->m_params.validate(descrs);
         to_fixedpoint_ref(d)->updt_params(to_param_ref(p));
-        to_fixedpoint(d)->m_params = to_param_ref(p);
+        to_fixedpoint(d)->m_params.append(to_param_ref(p));
         Z3_CATCH;
     }
 

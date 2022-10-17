@@ -236,7 +236,7 @@ expr * expand_distinct(ast_manager & m, unsigned num_args, expr * const * args) 
         for (unsigned j = i + 1; j < num_args; j++)
             new_diseqs.push_back(m.mk_not(m.mk_eq(args[i], args[j])));
     }
-    return mk_and(m, new_diseqs.size(), new_diseqs.c_ptr());
+    return mk_and(m, new_diseqs.size(), new_diseqs.data());
 }
 
 expr* mk_distinct(ast_manager& m, unsigned num_args, expr * const * args) {
@@ -253,46 +253,59 @@ expr* mk_distinct(ast_manager& m, unsigned num_args, expr * const * args) {
 
 expr_ref mk_distinct(expr_ref_vector const& args) {
     ast_manager& m = args.get_manager();
-    return expr_ref(mk_distinct(m, args.size(), args.c_ptr()), m);
+    return expr_ref(mk_distinct(m, args.size(), args.data()), m);
 }
 
 
 void flatten_and(expr_ref_vector& result) {
     ast_manager& m = result.get_manager();
     expr* e1, *e2, *e3;
+    expr_ref_vector pin(m);
+    expr_fast_mark1 seen;
     for (unsigned i = 0; i < result.size(); ++i) {
-        if (m.is_and(result.get(i))) {
-            app* a = to_app(result.get(i));
-            for (expr* arg : *a) result.push_back(arg);
+        expr* e = result.get(i);
+        if (seen.is_marked(e)) {
+            result[i] = result.back();
+            result.pop_back();
+            --i;
+            continue;
+        }
+        seen.mark(e);
+        pin.push_back(e);
+        if (m.is_and(e)) {
+            app* a = to_app(e);
+            for (expr* arg : *a)
+                result.push_back(arg);
             result[i] = result.back();
             result.pop_back();
             --i;
         }
-        else if (m.is_not(result.get(i), e1) && m.is_not(e1, e2)) {
+        else if (m.is_not(e, e1) && m.is_not(e1, e2)) {
             result[i] = e2;
             --i;
         }
-        else if (m.is_not(result.get(i), e1) && m.is_or(e1)) {
+        else if (m.is_not(e, e1) && m.is_or(e1)) {
             app* a = to_app(e1);
-            for (expr* arg : *a) result.push_back(m.mk_not(arg));
+            for (expr* arg : *a)
+                result.push_back(mk_not(m, arg));
             result[i] = result.back();
             result.pop_back();
             --i;
         }
-        else if (m.is_not(result.get(i), e1) && m.is_implies(e1,e2,e3)) {
+        else if (m.is_not(e, e1) && m.is_implies(e1, e2, e3)) {
             result.push_back(e2);
-            result[i] = m.mk_not(e3);
+            result[i] = mk_not(m, e3);
             --i;
         }
-        else if (m.is_true(result.get(i)) ||
-                 (m.is_not(result.get(i), e1) &&
+        else if (m.is_true(e) ||
+                 (m.is_not(e, e1) &&
                   m.is_false(e1))) {
             result[i] = result.back();
             result.pop_back();
             --i;
         }
-        else if (m.is_false(result.get(i)) ||
-                 (m.is_not(result.get(i), e1) &&
+        else if (m.is_false(e) ||
+                 (m.is_not(e, e1) &&
                   m.is_true(e1))) {
             result.reset();
             result.push_back(m.mk_false());
@@ -317,39 +330,52 @@ void flatten_and(expr_ref& fml) {
 void flatten_or(expr_ref_vector& result) {
     ast_manager& m = result.get_manager();
     expr* e1, *e2, *e3;
+    expr_ref_vector pin(m);
+    expr_fast_mark1 seen;
     for (unsigned i = 0; i < result.size(); ++i) {
-        if (m.is_or(result.get(i))) {
-            app* a = to_app(result.get(i));
-            for (expr* arg : *a) result.push_back(arg);
+        expr* e = result.get(i);
+        if (seen.is_marked(e)) {
+            result[i] = result.back();
+            result.pop_back();
+            --i;
+            continue;
+        }
+        seen.mark(e);
+        pin.push_back(e);
+        if (m.is_or(e)) {
+            app* a = to_app(e);
+            for (expr* arg : *a)
+                result.push_back(arg);
             result[i] = result.back();
             result.pop_back();
             --i;
         }
-        else if (m.is_not(result.get(i), e1) && m.is_not(e1, e2)) {
+        else if (m.is_not(e, e1) && m.is_not(e1, e2)) {
             result[i] = e2;
             --i;
         }
-        else if (m.is_not(result.get(i), e1) && m.is_and(e1)) {
+        else if (m.is_not(e, e1) && m.is_and(e1)) {
             app* a = to_app(e1);
-            for (expr* arg : *a) result.push_back(m.mk_not(arg));
+            for (expr* arg : *a)
+                result.push_back(mk_not(m, arg));
             result[i] = result.back();
             result.pop_back();
             --i;
         }
-        else if (m.is_implies(result.get(i),e2,e3)) {
+        else if (m.is_implies(e,e2,e3)) {
             result.push_back(e3);
-            result[i] = m.mk_not(e2);
+            result[i] = mk_not(m, e2);
             --i;
         }
-        else if (m.is_false(result.get(i)) ||
-                 (m.is_not(result.get(i), e1) &&
+        else if (m.is_false(e) ||
+                 (m.is_not(e, e1) &&
                   m.is_true(e1))) {
             result[i] = result.back();
             result.pop_back();
             --i;
         }
-        else if (m.is_true(result.get(i)) ||
-                 (m.is_not(result.get(i), e1) &&
+        else if (m.is_true(e) ||
+                 (m.is_not(e, e1) &&
                   m.is_false(e1))) {
             result.reset();
             result.push_back(m.mk_true());
@@ -379,7 +405,7 @@ bool has_uninterpreted(ast_manager& m, expr* _e) {
     expr_ref e(_e, m);
     arith_util au(m);
     func_decl_ref f_out(m);
-    for (expr* arg : subterms(e)) {
+    for (expr* arg : subterms::all(e)) {
         if (!is_app(arg)) 
             continue;
         app* a = to_app(arg);

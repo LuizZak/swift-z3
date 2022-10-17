@@ -18,6 +18,7 @@ Author:
 
 #include "sat/smt/pb_solver.h"
 #include "ast/pb_decl_plugin.h"
+#include "sat/smt/euf_solver.h"
 
 namespace pb {
 
@@ -27,8 +28,12 @@ namespace pb {
 
     literal solver::internalize(expr* e, bool sign, bool root, bool redundant) {
         flet<bool> _redundant(m_is_redundant, redundant);
-        if (m_pb.is_pb(e)) 
-            return internalize_pb(e, sign, root);
+        if (m_pb.is_pb(e)) {
+            sat::literal lit = internalize_pb(e, sign, root);
+            if (m_ctx && !root && lit != sat::null_literal)
+                m_ctx->attach_lit(lit, e);            
+            return lit;
+        }
         UNREACHABLE();
         return sat::null_literal;
     }
@@ -263,7 +268,7 @@ namespace pb {
         for (sat::literal l : c) {
             lits.push_back(lit2expr(l));
         }
-        expr_ref fml(m_pb.mk_at_least_k(c.size(), lits.c_ptr(), c.k()), m);
+        expr_ref fml(m_pb.mk_at_least_k(c.size(), lits.data(), c.k()), m);
 
         if (c.lit() != sat::null_literal) {
             fml = m.mk_eq(lit2expr(c.lit()), fml);
@@ -279,7 +284,7 @@ namespace pb {
             coeffs.push_back(rational(wl.first));
         }
         rational k(p.k());
-        expr_ref fml(m_pb.mk_ge(p.size(), coeffs.c_ptr(), lits.c_ptr(), k), m);
+        expr_ref fml(m_pb.mk_ge(p.size(), coeffs.data(), lits.data(), k), m);
 
         if (p.lit() != sat::null_literal) {
             fml = m.mk_eq(lit2expr(p.lit()), fml);

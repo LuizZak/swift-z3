@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __PP_PARAMS_HPP_
-#define __PP_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct pp_params {
@@ -49,4 +48,3 @@ struct pp_params {
   bool pretty_proof() const { return p.get_bool("pretty_proof", g, false); }
   bool simplify_implies() const { return p.get_bool("simplify_implies", g, true); }
 };
-#endif

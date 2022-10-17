@@ -1,6 +1,5 @@
 // Automatically generated file
-#ifndef __TACTIC_PARAMS_HPP_
-#define __TACTIC_PARAMS_HPP_
+#pragma once
 #include "util/params.h"
 #include "util/gparams.h"
 struct tactic_params {
@@ -31,4 +30,3 @@ struct tactic_params {
   unsigned propagate_values_max_rounds() const { return p.get_uint("propagate_values.max_rounds", g, 4u); }
   symbol default_tactic() const { return p.get_sym("default_tactic", g, symbol("")); }
 };
-#endif
