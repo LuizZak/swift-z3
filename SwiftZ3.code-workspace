@@ -106,6 +106,8 @@
             },
         },
         "cSpell.words": [
+            "Doccomment",
+            "doccomments",
             "swiftpm"
         ],
         "C_Cpp.default.includePath": [
