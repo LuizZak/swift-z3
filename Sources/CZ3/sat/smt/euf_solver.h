@@ -19,6 +19,7 @@ Author:
 #include "util/scoped_ptr_vector.h"
 #include "util/trail.h"
 #include "ast/ast_translation.h"
+#include "ast/ast_util.h"
 #include "ast/euf/euf_egraph.h"
 #include "ast/rewriter/th_rewriter.h"
 #include "tactic/model_converter.h"
@@ -62,10 +63,11 @@ namespace euf {
     };
 
     class eq_proof_hint : public th_proof_hint {
+        symbol th;
         unsigned m_lit_head, m_lit_tail, m_cc_head, m_cc_tail;
     public:
-        eq_proof_hint(unsigned lh, unsigned lt, unsigned ch, unsigned ct):
-            m_lit_head(lh), m_lit_tail(lt), m_cc_head(ch), m_cc_tail(ct) {}
+        eq_proof_hint(symbol const& th, unsigned lh, unsigned lt, unsigned ch, unsigned ct):
+            th(th), m_lit_head(lh), m_lit_tail(lt), m_cc_head(ch), m_cc_tail(ct) {}
         expr* get_hint(euf::solver& s) const override;
     };
 
@@ -109,37 +111,55 @@ namespace euf {
         }
 
         std::function<::solver*(void)>   m_mk_solver;
+        user_propagator::on_clause_eh_t  m_on_clause;
         ast_manager&                     m;
-        sat::sat_internalizer& si;
-        relevancy              m_relevancy;
-        smt_params             m_config;
-        euf::egraph            m_egraph;
-        trail_stack            m_trail;
-        stats                  m_stats;
-        th_rewriter            m_rewriter;
-        func_decl_ref_vector   m_unhandled_functions;
-        sat::lookahead*        m_lookahead = nullptr;
-        ast_manager*           m_to_m;
-        sat::sat_internalizer* m_to_si;
-        scoped_ptr<euf::ackerman>     m_ackerman;
-        user_solver::solver*          m_user_propagator = nullptr;
-        th_solver*             m_qsolver = nullptr;
-        unsigned               m_generation = 0;
-        std::string            m_reason_unknown; 
-        mutable ptr_vector<expr> m_todo;
+        sat::sat_internalizer&           si;
+        relevancy                        m_relevancy;
+        smt_params                       m_config;
+        euf::egraph                      m_egraph;
+        trail_stack                      m_trail;
+        stats                            m_stats;
+        th_rewriter                      m_rewriter;
+        func_decl_ref_vector             m_unhandled_functions;
+        sat::lookahead*                  m_lookahead = nullptr;
+        ast_manager*                     m_to_m = nullptr;
+        sat::sat_internalizer*           m_to_si;
+        scoped_ptr<euf::ackerman>        m_ackerman;
+        void*                            m_on_clause_ctx = nullptr;
+        user_solver::solver*             m_user_propagator = nullptr;
+        th_solver*                       m_qsolver = nullptr;
+        unsigned                         m_generation = 0;
+        std::string                      m_reason_unknown; 
+        mutable ptr_vector<expr>         m_todo;
 
-        ptr_vector<expr>                                m_bool_var2expr;
-        ptr_vector<size_t>                              m_explain;
-        euf::cc_justification                           m_explain_cc;
-        unsigned                                        m_num_scopes = 0;
-        unsigned_vector                                 m_var_trail;
-        svector<scope>                                  m_scopes;
-        scoped_ptr_vector<th_solver>                    m_solvers;
-        ptr_vector<th_solver>                           m_id2solver;
+        ptr_vector<expr>                 m_bool_var2expr;
+        ptr_vector<size_t>               m_explain;
+        euf::cc_justification            m_explain_cc;
+        unsigned                         m_num_scopes = 0;
+        unsigned_vector                  m_var_trail;
+        svector<scope>                   m_scopes;
+        scoped_ptr_vector<th_solver>     m_solvers;
+        ptr_vector<th_solver>            m_id2solver;
 
         constraint* m_conflict = nullptr;
         constraint* m_eq = nullptr;
         constraint* m_lit = nullptr;
+
+        // proofs 
+        bool                             m_proof_initialized = false;
+        ast_pp_util                      m_clause_visitor;
+        bool                             m_display_all_decls = false;
+        smt_proof_checker                m_smt_proof_checker;
+
+        typedef std::pair<expr*, expr*> expr_pair;
+        literal_vector      m_proof_literals;
+        svector<expr_pair>  m_proof_eqs, m_proof_deqs, m_expr_pairs;        
+        unsigned m_lit_head = 0, m_lit_tail = 0, m_cc_head = 0, m_cc_tail = 0;
+        unsigned m_eq_head = 0, m_eq_tail = 0, m_deq_head = 0, m_deq_tail = 0;
+        symbol                           m_euf = symbol("euf");
+        symbol                           m_smt = symbol("smt");            
+        expr_ref_vector                  m_clause;
+        expr_ref_vector                  m_expr_args;
 
 
         // internalization
@@ -197,23 +217,17 @@ namespace euf {
         void log_antecedents(literal l, literal_vector const& r, th_proof_hint* hint);
         void log_justification(literal l, th_explain const& jst);
 
-        typedef std::pair<expr*, expr*> expr_pair;
-        literal_vector    m_proof_literals;
-        svector<expr_pair> m_proof_eqs, m_proof_deqs, m_expr_pairs;
-        unsigned m_lit_head = 0, m_lit_tail = 0, m_cc_head = 0, m_cc_tail = 0;
-        unsigned m_eq_head = 0, m_eq_tail = 0, m_deq_head = 0, m_deq_tail = 0;
-        eq_proof_hint* mk_hint(literal lit, literal_vector const& r);
+
+        eq_proof_hint* mk_hint(symbol const& th, literal lit, literal_vector const& r);
 
 
-        bool m_proof_initialized = false;
+
         void init_proof();
-        ast_pp_util m_clause_visitor;
-        bool m_display_all_decls = false;
-        smt_proof_checker m_smt_proof_checker;
         void on_clause(unsigned n, literal const* lits, sat::status st) override;
         void on_lemma(unsigned n, literal const* lits, sat::status st);
         void on_proof(unsigned n, literal const* lits, sat::status st);
         void on_check(unsigned n, literal const* lits, sat::status st);
+        void on_clause_eh(unsigned n, literal const* lits, sat::status st);
         std::ostream& display_literals(std::ostream& out, unsigned n, sat::literal const* lits);
         void display_assume(std::ostream& out, unsigned n, literal const* lits);
         void display_inferred(std::ostream& out, unsigned n, literal const* lits, expr* proof_hint);        
@@ -385,6 +399,7 @@ namespace euf {
         void visit_expr(std::ostream& out, expr* e);
         std::ostream& display_expr(std::ostream& out, expr* e);        
         void on_instantiation(unsigned n, sat::literal const* lits, unsigned k, euf::enode* const* bindings);
+        expr_ref_vector& expr_args() { m_expr_args.reset(); return m_expr_args; }
         smt_proof_hint* mk_smt_hint(symbol const& n, literal_vector const& lits, enode_pair_vector const& eqs) {
             return mk_smt_hint(n, lits.size(), lits.data(), eqs.size(), eqs.data());
         }
@@ -404,10 +419,16 @@ namespace euf {
         smt_proof_hint* mk_smt_prop_hint(symbol const& n, literal lit, expr* a, expr* b) { expr_pair e(a, b); return mk_smt_hint(n, 1, &lit, 0, nullptr, 1, &e); }        
         smt_proof_hint* mk_smt_prop_hint(symbol const& n, literal lit, enode* a, enode* b) { return mk_smt_prop_hint(n, lit, a->get_expr(), b->get_expr()); }
         smt_proof_hint* mk_smt_hint(symbol const& n, enode* a, enode* b) { expr_pair e(a->get_expr(), b->get_expr()); return mk_smt_hint(n, 0, nullptr, 1, &e); }
+        smt_proof_hint* mk_smt_clause(symbol const& n, unsigned nl, literal const* lits);
         th_proof_hint* mk_cc_proof_hint(sat::literal_vector const& ante, app* a, app* b);
         th_proof_hint* mk_tc_proof_hint(sat::literal const* ternary_clause);
+        sat::status mk_tseitin_status(sat::literal a) { return mk_tseitin_status(1, &a); }
         sat::status mk_tseitin_status(sat::literal a, sat::literal b);
         sat::status mk_tseitin_status(unsigned n, sat::literal const* lits);
+        sat::status mk_distinct_status(sat::literal a) { return mk_distinct_status(1, &a); }
+        sat::status mk_distinct_status(sat::literal a, sat::literal b) { sat::literal lits[2] = { a, b }; return mk_distinct_status(2, lits); }
+        sat::status mk_distinct_status(sat::literal_vector const& lits) { return mk_distinct_status(lits.size(), lits.data()); }
+        sat::status mk_distinct_status(unsigned n, sat::literal const* lits);
 
         scoped_ptr<std::ostream> m_proof_out;
 
@@ -418,8 +439,8 @@ namespace euf {
         bool to_formulas(std::function<expr_ref(sat::literal)>& l2e, expr_ref_vector& fmls) override;
 
         // internalize
-        sat::literal internalize(expr* e, bool sign, bool root, bool learned) override;
-        void internalize(expr* e, bool learned) override;
+        sat::literal internalize(expr* e, bool sign, bool root) override;
+        void internalize(expr* e) override;
         sat::literal mk_literal(expr* e);
         void attach_th_var(enode* n, th_solver* th, theory_var v) { m_egraph.add_th_var(n, v, th->get_id()); }
         void attach_node(euf::enode* n);
@@ -427,9 +448,9 @@ namespace euf {
         expr_ref mk_eq(euf::enode* n1, euf::enode* n2) { return mk_eq(n1->get_expr(), n2->get_expr()); }
         euf::enode* e_internalize(expr* e);
         euf::enode* mk_enode(expr* e, unsigned n, enode* const* args);
-        void set_bool_var2expr(sat::bool_var v, expr* e) { m_bool_var2expr.setx(v, e, nullptr); }
+        void set_bool_var2expr(sat::bool_var v, expr* e) { m_var_trail.push_back(v);  m_bool_var2expr.setx(v, e, nullptr); }
         expr* bool_var2expr(sat::bool_var v) const { return m_bool_var2expr.get(v, nullptr); }
-        expr_ref literal2expr(sat::literal lit) const { expr* e = bool_var2expr(lit.var()); return (e && lit.sign()) ? expr_ref(m.mk_not(e), m) : expr_ref(e, m); }
+        expr_ref literal2expr(sat::literal lit) const { expr* e = bool_var2expr(lit.var()); return (e && lit.sign()) ? expr_ref(mk_not(m, e), m) : expr_ref(e, m); }
         unsigned generation() const { return m_generation; }
 
         sat::literal attach_lit(sat::literal lit, expr* e);
@@ -472,6 +493,11 @@ namespace euf {
 
         // diagnostics
         func_decl_ref_vector const& unhandled_functions() { return m_unhandled_functions; }
+
+        // clause tracing
+        void register_on_clause(
+            void* ctx,
+            user_propagator::on_clause_eh_t& on_clause);
 
         // user propagator
         void user_propagate_init(

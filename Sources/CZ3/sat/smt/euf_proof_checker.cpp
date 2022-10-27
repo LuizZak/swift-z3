@@ -25,7 +25,9 @@ Author:
 #include "sat/smt/euf_proof_checker.h"
 #include "sat/smt/arith_theory_checker.h"
 #include "sat/smt/q_theory_checker.h"
-#include "sat/smt/tseitin_proof_checker.h"
+#include "sat/smt/bv_theory_checker.h"
+#include "sat/smt/distinct_theory_checker.h"
+#include "sat/smt/tseitin_theory_checker.h"
 
 
 namespace euf {
@@ -213,6 +215,7 @@ namespace euf {
 
         void register_plugins(theory_checker& pc) override {
             pc.register_plugin(symbol("euf"), this);
+            pc.register_plugin(symbol("smt"), this);
         }
     };
 
@@ -287,13 +290,13 @@ namespace euf {
         add_plugin(alloc(eq_theory_checker, m));
         add_plugin(alloc(res_checker, m, *this));
         add_plugin(alloc(q::theory_checker, m));
-        add_plugin(alloc(smt_theory_checker_plugin, m, symbol("datatype"))); // no-op datatype proof checker
+        add_plugin(alloc(distinct::theory_checker, m));
+        add_plugin(alloc(smt_theory_checker_plugin, m)); 
         add_plugin(alloc(tseitin::theory_checker, m));
+        add_plugin(alloc(bv::theory_checker, m));
     }
 
     theory_checker::~theory_checker() {
-        for (auto& [k, v] : m_checked_clauses)
-            dealloc(v);
     }
 
     void theory_checker::add_plugin(theory_checker_plugin* p) {
@@ -308,20 +311,14 @@ namespace euf {
     bool theory_checker::check(expr* e) {
         if (!e || !is_app(e))
             return false;
-        if (m_checked_clauses.contains(e))
-            return true;        
         app* a = to_app(e);
         theory_checker_plugin* p = nullptr;
         return m_map.find(a->get_decl()->get_name(), p) && p->check(a);
     }
 
     expr_ref_vector theory_checker::clause(expr* e) {
-        expr_ref_vector* rr;
-        if (m_checked_clauses.find(e, rr))
-            return *rr;
         SASSERT(is_app(e) && m_map.contains(to_app(e)->get_name()));
         expr_ref_vector r = m_map[to_app(e)->get_name()]->clause(to_app(e));
-        m_checked_clauses.insert(e, alloc(expr_ref_vector, r));
         return r;
     }
 
@@ -346,8 +343,12 @@ namespace euf {
         for (expr* arg : clause2)
             literals.mark(arg, true);
         for (expr* arg : clause1)
-            if (!literals.is_marked(arg))
+            if (!literals.is_marked(arg)) {
+                if (m.is_not(arg, arg) && m.is_not(arg, arg) && literals.is_marked(arg)) // kludge
+                    continue;
+                IF_VERBOSE(0, verbose_stream() << mk_bounded_pp(arg, m) << " not in " << clause2 << "\n");
                 return false;
+            }
 
         // extract negated units for literals in clause2 but not in clause1
         // the literals should be rup
@@ -363,12 +364,17 @@ namespace euf {
 
     expr_ref_vector smt_theory_checker_plugin::clause(app* jst) {
         expr_ref_vector result(m);
-        SASSERT(jst->get_name() == m_rule);
         for (expr* arg : *jst) 
             result.push_back(mk_not(m, arg));
         return result;
     }
 
+    void smt_theory_checker_plugin::register_plugins(theory_checker& pc) {
+        pc.register_plugin(symbol("datatype"), this);
+        pc.register_plugin(symbol("array"), this);
+        pc.register_plugin(symbol("quant"), this);
+        pc.register_plugin(symbol("fpa"), this);
+    }
 
     smt_proof_checker::smt_proof_checker(ast_manager& m, params_ref const& p):
         m(m),
@@ -392,19 +398,25 @@ namespace euf {
     }
 
 
-    void smt_proof_checker::log_verified(app* proof_hint) {
-        symbol n = proof_hint->get_name();
-        if (n == m_last_rule) {
-            ++m_num_last_rules;
+    void smt_proof_checker::log_verified(app* proof_hint, bool success) {
+        if (!proof_hint)
             return;
-        }
-        if (m_num_last_rules > 0) 
-            std::cout << "(verified-" << m_last_rule << "+" << m_num_last_rules << ")\n";
-        
-        std::cout << "(verified-" << n << ")\n";
-        m_last_rule = n;
-        m_num_last_rules = 0;
 
+        symbol n = proof_hint->get_name();
+        if (success)
+            m_hint2hit.insert_if_not_there(n, 0)++;
+        else
+            m_hint2miss.insert_if_not_there(n, 0)++;
+        ++m_num_logs;
+
+        if (m_num_logs < 100 || (m_num_logs % 1000) == 0) {
+            std::cout << "(proofs";
+            for (auto const& [k, v] : m_hint2hit)
+                std::cout << " +" << k << " " << v;
+            for (auto const& [k, v] : m_hint2miss)
+                std::cout << " -" << k << " " << v;
+            std::cout << ")\n";
+        }
     }
 
     bool smt_proof_checker::check_rup(expr_ref_vector const& clause) {
@@ -427,7 +439,7 @@ namespace euf {
             
         if (is_rup(proof_hint) && check_rup(clause)) {
             if (m_check_rup) {
-                log_verified(proof_hint);
+                log_verified(proof_hint, true);
                 add_clause(clause);
             }
             return;
@@ -437,13 +449,13 @@ namespace euf {
         if (m_checker.check(clause, proof_hint, units)) {
             bool units_are_rup = true;
             for (expr* u : units) {
-                if (!check_rup(u)) {
+                if (!m.is_true(u) && !check_rup(u)) {
                     std::cout << "unit " << mk_bounded_pp(u, m) << " is not rup\n";
                     units_are_rup = false;
                 }
             }
             if (units_are_rup) {
-                log_verified(proof_hint);
+                log_verified(proof_hint, true);
                 add_clause(clause);
                 return;
             }
@@ -457,11 +469,13 @@ namespace euf {
         // The VC function is a no-op if the proof hint does not have an associated vc generator.
         expr_ref_vector vc(clause);
         if (m_checker.vc(proof_hint, clause, vc)) {
-            log_verified(proof_hint);
+            log_verified(proof_hint, true);
             add_clause(clause);
             return;
         }
         
+        log_verified(proof_hint, false);
+
         ensure_solver();
         m_solver->push();
         for (expr* lit : vc)
@@ -469,6 +483,7 @@ namespace euf {
         lbool is_sat = m_solver->check_sat();
         if (is_sat != l_false) {
             std::cout << "did not verify: " << is_sat << " " << clause << "\n";
+            std::cout << "vc:\n" << vc << "\n";
             if (proof_hint) 
                 std::cout << "hint: " << mk_bounded_pp(proof_hint, m, 4) << "\n";
             m_solver->display(std::cout);
@@ -486,6 +501,7 @@ namespace euf {
         for (expr* arg : clause)
             std::cout << "\n " << mk_bounded_pp(arg, m);
         std::cout << ")\n";
+
         if (is_rup(proof_hint)) 
             diagnose_rup_failure(clause);
             

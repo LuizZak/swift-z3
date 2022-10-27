@@ -53,7 +53,7 @@ namespace q {
         if (!m_flat.find(q, q_flat)) {
             if (expand(q)) {
                 for (expr* e : m_expanded) {
-                    sat::literal lit = ctx.internalize(e, l.sign(), false, false);
+                    sat::literal lit = ctx.internalize(e, l.sign(), false);
                     add_clause(~l, lit);
                 }
                 return;
@@ -62,7 +62,7 @@ namespace q {
         }
             
         if (is_ground(q_flat->get_expr())) {
-            auto lit = ctx.internalize(q_flat->get_expr(), l.sign(), false, false);
+            auto lit = ctx.internalize(q_flat->get_expr(), l.sign(), false);
             add_clause(~l, lit);
         }
         else {
@@ -163,7 +163,7 @@ namespace q {
         m_mbqi.init_search();
     }
 
-    sat::literal solver::internalize(expr* e, bool sign, bool root, bool learned) {
+    sat::literal solver::internalize(expr* e, bool sign, bool root) {
         SASSERT(is_forall(e) || is_exists(e));
         sat::bool_var v = ctx.get_si().add_bool_var(e);
         sat::literal lit = ctx.attach_lit(sat::literal(v, false), e);
@@ -364,10 +364,10 @@ namespace q {
         }
     }
 
-    q_proof_hint* q_proof_hint::mk(euf::solver& s, sat::literal_vector const& lits, unsigned n, euf::enode* const* bindings) {
+    q_proof_hint* q_proof_hint::mk(euf::solver& s, unsigned generation, sat::literal_vector const& lits, unsigned n, euf::enode* const* bindings) {
         SASSERT(n > 0);
         auto* mem = s.get_region().allocate(q_proof_hint::get_obj_size(n, lits.size()));
-        q_proof_hint* ph = new (mem) q_proof_hint(n, lits.size());
+        q_proof_hint* ph = new (mem) q_proof_hint(generation, n, lits.size());
         for (unsigned i = 0; i < n; ++i)
             ph->m_bindings[i] = bindings[i]->get_expr();
         for (unsigned i = 0; i < lits.size(); ++i)
@@ -375,10 +375,10 @@ namespace q {
         return ph;
     }
 
-    q_proof_hint* q_proof_hint::mk(euf::solver& s, sat::literal l1, sat::literal l2, unsigned n, expr* const* bindings) {
+    q_proof_hint* q_proof_hint::mk(euf::solver& s, unsigned generation, sat::literal l1, sat::literal l2, unsigned n, expr* const* bindings) {
         SASSERT(n > 0);
         auto* mem = s.get_region().allocate(q_proof_hint::get_obj_size(n, 2));
-        q_proof_hint* ph = new (mem) q_proof_hint(n, 2);
+        q_proof_hint* ph = new (mem) q_proof_hint(generation, n, 2);
         for (unsigned i = 0; i < n; ++i)
             ph->m_bindings[i] = bindings[i];
         ph->m_literals[0] = l1;
@@ -389,26 +389,20 @@ namespace q {
     expr* q_proof_hint::get_hint(euf::solver& s) const {
         ast_manager& m = s.get_manager();
         expr_ref_vector args(m);
-        ptr_buffer<sort> sorts;
         expr_ref binding(m);
+        arith_util a(m);
+        expr_ref gen(a.mk_int(m_generation), m);
+        expr* gens[1] = { gen.get() };
         sort* range = m.mk_proof_sort();
-        func_decl* d;
         for (unsigned i = 0; i < m_num_bindings; ++i) 
             args.push_back(m_bindings[i]);
-        for (expr* arg : args)
-            sorts.push_back(arg->get_sort());
-        d = m.mk_func_decl(symbol("bind"), args.size(), sorts.data(), range);
-        binding = m.mk_app(d, args);
+        binding = m.mk_app(symbol("bind"), args.size(), args.data(), range);
         args.reset();
-        sorts.reset();
         for (unsigned i = 0; i < m_num_literals; ++i) 
             args.push_back(s.literal2expr(~m_literals[i]));
-        args.push_back(binding);
-        for (expr* arg : args)
-            sorts.push_back(arg->get_sort());
-        
-        d = m.mk_func_decl(symbol("inst"), args.size(), sorts.data(), range);
-        return m.mk_app(d, args);
+        args.push_back(binding);        
+        args.push_back(m.mk_app(symbol("gen"), 1, gens, range));
+        return m.mk_app(symbol("inst"), args.size(), args.data(), range);
     }
 
 }

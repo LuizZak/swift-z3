@@ -3,7 +3,7 @@
 
 import CZ3
 
-///  A Goal is essentially a set of formulas.
+/// A Goal is essentially a set of formulas.
 /// Z3 provide APIs for building strategies/tactics for solving and transforming Goals.
 /// Some of these transformations apply under/over approximations.
 public typealias Z3GoalPrec = Z3_goal_prec

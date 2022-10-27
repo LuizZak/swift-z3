@@ -305,9 +305,11 @@ namespace sat {
         void mk_bin_clause(literal l1, literal l2, sat::status st);
         void mk_bin_clause(literal l1, literal l2, bool learned) { mk_bin_clause(l1, l2, learned ? sat::status::redundant() : sat::status::asserted()); }
         bool propagate_bin_clause(literal l1, literal l2);
+#if ENABLE_TERNARY
         clause * mk_ter_clause(literal * lits, status st);
         bool attach_ter_clause(clause & c, status st);
         bool propagate_ter_clause(clause& c);
+#endif
         clause * mk_nary_clause(unsigned num_lits, literal * lits, status st);
         bool has_variables_to_reinit(clause const& c) const;
         bool has_variables_to_reinit(literal l1, literal l2) const;
@@ -432,17 +434,17 @@ namespace sat {
         }
         
         void checkpoint() {
-            if (!m_checkpoint_enabled) return;
-            if (limit_reached()) {
+            if (!m_checkpoint_enabled) 
+                return;
+            if (limit_reached()) 
                 throw solver_exception(Z3_CANCELED_MSG);
-            }
-            if (memory_exceeded()) {
+            if (memory_exceeded()) 
                 throw solver_exception(Z3_MAX_MEMORY_MSG);                
-            }
         }
         void set_par(parallel* p, unsigned id);
         bool canceled() { return !m_rlimit.inc(); }
         config const& get_config() const { return m_config; }
+        void set_drat(bool d) { m_config.m_drat = d; }
         drat& get_drat() { return m_drat; }
         drat* get_drat_ptr() { return &m_drat;  }
         void set_incremental(bool b) { m_config.m_incremental = b; }
@@ -480,6 +482,8 @@ namespace sat {
         bool should_propagate() const;
         bool propagate_core(bool update);
         bool propagate_literal(literal l, bool update);
+        void propagate_clause(clause& c, bool update, unsigned assign_level, clause_offset cls_off);
+        void set_watch(clause& c, unsigned idx, clause_offset cls_off);
         
         // -----------------------
         //

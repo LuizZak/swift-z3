@@ -54,6 +54,14 @@
                     "update-z3-code.py"
                 ]
             },
+            {
+                "label": "Generate Types",
+                "type": "shell",
+                "command": "python",
+                "args": [
+                    "generate_types.py"
+                ]
+            },
         ]
     },
     "folders": [
@@ -82,6 +90,7 @@
         "ShortcutMenuBar.userButton01Command": "workbench.action.tasks.runTask|Build (debug)",
         "ShortcutMenuBar.userButton02Command": "workbench.action.tasks.runTask|Test",
         "ShortcutMenuBar.userButton03Command": "workbench.action.tasks.runTask|Update Z3",
+        "ShortcutMenuBar.userButton04Command": "workbench.action.tasks.runTask|Generate Types",
         "commentAnchors.workspace.excludeFiles": "**/{node_modules,.git,.idea,target,out,build,vendor,.build,.swiftpm}/**/*",
         "commentAnchors.tags.anchors": {
             "MARK:": {

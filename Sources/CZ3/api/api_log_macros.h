@@ -992,6 +992,8 @@ void log_Z3_solver_get_non_units(Z3_context a0, Z3_solver a1);
 #define LOG_Z3_solver_get_non_units(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_non_units(_ARG0, _ARG1); }
 void log_Z3_solver_get_levels(Z3_context a0, Z3_solver a1, Z3_ast_vector a2, unsigned a3, unsigned const * a4);
 #define LOG_Z3_solver_get_levels(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_levels(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4); }
+void log_Z3_solver_register_on_clause(Z3_context a0, Z3_solver a1, void* a2, Z3_on_clause_eh* a3);
+#define LOG_Z3_solver_register_on_clause(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_register_on_clause(_ARG0, _ARG1, _ARG2, _ARG3); }
 void log_Z3_solver_propagate_init(Z3_context a0, Z3_solver a1, void* a2, Z3_push_eh* a3, Z3_pop_eh* a4, Z3_fresh_eh* a5);
 #define LOG_Z3_solver_propagate_init(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_propagate_init(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5); }
 void log_Z3_solver_propagate_fixed(Z3_context a0, Z3_solver a1, Z3_fixed_eh* a2);

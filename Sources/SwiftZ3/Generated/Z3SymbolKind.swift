@@ -3,7 +3,7 @@
 
 import CZ3
 
-///  The different kinds of symbol.
+/// The different kinds of symbol.
 /// In Z3, a symbol can be represented using integers and strings (See #Z3_get_symbol_kind).
 /// 
 /// \sa Z3_mk_int_symbol

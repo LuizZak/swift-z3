@@ -46,12 +46,13 @@ namespace euf {
         m_trail(),
         m_rewriter(m),
         m_unhandled_functions(m),
-        m_lookahead(nullptr),
         m_to_m(&m),
         m_to_si(&si),
         m_values(m),
         m_clause_visitor(m),
-        m_smt_proof_checker(m, p)
+        m_smt_proof_checker(m, p),
+        m_clause(m),
+        m_expr_args(m)
     {
         updt_params(p);
         m_relevancy.set_enabled(get_config().m_relevancy_lvl > 2);
@@ -148,8 +149,6 @@ namespace euf {
 
     void solver::add_solver(th_solver* th) {
         family_id fid = th->get_id();
-        if (use_drat())
-            s().get_drat().add_theory(fid, th->name());
         th->set_solver(m_solver);
         th->push_scopes(s().num_scopes() + s().num_user_scopes());
         m_solvers.push_back(th);
@@ -225,12 +224,12 @@ namespace euf {
     void solver::get_antecedents(literal l, ext_justification_idx idx, literal_vector& r, bool probing) {
         m_egraph.begin_explain();
         m_explain.reset();
-        if (use_drat() && !probing) 
+        if (use_drat() && !probing) {
             push(restore_size_trail(m_explain_cc, m_explain_cc.size()));
+        }
         auto* ext = sat::constraint_base::to_extension(idx);
         th_proof_hint* hint = nullptr;
         bool has_theory = false;
-        bool has_nested_theory = false;
         if (ext == this)
             get_antecedents(l, constraint::from_idx(idx), r, probing);
         else {
@@ -248,19 +247,12 @@ namespace euf {
                 sat::literal lit = sat::null_literal;
                 ext->get_antecedents(lit, idx, r, probing);
                 has_theory = true;
-                has_nested_theory = true;
             }
         }
         m_egraph.end_explain();  
-        if (use_drat() && !probing)  {            
-            if (!has_theory)
-                hint = mk_hint(l, r);
-            else {
-                if (l != sat::null_literal) r.push_back(~l);
-                hint = mk_smt_hint(symbol("smt"), r);
-                if (l != sat::null_literal) r.pop_back();
-            }
-        }
+        if (use_drat() && !probing)         
+            hint = mk_hint(has_theory ? m_smt : m_euf, l, r);
+        
         unsigned j = 0;
         for (sat::literal lit : r) 
             if (s().lvl(lit) > 0) r[j++] = lit;
@@ -653,28 +645,32 @@ namespace euf {
         for (auto const& [e, generation, v] : m_reinit) 
             replay.m.insert(e, v);
     
-        TRACE("euf", for (auto const& kv : replay.m) tout << kv.m_value << "\n";);
+        TRACE("euf", for (auto const& kv : replay.m) tout << "b" << kv.m_value << "\n";);
         for (auto const& [e, generation, v] : m_reinit) {
             scoped_generation _sg(*this, generation);
-            TRACE("euf", tout << "replay: " << v << " " << e->get_id() << " " << mk_bounded_pp(e, m) << " " << si.is_bool_op(e) << "\n";);
+            TRACE("euf", tout << "replay: b" << v << " #" << e->get_id() << " " << mk_bounded_pp(e, m) << " " << si.is_bool_op(e) << "\n";);
             sat::literal lit;
             if (si.is_bool_op(e)) 
                 lit = literal(replay.m[e], false);
             else 
-                lit = si.internalize(e, false);
+                lit = si.internalize(e);
             VERIFY(lit.var() == v);     
             if (!m_egraph.find(e) && !m.is_iff(e) && !m.is_or(e) && !m.is_and(e) && !m.is_not(e) && !m.is_implies(e) && !m.is_xor(e)) {
                 ptr_buffer<euf::enode> args;
                 if (is_app(e))
                     for (expr* arg : *to_app(e))
                         args.push_back(e_internalize(arg));
-                internalize(e, true);
+                internalize(e);
                 if (!m_egraph.find(e))
                     mk_enode(e, args.size(), args.data());
             }
             else 
                 attach_lit(lit, e);            
         }
+
+        for (auto const& [e, v] : replay.m)
+            if (si.is_bool_op(e) && !si.is_cached(to_app(e), sat::literal(v, false)))
+               si.cache(to_app(e), sat::literal(v, false));
         
         if (relevancy_enabled())
             for (auto const& [e, generation, v] : m_reinit)
@@ -694,10 +690,10 @@ namespace euf {
             disable_relevancy(e);
             return;
         }
-        auto lit = si.internalize(e, true);
+        auto lit = si.internalize(e);
         switch (to_app(e)->get_decl_kind()) {
         case OP_NOT: {
-            auto lit2 = si.internalize(to_app(e)->get_arg(0), true);
+            auto lit2 = si.internalize(to_app(e)->get_arg(0));
             add_aux(lit, lit2);
             add_aux(~lit, ~lit2);
             break;
@@ -707,8 +703,8 @@ namespace euf {
                 disable_relevancy(e);
                 return;
             }
-            auto lit1 = si.internalize(to_app(e)->get_arg(0), true);
-            auto lit2 = si.internalize(to_app(e)->get_arg(1), true);
+            auto lit1 = si.internalize(to_app(e)->get_arg(0));
+            auto lit2 = si.internalize(to_app(e)->get_arg(1));
             add_aux(~lit, ~lit1, lit2);
             add_aux(~lit, lit1, ~lit2);
             add_aux(lit, lit1, lit2);
@@ -718,7 +714,7 @@ namespace euf {
         case OP_OR: {
             sat::literal_vector lits;
             for (expr* arg : *to_app(e))
-                lits.push_back(si.internalize(arg, true));
+                lits.push_back(si.internalize(arg));
             for (auto lit2 : lits)
                 add_aux(~lit2, lit);
             lits.push_back(~lit);
@@ -728,7 +724,7 @@ namespace euf {
         case OP_AND: {
             sat::literal_vector lits;
             for (expr* arg : *to_app(e))
-                lits.push_back(~si.internalize(arg, true));
+                lits.push_back(~si.internalize(arg));
             for (auto nlit2 : lits)
                 add_aux(~lit, ~nlit2);
             lits.push_back(lit);
@@ -742,9 +738,9 @@ namespace euf {
             add_aux(~lit);
             break;
         case OP_ITE: {
-            auto lit1 = si.internalize(to_app(e)->get_arg(0), true);
-            auto lit2 = si.internalize(to_app(e)->get_arg(1), true);
-            auto lit3 = si.internalize(to_app(e)->get_arg(2), true);
+            auto lit1 = si.internalize(to_app(e)->get_arg(0));
+            auto lit2 = si.internalize(to_app(e)->get_arg(1));
+            auto lit3 = si.internalize(to_app(e)->get_arg(2));
             add_aux(~lit, ~lit1, lit2);
             add_aux(~lit, lit1, lit3);
             add_aux(lit, ~lit1, ~lit2);
@@ -756,8 +752,8 @@ namespace euf {
                 disable_relevancy(e);
                 break;
             }
-            auto lit1 = si.internalize(to_app(e)->get_arg(0), true);
-            auto lit2 = si.internalize(to_app(e)->get_arg(1), true);
+            auto lit1 = si.internalize(to_app(e)->get_arg(0));
+            auto lit2 = si.internalize(to_app(e)->get_arg(1));
             add_aux(lit, ~lit1, lit2);
             add_aux(lit, lit1, ~lit2);
             add_aux(~lit, lit1, lit2);
@@ -769,8 +765,8 @@ namespace euf {
                 disable_relevancy(e);
                 break;
             }
-            auto lit1 = si.internalize(to_app(e)->get_arg(0), true);
-            auto lit2 = si.internalize(to_app(e)->get_arg(1), true);
+            auto lit1 = si.internalize(to_app(e)->get_arg(0));
+            auto lit2 = si.internalize(to_app(e)->get_arg(1));
             add_aux(~lit, ~lit1, lit2);
             add_aux(lit, lit1);
             add_aux(lit, ~lit2);
@@ -1114,6 +1110,14 @@ namespace euf {
             if (!e->extract_pb(card, pb))
                 return false;
         return true;
+    }
+
+    void solver::register_on_clause(
+        void* ctx,
+        user_propagator::on_clause_eh_t& on_clause) {
+        m_on_clause_ctx = ctx;
+        m_on_clause = on_clause;
+        init_proof();
     }
 
     void solver::user_propagate_init(

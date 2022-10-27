@@ -22,19 +22,25 @@ Author:
 namespace euf {
 
     void solver::init_proof() {
-        if (!m_proof_initialized) {
-            get_drat().add_theory(get_id(), symbol("euf"));
-            get_drat().add_theory(m.get_basic_family_id(), symbol("bool"));
-        }
-        if (!m_proof_out && s().get_config().m_drat && 
-            (get_config().m_lemmas2console ||
-             s().get_config().m_smt_proof_check ||
-             s().get_config().m_smt_proof.is_non_empty_string())) {
-            TRACE("euf", tout << "init-proof " << s().get_config().m_smt_proof << "\n");
+        if (m_proof_initialized)
+            return;
+
+        if (m_on_clause && !s().get_config().m_drat_disable)
+            s().set_drat(true);
+        
+        if (!s().get_config().m_drat)
+            return;
+
+        if (!get_config().m_lemmas2console &&
+            !s().get_config().m_smt_proof_check &&
+            !m_on_clause &&
+            !s().get_config().m_smt_proof.is_non_empty_string())
+            return;
+        
+        if (s().get_config().m_smt_proof.is_non_empty_string())
             m_proof_out = alloc(std::ofstream, s().get_config().m_smt_proof.str(), std::ios_base::out);
-            get_drat().set_clause_eh(*this);
-        }
-        m_proof_initialized = true;
+        get_drat().set_clause_eh(*this);
+        m_proof_initialized = true;        
     }
 
     /**
@@ -73,20 +79,20 @@ namespace euf {
         }
     }
 
-    eq_proof_hint* solver::mk_hint(literal lit, literal_vector const& r) {
+    eq_proof_hint* solver::mk_hint(symbol const& th, literal conseq, literal_vector const& r) {
         if (!use_drat())
             return nullptr;
         push(value_trail(m_lit_tail));
         push(value_trail(m_cc_tail));
         push(restore_size_trail(m_proof_literals));
-        if (lit != sat::null_literal)
-            m_proof_literals.push_back(~lit);
+        if (conseq != sat::null_literal)
+            m_proof_literals.push_back(~conseq);
         m_proof_literals.append(r);
         m_lit_head = m_lit_tail;
         m_cc_head  = m_cc_tail;
         m_lit_tail = m_proof_literals.size();
         m_cc_tail  = m_explain_cc.size();
-        return new (get_region()) eq_proof_hint(m_lit_head, m_lit_tail, m_cc_head, m_cc_tail);
+        return new (get_region()) eq_proof_hint(th, m_lit_head, m_lit_tail, m_cc_head, m_cc_tail);
     }
 
     th_proof_hint* solver::mk_cc_proof_hint(sat::literal_vector const& ante, app* a, app* b) {
@@ -107,7 +113,7 @@ namespace euf {
         m_cc_head  = m_cc_tail;
         m_lit_tail = m_proof_literals.size();
         m_cc_tail  = m_explain_cc.size();
-        return new (get_region()) eq_proof_hint(m_lit_head, m_lit_tail, m_cc_head, m_cc_tail);        
+        return new (get_region()) eq_proof_hint(m_euf, m_lit_head, m_lit_tail, m_cc_head, m_cc_tail);        
     }
 
     th_proof_hint* solver::mk_tc_proof_hint(sat::literal const* clause) {
@@ -119,13 +125,12 @@ namespace euf {
 
         for (unsigned i = 0; i < 3; ++i)
             m_proof_literals.push_back(~clause[i]);
-
         
         m_lit_head = m_lit_tail;
         m_cc_head  = m_cc_tail;
         m_lit_tail = m_proof_literals.size();
         m_cc_tail  = m_explain_cc.size();
-        return new (get_region()) eq_proof_hint(m_lit_head, m_lit_tail, m_cc_head, m_cc_tail);        
+        return new (get_region()) eq_proof_hint(m_euf, m_lit_head, m_lit_tail, m_cc_head, m_cc_tail);        
     }
 
 
@@ -133,8 +138,8 @@ namespace euf {
         ast_manager& m = s.get_manager();
         func_decl_ref cc(m), cc_comm(m);
         sort* proof = m.mk_proof_sort();
-        ptr_buffer<sort> sorts;
-        expr_ref_vector args(m);
+        expr_ref_vector& args = s.m_expr_args;
+        args.reset();
         if (m_cc_head < m_cc_tail) {
             sort* sorts[1] = { m.mk_bool_sort() };
             cc_comm = m.mk_func_decl(symbol("comm"), 1, sorts, proof);
@@ -158,15 +163,28 @@ namespace euf {
         for (unsigned i = m_cc_head; i < m_cc_tail; ++i) {
             auto const& [a, b, ts, comm] = s.m_explain_cc[i];
             args.push_back(cc_proof(comm, m.mk_eq(a, b)));
-        }
-        for (auto * arg : args)
-            sorts.push_back(arg->get_sort());
-        
-        func_decl* f = m.mk_func_decl(symbol("euf"), sorts.size(), sorts.data(), proof);
-        return m.mk_app(f, args);
+        }        
+        return m.mk_app(th, args.size(), args.data(), proof);
     }
 
+    smt_proof_hint* solver::mk_smt_clause(symbol const& n, unsigned nl, literal const* lits) {
+        if (!use_drat())
+            return nullptr;
+        push(value_trail(m_lit_tail));
+        push(restore_size_trail(m_proof_literals));
 
+        for (unsigned i = 0; i < nl; ++i)
+            m_proof_literals.push_back(~lits[i]);
+            
+        m_lit_head = m_lit_tail;
+        m_eq_head = m_eq_tail;
+        m_deq_head = m_deq_tail;
+        m_lit_tail = m_proof_literals.size();
+        m_eq_tail = m_proof_eqs.size();
+        m_deq_tail = m_proof_deqs.size();
+
+        return new (get_region()) smt_proof_hint(n, m_lit_head, m_lit_tail, m_eq_head, m_eq_tail, m_deq_head, m_deq_tail);
+    }
     
     smt_proof_hint* solver::mk_smt_hint(symbol const& n, unsigned nl, literal const* lits, unsigned ne, expr_pair const* eqs, unsigned nd, expr_pair const* deqs) {
         if (!use_drat())
@@ -218,7 +236,12 @@ namespace euf {
 
     sat::status solver::mk_tseitin_status(unsigned n, sat::literal const* lits) {
         th_proof_hint* ph = use_drat() ? mk_smt_hint(symbol("tseitin"), n, lits) : nullptr;
-        return sat::status::th(m_is_redundant, m.get_basic_family_id(), ph);        
+        return sat::status::th(false, m.get_basic_family_id(), ph);        
+    }
+
+    sat::status solver::mk_distinct_status(unsigned n, sat::literal const* lits) {
+        th_proof_hint* ph = use_drat() ? mk_smt_hint(symbol("alldiff"), n, lits) : nullptr;
+        return sat::status::th(false, m.get_basic_family_id(), ph);
     }
     
     expr* smt_proof_hint::get_hint(euf::solver& s) const {
@@ -269,7 +292,7 @@ namespace euf {
             lits.push_back(jst.lit_consequent());
         if (jst.eq_consequent().first != nullptr) 
             lits.push_back(add_lit(jst.eq_consequent()));
-        get_drat().add(lits, sat::status::th(m_is_redundant, jst.ext().get_id(), jst.get_pragma()));
+        get_drat().add(lits, sat::status::th(false, jst.ext().get_id(), jst.get_pragma()));
         for (unsigned i = s().num_vars(); i < nv; ++i)
             set_tmp_bool_var(i, nullptr);
     }
@@ -279,6 +302,17 @@ namespace euf {
         on_lemma(n, lits, st);
         on_proof(n, lits, st);
         on_check(n, lits, st);
+        on_clause_eh(n, lits, st);
+    }
+
+    void solver::on_clause_eh(unsigned n, literal const* lits, sat::status st) {
+        if (!m_on_clause)
+            return;
+        m_clause.reset();
+        for (unsigned i = 0; i < n; ++i) 
+            m_clause.push_back(literal2expr(lits[i]));
+        auto hint = status2proof_hint(st);
+        m_on_clause(m_on_clause_ctx, hint, m_clause.size(), m_clause.data());
     }
 
     void solver::on_proof(unsigned n, literal const* lits, sat::status st) {
@@ -304,16 +338,16 @@ namespace euf {
     void solver::on_check(unsigned n, literal const* lits, sat::status st) {
         if (!s().get_config().m_smt_proof_check)
             return;
-        expr_ref_vector clause(m);
+        m_clause.reset();
         for (unsigned i = 0; i < n; ++i) 
-            clause.push_back(literal2expr(lits[i]));
+            m_clause.push_back(literal2expr(lits[i]));
         auto hint = status2proof_hint(st);
         if (st.is_asserted() || st.is_redundant())
-            m_smt_proof_checker.infer(clause, hint);
+            m_smt_proof_checker.infer(m_clause, hint);
         else if (st.is_deleted())
-            m_smt_proof_checker.del(clause);
+            m_smt_proof_checker.del(m_clause);
         else if (st.is_input())
-            m_smt_proof_checker.assume(clause);
+            m_smt_proof_checker.assume(m_clause);
     }
         
     void solver::on_lemma(unsigned n, literal const* lits, sat::status st) {
@@ -370,7 +404,7 @@ namespace euf {
     void solver::display_inferred(std::ostream& out, unsigned n, literal const* lits, expr* proof_hint) {
         expr_ref hint(proof_hint, m);
         if (!hint)
-            hint = m.mk_const(symbol("smt"), m.mk_proof_sort());
+            hint = m.mk_const(m_smt, m.mk_proof_sort()); 
         visit_expr(out, hint);
         display_hint(display_literals(out << "(infer", n, lits), hint) << ")\n";        
     }

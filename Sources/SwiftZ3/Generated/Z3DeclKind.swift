@@ -3,7 +3,7 @@
 
 import CZ3
 
-///  The different kinds of interpreted function kinds.
+/// The different kinds of interpreted function kinds.
 /// 
 /// - Z3_OP_PR_CLAUSE_TRAIL,
 ///   Clausal proof trail of additions and deletions

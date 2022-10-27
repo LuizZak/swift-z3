@@ -3,7 +3,7 @@
 
 import CZ3
 
-///  The different kinds of parameters that can be associated with parameter sets.
+/// The different kinds of parameters that can be associated with parameter sets.
 /// (see #Z3_mk_params).
 public typealias Z3ParamKind = Z3_param_kind
 

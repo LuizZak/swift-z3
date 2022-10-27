@@ -3,7 +3,7 @@
 
 import CZ3
 
-///  The different kinds of parameters that can be associated with function symbols.
+/// The different kinds of parameters that can be associated with function symbols.
 /// \sa Z3_get_decl_num_parameters
 /// \sa Z3_get_decl_parameter_kind
 public typealias Z3ParameterKind = Z3_parameter_kind

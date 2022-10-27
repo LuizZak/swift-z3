@@ -318,8 +318,7 @@ extern "C" {
     void Z3_API Z3_solver_from_string(Z3_context c, Z3_solver s, Z3_string c_str) {
         Z3_TRY;
         LOG_Z3_solver_from_string(c, s, c_str);
-        std::string str(c_str);
-        std::istringstream is(str);
+        std::istringstream is(c_str);
         if (is_dimacs_string(c_str)) {
             solver_from_dimacs_stream(c, s, is);
         }
@@ -906,6 +905,43 @@ extern "C" {
         api_context_obj(api::context* c):c(c) {}
         ~api_context_obj() override { dealloc(c); }
     };
+
+    struct scoped_ast_vector {
+        Z3_ast_vector_ref* v;
+        scoped_ast_vector(Z3_ast_vector_ref* v): v(v) { v->inc_ref(); }
+        ~scoped_ast_vector() { v->dec_ref(); }
+    };
+
+    void Z3_API Z3_solver_register_on_clause(
+        Z3_context  c, 
+        Z3_solver   s, 
+        void*       user_context,
+        Z3_on_clause_eh on_clause_eh) {
+        Z3_TRY;
+        RESET_ERROR_CODE();
+        init_solver(c, s);     
+        user_propagator::on_clause_eh_t _on_clause = [=](void* user_ctx, expr* proof, unsigned n, expr* const* _literals) {
+            Z3_ast_vector_ref * literals = alloc(Z3_ast_vector_ref, *mk_c(c), mk_c(c)->m());
+            mk_c(c)->save_object(literals);
+            expr_ref pr(proof, mk_c(c)->m());
+            scoped_ast_vector _sc(literals);
+            for (unsigned i = 0; i < n; ++i)
+                literals->m_ast_vector.push_back(_literals[i]);
+            on_clause_eh(user_ctx, of_expr(pr.get()), of_ast_vector(literals));
+        };
+        to_solver_ref(s)->register_on_clause(user_context, _on_clause);
+        auto& solver = *to_solver(s);
+
+        if (!solver.m_cmd_context) {
+            solver.m_cmd_context = alloc(cmd_context, false, &(mk_c(c)->m()));
+            install_proof_cmds(*solver.m_cmd_context);            
+        }
+
+        if (!solver.m_cmd_context->get_proof_cmds()) 
+            init_proof_cmds(*solver.m_cmd_context);
+        solver.m_cmd_context->get_proof_cmds()->register_on_clause(user_context, _on_clause);
+        Z3_CATCH;   
+    }
 
     void Z3_API Z3_solver_propagate_init(
         Z3_context  c, 

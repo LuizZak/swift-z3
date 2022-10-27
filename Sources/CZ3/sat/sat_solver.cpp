@@ -37,7 +37,6 @@ Revision History:
 # include <xmmintrin.h>
 #endif
 
-#define ENABLE_TERNARY true
 
 namespace sat {
 
@@ -373,15 +372,15 @@ namespace sat {
     }
 
     void solver::del_clause(clause& c) {
-        if (!c.is_learned()) {
+        if (!c.is_learned()) 
             m_stats.m_non_learned_generation++;
-        } 
-        if (c.frozen()) {
+        
+        if (c.frozen()) 
             --m_num_frozen;
-        }
-        if (!c.was_removed() && m_config.m_drat && !m_drat.is_cleaned(c)) {
+        
+        if (!c.was_removed() && m_config.m_drat && !m_drat.is_cleaned(c)) 
             m_drat.del(c);
-        }
+        
         dealloc_clause(&c);        
         if (m_searching) 
             m_stats.m_del_clause++;
@@ -432,25 +431,27 @@ namespace sat {
                 m_mc.add_clause(num_lits, lits);            
         }       
 
-
         switch (num_lits) {
         case 0:
             set_conflict();
             return nullptr;
         case 1:
-            if (!logged && m_config.m_drat && (!st.is_sat() || st.is_input()))
+            if (!logged && m_config.m_drat)
                 drat_log_clause(num_lits, lits, st);
-            assign_unit(lits[0]);
+            {
+                flet<bool> _disable_drat(m_config.m_drat, false);
+                assign(lits[0], justification(0));
+            }
             return nullptr;
         case 2:
             mk_bin_clause(lits[0], lits[1], st);
             if (redundant && m_par) 
                 m_par->share_clause(*this, lits[0], lits[1]);
             return nullptr;
+#if ENABLE_TERNARY
         case 3:
-            if (ENABLE_TERNARY) 
                 return mk_ter_clause(lits, st);
-            Z3_fallthrough;
+#endif
         default:
             return mk_nary_clause(num_lits, lits, st);
         }
@@ -460,6 +461,9 @@ namespace sat {
         bool redundant = st.is_redundant();
         m_touched[l1.var()] = m_touch_index;
         m_touched[l2.var()] = m_touch_index;
+
+        if (m_config.m_drat)
+            m_drat.add(l1, l2, st);
         
         if (redundant && !m_trim && find_binary_watch(get_wlist(~l1), ~l2) && value(l1) == l_undef) {
             assign_unit(l1);
@@ -484,8 +488,7 @@ namespace sat {
                 push_reinit_stack(l1, l2);
             return;
         }
-        if (m_config.m_drat) 
-            m_drat.add(l1, l2, st);
+
         if (propagate_bin_clause(l1, l2)) {
             if (!at_base_lvl())
                 push_reinit_stack(l1, l2);
@@ -542,6 +545,7 @@ namespace sat {
         m_clauses_to_reinit.push_back(clause_wrapper(l1, l2));
     }
 
+#if ENABLE_TERNARY
     clause * solver::mk_ter_clause(literal * lits, sat::status st) {
         VERIFY(ENABLE_TERNARY);
         m_stats.m_mk_ter_clause++;
@@ -591,24 +595,24 @@ namespace sat {
         }
         return reinit;
     }
+#endif
 
     clause * solver::mk_nary_clause(unsigned num_lits, literal * lits, sat::status st) {
         m_stats.m_mk_clause++;
         clause * r = alloc_clause(num_lits, lits, st.is_redundant());
         SASSERT(!st.is_redundant() || r->is_learned());
         bool reinit = attach_nary_clause(*r, st.is_sat() && st.is_redundant());
-        if (reinit || has_variables_to_reinit(*r)) push_reinit_stack(*r);
-        if (st.is_redundant()) {
+ 
+        if (reinit || has_variables_to_reinit(*r)) 
+            push_reinit_stack(*r);
+        if (st.is_redundant()) 
             m_learned.push_back(r);
-        }
-        else {
+        else 
             m_clauses.push_back(r);
-        }
         if (m_config.m_drat) 
             m_drat.add(*r, st);
-        for (literal l : *r) {
+        for (literal l : *r) 
             m_touched[l.var()] = m_touch_index;
-        }
         return r;
     }
 
@@ -660,9 +664,11 @@ namespace sat {
     void solver::attach_clause(clause & c, bool & reinit) {
         SASSERT(c.size() > 2);
         reinit = false;
+#if ENABLE_TERNARY
         if (ENABLE_TERNARY && c.size() == 3)
             reinit = attach_ter_clause(c, c.is_learned() ? sat::status::redundant() : sat::status::asserted());
         else
+#endif
             reinit = attach_nary_clause(c, c.is_learned() && !c.on_reinit_stack());
     }
 
@@ -910,11 +916,14 @@ namespace sat {
         if (m_config.m_drat) m_drat.del(l1, l2);       
     }
 
-    void solver::detach_clause(clause & c) {
-        if (ENABLE_TERNARY && c.size() == 3)
+    void solver::detach_clause(clause& c) {
+#if ENABLE_TERNARY
+        if (c.size() == 3) {
             detach_ter_clause(c);
-        else
-            detach_nary_clause(c);
+            return;
+        }
+#endif
+        detach_nary_clause(c);
     }
 
     void solver::detach_nary_clause(clause & c) {
@@ -923,11 +932,13 @@ namespace sat {
         erase_clause_watch(get_wlist(~c[1]), cls_off);
     }
 
+#if ENABLE_TERNARY
     void solver::detach_ter_clause(clause & c) {
         erase_ternary_watch(get_wlist(~c[0]), c[1], c[2]);
         erase_ternary_watch(get_wlist(~c[1]), c[0], c[2]);
         erase_ternary_watch(get_wlist(~c[2]), c[0], c[1]);
     }
+#endif
 
     // -----------------------
     //
@@ -1056,9 +1067,25 @@ namespace sat {
         return r;
     }
 
+    void solver::propagate_clause(clause& c, bool update, unsigned assign_level, clause_offset cls_off) {
+        unsigned glue;
+        SASSERT(value(c[0]) == l_undef); 
+            m_stats.m_propagate++;          
+            c.mark_used();                                          
+            assign_core(c[0], justification(assign_level, cls_off)); 
+            if (update && c.is_learned() && c.glue() > 2 && num_diff_levels_below(c.size(), c.begin(), c.glue() - 1, glue)) 
+                c.set_glue(glue);                                   \
+    }
+
+    void solver::set_watch(clause& c, unsigned idx, clause_offset cls_off) {
+        std::swap(c[1], c[idx]);
+        DEBUG_CODE(for (auto const& w : m_watches[(~c[1]).index()]) VERIFY(!w.is_clause() || w.get_clause_offset() != cls_off););
+        m_watches[(~c[1]).index()].push_back(watched(c[0], cls_off));
+    }
+
     bool solver::propagate_literal(literal l, bool update) {
         literal l1, l2;
-        lbool val1, val2;
+
         bool keep;
         unsigned curr_level = lvl(l);
         TRACE("sat_propagate", tout << "propagating: " << l << "@" << curr_level << " " << m_justification[l.var()] << "\n"; );
@@ -1096,7 +1123,9 @@ namespace sat {
                 *it2 = *it;
                 it2++;
                 break;
-            case watched::TERNARY:
+#if ENABLE_TERNARY
+            case watched::TERNARY: {
+                lbool val1, val2;
                 l1 = it->get_literal1();
                 l2 = it->get_literal2();
                 val1 = value(l1);
@@ -1117,6 +1146,8 @@ namespace sat {
                 *it2 = *it;
                 it2++;
                 break;
+            }
+#endif
             case watched::CLAUSE: {
                 if (value(it->get_blocked_literal()) == l_true) {
                     TRACE("propagate_clause_bug", tout << "blocked literal " << it->get_blocked_literal() << "\n";
@@ -1131,6 +1162,8 @@ namespace sat {
                 if (c[0] == not_l)
                     std::swap(c[0], c[1]);
                 CTRACE("propagate_bug", c[1] != not_l, tout << "l: " << l << " " << c << "\n";);
+
+
                 if (c.was_removed() || c.size() == 1 || c[1] != not_l) {
                     // Remark: this method may be invoked when the watch lists are not in a consistent state,
                     // and may contain dead/removed clauses, or clauses with removed literals.
@@ -1147,58 +1180,65 @@ namespace sat {
                     break;
                 }
                 VERIFY(c[1] == not_l);
-                literal* l_it = c.begin() + 2;
-                literal* l_end = c.end();
+                
+                unsigned undef_index = 0;
                 unsigned assign_level = curr_level;
                 unsigned max_index = 1;
-                for (; l_it != l_end; ++l_it) {
-                    if (value(*l_it) != l_false) {
-                        c[1] = *l_it;
-                        *l_it = not_l;
-                        DEBUG_CODE(for (auto const& w : m_watches[(~c[1]).index()]) VERIFY(!w.is_clause() || w.get_clause_offset() != cls_off););
-                        m_watches[(~c[1]).index()].push_back(watched(c[0], cls_off));
+                unsigned num_undef = 0;
+                unsigned sz = c.size();
+
+                for (unsigned i = 2; i < sz && num_undef <= 1; ++i) {
+                    literal lit = c[i];
+                    switch (value(lit)) {
+                    case l_true:
+                        it2->set_clause(lit, cls_off);
+                        it2++;
                         goto end_clause_case;
-                    }
-                }
-                SASSERT(value(c[0]) == l_false || value(c[0]) == l_undef);
-                if (assign_level != scope_lvl()) {
-                    for (unsigned i = 2; i < c.size(); ++i) {
-                        unsigned level = lvl(c[i]);
+                    case l_undef:
+                        undef_index = i;
+                        ++num_undef;
+                        break;
+                    case l_false: {
+                        unsigned level = lvl(lit);
                         if (level > assign_level) {
                             assign_level = level;
                             max_index = i;
                         }
+                        break;
                     }
-                    IF_VERBOSE(20, verbose_stream() << "lower assignment level " << assign_level << " scope: " << scope_lvl() << "\n");
+                    }
+                }
+
+                if (value(c[0]) == l_false)
+                    assign_level = std::max(assign_level, lvl(c[0]));
+
+                if (undef_index != 0) {       
+                    set_watch(c, undef_index, cls_off);
+                    if (value(c[0]) == l_false && num_undef == 1) {   
+                        std::swap(c[0], c[1]);
+                        propagate_clause(c, update, assign_level, cls_off);
+                    }
+                    goto end_clause_case;
                 }
 
                 if (value(c[0]) == l_false) {
-                    assign_level = std::max(assign_level, lvl(c[0]));
                     c.mark_used();
                     CONFLICT_CLEANUP();
                     set_conflict(justification(assign_level, cls_off));
                     return false;
                 }
-                else {
-                    if (max_index != 1) {
-                        IF_VERBOSE(20, verbose_stream() << "swap watch for: " << c[1] << " " << c[max_index] << "\n");
-                        std::swap(c[1], c[max_index]);
-                        m_watches[(~c[1]).index()].push_back(watched(c[0], cls_off));
-                    }
-                    else {
-                        *it2 = *it;
-                        it2++;
-                    }
-                    m_stats.m_propagate++;
-                    c.mark_used();
-                    assign_core(c[0], justification(assign_level, cls_off));
-                    if (update && c.is_learned() && c.glue() > 2) {
-                        unsigned glue;
-                        if (num_diff_levels_below(c.size(), c.begin(), c.glue() - 1, glue)) {
-                            c.set_glue(glue);
-                        }
-                    }
+
+                // value(c[0]) == l_undef
+
+                if (max_index != 1) {
+                    IF_VERBOSE(20, verbose_stream() << "swap watch for: " << c[1] << " " << c[max_index] << "\n");
+                    set_watch(c, max_index, cls_off);
                 }
+                else {
+                    *it2 = *it;
+                    it2++;
+                }
+                propagate_clause(c, update, assign_level, cls_off);
             end_clause_case:
                 break;
             }
@@ -2494,10 +2534,12 @@ namespace sat {
             case justification::BINARY:
                 process_antecedent(~(js.get_literal()), num_marks);
                 break;
+#if ENABLE_TERNARY
             case justification::TERNARY:
                 process_antecedent(~(js.get_literal1()), num_marks);
                 process_antecedent(~(js.get_literal2()), num_marks);
                 break;
+#endif
             case justification::CLAUSE: {
                 clause & c = get_clause(js);
                 unsigned i = 0;
@@ -2676,11 +2718,13 @@ namespace sat {
             SASSERT(consequent != null_literal);
             process_antecedent_for_unsat_core(~(js.get_literal()));
             break;
+#if ENABLE_TERNARY
         case justification::TERNARY:
             SASSERT(consequent != null_literal);
             process_antecedent_for_unsat_core(~(js.get_literal1()));
             process_antecedent_for_unsat_core(~(js.get_literal2()));
             break;
+#endif
         case justification::CLAUSE: {
             clause & c = get_clause(js);
             unsigned i = 0;
@@ -2817,10 +2861,12 @@ namespace sat {
         case justification::BINARY:
             level = update_max_level(js.get_literal(), level, unique_max);
             return level;
+#if ENABLE_TERNARY
         case justification::TERNARY:
             level = update_max_level(js.get_literal1(), level, unique_max);
             level = update_max_level(js.get_literal2(), level, unique_max);
             return level;
+#endif
         case justification::CLAUSE: 
             for (literal l : get_clause(js)) 
                 level = update_max_level(l, level, unique_max);
@@ -3172,6 +3218,7 @@ namespace sat {
                     return false;
                 }
                 break;
+#if ENABLE_TERNARY
             case justification::TERNARY:
                 if (!process_antecedent_for_minimization(~(js.get_literal1())) ||
                     !process_antecedent_for_minimization(~(js.get_literal2()))) {
@@ -3179,6 +3226,7 @@ namespace sat {
                     return false;
                 }
                 break;
+#endif
             case justification::CLAUSE: {
                 clause & c = get_clause(js);
                 unsigned i   = 0;
@@ -3334,10 +3382,12 @@ namespace sat {
             case justification::BINARY:
                 update_lrb_reasoned(js.get_literal());
                 break;
+#if ENABLE_TERNARY
             case justification::TERNARY:
                 update_lrb_reasoned(js.get_literal1());
                 update_lrb_reasoned(js.get_literal2());
                 break;
+#endif
             case justification::CLAUSE: {
                 clause & c = get_clause(js);
                 for (literal l : c) {
@@ -3407,6 +3457,7 @@ namespace sat {
                         unmark_lit(~l2);
                     }
                 }
+#if ENABLE_TERNARY
                 else if (w.is_ternary_clause()) {
                     literal l2 = w.get_literal1();
                     literal l3 = w.get_literal2();
@@ -3419,6 +3470,7 @@ namespace sat {
                         unmark_lit(~l2);
                     }
                 }
+#endif
                 else {
                     // May miss some binary/ternary clauses, but that is ok.
                     // I sort the watch lists at every simplification round.
@@ -3563,7 +3615,7 @@ namespace sat {
 
         auto cleanup_watch = [&](literal lit) {
             for (auto const& w : get_wlist(lit)) {
-                IF_VERBOSE(0, verbose_stream() << "cleanup: " << lit << " " << w.is_binary_clause() << "\n");
+                IF_VERBOSE(1, verbose_stream() << "cleanup: " << lit << " " << w.is_binary_clause() << "\n");
             }
         };
         for (bool_var v : m_vars_to_free) {
@@ -3683,6 +3735,7 @@ namespace sat {
             }
             else {
                 clause & c = *(cw.get_clause());
+#if ENABLE_TERNARY
                 if (ENABLE_TERNARY && c.size() == 3) {
                     if (propagate_ter_clause(c) && !at_base_lvl())
                         m_clauses_to_reinit[j++] = cw;                
@@ -3692,6 +3745,7 @@ namespace sat {
                         c.set_reinit_stack(false);
                     continue;
                 }
+#endif
                 detach_clause(c);
                 attach_clause(c, reinit);
                 if (reinit && !at_base_lvl()) 
@@ -3958,10 +4012,12 @@ namespace sat {
         case justification::BINARY:
             out << "binary " << js.get_literal() << "@" << lvl(js.get_literal());
             break;
+#if ENABLE_TERNARY
         case justification::TERNARY:
             out << "ternary " << js.get_literal1() << "@" << lvl(js.get_literal1()) << " ";
             out << js.get_literal2() << "@" << lvl(js.get_literal2());
             break;
+#endif
         case justification::CLAUSE: {
             out << "(";
             bool first = true;
@@ -4621,12 +4677,14 @@ namespace sat {
             if (!check_domain(lit, ~js.get_literal())) return false;
             s |= m_antecedents.find(js.get_literal().var());
             break;
+#if ENABLE_TERNARY
         case justification::TERNARY:
             if (!check_domain(lit, ~js.get_literal1()) ||
                 !check_domain(lit, ~js.get_literal2())) return false;
             s |= m_antecedents.find(js.get_literal1().var());
             s |= m_antecedents.find(js.get_literal2().var());
             break;
+#endif
         case justification::CLAUSE: {
             clause & c = get_clause(js);
             for (literal l : c) {

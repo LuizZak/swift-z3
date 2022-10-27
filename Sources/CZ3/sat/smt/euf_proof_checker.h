@@ -42,7 +42,6 @@ namespace euf {
         ast_manager& m;
         scoped_ptr_vector<theory_checker_plugin> m_plugins;                          // plugins of proof checkers
         map<symbol, theory_checker_plugin*, symbol_hash_proc, symbol_eq_proc> m_map; // symbol table of proof checkers
-        obj_map<expr, expr_ref_vector*> m_checked_clauses;                          // cache of previously checked proofs and their clauses.
         void add_plugin(theory_checker_plugin* p);
     public:
         theory_checker(ast_manager& m);
@@ -62,12 +61,11 @@ namespace euf {
      */
     class smt_theory_checker_plugin : public theory_checker_plugin {
         ast_manager& m;
-        symbol m_rule;
     public:
-        smt_theory_checker_plugin(ast_manager& m, symbol const& n): m(m), m_rule(n) {}
+        smt_theory_checker_plugin(ast_manager& m): m(m) {}
         bool check(app* jst) override { return false; }
         expr_ref_vector clause(app* jst) override;        
-        void register_plugins(theory_checker& pc) override { pc.register_plugin(m_rule, this); }
+        void register_plugins(theory_checker& pc) override;
     };
 
 
@@ -90,8 +88,9 @@ namespace euf {
         bool         m_check_rup = false;
 
         // for logging
-        symbol       m_last_rule;
-        unsigned     m_num_last_rules = 0;
+
+        map<symbol, unsigned, symbol_hash_proc, symbol_eq_proc> m_hint2hit, m_hint2miss;
+        unsigned m_num_logs = 0;
         
         void add_units() {
             auto const& units = m_drat.units();
@@ -99,7 +98,7 @@ namespace euf {
                 m_units.push_back(units[i].first);
         }
 
-        void log_verified(app* proof_hint);
+        void log_verified(app* proof_hint, bool success);
 
         void diagnose_rup_failure(expr_ref_vector const& clause);
 
