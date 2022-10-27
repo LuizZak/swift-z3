@@ -211,7 +211,7 @@ class Z3DoccommentFormatter(DoccommentFormatter):
     """
 
     def __init__(self):
-        self.remove_regex = re.compile(r"\\(brief|ingroup)", re.IGNORECASE)
+        self.remove_regex = re.compile(r"\\(brief|ingroup)\s+", re.IGNORECASE)
         self.ref_regex = re.compile(r"\\(?:ref|c) (\w+(?:\(\))?)", re.IGNORECASE)
         self.backtick_regex = re.compile(r"`([^`]+)`")
         self.backtick_word_regex = re.compile(r"\w+")
