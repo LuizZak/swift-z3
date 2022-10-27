@@ -81,7 +81,7 @@
         },
         "ShortcutMenuBar.userButton01Command": "workbench.action.tasks.runTask|Build (debug)",
         "ShortcutMenuBar.userButton02Command": "workbench.action.tasks.runTask|Test",
-        "ShortcutMenuBar.userButton03Command": "workbench.action.tasks.runTask|Update SwiftZ3",
+        "ShortcutMenuBar.userButton03Command": "workbench.action.tasks.runTask|Update Z3",
         "commentAnchors.workspace.excludeFiles": "**/{node_modules,.git,.idea,target,out,build,vendor,.build,.swiftpm}/**/*",
         "commentAnchors.tags.anchors": {
             "MARK:": {
