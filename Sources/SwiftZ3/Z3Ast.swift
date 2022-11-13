@@ -16,7 +16,7 @@ public class Z3Ast<T: SortKind>: AnyZ3Ast {
 public extension AnyZ3Ast {
     /// An unsafe cast from a generic `AnyZ3Ast` or a specialized `Z3Ast` to
     /// another specialized `Z3Ast` type
-    func castTo<T: SortKind>(type: T.Type = T.self) -> Z3Ast<T> {
+    func unsafeCastTo<T: SortKind>(sort: T.Type = T.self) -> Z3Ast<T> {
         return Z3Ast<T>(context: context, ast: ast)
     }
 }

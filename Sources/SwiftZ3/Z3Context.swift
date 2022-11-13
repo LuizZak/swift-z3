@@ -205,7 +205,7 @@ public class Z3Context {
     /// the given sort can be an int, real, finite-domain, or bit-vectors of
     /// arbitrary size.
     public func makeNumeral<T: NumericalSort>(number: String, sort: T.Type) -> Z3Ast<T> {
-        return makeNumeral(number: number, sort: sort.getSort(self)).castTo()
+        return makeNumeral(number: number, sort: sort.getSort(self)).unsafeCastTo()
     }
     
     /// Create a numeral of a given sort.

@@ -71,7 +71,7 @@ public extension Z3Context {
     /// This function is a shorthand for:
     /// ```
     /// let symbol = makeStringSymbol(name)
-    /// let n = makeConstant(name: symbol, sort: sort.getSort(self)).castTo<T>()
+    /// let n = makeConstant(name: symbol, sort: sort.getSort(self)).unsafeCastTo<T>()
     /// ```
     /// - seealso: `makeApply`
     /// - seealso: `makeFreshConst`
@@ -79,7 +79,7 @@ public extension Z3Context {
     func makeConstant<T: SortKind>(name: String, sort: T.Type = T.self) -> Z3Ast<T> {
         let symbol = makeStringSymbol(name)
 
-        return makeConstant(name: symbol, sort: sort.getSort(self)).castTo()
+        return makeConstant(name: symbol, sort: sort.getSort(self)).unsafeCastTo()
     }
     
     /// Declare and create a constant.
@@ -87,13 +87,13 @@ public extension Z3Context {
     /// This function is a shorthand for:
     /// ```
     /// let symbol = makeStringSymbol(name)
-    /// let n = makeConstant(name: symbol, sort: sort.getSort(self)).castTo<T>()
+    /// let n = makeConstant(name: symbol, sort: sort.getSort(self)).unsafeCastTo<T>()
     /// ```
     /// - seealso: `makeApply`
     /// - seealso: `makeFreshConst`
     /// - seealso: `makeFuncDecl`
     func makeConstant<T: SortKind>(name: Z3Symbol, sort: T.Type = T.self) -> Z3Ast<T> {
-        return makeConstant(name: name, sort: sort.getSort(self)).castTo()
+        return makeConstant(name: name, sort: sort.getSort(self)).unsafeCastTo()
     }
 
     /// Declare a fresh constant or function.

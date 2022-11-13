@@ -104,7 +104,7 @@ public extension Z3Context {
     /// The resulting term is an array, such that a `select` on an arbitrary
     /// index produces the value `value`.
     func makeConstArray<D, R>(_ value: Z3Ast<R>) -> Z3Array<D, R> {
-        return makeConstArrayAny(D.getSort(self), value).castTo()
+        return makeConstArrayAny(D.getSort(self), value).unsafeCastTo()
     }
 
     /// Create the constant array.

@@ -97,12 +97,12 @@ final class SwiftZ3Tests: XCTestCase {
         let x = ctx.makeConstant(name: "x", sort: ctx.bitVectorSort(size: 64))
         
         let y = ctx.makeConstant(name: "y", sort: doubleSort)
-        let fpVal = ctx.makeFpaNumeralInt(42, sort: doubleSort)
+        let fpVal = ctx.makeFpaNumeralInt(42, sort: doubleSort).unsafeCastTo(sort: AnyFPSort.self)
 
         let c1 = ctx.makeEqualAny(y, fpVal)
         let c2 = ctx.makeEqualAny(x, ctx.makeFpaToBvAny(rm, y, 64, signed: false))
         let c3 = ctx.makeEqualAny(x, ctx.makeBitVectorAny(42, bitWidth: 64))
-        let c4 = ctx.makeEqualAny(ctx.makeNumeral(number: "42", sort: ctx.realSort()), ctx.makeFpaToReal(fpVal.castTo(type: AnyFPSort.self)))
+        let c4 = ctx.makeEqualAny(ctx.makeNumeral(number: "42", sort: ctx.realSort()), ctx.makeFpaToReal(fpVal))
         let c5 = ctx.makeAnd([c1, c2, c3, c4])
 
         /* Generic solver */
