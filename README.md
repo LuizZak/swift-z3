@@ -53,3 +53,11 @@ dependencies: [
     .package(url: "https://github.com/LuizZak/swift-z3.git", .branch("master"))
 ]
 ```
+
+Specific tagged versions of Z3 are available as branches instead of tags in this repository. This allows base Swift API updates on master to be merged into different release versions of Z3 without requiring rewriting tags:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/LuizZak/swift-z3.git", .branch("4.11.2")) // Pulls 4.11.2 branch, with latest 'z3-4.11.2' source code + any API updates from master
+]
+```
