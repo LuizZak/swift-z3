@@ -138,7 +138,7 @@ final class SwiftZ3Tests: XCTestCase {
     func testFloatingPointExample2_withTypeSystem() {
         let ctx = Z3Context()
         
-        let rm = ctx.makeConstant(name: "rm", sort: RoundingMode.self)
+        let rm = ctx.makeConstant(name: "rm", sort: RoundingModeSort.self)
         let x = ctx.makeConstant(name: "x", sort: BitVectorSort64.self)
         
         let y = ctx.makeConstant(name: "y", sort: Double.self)

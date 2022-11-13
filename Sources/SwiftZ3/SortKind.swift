@@ -11,8 +11,11 @@ public protocol FloatingSort: NumericalSort { }
 
 public struct ArraySort<Domain: SortKind, Range: SortKind>: SortKind {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
-        return context.makeArraySort(domain: Domain.getSort(context),
-                                     range: Range.getSort(context))
+        return context
+            .makeArraySort(
+                domain: Domain.getSort(context),
+                range: Range.getSort(context)
+            )
     }
 }
 
@@ -42,7 +45,7 @@ public extension BitVectorSort {
     }
 }
 
-/// A bitwidth sort which fits as many bits as the bit width of its `T` parameter
+/// A bit width sort which fits as many bits as the bit width of its `T` parameter
 public struct BitVectorOfInt<T: FixedWidthInteger>: BitVectorSort {
     public static var bitWidth: UInt32 { UInt32(T.bitWidth) }
 }
@@ -120,9 +123,9 @@ public struct FP128Sort: FloatingSort {
     }
 }
 
-/// A RoundingMode sort for values that specify the rounding mode of floating
+/// A `RoundingMode` sort for values that specify the rounding mode of floating
 /// point values
-public struct RoundingMode: SortKind {
+public struct RoundingModeSort: SortKind {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         return context.makeFpaRoundingModeSort()
     }

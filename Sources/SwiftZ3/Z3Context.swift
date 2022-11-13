@@ -5,14 +5,14 @@ public class Z3Context {
     /// was borrowed from another live Z3Context instance. Used to avoid calling
     /// deinitializers on the borrowed pointer.
     private var isBorrowed: Bool = false
-    private var cachedFpaRoundingMode: Z3Ast<RoundingMode>?
+    private var cachedFpaRoundingMode: Z3Ast<RoundingModeSort>?
     internal var context: Z3_context
     
     /// Gets or sets a reference to a rounding mode for floating-point operations
     /// performed on `Z3Ast` instances created by this context.
     ///
     /// Defaults to NearestTiesToEven rounding mode, if not configured.
-    public var currentFpaRoundingMode: Z3Ast<RoundingMode> {
+    public var currentFpaRoundingMode: Z3Ast<RoundingModeSort> {
         get {
             if let cached = cachedFpaRoundingMode {
                 return cached
