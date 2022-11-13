@@ -44,7 +44,7 @@ Development is ongoing and the public API might change at any time without notic
 
 Swift 5.4
 
-### Instalation
+### Installation
 
 SwiftZ3 is available to Swift Package Manager:
 
