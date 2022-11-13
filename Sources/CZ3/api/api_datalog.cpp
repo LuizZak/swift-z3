@@ -395,7 +395,8 @@ extern "C" {
         Z3_string     s) {
         Z3_TRY;
         LOG_Z3_fixedpoint_from_string(c, d, s);
-        std::istringstream is(s);
+        std::string str(s);
+        std::istringstream is(str);
         RETURN_Z3(Z3_fixedpoint_from_stream(c, d, is));
         Z3_CATCH_RETURN(nullptr);
     }

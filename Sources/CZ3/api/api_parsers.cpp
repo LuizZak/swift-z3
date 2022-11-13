@@ -27,7 +27,6 @@ Revision History:
 #include "solver/solver_na2as.h"
 #include "muz/fp/dl_cmds.h"
 #include "opt/opt_cmds.h"
-#include "cmd_context/extra_cmds/proof_cmds.h"
 
 
 
@@ -43,7 +42,6 @@ extern "C" {
             ast_manager& m = c.m();
             ctx = alloc(cmd_context, false, &(m));
             install_dl_cmds(*ctx.get());
-            install_proof_cmds(*ctx.get());
             install_opt_cmds(*ctx.get());
             install_smt2_extra_cmds(*ctx.get());            
             ctx->register_plist();
@@ -126,7 +124,7 @@ extern "C" {
         Z3_CATCH;
     }
 
-    static Z3_ast_vector Z3_parser_context_parse_stream(Z3_context c, scoped_ptr<cmd_context>& ctx, bool owned, std::istream& is) {
+    Z3_ast_vector Z3_parser_context_parse_stream(Z3_context c, scoped_ptr<cmd_context>& ctx, bool owned, std::istream& is) {
         Z3_TRY;
         Z3_ast_vector_ref * v = alloc(Z3_ast_vector_ref, *mk_c(c), mk_c(c)->m());
         mk_c(c)->save_object(v);        
@@ -157,14 +155,14 @@ extern "C" {
     Z3_ast_vector Z3_API Z3_parser_context_from_string(Z3_context c, Z3_parser_context pc, Z3_string str) {
         Z3_TRY;
         LOG_Z3_parser_context_from_string(c, pc, str);
-        std::istringstream is(str);
+        std::string s(str);
+        std::istringstream is(s);
         auto& ctx = to_parser_context(pc)->ctx;
         Z3_ast_vector r = Z3_parser_context_parse_stream(c, ctx, false, is);
         RETURN_Z3(r);
         Z3_CATCH_RETURN(nullptr);
     }
 
-    static
     Z3_ast_vector parse_smtlib2_stream(bool exec, Z3_context c, std::istream& is,
                                        unsigned num_sorts,
                                        Z3_symbol const _sort_names[],
@@ -176,7 +174,6 @@ extern "C" {
         ast_manager& m = mk_c(c)->m();
         scoped_ptr<cmd_context> ctx = alloc(cmd_context, false, &(m));
         install_dl_cmds(*ctx.get());
-        install_proof_cmds(*ctx.get());
         install_opt_cmds(*ctx.get());
         install_smt2_extra_cmds(*ctx.get());
         ctx->register_plist();
@@ -201,7 +198,8 @@ extern "C" {
                                           Z3_func_decl const decls[]) {
         Z3_TRY;
         LOG_Z3_parse_smtlib2_string(c, str, num_sorts, sort_names, sorts, num_decls, decl_names, decls);
-        std::istringstream is(str);
+        std::string s(str);
+        std::istringstream is(s);
         Z3_ast_vector r = parse_smtlib2_stream(false, c, is, num_sorts, sort_names, sorts, num_decls, decl_names, decls);
         RETURN_Z3(r);
         Z3_CATCH_RETURN(nullptr);
@@ -234,20 +232,19 @@ extern "C" {
             auto* ctx = alloc(cmd_context, false, &(mk_c(c)->m()));
             mk_c(c)->cmd() = ctx;
             install_dl_cmds(*ctx);
-            install_proof_cmds(*ctx);
             install_opt_cmds(*ctx);
             install_smt2_extra_cmds(*ctx);
             ctx->register_plist();
             ctx->set_solver_factory(mk_smt_strategic_solver_factory());
         }
         scoped_ptr<cmd_context>& ctx = mk_c(c)->cmd();
-        std::istringstream is(str);
+        std::string s(str);
+        std::istringstream is(s);
         ctx->set_regular_stream(ous);
         ctx->set_diagnostic_stream(ous);
         cmd_context::scoped_redirect _redirect(*ctx);
         try {
-            // See api::context::m_parser for a motivation about the reuse of the parser
-            if (!parse_smt2_commands_with_parser(mk_c(c)->m_parser, *ctx.get(), is)) {
+            if (!parse_smt2_commands(*ctx.get(), is)) {
                 SET_ERROR_CODE(Z3_PARSER_ERROR, ous.str());
                 RETURN_Z3(mk_c(c)->mk_external_string(ous.str()));
             }
@@ -260,4 +257,6 @@ extern "C" {
         RETURN_Z3(mk_c(c)->mk_external_string(ous.str()));
         Z3_CATCH_RETURN(mk_c(c)->mk_external_string(ous.str()));
     }
-}
+
+
+};

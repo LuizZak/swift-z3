@@ -212,8 +212,6 @@ extern "C" {
                 buffer.push_back('\\');
                 buffer.push_back('u');
                 buffer.push_back('{');
-                if (ch == 0)
-                    buff.push_back('0');
                 while (ch > 0) {
                     unsigned d = ch & 0xF;
                     if (d < 10)

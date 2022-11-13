@@ -16,7 +16,7 @@ Author:
 Notes:
 
 --*/
-#include "ast/converters/model_converter.h"
+#include "tactic/model_converter.h"
 #include "model/model_v2_pp.h"
 #include "ast/ast_smt2_pp.h"
 

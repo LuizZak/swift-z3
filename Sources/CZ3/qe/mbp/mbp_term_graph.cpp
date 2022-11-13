@@ -24,7 +24,6 @@ Notes:
 #include "ast/ast_util.h"
 #include "ast/for_each_expr.h"
 #include "ast/occurs.h"
-#include "ast/rewriter/th_rewriter.h"
 #include "model/model_evaluator.h"
 #include "qe/mbp/mbp_term_graph.h"
 
@@ -308,8 +307,9 @@ namespace mbp {
     term *term_graph::mk_term(expr *a) {
         expr_ref e(a, m);
         term * t = alloc(term, e, m_app2term);
-        if (t->get_num_args() == 0 && m.is_unique_value(a))
+        if (t->get_num_args() == 0 && m.is_unique_value(a)){
             t->mark_as_interpreted();
+        }
 
         m_terms.push_back(t);
         m_app2term.insert(a->get_id(), t);
@@ -584,7 +584,6 @@ namespace mbp {
         ast_manager &m;
         u_map<expr*> m_term2app;
         u_map<expr*> m_root2rep;
-        th_rewriter  m_rewriter;
 
         model_ref m_model;
         expr_ref_vector m_pinned;  // tracks expr in the maps
@@ -611,7 +610,7 @@ namespace mbp {
                 }
                 TRACE("qe_verbose", tout << *ch << " -> " << mk_pp(e, m) << "\n";);
             }
-            expr_ref pure = m_rewriter.mk_app(a->get_decl(), kids.size(), kids.data());
+            expr* pure = m.mk_app(a->get_decl(), kids.size(), kids.data());
             m_pinned.push_back(pure);
             add_term2app(t, pure);
             return pure;
@@ -701,23 +700,30 @@ namespace mbp {
                         if (p1 != p2) 
                             res.push_back(m.mk_eq(p1, p2));
                     }
-                    else 
+                    else {
                         TRACE("qe", tout << "skipping " << mk_pp(lit, m) << "\n";);
+                    }
                 }
                 else if (m.is_distinct(lit)) {
                     ptr_buffer<expr> diff;
-                    for (expr* arg : *to_app(lit)) 
-                        if (find_app(arg, p1)) 
+                    for (expr* arg : *to_app(lit)) {
+                        if (find_app(arg, p1)) {
                             diff.push_back(p1);
-                    if (diff.size() > 1) 
+                        }
+                    }
+                    if (diff.size() > 1) {
                         res.push_back(m.mk_distinct(diff.size(), diff.data()));
-                    else 
+                    }
+                    else {
                         TRACE("qe", tout << "skipping " << mk_pp(lit, m) << "\n";);
+                    }
                 }
-                else if (find_app(lit, p1)) 
+                else if (find_app(lit, p1)) {
                     res.push_back(p1);
-                else 
+                }
+                else {
                     TRACE("qe", tout << "skipping " << mk_pp(lit, m) << "\n";);
+                }
             }
             remove_duplicates(res);
             TRACE("qe", tout << "literals: " << res << "\n";);            
@@ -942,7 +948,7 @@ namespace mbp {
         }
 
     public:
-        projector(term_graph &tg) : m_tg(tg), m(m_tg.m), m_rewriter(m), m_pinned(m) {}
+        projector(term_graph &tg) : m_tg(tg), m(m_tg.m), m_pinned(m) {}
 
         void add_term2app(term const& t, expr* a) {
             m_term2app.insert(t.get_id(), a);
@@ -1014,7 +1020,12 @@ namespace mbp {
             vector<expr_ref_vector> result;
             expr_ref_vector pinned(m);
             obj_map<expr, unsigned> pid;
-            auto insert_val = [&](expr* a, expr* val) {
+            model::scoped_model_completion _smc(mdl, true);
+            for (term *t : m_tg.m_terms) {
+                expr* a = t->get_expr();
+                if (!is_app(a)) continue;
+                if (m.is_bool(a) && !include_bool) continue;
+                expr_ref val = mdl(a);
                 unsigned p = 0;
                 // NB. works for simple domains Integers, Rationals, 
                 // but not for algebraic numerals.
@@ -1025,18 +1036,7 @@ namespace mbp {
                     result.push_back(expr_ref_vector(m));
                 }
                 result[p].push_back(a);
-            };
-            model::scoped_model_completion _smc(mdl, true);
-            for (term *t : m_tg.m_terms) {
-                expr* a = t->get_expr();
-                if (!is_app(a)) 
-                    continue;
-                if (m.is_bool(a) && !include_bool) 
-                    continue;
-                expr_ref val = mdl(a);
-                insert_val(a, val);
             }            
-
             return result;
         }
 
@@ -1238,13 +1238,7 @@ namespace mbp {
             for (expr* e : vec) term2pid.insert(e, id);
             ++id;
         }
-        expr_ref_vector empty(m);
-        auto partition_of = [&](expr* e) { 
-            unsigned pid;
-            if (!term2pid.find(e, pid))
-                return empty;
-            return partitions[pid]; 
-        }; 
+        auto partition_of = [&](expr* e) { return partitions[term2pid[e]]; }; 
         auto in_table = [&](expr* a, expr* b) { 
             return diseqs.contains(pair_t(a, b));
         };

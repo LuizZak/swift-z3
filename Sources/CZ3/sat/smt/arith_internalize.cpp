@@ -20,8 +20,9 @@ Author:
 
 namespace arith {
 
-    sat::literal solver::internalize(expr* e, bool sign, bool root) {
+    sat::literal solver::internalize(expr* e, bool sign, bool root, bool learned) {
         init_internalize();
+        flet<bool> _is_learned(m_is_redundant, learned);
         internalize_atom(e);
         literal lit = ctx.expr2literal(e);
         if (sign)
@@ -29,8 +30,9 @@ namespace arith {
         return lit;
     }
 
-    void solver::internalize(expr* e) {
+    void solver::internalize(expr* e, bool redundant) {
         init_internalize();
+        flet<bool> _is_learned(m_is_redundant, redundant);
         if (m.is_bool(e))
             internalize_atom(e);
         else
@@ -96,7 +98,6 @@ namespace arith {
     void solver::found_underspecified(expr* n) {
         if (a.is_underspecified(n)) {
             TRACE("arith", tout << "Unhandled: " << mk_pp(n, m) << "\n";);
-            ctx.push(push_back_vector(m_underspecified));
             m_underspecified.push_back(to_app(n));
         }
         expr* e = nullptr, * x = nullptr, * y = nullptr;
@@ -242,10 +243,9 @@ namespace arith {
                     mk_abs_axiom(t);                
                 else if (a.is_idiv(n, n1, n2)) {
                     if (!a.is_numeral(n2, r) || r.is_zero()) found_underspecified(n);
-                    ctx.push(push_back_vector(m_idiv_terms));
                     m_idiv_terms.push_back(n);
                     app_ref mod(a.mk_mod(n1, n2), m);
-                    internalize(mod);
+                    internalize(mod, m_is_redundant);
                     st.to_ensure_var().push_back(n1);
                     st.to_ensure_var().push_back(n2);
                 }

@@ -22,11 +22,12 @@ Author:
 
 namespace pb {
 
-    void solver::internalize(expr* e) {
-        internalize(e, false, false);
+    void solver::internalize(expr* e, bool redundant) {
+        internalize(e, false, false, redundant);
     }
 
-    literal solver::internalize(expr* e, bool sign, bool root) {
+    literal solver::internalize(expr* e, bool sign, bool root, bool redundant) {
+        flet<bool> _redundant(m_is_redundant, redundant);
         if (m_pb.is_pb(e)) {
             sat::literal lit = internalize_pb(e, sign, root);
             if (m_ctx && !root && lit != sat::null_literal)
@@ -83,7 +84,7 @@ namespace pb {
 
     void solver::convert_pb_args(app* t, literal_vector& lits) {
         for (expr* arg : *t) {
-            lits.push_back(si.internalize(arg));
+            lits.push_back(si.internalize(arg, m_is_redundant));
             s().set_external(lits.back().var());
         }
     }

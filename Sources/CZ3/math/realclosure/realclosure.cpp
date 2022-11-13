@@ -506,7 +506,8 @@ namespace realclosure {
             m_bqim(lim, m_bqm),
             m_plus_inf_approx(m_bqm),
             m_minus_inf_approx(m_bqm) {
-            m_one = mk_rational(mpq(1));
+            mpq one(1);
+            m_one = mk_rational(one);
             inc_ref(m_one);
             m_pi = nullptr;
             m_e  = nullptr;
@@ -2556,10 +2557,13 @@ namespace realclosure {
             return new (allocator()) rational_value();
         }
 
-        rational_value * mk_rational(mpq && v) {
+        /**
+           \brief Make a rational and swap its value with v
+        */
+        rational_value * mk_rational_and_swap(mpq & v) {
             SASSERT(!qm().is_zero(v));
             rational_value * r = mk_rational();
-            r->m_value = std::move(v);
+            ::swap(r->m_value, v);
             return r;
         }
 
@@ -2581,7 +2585,7 @@ namespace realclosure {
             SASSERT(!bqm().is_zero(v));
             scoped_mpq v_q(qm()); // v as a rational
             ::to_mpq(qm(), v, v_q);
-            return mk_rational(std::move(v_q));
+            return mk_rational(v_q);
         }
 
         void reset_interval(value * a) {
@@ -3266,7 +3270,7 @@ namespace realclosure {
                             scoped_mpq num_z(qm());
                             qm().div(lcm_z, to_mpq(dens[i]), num_z);
                             SASSERT(qm().is_int(num_z));
-                            m = mk_rational(std::move(num_z));
+                            m = mk_rational_and_swap(num_z);
                             is_z = true;
                         }
                         bool found_lt_eq = false;
@@ -3428,7 +3432,7 @@ namespace realclosure {
                 scoped_mpq r(qm());
                 SASSERT(qm().is_int(to_mpq(a)));
                 qm().div(to_mpq(a), b, r);
-                a = mk_rational(std::move(r));
+                a = mk_rational_and_swap(r);
             }
             else {
                 rational_function_value * rf = to_rational_function(a);
@@ -3588,8 +3592,9 @@ namespace realclosure {
             r.reset();
             if (sz > 1) {
                 for (unsigned i = 1; i < sz; i++) {
+                    mpq i_mpq(i);
                     value_ref a_i(*this);
-                    a_i = mk_rational(mpq(i));
+                    a_i = mk_rational_and_swap(i_mpq);
                     mul(a_i, p[i], a_i);
                     r.push_back(a_i);
                 }
@@ -3816,7 +3821,7 @@ namespace realclosure {
             scoped_mpz mpz_twok(qm());
             qm().mul2k(mpz(1), b.k(), mpz_twok);
             value_ref twok(*this), twok_i(*this);
-            twok = mk_rational(std::move(mpz_twok));
+            twok = mk_rational(mpz_twok);
             twok_i = twok;
             value_ref c(*this);
             c = mk_rational(b.numerator());
@@ -5056,7 +5061,7 @@ namespace realclosure {
                 if (qm().is_zero(v))
                     r = nullptr;
                 else
-                    r = mk_rational(std::move(v));
+                    r = mk_rational_and_swap(v);
             }
             else {
                 INC_DEPTH();
@@ -5085,7 +5090,7 @@ namespace realclosure {
                 if (qm().is_zero(v))
                     r = nullptr;
                 else
-                    r = mk_rational(std::move(v));
+                    r = mk_rational_and_swap(v);
             }
             else {
                 value_ref neg_b(*this);
@@ -5119,7 +5124,7 @@ namespace realclosure {
                 scoped_mpq v(qm());
                 qm().set(v, to_mpq(a));
                 qm().neg(v);
-                r = mk_rational(std::move(v));
+                r = mk_rational_and_swap(v);
             }
             else {
                 neg_rf(to_rational_function(a), r);
@@ -5264,7 +5269,7 @@ namespace realclosure {
             else if (is_nz_rational(a) && is_nz_rational(b)) {
                 scoped_mpq v(qm());
                 qm().mul(to_mpq(a), to_mpq(b), v);
-                r = mk_rational(std::move(v));
+                r = mk_rational_and_swap(v);
             }
             else {
                 INC_DEPTH();
@@ -5299,7 +5304,7 @@ namespace realclosure {
             else if (is_nz_rational(a) && is_nz_rational(b)) {
                 scoped_mpq v(qm());
                 qm().div(to_mpq(a), to_mpq(b), v);
-                r = mk_rational(std::move(v));
+                r = mk_rational_and_swap(v);
             }
             else {
                 value_ref inv_b(*this);
@@ -5552,7 +5557,7 @@ namespace realclosure {
             if (is_nz_rational(a)) {
                 scoped_mpq v(qm());
                 qm().inv(to_mpq(a), v);
-                r = mk_rational(std::move(v));
+                r = mk_rational_and_swap(v);
             }
             else {
                 inv_rf(to_rational_function(a), r);

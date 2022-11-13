@@ -2006,36 +2006,33 @@ namespace {
                 m_backtrack_stack.resize(t->get_num_choices());
         }
 
-        bool execute(code_tree * t) {
+        void execute(code_tree * t) {
             TRACE("trigger_bug", tout << "execute for code tree:\n"; t->display(tout););
             init(t);
-#define CLEANUP  for (enode* app : t->get_candidates()) if (app->is_marked()) app->unset_mark();
             if (t->filter_candidates()) {
                 for (enode* app : t->get_candidates()) {
                     TRACE("trigger_bug", tout << "candidate\n" << mk_ismt2_pp(app->get_expr(), m) << "\n";);
                     if (!app->is_marked() && app->is_cgr()) {
-                        if (m_context.resource_limits_exceeded() || !execute_core(t, app)) {
-                            CLEANUP;
-                            return false;
-                        }
+                        if (m_context.resource_limits_exceeded() || !execute_core(t, app))
+                            return;
                         app->set_mark();
                     }
                 }
-                CLEANUP;
-                
+                for (enode* app : t->get_candidates()) {
+                    if (app->is_marked())
+                        app->unset_mark();
+                }
             }
             else {
                 for (enode* app : t->get_candidates()) {
                     TRACE("trigger_bug", tout << "candidate\n" << mk_ismt2_pp(app->get_expr(), m) << "\n";);
                     if (app->is_cgr()) {
                         TRACE("trigger_bug", tout << "is_cgr\n";);
-                        // scoped_suspend_rlimit susp(m.limit(), false);
                         if (m_context.resource_limits_exceeded() || !execute_core(t, app))
-                            return false;
+                            return;
                     }
                 }
             }
-            return true;
         }
 
         // init(t) must be invoked before execute_core
@@ -3889,8 +3886,7 @@ namespace {
             TRACE("trigger_bug", tout << "match\n"; display(tout););
             for (code_tree* t : m_to_match) {
                 SASSERT(t->has_candidates());
-                if (!m_interpreter.execute(t))
-                    return;
+                m_interpreter.execute(t);
                 t->reset_candidates();
             }
             m_to_match.reset();

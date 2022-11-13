@@ -24,7 +24,6 @@ Revision History:
 #include "smt/smt_model_generator.h"
 #include "util/stats.h"
 
-#define ENABLE_QUOT_REM_ENCODING 0
 
 namespace smt {
 
@@ -886,7 +885,6 @@ namespace smt {
         find_wpos(v);
     }
 
-
     bool theory_bv::internalize_term_core(app * term) {
         SASSERT(term->get_family_id() == get_family_id());
         TRACE("bv", tout << "internalizing term: " << mk_bounded_pp(term, m) << "\n";);
@@ -899,11 +897,7 @@ namespace smt {
         case OP_BSUB:           internalize_sub(term); return true;
         case OP_BMUL:           internalize_mul(term); return true;
         case OP_BSDIV_I:        internalize_sdiv(term); return true;
-#if ENABLE_QUOT_REM_ENCODING
-        case OP_BUDIV_I:        internalize_udiv_quot_rem(term); return true;
-#else
         case OP_BUDIV_I:        internalize_udiv(term); return true;
-#endif
         case OP_BSREM_I:        internalize_srem(term); return true;
         case OP_BUREM_I:        internalize_urem(term); return true;
         case OP_BSMOD_I:        internalize_smod(term); return true;
@@ -1398,13 +1392,6 @@ namespace smt {
             ctx.mark_as_relevant(n->get_arg(0));
             assert_int2bv_axiom(n);
         }
-#if ENABLE_QUOT_REM_ENCODING
-        else if (m_util.is_bv_udivi(n)) {
-            ctx.mark_as_relevant(n->get_arg(0));
-            ctx.mark_as_relevant(n->get_arg(1));
-            assert_udiv_quot_rem_axiom(n);
-        }
-#endif
         else if (ctx.e_internalized(n)) {
             enode * e    = ctx.get_enode(n);
             theory_var v = e->get_th_var(get_id());
@@ -1515,11 +1502,11 @@ namespace smt {
             // int2bv(bv2int(x)) = x when int2bv(bv2int(x)) has same sort as x
             enode* n1 = get_enode(r1);
             auto propagate_bv2int = [&](enode* bv2int) {
-                enode* bv2int_arg = get_arg(bv2int, 0);
+                enode* bv2int_arg = bv2int->get_arg(0);
                 for (enode* p : enode::parents(n1->get_root())) {
                     if (m_util.is_int2bv(p->get_expr()) && p->get_root() != bv2int_arg->get_root() && p->get_sort() == bv2int_arg->get_sort()) {                        
                         enode_pair_vector eqs;
-                        eqs.push_back({n1, get_arg(p, 0) });
+                        eqs.push_back({n1, p->get_arg(0) });
                         eqs.push_back({n1, bv2int});
                         justification * js = ctx.mk_justification(
                             ext_theory_eq_propagation_justification(get_id(), ctx, 0, nullptr, eqs.size(), eqs.data(), p, bv2int_arg));
@@ -1997,44 +1984,6 @@ namespace smt {
         }
         return true;
     }
-
-#if ENABLE_QUOT_REM_ENCODING
-    void theory_bv::internalize_udiv_quot_rem(app* n) {
-        process_args(n);
-        mk_enode(n);
-        theory_var v = ctx.get_enode(n)->get_th_var(get_id()); 
-        mk_bits(v);
-        if (!ctx.relevancy()) 
-            assert_udiv_quot_rem_axiom(n);
-    }
-
-
-    void theory_bv::assert_udiv_quot_rem_axiom(app * q) {
-        // Axioms for quotient/remainder:
-        //      a = b*q + r
-        //      no-mul-overflow(b,q)
-        //      no-add-overflow(bq, r)
-        //      b != 0 => r < b
-        //      b = 0 => q = -1
-        expr* a, *b;
-        VERIFY(m_util.is_bv_udivi(q, a, b));
-        sort* srt = q->get_sort();
-        func_decl_ref rf(m.mk_func_decl(symbol("rem"), srt, srt, srt), m);
-        expr_ref r(m.mk_app(rf, a, b), m);
-        expr_ref bq(m_util.mk_bv_mul(b, q), m);
-        expr_ref bqr(m_util.mk_bv_add(bq, r), m);
-        literal eq = mk_literal(m.mk_eq(a, bqr));
-        literal obq = mk_literal(m_util.mk_bvumul_no_ovfl(b, q));
-        literal obqr = mk_literal(m_util.mk_ule(r, bqr));
-        literal b0 = mk_literal(m.mk_eq(b, m_util.mk_numeral(rational::zero(), srt)));
-        
-        ctx.mk_th_axiom(get_id(), 1, &eq);
-        ctx.mk_th_axiom(get_id(), 1, &obq);
-        ctx.mk_th_axiom(get_id(), 1, &obqr);
-        ctx.mk_th_axiom(get_id(), b0, ~mk_literal(m_util.mk_ule(b, r)));
-        ctx.mk_th_axiom(get_id(), ~b0, mk_literal(m.mk_eq(q, m_util.mk_numeral(rational(-1), srt))));
-    }
-#endif
 
 
 };

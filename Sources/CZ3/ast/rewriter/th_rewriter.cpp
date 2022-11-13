@@ -215,11 +215,6 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
                 if (st != BR_FAILED)
                     return st;
             }
-            if (false && k == OP_AND) {
-                st = m_a_rw.mk_and_core(num, args, result);
-                if (st != BR_FAILED)
-                    return st;
-            }
             if (k == OP_EQ && m_seq_rw.u().has_seq() && is_app(args[0]) &&
                 to_app(args[0])->get_family_id() == m_seq_rw.get_fid()) {
                 st = m_seq_rw.mk_eq_core(args[0], args[1], result);
@@ -826,6 +821,7 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
         result = elim_unused_vars(m(), q1, params_ref());
 
 
+        TRACE("reduce_quantifier", tout << "after elim_unused_vars:\n" << result << "\n";);
 
         result_pr = nullptr;
         if (m().proofs_enabled()) {
@@ -834,9 +830,6 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
                 p2 = m().mk_elim_unused_vars(q1, result);
             result_pr = m().mk_transitivity(p1, p2);
         }
-
-        TRACE("reduce_quantifier", tout << "after elim_unused_vars:\n" << result << " " << result_pr << "\n" ;);
-
         SASSERT(old_q->get_sort() == result->get_sort());
         return true;
     }
@@ -850,7 +843,7 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
         m_f_rw(m, p),
         m_dl_rw(m),
         m_pb_rw(m),
-        m_seq_rw(m, p),
+        m_seq_rw(m),
         m_char_rw(m),
         m_rec_rw(m),
         m_a_util(m),
@@ -923,11 +916,6 @@ void th_rewriter::get_param_descrs(param_descrs & r) {
     array_rewriter::get_param_descrs(r);
     rewriter_params::collect_param_descrs(r);
 }
-
-void th_rewriter::set_flat_and_or(bool f) {
-    m_imp->cfg().m_b_rw.set_flat_and_or(f);
-}
-
 
 th_rewriter::~th_rewriter() {
     dealloc(m_imp);

@@ -75,18 +75,6 @@ void report_tactic_progress(char const * id, unsigned val) {
     }
 }
 
-statistics_report::~statistics_report() {
-    statistics st;
-    if (m_tactic)
-        m_tactic->collect_statistics(st);
-    else if (m_collector)
-        m_collector(st);
-    if (st.size() == 0)
-        return;
-    IF_VERBOSE(TACTIC_VERBOSITY_LVL, st.display_smt2(verbose_stream()));
-}
-
-
 void skip_tactic::operator()(goal_ref const & in, goal_ref_buffer& result) {
     result.push_back(in.get());
 }
@@ -196,7 +184,8 @@ lbool check_sat(tactic & t, goal_ref & g, model_ref & md, labels_vec & labels, p
     if (r.size() > 0) {
         pr = r[0]->pr(0);
         CTRACE("tactic", pr, tout << pr << "\n";);
-    }    
+    }
+    
 
     if (is_decided_sat(r)) {
         model_converter_ref mc = r[0]->mc();            
@@ -228,9 +217,7 @@ lbool check_sat(tactic & t, goal_ref & g, model_ref & md, labels_vec & labels, p
             if (mc)
                 (*mc)(labels);
         }
-        reason_unknown = get_reason_unknown(r);
-        if (reason_unknown.empty())
-            reason_unknown = "unknown";
+        reason_unknown = "incomplete";
         return l_undef;
     }
 }

@@ -615,15 +615,11 @@ namespace smt {
 
     bool context::has_lambda() {
         for (auto const & [n, q] : m_lambdas) {
-            if (n->get_class_size() != 1) {
-                TRACE("context", tout << "class size " << n->get_class_size() << " " << enode_pp(n, *this) << "\n");
+            if (n->get_class_size() != 1) 
                 return true;
-            }
             for (enode* p : enode::parents(n)) 
-                if (!is_beta_redex(p, n)) {
-                    TRACE("context", tout << "not a beta redex " << enode_pp(p, *this) << "\n");
+                if (!is_beta_redex(p, n)) 
                     return true;
-                }
         }
         return false;
     }
@@ -1383,8 +1379,6 @@ namespace smt {
             Z3_fallthrough;
         case CLS_AUX: {
             literal_buffer simp_lits;
-            if (m_searching)
-                dump_lemma(num_lits, lits);
             if (!simplify_aux_clause_literals(num_lits, lits, simp_lits)) {
                 if (j && !j->in_region()) {
                     j->del_eh(m);
@@ -1396,7 +1390,6 @@ namespace smt {
             if (!simp_lits.empty()) {
                 j = mk_justification(unit_resolution_justification(*this, j, simp_lits.size(), simp_lits.data()));
             }
-              
             break;
         }
         case CLS_TH_LEMMA:
@@ -1528,6 +1521,7 @@ namespace smt {
     }
 
     void context::dump_lemma(unsigned n, literal const* lits) {
+        
         if (m_fparams.m_lemmas2console) {
             expr_ref fml(m);
             expr_ref_vector fmls(m);
@@ -1593,18 +1587,6 @@ namespace smt {
             TRACE("gate_clause", tout << mk_ll_pp(pr, m););
             mk_clause(num_lits, lits, mk_justification(justification_proof_wrapper(*this, pr)));
         }
-        else if (m_clause_proof.on_clause_active()) {
-            ptr_buffer<expr> new_lits;
-            for (unsigned i = 0; i < num_lits; i++) {
-                literal l      = lits[i];
-                bool_var v     = l.var();
-                expr * atom    = m_bool_var2expr[v]; 
-                new_lits.push_back(l.sign() ? m.mk_not(atom) : atom);
-            }
-            // expr* fact = m.mk_or(new_lits);
-            proof* pr = m.mk_app(symbol("tseitin"), new_lits.size(), new_lits.data(), m.mk_proof_sort());
-            mk_clause(num_lits, lits, mk_justification(justification_proof_wrapper(*this, pr)));
-        }
         else {
             mk_clause(num_lits, lits, nullptr);
         }
@@ -1638,11 +1620,9 @@ namespace smt {
             }
             mk_clause(num_lits, lits, mk_justification(justification_proof_wrapper(*this, pr)));
         }
-        else if (pr && on_clause_active()) 
-            // support logging of quantifier instantiations and other more detailed information
-            mk_clause(num_lits, lits, mk_justification(justification_proof_wrapper(*this, pr)));
-        else 
+        else {
             mk_clause(num_lits, lits, nullptr);
+        }
     }
 
     void context::mk_root_clause(literal l1, literal l2, proof * pr) {

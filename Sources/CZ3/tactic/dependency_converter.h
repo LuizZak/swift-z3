@@ -22,7 +22,7 @@ Notes:
 #include "util/ref.h"
 #include "ast/ast_pp_util.h"
 #include "model/model.h"
-#include "ast/converters/converter.h"
+#include "tactic/converter.h"
 
 class goal;
 

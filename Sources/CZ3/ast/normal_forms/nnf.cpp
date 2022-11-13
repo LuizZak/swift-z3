@@ -22,7 +22,6 @@ Notes:
 #include "ast/normal_forms/nnf.h"
 #include "ast/normal_forms/nnf_params.hpp"
 #include "ast/used_vars.h"
-#include "ast/ast_util.h"
 #include "ast/well_sorted.h"
 #include "ast/act_cache.h"
 #include "ast/rewriter/var_subst.h"
@@ -138,7 +137,7 @@ class skolemizer {
                 if (is_sk_hack(p)) {
                     expr * sk_hack = to_app(p)->get_arg(0);
                     if (q->get_kind() == forall_k) // check whether is in negative/positive context.
-                        tmp  = m.mk_or(body, mk_not(m, sk_hack)); // negative context
+                        tmp  = m.mk_or(body, m.mk_not(sk_hack)); // negative context
                     else
                         tmp  = m.mk_and(body, sk_hack); // positive context
                     body = tmp;
@@ -149,7 +148,7 @@ class skolemizer {
         p = nullptr;
         if (m_proofs_enabled) {
             if (q->get_kind() == forall_k) 
-                p = m.mk_skolemization(mk_not(m, q), mk_not(m, r));
+                p = m.mk_skolemization(m.mk_not(q), m.mk_not(r));
             else
                 p = m.mk_skolemization(q, r);
         }
@@ -389,7 +388,7 @@ struct nnf::imp {
     }
 
     void skip(expr * t, bool pol) {
-        expr * r = pol ? t : mk_not(m, t);
+        expr * r = pol ? t : m.mk_not(t);
         m_result_stack.push_back(r);
         if (proofs_enabled()) {
             m_result_pr_stack.push_back(m.mk_oeq_reflexivity(r));
@@ -640,7 +639,7 @@ struct nnf::imp {
                 m_name_quant->operator()(t, m_todo_defs, m_todo_proofs, n2, pr2);
 
             if (!fr.m_pol)
-                n2 = mk_not(m, n2);
+                n2 = m.mk_not(n2);
             m_result_stack.push_back(n2);
             if (proofs_enabled()) {
                 if (!fr.m_pol) {

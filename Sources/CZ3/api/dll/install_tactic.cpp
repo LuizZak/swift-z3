@@ -40,7 +40,6 @@
 #include "tactic/bv/bv_bound_chk_tactic.h"
 #include "tactic/bv/bv_bounds_tactic.h"
 #include "tactic/bv/bv_size_reduction_tactic.h"
-#include "tactic/bv/bv_slice_tactic.h"
 #include "tactic/bv/bvarray2uf_tactic.h"
 #include "tactic/bv/dt2bv_tactic.h"
 #include "tactic/bv/elim_small_bv_tactic.h"
@@ -53,17 +52,15 @@
 #include "tactic/core/distribute_forall_tactic.h"
 #include "tactic/core/dom_simplify_tactic.h"
 #include "tactic/core/elim_term_ite_tactic.h"
-#include "tactic/core/elim_uncnstr2_tactic.h"
 #include "tactic/core/elim_uncnstr_tactic.h"
-#include "tactic/core/euf_completion_tactic.h"
 #include "tactic/core/injectivity_tactic.h"
 #include "tactic/core/nnf_tactic.h"
 #include "tactic/core/occf_tactic.h"
 #include "tactic/core/pb_preprocess_tactic.h"
 #include "tactic/core/propagate_values_tactic.h"
 #include "tactic/core/reduce_args_tactic.h"
+#include "tactic/core/reduce_invertible_tactic.h"
 #include "tactic/core/simplify_tactic.h"
-#include "tactic/core/solve_eqs2_tactic.h"
 #include "tactic/core/solve_eqs_tactic.h"
 #include "tactic/core/special_relations_tactic.h"
 #include "tactic/core/split_clause_tactic.h"
@@ -140,7 +137,6 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("propagate-bv-bounds", "propagate bit-vector bounds by simplifying implied or contradictory bounds.", mk_bv_bounds_tactic(m, p));
   ADD_TACTIC_CMD("propagate-bv-bounds-new", "propagate bit-vector bounds by simplifying implied or contradictory bounds.", mk_dom_bv_bounds_tactic(m, p));
   ADD_TACTIC_CMD("reduce-bv-size", "try to reduce bit-vector sizes using inequalities.", mk_bv_size_reduction_tactic(m, p));
-  ADD_TACTIC_CMD("bv-slice", "simplify using bit-vector slices.", mk_bv_slice_tactic(m, p));
   ADD_TACTIC_CMD("bvarray2uf", "Rewrite bit-vector arrays into bit-vector (uninterpreted) functions.", mk_bvarray2uf_tactic(m, p));
   ADD_TACTIC_CMD("dt2bv", "eliminate finite domain data-types. Replace by bit-vectors.", mk_dt2bv_tactic(m, p));
   ADD_TACTIC_CMD("elim-small-bv", "eliminate small, quantified bit-vectors by expansion.", mk_elim_small_bv_tactic(m, p));
@@ -153,9 +149,7 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("distribute-forall", "distribute forall over conjunctions.", mk_distribute_forall_tactic(m, p));
   ADD_TACTIC_CMD("dom-simplify", "apply dominator simplification rules.", mk_dom_simplify_tactic(m, p));
   ADD_TACTIC_CMD("elim-term-ite", "eliminate term if-then-else by adding fresh auxiliary declarations.", mk_elim_term_ite_tactic(m, p));
-  ADD_TACTIC_CMD("elim-uncnstr2", "eliminate unconstrained variables.", mk_elim_uncnstr2_tactic(m, p));
   ADD_TACTIC_CMD("elim-uncnstr", "eliminate application containing unconstrained variables.", mk_elim_uncnstr_tactic(m, p));
-  ADD_TACTIC_CMD("euf-completion", "simplify using equalities.", mk_euf_completion_tactic(m, p));
   ADD_TACTIC_CMD("injectivity", "Identifies and applies injectivity axioms.", mk_injectivity_tactic(m, p));
   ADD_TACTIC_CMD("snf", "put goal in skolem normal form.", mk_snf_tactic(m, p));
   ADD_TACTIC_CMD("nnf", "put goal in negation normal form.", mk_nnf_tactic(m, p));
@@ -163,10 +157,10 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("pb-preprocess", "pre-process pseudo-Boolean constraints a la Davis Putnam.", mk_pb_preprocess_tactic(m, p));
   ADD_TACTIC_CMD("propagate-values", "propagate constants.", mk_propagate_values_tactic(m, p));
   ADD_TACTIC_CMD("reduce-args", "reduce the number of arguments of function applications, when for all occurrences of a function f the i-th is a value.", mk_reduce_args_tactic(m, p));
+  ADD_TACTIC_CMD("reduce-invertible", "reduce invertible variable occurrences.", mk_reduce_invertible_tactic(m, p));
   ADD_TACTIC_CMD("simplify", "apply simplification rules.", mk_simplify_tactic(m, p));
   ADD_TACTIC_CMD("elim-and", "convert (and a b) into (not (or (not a) (not b))).", mk_elim_and_tactic(m, p));
-  ADD_TACTIC_CMD("solve-eqs2", "solve for variables.", mk_solve_eqs2_tactic(m, p));
-  ADD_TACTIC_CMD("solve-eqs", "eliminate variables by solving equations.", mk_solve_eqs1_tactic(m, p));
+  ADD_TACTIC_CMD("solve-eqs", "eliminate variables by solving equations.", mk_solve_eqs_tactic(m, p));
   ADD_TACTIC_CMD("special-relations", "detect and replace by special relations.", mk_special_relations_tactic(m, p));
   ADD_TACTIC_CMD("split-clause", "split a clause in many subgoals.", mk_split_clause_tactic(p));
   ADD_TACTIC_CMD("symmetry-reduce", "apply symmetry reduction.", mk_symmetry_reduce_tactic(m, p));

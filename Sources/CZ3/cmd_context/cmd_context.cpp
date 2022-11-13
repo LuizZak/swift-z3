@@ -47,7 +47,7 @@ Notes:
 #include "model/model_v2_pp.h"
 #include "model/model_params.hpp"
 #include "tactic/tactic_exception.h"
-#include "ast/converters/generic_model_converter.h"
+#include "tactic/generic_model_converter.h"
 #include "solver/smt_logics.h"
 #include "cmd_context/basic_cmds.h"
 #include "cmd_context/cmd_context.h"
@@ -604,8 +604,6 @@ void cmd_context::global_params_updated() {
     if (m_opt) {
         get_opt()->updt_params(gparams::get_module("opt"));
     }
-    if (m_proof_cmds)
-        m_proof_cmds->updt_params(gparams::get_module("solver"));
 }
 
 void cmd_context::set_produce_models(bool f) {
@@ -621,15 +619,10 @@ void cmd_context::set_produce_unsat_cores(bool f) {
 }
 
 void cmd_context::set_produce_proofs(bool f) {
-    if (m_params.m_proof == f)
-        return;
-    SASSERT(!has_assertions());
-    m_params.m_proof = f;
-    if (has_manager()) {
+    SASSERT(!has_assertions() || m_params.m_proof == f);
+    if (has_manager()) 
         m().toggle_proof_mode(f ? PGM_ENABLED : PGM_DISABLED);
-        if (m_solver_factory)
-            mk_solver();
-    }
+    m_params.m_proof = f;
 }
 
 

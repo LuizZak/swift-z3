@@ -86,7 +86,7 @@ struct evaluator_cfg : public default_rewriter_cfg {
         m_dt(m),
         m_pinned(m) {
         bool flat = true;
-        m_b_rw.set_flat_and_or(flat);
+        m_b_rw.set_flat(flat);
         m_a_rw.set_flat(flat);
         m_bv_rw.set_flat(flat);
         m_bv_rw.set_mkbv2num(true);
@@ -259,11 +259,6 @@ struct evaluator_cfg : public default_rewriter_cfg {
                     result = m.mk_false();
                     st = BR_DONE;
                 }
-                if (st != BR_FAILED)
-                    return st;
-            }
-            if (k == OP_AND) {
-                st = m_a_rw.mk_and_core(num, args, result);
                 if (st != BR_FAILED)
                     return st;
             }

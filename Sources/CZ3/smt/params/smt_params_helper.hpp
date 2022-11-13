@@ -54,7 +54,7 @@ struct smt_params_helper {
     d.insert("bv.reflect", CPK_BOOL, "create enode for every bit-vector term", "true","smt");
     d.insert("bv.enable_int2bv", CPK_BOOL, "enable support for int2bv and bv2int operators", "true","smt");
     d.insert("bv.watch_diseq", CPK_BOOL, "use watch lists instead of eager axioms for bit-vectors", "false","smt");
-    d.insert("bv.delay", CPK_BOOL, "delay internalize expensive bit-vector operations", "false","smt");
+    d.insert("bv.delay", CPK_BOOL, "delay internalize expensive bit-vector operations", "true","smt");
     d.insert("bv.eq_axioms", CPK_BOOL, "enable redundant equality axioms for bit-vectors", "true","smt");
     d.insert("bv.size_reduce", CPK_BOOL, "turn assertions that set the upper bits of a bit-vector to constants into a substitution that replaces the bit-vector with constant bits. Useful for minimizing circuits as many input bits to circuits are constant", "false","smt");
     d.insert("arith.random_initial_value", CPK_BOOL, "use random initial values in the simplex-based procedure for linear arithmetic", "false","smt");
@@ -113,7 +113,6 @@ struct smt_params_helper {
     d.insert("seq.split_w_len", CPK_BOOL, "enable splitting guided by length constraints", "true","smt");
     d.insert("seq.validate", CPK_BOOL, "enable self-validation of theory axioms created by seq theory", "false","smt");
     d.insert("seq.max_unfolding", CPK_UINT, "maximal unfolding depth for checking string equations and regular expressions", "1000000000","smt");
-    d.insert("seq.min_unfolding", CPK_UINT, "initial bound for strings whose lengths are bounded by iterative deepening. Set this to a higher value if there are only models with larger string lengths", "1","smt");
     d.insert("str.strong_arrangements", CPK_BOOL, "assert equivalences instead of implications when generating string arrangement axioms", "true","smt");
     d.insert("str.aggressive_length_testing", CPK_BOOL, "prioritize testing concrete length values over generating more options", "false","smt");
     d.insert("str.aggressive_value_testing", CPK_BOOL, "prioritize testing concrete string constant values over generating more options", "false","smt");
@@ -187,7 +186,7 @@ struct smt_params_helper {
   bool bv_reflect() const { return p.get_bool("bv.reflect", g, true); }
   bool bv_enable_int2bv() const { return p.get_bool("bv.enable_int2bv", g, true); }
   bool bv_watch_diseq() const { return p.get_bool("bv.watch_diseq", g, false); }
-  bool bv_delay() const { return p.get_bool("bv.delay", g, false); }
+  bool bv_delay() const { return p.get_bool("bv.delay", g, true); }
   bool bv_eq_axioms() const { return p.get_bool("bv.eq_axioms", g, true); }
   bool bv_size_reduce() const { return p.get_bool("bv.size_reduce", g, false); }
   bool arith_random_initial_value() const { return p.get_bool("arith.random_initial_value", g, false); }
@@ -246,7 +245,6 @@ struct smt_params_helper {
   bool seq_split_w_len() const { return p.get_bool("seq.split_w_len", g, true); }
   bool seq_validate() const { return p.get_bool("seq.validate", g, false); }
   unsigned seq_max_unfolding() const { return p.get_uint("seq.max_unfolding", g, 1000000000u); }
-  unsigned seq_min_unfolding() const { return p.get_uint("seq.min_unfolding", g, 1u); }
   bool str_strong_arrangements() const { return p.get_bool("str.strong_arrangements", g, true); }
   bool str_aggressive_length_testing() const { return p.get_bool("str.aggressive_length_testing", g, false); }
   bool str_aggressive_value_testing() const { return p.get_bool("str.aggressive_value_testing", g, false); }

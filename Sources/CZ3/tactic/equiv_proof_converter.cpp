@@ -17,7 +17,7 @@ Revision History:
 
 --*/
 
-#include "ast/converters/equiv_proof_converter.h"
+#include "tactic/equiv_proof_converter.h"
 #include "ast/ast_pp.h"
 #include "ast/scoped_proof.h"
 

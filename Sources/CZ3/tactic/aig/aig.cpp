@@ -18,8 +18,7 @@ Notes:
 --*/
 #include "tactic/aig/aig.h"
 #include "tactic/goal.h"
-#include "ast/ast_ll_pp.h"
-#include "ast/ast_util.h"
+#include "ast/ast_smt2_pp.h"
 
 #define USE_TWO_LEVEL_RULES
 #define FIRST_NODE_ID (UINT_MAX/2)
@@ -432,8 +431,13 @@ struct aig_manager::imp {
         expr2aig(imp & _m):m(_m) {}
         
         ~expr2aig() {
-            for (auto& [k,v] : m_cache) 
-                m.dec_ref(v);
+            obj_map<expr, aig_lit>::iterator it  = m_cache.begin();
+            obj_map<expr, aig_lit>::iterator end = m_cache.end();
+            for (; it != end; ++it) {
+                TRACE("expr2aig", tout << "dec-ref: "; m.display_ref(tout, it->m_value); 
+                      tout << " ref-count: " << ref_count(it->m_value) << "\n";);
+                m.dec_ref(it->m_value);
+            }
             restore_result_stack(0);
         }
         
@@ -443,7 +447,7 @@ struct aig_manager::imp {
         }
 
         void cache_result(expr * t, aig_lit const & r) {
-            TRACE("expr2aig", tout << "caching:\n" << mk_bounded_pp(t, m.m()) << "\n---> "; m.display_ref(tout, r); tout << "\n";); 
+            TRACE("expr2aig", tout << "caching:\n" << mk_ismt2_pp(t, m.m()) << "\n---> "; m.display_ref(tout, r); tout << "\n";); 
             SASSERT(!m_cache.contains(t));
             m.inc_ref(r);
             m_cache.insert(t, r);
@@ -1005,34 +1009,33 @@ struct aig_manager::imp {
                 r = invert(r);
         }
 
-        void not_naive(aig_lit const& l, expr_ref & r) {
+        void operator()(aig_lit const & l, expr_ref & r) {
+            naive(l, r);
+        }
+
+        void operator()(aig_lit const & l, goal & g) {
+            g.reset();
             sbuffer<aig_lit> roots;
-            expr_ref_vector rs(r.m());
             roots.push_back(l);
             while (!roots.empty()) {
                 aig_lit n = roots.back();
                 roots.pop_back();
                 if (n.is_inverted()) {
-                    rs.push_back(invert(process_root(n.ptr())));
+                    g.assert_expr(invert(process_root(n.ptr())), nullptr, nullptr);
                     continue;
                 }
                 aig * p = n.ptr();
                 if (m.is_ite(p)) {
-                    rs.push_back(process_root(p));
+                    g.assert_expr(process_root(p), nullptr, nullptr);
                     continue;
                 }
                 if (is_var(p)) {
-                    rs.push_back(m.var2expr(p));
+                    g.assert_expr(m.var2expr(p), nullptr, nullptr);
                     continue;
                 }
                 roots.push_back(left(p));
                 roots.push_back(right(p));
             }
-            r = ::mk_and(rs);
-        }
-
-        void operator()(aig_lit const & l, expr_ref & r) {            
-            not_naive(l, r);
         }
 
     };
@@ -1531,14 +1534,18 @@ public:
             }
             SASSERT(ref_count(r) >= 1);
         }
-        catch (const aig_exception & ex) {
-            dec_ref(r);
-            throw ex;
-        }
+    catch (const aig_exception & ex) {
+        dec_ref(r);
+        throw ex;
+    }
         dec_ref_result(r);
         return r;
     }
 
+    void to_formula(aig_lit const & r, goal & g) {
+        aig2expr proc(*this);
+        proc(r, g);
+    }
     
     void to_formula(aig_lit const & r, expr_ref & result) {
         aig2expr proc(*this);
@@ -1574,7 +1581,7 @@ public:
             qhead++;
             display_ref(out, n); out << ": ";
             if (is_var(n)) {
-                out << mk_bounded_pp(m_var2exprs[n->m_id], m()) << "\n";
+                out << mk_ismt2_pp(m_var2exprs[n->m_id], m()) << "\n";
             }
             else {
                 display_ref(out, n->m_children[0]);
@@ -1600,7 +1607,7 @@ public:
         if (r.is_inverted())
             out << "(not ";
         if (is_var(r)) {
-            out << mk_bounded_pp(var2expr(r.ptr()), m());
+            out << mk_ismt2_pp(var2expr(r.ptr()), m());
         }
         else {
             out << "aig" << to_idx(r.ptr());
@@ -1731,6 +1738,11 @@ void aig_manager::max_sharing(aig_ref & r) {
     r = aig_ref(*this, m_imp->max_sharing(aig_lit(r)));
 }
 
+void aig_manager::to_formula(aig_ref const & r, goal & g) {
+    SASSERT(!g.proofs_enabled());
+    SASSERT(!g.unsat_core_enabled());
+    return m_imp->to_formula(aig_lit(r), g);
+}
 
 void aig_manager::to_formula(aig_ref const & r, expr_ref & res) {
     return m_imp->to_formula(aig_lit(r), res);

@@ -20,7 +20,7 @@ Notes:
 #include "ast/rewriter/rewriter_def.h"
 #include "ast/scoped_proof.h"
 #include "tactic/tactical.h"
-#include "params/tactic_params.hpp"
+#include "tactic/tactic_params.hpp"
 
 
 

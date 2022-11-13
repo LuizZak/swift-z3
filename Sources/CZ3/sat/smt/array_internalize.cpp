@@ -20,9 +20,9 @@ Author:
 
 namespace array {
 
-    sat::literal solver::internalize(expr* e, bool sign, bool root) { 
+    sat::literal solver::internalize(expr* e, bool sign, bool root, bool redundant) { 
         SASSERT(m.is_bool(e));
-        if (!visit_rec(m, e, sign, root)) {
+        if (!visit_rec(m, e, sign, root, redundant)) {
             TRACE("array", tout << mk_pp(e, m) << "\n";);
             return sat::null_literal;
         }
@@ -32,8 +32,8 @@ namespace array {
         return lit;
     }
 
-    void solver::internalize(expr* e) {
-        visit_rec(m, e, false, false);
+    void solver::internalize(expr* e, bool redundant) {
+        visit_rec(m, e, false, false, redundant);
     }
 
     euf::theory_var solver::mk_var(euf::enode* n) {
@@ -66,7 +66,7 @@ namespace array {
         if (visited(e))
             return true;
         if (!is_app(e) || to_app(e)->get_family_id() != get_id()) {
-            ctx.internalize(e);
+            ctx.internalize(e, m_is_redundant);
             euf::enode* n = expr2enode(e);
             ensure_var(n);
             return true;
@@ -115,8 +115,14 @@ namespace array {
             SASSERT(is_array(n->get_arg(0)));
             push_axiom(extensionality_axiom(n->get_arg(0), n->get_arg(1)));
             break;
+        case OP_ARRAY_MINDIFF:
+        case OP_ARRAY_MAXDIFF:
+            push_axiom(diff_axiom(n));
+            m_minmaxdiffs.push_back(n);
+            ctx.push(push_back_vector(m_minmaxdiffs));
+            break;
         case OP_ARRAY_DEFAULT:
-            add_parent_default(find(n->get_arg(0)));
+            add_parent_default(find(n->get_arg(0)), n);
             break;
         case OP_ARRAY_MAP:
         case OP_SET_UNION:
@@ -169,6 +175,10 @@ namespace array {
             propagate_parent_default(find(n));
             break;
         case OP_ARRAY_EXT:
+            break;
+        case OP_ARRAY_MINDIFF:
+        case OP_ARRAY_MAXDIFF:
+            // todo
             break;
         case OP_ARRAY_DEFAULT:
             set_prop_upward(find(n->get_arg(0)));
@@ -241,8 +251,6 @@ namespace array {
         if (a.is_select(p->get_expr()))
             return p->get_arg(0)->get_root() == n->get_root();
         if (a.is_map(p->get_expr()))
-            return true;
-        if (a.is_store(p->get_expr()))
             return true;
         return false;
     }

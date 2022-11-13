@@ -24,7 +24,7 @@ Notes:
 
 
 solver_na2as::solver_na2as(ast_manager & m):
-    solver(m), 
+    m(m), 
     m_assumptions(m) {
 }
 

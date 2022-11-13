@@ -86,7 +86,6 @@ class ll_printer {
         default:
             display_child_ref(n);
         }
-
     }
 
     template<typename T>

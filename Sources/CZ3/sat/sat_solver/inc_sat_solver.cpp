@@ -48,6 +48,7 @@ Notes:
 
 // incremental SAT solver.
 class inc_sat_solver : public solver {
+    ast_manager&    m;
     mutable sat::solver     m_solver;
     stacked_value<bool> m_has_uninterpreted;
     goal2sat        m_goal2sat;
@@ -86,7 +87,7 @@ class inc_sat_solver : public solver {
     bool is_internalized() const { return m_fmls_head == m_fmls.size(); }
 public:
     inc_sat_solver(ast_manager& m, params_ref const& p, bool incremental_mode):
-        solver(m),
+        m(m), 
         m_solver(p, m.limit()),
         m_has_uninterpreted(false),
         m_fmls(m),
@@ -404,7 +405,7 @@ public:
         return result;
     }
 
-    proof * get_proof_core() override {
+    proof * get_proof() override {
         return nullptr;
     }
 
@@ -595,10 +596,10 @@ public:
 
     void convert_internalized() {
         m_solver.pop_to_base_level();
-        if (!is_internalized() && m_fmls_head > 0) 
-            internalize_formulas();        
-        if (!is_internalized() || m_internalized_converted) 
-            return;
+        if (!is_internalized() && m_fmls_head > 0) {
+            internalize_formulas();
+        }
+        if (!is_internalized() || m_internalized_converted) return;
         sat2goal s2g;
         m_cached_mc = nullptr;
         goal g(m, false, true, false);
@@ -661,10 +662,6 @@ public:
         return ext;
     }
 
-    void register_on_clause(void* ctx, user_propagator::on_clause_eh_t& on_clause) override {
-        ensure_euf()->register_on_clause(ctx, on_clause);
-    }
-    
     void user_propagate_init(
         void*                ctx, 
         user_propagator::push_eh_t&   push_eh,

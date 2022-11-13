@@ -380,8 +380,9 @@ namespace smt {
         }
         else {
             if (m_final_check_idx % 2 == 1) {
-                r = assert_delayed_axioms();
-                if (r == FC_DONE) 
+                if (assert_delayed_axioms() == FC_CONTINUE)
+                    r = FC_CONTINUE;
+                else 
                     r = mk_interface_eqs_at_final_check();
             }
             else {

@@ -126,7 +126,7 @@ namespace euf {
             if (n2 == n) 
                 update_children(n);        
             else 
-                merge(n, n2, justification::congruence(comm, m_congruence_timestamp++));
+                merge(n, n2, justification::congruence(comm));
         }
         return n;
     }
@@ -554,7 +554,7 @@ namespace euf {
         force_push();
         for (unsigned i = 0; i < m_to_merge.size() && m.limit().inc() && !inconsistent(); ++i) {
             auto const& w = m_to_merge[i];
-            merge(w.a, w.b, justification::congruence(w.commutativity, m_congruence_timestamp++));                
+            merge(w.a, w.b, justification::congruence(w.commutativity));                
         }
         m_to_merge.reset();
         return 
@@ -571,7 +571,6 @@ namespace euf {
         m_updates.push_back(update_record(false, update_record::inconsistent()));
         m_n1 = n1;
         m_n2 = n2;
-        TRACE("euf", tout << "conflict " << bpp(n1) << " " << bpp(n2) << " " << j << "\n");
         m_justification = j;
     }
 
@@ -650,7 +649,7 @@ namespace euf {
         SASSERT(n1->get_decl() == n2->get_decl());
         m_uses_congruence = true;
         if (m_used_cc && !comm) { 
-            m_used_cc(n1->get_app(), n2->get_app());
+            m_used_cc(to_app(n1->get_expr()), to_app(n2->get_expr()));
         }
         if (comm && 
             n1->get_arg(0)->get_root() == n2->get_arg(1)->get_root() &&
@@ -708,28 +707,25 @@ namespace euf {
     }
 
     template <typename T>
-    void egraph::explain(ptr_vector<T>& justifications, cc_justification* cc) {
+    void egraph::explain(ptr_vector<T>& justifications) {
         SASSERT(m_inconsistent);
         push_todo(m_n1);
         push_todo(m_n2);
-        explain_eq(justifications, cc, m_n1, m_n2, m_justification);
-        explain_todo(justifications, cc);
+        explain_eq(justifications, m_n1, m_n2, m_justification);
+        explain_todo(justifications);
     }
 
     template <typename T>
-    void egraph::explain_eq(ptr_vector<T>& justifications, cc_justification* cc, enode* a, enode* b, justification const& j) {
-        TRACE("euf_verbose", tout << "explain-eq: " << bpp(a) << " == " << bpp(b) << " jst: " << j << "\n";);
+    void egraph::explain_eq(ptr_vector<T>& justifications, enode* a, enode* b, justification const& j) {
         if (j.is_external())
             justifications.push_back(j.ext<T>());
         else if (j.is_congruence()) 
             push_congruence(a, b, j.is_commutative());
-        if (cc && j.is_congruence()) 
-            cc->push_back(std::tuple(a->get_app(), b->get_app(), j.timestamp(), j.is_commutative()));
     }
 
 
     template <typename T>
-    void egraph::explain_eq(ptr_vector<T>& justifications, cc_justification* cc, enode* a, enode* b) {
+    void egraph::explain_eq(ptr_vector<T>& justifications, enode* a, enode* b) {
         SASSERT(a->get_root() == b->get_root());
         
         enode* lca = find_lca(a, b);
@@ -738,27 +734,27 @@ namespace euf {
         push_to_lca(b, lca);
         if (m_used_eq)
             m_used_eq(a->get_expr(), b->get_expr(), lca->get_expr());
-        explain_todo(justifications, cc);
+        explain_todo(justifications);
     }
 
     template <typename T>
-    unsigned egraph::explain_diseq(ptr_vector<T>& justifications, cc_justification* cc, enode* a, enode* b) {
+    unsigned egraph::explain_diseq(ptr_vector<T>& justifications, enode* a, enode* b) {
         enode* ra = a->get_root(), * rb = b->get_root();
         SASSERT(ra != rb);
         if (ra->interpreted() && rb->interpreted()) {
-            explain_eq(justifications, cc, a, ra);
-            explain_eq(justifications, cc, b, rb);
+            explain_eq(justifications, a, ra);
+            explain_eq(justifications, b, rb);
             return sat::null_bool_var;
         }
         enode* r = tmp_eq(ra, rb);
         SASSERT(r && r->get_root()->value() == l_false);
-        explain_eq(justifications, cc, r, r->get_root());
+        explain_eq(justifications, r, r->get_root());
         return r->get_root()->bool_var();
     }
 
 
     template <typename T>
-    void egraph::explain_todo(ptr_vector<T>& justifications, cc_justification* cc) {
+    void egraph::explain_todo(ptr_vector<T>& justifications) {
         for (unsigned i = 0; i < m_todo.size(); ++i) {
             enode* n = m_todo[i];
             if (n->is_marked1())
@@ -766,7 +762,7 @@ namespace euf {
             if (n->m_target) {
                 n->mark1();
                 CTRACE("euf_verbose", m_display_justification, n->m_justification.display(tout << n->get_expr_id() << " = " << n->m_target->get_expr_id() << " ", m_display_justification) << "\n";);
-                explain_eq(justifications, cc, n, n->m_target, n->m_justification);
+                explain_eq(justifications, n, n->m_target, n->m_justification);
             }
             else if (!n->is_marked1() && n->value() != l_undef) {
                 n->mark1();
@@ -894,20 +890,16 @@ namespace euf {
     }
 }
 
-template void euf::egraph::explain(ptr_vector<int>& justifications, cc_justification*);
-template void euf::egraph::explain_todo(ptr_vector<int>& justifications, cc_justification*);
-template void euf::egraph::explain_eq(ptr_vector<int>& justifications, cc_justification*, enode* a, enode* b);
-template unsigned euf::egraph::explain_diseq(ptr_vector<int>& justifications, cc_justification*, enode* a, enode* b);
+template void euf::egraph::explain(ptr_vector<int>& justifications);
+template void euf::egraph::explain_todo(ptr_vector<int>& justifications);
+template void euf::egraph::explain_eq(ptr_vector<int>& justifications, enode* a, enode* b);
+template unsigned euf::egraph::explain_diseq(ptr_vector<int>& justifications, enode* a, enode* b);
 
-template void euf::egraph::explain(ptr_vector<size_t>& justifications, cc_justification*);
-template void euf::egraph::explain_todo(ptr_vector<size_t>& justifications, cc_justification*);
-template void euf::egraph::explain_eq(ptr_vector<size_t>& justifications, cc_justification*, enode* a, enode* b);
-template unsigned euf::egraph::explain_diseq(ptr_vector<size_t>& justifications, cc_justification*, enode* a, enode* b);
+template void euf::egraph::explain(ptr_vector<size_t>& justifications);
+template void euf::egraph::explain_todo(ptr_vector<size_t>& justifications);
+template void euf::egraph::explain_eq(ptr_vector<size_t>& justifications, enode* a, enode* b);
+template unsigned euf::egraph::explain_diseq(ptr_vector<size_t>& justifications, enode* a, enode* b);
 
-template void euf::egraph::explain(ptr_vector<expr_dependency>& justifications, cc_justification*);
-template void euf::egraph::explain_todo(ptr_vector<expr_dependency>& justifications, cc_justification*);
-template void euf::egraph::explain_eq(ptr_vector<expr_dependency>& justifications, cc_justification*, enode* a, enode* b);
-template unsigned euf::egraph::explain_diseq(ptr_vector<expr_dependency>& justifications, cc_justification*, enode* a, enode* b);
 
 
 #if 0

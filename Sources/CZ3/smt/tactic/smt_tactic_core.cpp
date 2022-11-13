@@ -26,7 +26,7 @@ Notes:
 #include "smt/smt_solver.h"
 #include "tactic/tactic.h"
 #include "tactic/tactical.h"
-#include "ast/converters/generic_model_converter.h"
+#include "tactic/generic_model_converter.h"
 #include "solver/solver2tactic.h"
 #include "solver/solver.h"
 #include "solver/mus.h"
@@ -323,13 +323,7 @@ public:
     user_propagator::eq_eh_t    m_diseq_eh;
     user_propagator::created_eh_t m_created_eh;
     user_propagator::decide_eh_t m_decide_eh;
-    void* m_on_clause_ctx = nullptr;
-    user_propagator::on_clause_eh_t m_on_clause_eh;
-
-    void on_clause_delay_init() {
-        if (m_on_clause_eh)
-            m_ctx->register_on_clause(m_on_clause_ctx, m_on_clause_eh);
-    }
+   
 
     void user_propagate_delay_init() {
         if (!m_user_ctx)
@@ -355,13 +349,6 @@ public:
         m_diseq_eh = nullptr;
         m_created_eh = nullptr;
         m_decide_eh = nullptr;
-        m_on_clause_eh = nullptr;
-        m_on_clause_ctx = nullptr;
-    }
-
-    void register_on_clause(void* ctx, user_propagator::on_clause_eh_t& on_clause) override {
-        m_on_clause_ctx = ctx;
-        m_on_clause_eh = on_clause;
     }
 
     void user_propagate_init(

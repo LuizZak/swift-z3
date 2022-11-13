@@ -35,8 +35,7 @@
   "contributors": [
     "Kevin Gibbons <bakkot@gmail.com>",
     "Nikolaj Bjorner",
-    "Olaf Tomalka <olaf@tomalka.me>",
-    "Walden Yan <waldenyan20@gmail.com>"
+    "Olaf Tomalka <olaf@tomalka.me>"
   ],
   "devDependencies": {
     "@types/jest": "^27.5.1",
@@ -50,7 +49,6 @@
     "prettier": "^2.5.1",
     "rimraf": "^3.0.2",
     "sprintf-js": "^1.1.2",
-    "ts-expect": "^1.3.0",
     "ts-jest": "^28.0.3",
     "ts-node": "^10.8.0",
     "typedoc": "^0.22.17",

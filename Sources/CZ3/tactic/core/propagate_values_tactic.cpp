@@ -24,7 +24,7 @@ Revision History:
 #include "ast/ast_pp.h"
 #include "ast/expr_substitution.h"
 #include "tactic/goal_shared_occs.h"
-#include "params/tactic_params.hpp"
+#include "tactic/tactic_params.hpp"
 
 namespace {
 class propagate_values_tactic : public tactic {
@@ -74,13 +74,10 @@ class propagate_values_tactic : public tactic {
 
     void push_result(expr * new_curr, proof * new_pr) {
         if (m_goal->proofs_enabled()) {
-            proof* pr = m_goal->pr(m_idx);
-            new_pr = m.mk_modus_ponens(pr, new_pr);
+            proof * pr = m_goal->pr(m_idx);            
+            new_pr     = m.mk_modus_ponens(pr, new_pr);
         }
-        else
-            new_pr = nullptr;
-
-
+        
         expr_dependency_ref new_d(m);
         if (m_goal->unsat_core_enabled()) {
             new_d = m_goal->dep(m_idx);
@@ -213,7 +210,6 @@ public:
         m_occs(m, true /* track atoms */),
         m_params(p) {
         updt_params_core(p);
-        m_r.set_flat_and_or(false);
     }
 
     tactic * translate(ast_manager & m) override {

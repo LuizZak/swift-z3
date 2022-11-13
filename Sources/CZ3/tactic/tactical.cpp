@@ -20,7 +20,6 @@ Notes:
 #include "util/cancel_eh.h"
 #include "util/scoped_ptr_vector.h"
 #include "tactic/tactical.h"
-#include "tactic/goal_proof_converter.h"
 #ifndef SINGLE_THREAD
 #include <thread>
 #endif
@@ -165,10 +164,6 @@ public:
 
     tactic * translate(ast_manager & m) override {
         return translate_core<and_then_tactical>(m);
-    }
-
-    void register_on_clause(void* ctx, user_propagator::on_clause_eh_t& on_clause) override {
-        m_t2->register_on_clause(ctx, on_clause);
     }
 
     void user_propagate_init(

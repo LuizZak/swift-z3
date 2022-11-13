@@ -45,19 +45,14 @@ namespace nla {
         if (is_conflicting())
             return;
 
-        try {
-            if (propagate_bounds())
-                return;
+        if (propagate_bounds())
+            return;
 
-            if (propagate_eqs())
-                return;
+        if (propagate_eqs())
+            return;
 
-            if (propagate_factorization())
-                return;
-        }
-        catch (...) {
-            
-        }
+        if (propagate_factorization())
+            return;
 
         if (quota > 1)
             quota--;

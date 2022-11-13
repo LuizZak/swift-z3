@@ -911,11 +911,6 @@ br_status bv_rewriter::mk_bv_lshr(expr * arg1, expr * arg2, expr_ref & result) {
         return BR_REWRITE2;
     }
 
-    if (arg1 == arg2) {
-        result = mk_numeral(0, bv_size);
-        return BR_DONE;
-    }
-
     return BR_FAILED;
 }
 
@@ -1513,14 +1508,11 @@ br_status bv_rewriter::mk_concat(unsigned num_args, expr * const * args, expr_re
     bool fused_numeral = false;
     bool expanded      = false;
     bool fused_extract = false;
-    bool eq_args = true;
     for (unsigned i = 0; i < num_args; i++) {
         expr * arg = args[i];
         expr * prev = nullptr;
-        if (i > 0) {
+        if (i > 0)
             prev = new_args.back();
-            eq_args &= prev == arg;
-        }
         if (is_numeral(arg, v1, sz1) && prev != nullptr && is_numeral(prev, v2, sz2)) {
             v2  *= rational::power_of_two(sz1);
             v2  += v1;
@@ -1529,8 +1521,10 @@ br_status bv_rewriter::mk_concat(unsigned num_args, expr * const * args, expr_re
             fused_numeral = true;
         }
         else if (m_flat && m_util.is_concat(arg)) {
-            for (expr* arg2 : *to_app(arg)) 
-                new_args.push_back(arg2);
+            unsigned num2 = to_app(arg)->get_num_args();
+            for (unsigned j = 0; j < num2; j++) {
+                new_args.push_back(to_app(arg)->get_arg(j));
+            }
             expanded = true;
         }
         else if (m_util.is_extract(arg) &&
@@ -1540,8 +1534,8 @@ br_status bv_rewriter::mk_concat(unsigned num_args, expr * const * args, expr_re
                  m_util.get_extract_low(prev) == m_util.get_extract_high(arg) + 1) {
             // (concat (extract[h1,l1] a) (extract[h2,l2] a)) --> (extract[h1,l2] a)  if l1 == h2+1
             expr * new_arg = m_mk_extract(m_util.get_extract_high(prev),
-                                          m_util.get_extract_low(arg),
-                                          to_app(arg)->get_arg(0));
+                                               m_util.get_extract_low(arg),
+                                               to_app(arg)->get_arg(0));
             new_args.pop_back();
             new_args.push_back(new_arg);
             fused_extract = true;
@@ -1550,26 +1544,14 @@ br_status bv_rewriter::mk_concat(unsigned num_args, expr * const * args, expr_re
             new_args.push_back(arg);
         }
     }
-    if (!fused_numeral && !expanded && !fused_extract) {
-        expr* x, *y, *z;
-        if (eq_args) {
-            if (m().is_ite(new_args.back(), x, y, z)) {
-                ptr_buffer<expr> args1, args2;
-                for (expr* arg : new_args)
-                    args1.push_back(y), args2.push_back(z);
-                result = m().mk_ite(x, m_util.mk_concat(args1), m_util.mk_concat(args2));
-                return BR_REWRITE2;
-            }
-        }
+    if (!fused_numeral && !expanded && !fused_extract)
         return BR_FAILED;
-
-    }
     SASSERT(!new_args.empty());
     if (new_args.size() == 1) {
         result = new_args.back();
         return fused_extract ? BR_REWRITE1 : BR_DONE;
     }
-    result = m_util.mk_concat(new_args);
+    result = m_util.mk_concat(new_args.size(), new_args.data());
     if (fused_extract)
         return BR_REWRITE2;
     else if (expanded)
@@ -2026,19 +2008,6 @@ br_status bv_rewriter::mk_bv_not(expr * arg, expr_ref & result) {
         return BR_REWRITE2;
     }
 
-    expr* x, *y, *z;
-    if (m().is_ite(arg, x, y, z) && m_util.is_numeral(y, val, bv_size)) {
-        val = bitwise_not(bv_size, val);
-        result = m().mk_ite(x, m_util.mk_numeral(val, bv_size), m_util.mk_bv_not(z));
-        return BR_REWRITE2;
-    }
-
-    if (m().is_ite(arg, x, y, z) && m_util.is_numeral(z, val, bv_size)) {
-        val = bitwise_not(bv_size, val);
-        result = m().mk_ite(x, m_util.mk_bv_not(y), m_util.mk_numeral(val, bv_size));
-        return BR_REWRITE2;
-    }
-
     if (m_bvnot_simpl) {
         expr *s(nullptr), *t(nullptr);
         if (m_util.is_bv_mul(arg, s, t)) {
@@ -2277,52 +2246,14 @@ bool bv_rewriter::is_zero_bit(expr * x, unsigned idx) {
     return false;
 }
 
-br_status bv_rewriter::mk_mul_hoist(unsigned num_args, expr * const * args, expr_ref & result) {
-    if (num_args <= 1)
-        return BR_FAILED;
-    expr* z = nullptr, *u = nullptr;
-    for (unsigned i = 0; i < num_args; ++i) {
-        // ~x = -1 - x
-        if (m_util.is_bv_not(args[i], z)) {
-            unsigned sz = m_util.get_bv_size(z);
-            ptr_vector<expr> new_args(num_args, args);
-            rational p = rational(2).expt(sz) - 1;
-            new_args[i] = m_util.mk_bv_sub(mk_numeral(p, sz), z);
-            result = m_util.mk_bv_mul(num_args, new_args.data());
-            return BR_REWRITE3;
-        }
-        // shl(z, u) * x = shl(x * z, u)
-        if (m_util.is_bv_shl(args[i], z, u)) {
-            ptr_vector<expr> new_args(num_args, args);
-            new_args[i] = z;
-            result = m_util.mk_bv_mul(num_args, new_args.data());
-            result = m_util.mk_bv_shl(result, u);
-            return BR_REWRITE2;
-        }
-    }
-    return BR_FAILED;
-}
-
 br_status bv_rewriter::mk_bv_mul(unsigned num_args, expr * const * args, expr_ref & result) {
     br_status st = mk_mul_core(num_args, args, result);
     if (st != BR_FAILED && st != BR_DONE)
         return st;
-    if (st == BR_DONE && is_mul(result)) {
-        st = mk_mul_hoist(to_app(result)->get_num_args(), to_app(result)->get_args(), result);
-        if (st != BR_FAILED)
-            return st;
-        st = BR_DONE;
-    }
-    if (st == BR_FAILED) {
-        st = mk_mul_hoist(num_args, args, result);
-        if (st != BR_FAILED)
-            return st;
-    }
-
-    expr* x, * y;
+    expr * x;
+    expr * y;
     if (st == BR_FAILED && num_args == 2) {
-        x = args[0]; 
-        y = args[1];
+        x = args[0]; y = args[1];
     }
     else if (st == BR_DONE && is_mul(result) && to_app(result)->get_num_args() == 2) {
         x = to_app(result)->get_arg(0);
@@ -2331,6 +2262,7 @@ br_status bv_rewriter::mk_bv_mul(unsigned num_args, expr * const * args, expr_re
     else {
         return st;
     }
+
     if (m_mul2concat) {
         numeral v;
         unsigned bv_size;

@@ -244,10 +244,12 @@ namespace spacer {
     }
     
     void iuc_solver::elim_proxies (expr_ref_vector &v) {
+        expr_ref f = mk_and (v);
         scoped_ptr<expr_replacer> rep = mk_expr_simp_replacer (m);
         rep->set_substitution (&m_elim_proxies_sub);
-        (*rep)(v);
-        flatten_and(v);
+        (*rep)(f);
+        v.reset();
+        flatten_and(f, v);
     }
     
     void iuc_solver::get_iuc(expr_ref_vector &core) {

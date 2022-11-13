@@ -232,10 +232,10 @@ namespace recfun {
         ctx.push(push_back_vector<scoped_ptr_vector<propagation_item>>(m_propagation_queue));        
     }
 
-    sat::literal solver::internalize(expr* e, bool sign, bool root) {
+    sat::literal solver::internalize(expr* e, bool sign, bool root, bool redundant) {
         force_push();
         SASSERT(m.is_bool(e));
-        if (!visit_rec(m, e, sign, root)) {
+        if (!visit_rec(m, e, sign, root, redundant)) {
             TRACE("array", tout << mk_pp(e, m) << "\n";);
             return sat::null_literal;
         }
@@ -245,9 +245,9 @@ namespace recfun {
         return lit;
     }
 
-    void solver::internalize(expr* e) {
+    void solver::internalize(expr* e, bool redundant) {
         force_push();
-        visit_rec(m, e, false, false);
+        visit_rec(m, e, false, false, redundant);
     }
 
     bool solver::visited(expr* e) {
@@ -259,7 +259,7 @@ namespace recfun {
         if (visited(e))
             return true;
         if (!is_app(e) || to_app(e)->get_family_id() != get_id()) {
-            ctx.internalize(e);
+            ctx.internalize(e, m_is_redundant);
             return true;
         }
         m_stack.push_back(sat::eframe(e));

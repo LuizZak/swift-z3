@@ -330,8 +330,7 @@ namespace smt {
             // Even if there was, as-array on interpreted 
             // functions will be incomplete.
             // The instantiation operations are still sound to include.
-            m_as_array.push_back(node);
-            ctx.push_trail(push_back_vector(m_as_array));
+            found_unsupported_op(n);
             instantiate_default_as_array_axiom(node);
         }
         else if (is_array_ext(n)) {
@@ -605,14 +604,6 @@ namespace smt {
         for (unsigned i = 0; i < lam->get_num_decls(); ++i) 
             args.push_back(mk_epsilon(lam->get_decl_sort(i)).first);
         expr_ref val(mk_select(args), m);
-        ctx.get_rewriter()(val);
-        if (has_quantifiers(val)) {
-            expr_ref fn(m.mk_fresh_const("lambda-body", val->get_sort()), m);
-            expr_ref eq(m.mk_eq(fn, val), m);
-            ctx.assert_expr(eq);
-            ctx.internalize_assertions();
-            val = fn;
-        }
         ctx.internalize(def, false);
         ctx.internalize(val.get(), false);
         return try_assign_eq(val.get(), def);
@@ -816,23 +807,11 @@ namespace smt {
         if (r == FC_DONE && m_bapa) {
             r = m_bapa->final_check();
         }
-        bool should_giveup = m_found_unsupported_op || has_propagate_up_trail() || has_non_beta_as_array();
+        bool should_giveup = m_found_unsupported_op || has_propagate_up_trail();
         if (r == FC_DONE && should_giveup)
             r = FC_GIVEUP;
         return r;
     }
-
-    bool theory_array_full::has_non_beta_as_array() {
-        for (enode* n : m_as_array) {
-            for (enode* p : n->get_parents())
-                if (!ctx.is_beta_redex(p, n)) {
-                    TRACE("array", tout << "not a beta redex " << enode_pp(p, ctx) << "\n");
-                    return true;
-                }
-        }
-        return false;
-    }
-
 
     bool theory_array_full::instantiate_parent_stores_default(theory_var v) {
         SASSERT(v != null_theory_var);

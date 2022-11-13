@@ -43,7 +43,7 @@
 #include "smt/smt_model_generator.h"
 #include "smt/arith_eq_adapter.h"
 #include "util/nat_set.h"
-#include "ast/converters/generic_model_converter.h"
+#include "tactic/generic_model_converter.h"
 #include "ast/ast_pp.h"
 #include "ast/ast_ll_pp.h"
 #include "util/cancel_eh.h"
@@ -1775,6 +1775,7 @@ public:
                     hi = floor(hi/mul);
                     lo = ceil(lo/mul);
                 }
+                std::cout << mk_pp(p, m) << " " << mk_pp(n, m) << " " << hi << " " << lo << " " << div_r << "\n";
                 literal p_le_r1  = mk_literal(a.mk_le(p, a.mk_numeral(hi, true)));
                 literal p_ge_r1  = mk_literal(a.mk_ge(p, a.mk_numeral(lo, true)));
                 literal n_le_div = mk_literal(a.mk_le(n, a.mk_numeral(div_r, true)));

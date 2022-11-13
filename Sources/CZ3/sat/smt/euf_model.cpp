@@ -287,40 +287,24 @@ namespace euf {
         nodes.push_back(n);
         for (unsigned i = 0; i < nodes.size(); ++i) {
             euf::enode* r = nodes[i];
-            if (!r || r->is_marked1())
+            if (r->is_marked1())
                 continue;
             r->mark1();
-            if (is_app(r->get_expr()))
-                for (auto* arg : *r->get_app())
-                    nodes.push_back(get_enode(arg));
+            for (auto* arg : euf::enode_args(r))
+                nodes.push_back(arg);           
             expr_ref val = mdl(r->get_expr());
             expr_ref sval(m);
             th_rewriter rw(m);
             rw(val, sval);
-            expr_ref mval = mdl(r->get_root()->get_expr());
-            if (mval != sval) {
-                if (r->bool_var() != sat::null_bool_var)
-                    out << "b" << r->bool_var() << " ";
-                out << bpp(r) << " :=\neval:  " << sval << "\nmval:  " << mval << "\n";
-                continue;
-            }
-            if (!m.is_bool(val))
-                continue;
-            auto bval = s().value(r->bool_var());
-            bool tt = l_true == bval;
-            if (tt != m.is_true(sval))
-                out << bpp(r) << " :=\neval:  " << sval << "\nmval:  " << bval << "\n";
+            out << bpp(r) << " := " << sval << " " << mdl(r->get_root()->get_expr()) << "\n";
         }
         for (euf::enode* r : nodes)
-            if (r)
-                r->unmark1();
+            r->unmark1();
         out << mdl << "\n";
     }
 
     void solver::validate_model(model& mdl) {
         if (!m_unhandled_functions.empty())
-            return;
-        if (get_config().m_arith_ignore_int)
             return;
         for (auto* s : m_solvers)
             if (s && s->has_unhandled())

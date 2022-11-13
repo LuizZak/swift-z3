@@ -24,7 +24,6 @@
 #include "params/rewriter_params.hpp"
 #include "params/seq_rewriter_params.hpp"
 #include "params/solver_params.hpp"
-#include "params/tactic_params.hpp"
 #include "parsers/util/parser_params.hpp"
 #include "sat/sat_asymm_branch_params.hpp"
 #include "sat/sat_params.hpp"
@@ -35,6 +34,7 @@
 #include "solver/parallel_params.hpp"
 #include "tactic/sls/sls_params.hpp"
 #include "tactic/smtlogics/qfufbv_tactic_params.hpp"
+#include "tactic/tactic_params.hpp"
 #include "util/env_params.h"
 void gparams_register_modules() {
 { param_descrs d; context_params::collect_param_descrs(d); gparams::register_global(d); }
@@ -62,7 +62,6 @@ void gparams_register_modules() {
 { auto f = []() { auto* d = alloc(param_descrs); rewriter_params::collect_param_descrs(*d); return d; }; gparams::register_module("rewriter", f); }
 { auto f = []() { auto* d = alloc(param_descrs); seq_rewriter_params::collect_param_descrs(*d); return d; }; gparams::register_module("rewriter", f); }
 { auto f = []() { auto* d = alloc(param_descrs); solver_params::collect_param_descrs(*d); return d; }; gparams::register_module("solver", f); }
-{ auto f = []() { auto* d = alloc(param_descrs); tactic_params::collect_param_descrs(*d); return d; }; gparams::register_module("tactic", f); }
 { auto f = []() { auto* d = alloc(param_descrs); parser_params::collect_param_descrs(*d); return d; }; gparams::register_module("parser", f); }
 { auto f = []() { auto* d = alloc(param_descrs); sat_asymm_branch_params::collect_param_descrs(*d); return d; }; gparams::register_module("sat", f); }
 { auto f = []() { auto* d = alloc(param_descrs); sat_params::collect_param_descrs(*d); return d; }; gparams::register_module("sat", f); }
@@ -73,6 +72,7 @@ void gparams_register_modules() {
 { auto f = []() { auto* d = alloc(param_descrs); parallel_params::collect_param_descrs(*d); return d; }; gparams::register_module("parallel", f); }
 { auto f = []() { auto* d = alloc(param_descrs); sls_params::collect_param_descrs(*d); return d; }; gparams::register_module("sls", f); }
 { auto f = []() { auto* d = alloc(param_descrs); qfufbv_tactic_params::collect_param_descrs(*d); return d; }; gparams::register_module("ackermannization", f); }
+{ auto f = []() { auto* d = alloc(param_descrs); tactic_params::collect_param_descrs(*d); return d; }; gparams::register_module("tactic", f); }
 gparams::register_module_descr("ackermannization", "solving UF via ackermannization");
 gparams::register_module_descr("nnf", "negation normal form");
 gparams::register_module_descr("pp", "pretty printer");
@@ -84,11 +84,11 @@ gparams::register_module_descr("opt", "optimization parameters");
 gparams::register_module_descr("pi", "pattern inference (heuristics) for universal formulas (without annotation)");
 gparams::register_module_descr("rewriter", "new formula simplification module used in the tactic framework, and new solvers");
 gparams::register_module_descr("solver", "solver parameters");
-gparams::register_module_descr("tactic", "tactic parameters");
 gparams::register_module_descr("sat", "propositional SAT solver");
 gparams::register_module_descr("smt", "smt solver based on lazy smt");
 gparams::register_module_descr("combined_solver", "combines two solvers: non-incremental (solver1) and incremental (solver2)");
 gparams::register_module_descr("parallel", "parameters for parallel solver");
 gparams::register_module_descr("sls", "Experimental Stochastic Local Search Solver (for QFBV only).");
 gparams::register_module_descr("ackermannization", "tactics based on solving UF-theories via ackermannization (see also ackr module)");
+gparams::register_module_descr("tactic", "tactic parameters");
 }

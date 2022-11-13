@@ -1723,7 +1723,7 @@ namespace smt {
                     return false;
             }
             if (!get_cancel_flag()) {
-//                scoped_suspend_rlimit _suspend_cancel(m.limit(), at_base_level());
+                scoped_suspend_rlimit _suspend_cancel(m.limit(), at_base_level());
                 m_qmanager->propagate();
             }
             if (inconsistent())
@@ -3198,22 +3198,13 @@ namespace smt {
 
     void context::internalize_assertions() {
         if (get_cancel_flag()) return;
-        if (m_internalizing_assertions) return;
-        flet<bool> _internalizing(m_internalizing_assertions, true);
         TRACE("internalize_assertions", tout << "internalize_assertions()...\n";);
         timeit tt(get_verbosity_level() >= 100, "smt.preprocessing");
-        unsigned qhead = 0;
-        do {
-            reduce_assertions();
-            if (get_cancel_flag()) 
-                return;
-            if (m_asserted_formulas.inconsistent()) {
-                if (!inconsistent())
-                    asserted_inconsistent();
-                break;
-            }
-            qhead = m_asserted_formulas.get_qhead();
-            unsigned sz = m_asserted_formulas.get_num_formulas();
+        reduce_assertions();
+        if (get_cancel_flag()) return;
+        if (!m_asserted_formulas.inconsistent()) {
+            unsigned sz    = m_asserted_formulas.get_num_formulas();
+            unsigned qhead = m_asserted_formulas.get_qhead();
             while (qhead < sz) {
                 if (get_cancel_flag()) {
                     m_asserted_formulas.commit(qhead);
@@ -3223,12 +3214,13 @@ namespace smt {
                 proof * pr = m_asserted_formulas.get_formula_proof(qhead);
                 SASSERT(!pr || f == m.get_fact(pr));
                 internalize_assertion(f, pr, 0);
-                ++qhead;
+                qhead++;
             }
             m_asserted_formulas.commit();
         }
-        while (qhead < m_asserted_formulas.get_num_formulas());
-
+        if (m_asserted_formulas.inconsistent() && !inconsistent()) {
+            asserted_inconsistent();
+        }
         TRACE("internalize_assertions", tout << "after internalize_assertions()...\n";
               tout << "inconsistent: " << inconsistent() << "\n";);
         TRACE("after_internalize_assertions", display(tout););

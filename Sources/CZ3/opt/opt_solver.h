@@ -29,7 +29,7 @@ Notes:
 #include "smt/params/smt_params.h"
 #include "smt/smt_types.h"
 #include "smt/theory_opt.h"
-#include "ast/converters/generic_model_converter.h"
+#include "tactic/generic_model_converter.h"
 
 namespace opt {
 
@@ -97,7 +97,7 @@ namespace opt {
         lbool check_sat_core2(unsigned num_assumptions, expr * const * assumptions) override;
         void get_unsat_core(expr_ref_vector & r) override;
         void get_model_core(model_ref & _m) override;
-        proof * get_proof_core() override;
+        proof * get_proof() override;
         std::string reason_unknown() const override;
         void set_reason_unknown(char const* msg) override;
         void get_labels(svector<symbol> & r) override;

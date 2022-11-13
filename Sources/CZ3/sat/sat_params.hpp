@@ -54,9 +54,7 @@ struct sat_params {
     d.insert("threads", CPK_UINT, "number of parallel threads to use", "1","sat");
     d.insert("dimacs.core", CPK_BOOL, "extract core from DIMACS benchmarks", "false","sat");
     d.insert("drat.disable", CPK_BOOL, "override anything that enables DRAT", "false","sat");
-    d.insert("smt.proof", CPK_SYMBOL, "add SMT proof log to file", "","sat");
-    d.insert("smt.proof.check", CPK_BOOL, "check SMT proof while it is created", "false","sat");
-    d.insert("smt.proof.check_rup", CPK_BOOL, "apply forward RUP proof checking", "true","sat");
+    d.insert("smt.proof", CPK_SYMBOL, "add SMT proof to file", "","sat");
     d.insert("drat.file", CPK_SYMBOL, "file to dump DRAT proofs", "","sat");
     d.insert("drat.binary", CPK_BOOL, "use Binary DRAT output format", "false","sat");
     d.insert("drat.check_unsat", CPK_BOOL, "build up internal proof and check", "false","sat");
@@ -161,8 +159,6 @@ struct sat_params {
   bool dimacs_core() const { return p.get_bool("dimacs.core", g, false); }
   bool drat_disable() const { return p.get_bool("drat.disable", g, false); }
   symbol smt_proof() const { return p.get_sym("smt.proof", g, symbol("")); }
-  bool smt_proof_check() const { return p.get_bool("smt.proof.check", g, false); }
-  bool smt_proof_check_rup() const { return p.get_bool("smt.proof.check_rup", g, true); }
   symbol drat_file() const { return p.get_sym("drat.file", g, symbol("")); }
   bool drat_binary() const { return p.get_bool("drat.binary", g, false); }
   bool drat_check_unsat() const { return p.get_bool("drat.check_unsat", g, false); }
