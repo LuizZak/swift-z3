@@ -27,8 +27,8 @@ Revision History:
 #include "ast/rewriter/hoist_rewriter.h"
 #include "tactic/goal_shared_occs.h"
 #include "tactic/tactical.h"
-#include "tactic/generic_model_converter.h"
-#include "tactic/tactic_params.hpp"
+#include "ast/converters/generic_model_converter.h"
+#include "params/tactic_params.hpp"
 
 class solve_eqs_tactic : public tactic {
     struct imp {
@@ -36,6 +36,7 @@ class solve_eqs_tactic : public tactic {
         
         ast_manager &                 m_manager;
         expr_replacer *               m_r;
+        params_ref                    m_params;
         bool                          m_r_owner;
         arith_util                    m_a_util;
         obj_map<expr, unsigned>       m_num_occs;
@@ -80,7 +81,8 @@ class solve_eqs_tactic : public tactic {
         ast_manager & m() const { return m_manager; }
         
         void updt_params(params_ref const & p) {
-            tactic_params tp(p);
+            m_params.append(p);
+            tactic_params tp(m_params);
             m_ite_solver     = p.get_bool("ite_solver", tp.solve_eqs_ite_solver());
             m_theory_solver  = p.get_bool("theory_solver", tp.solve_eqs_theory_solver());
             m_max_occs       = p.get_uint("solve_eqs_max_occs", tp.solve_eqs_max_occs());
@@ -423,6 +425,7 @@ class solve_eqs_tactic : public tactic {
                 else
                     pr = m().mk_modus_ponens(g.pr(idx), pr);
             }
+            IF_VERBOSE(11, verbose_stream() << mk_bounded_pp(var, m()) << " -> " << mk_bounded_pp(def, m()) << "\n");
             m_subst->insert(var, def, pr, g.dep(idx));
         }
         
@@ -477,52 +480,11 @@ class solve_eqs_tactic : public tactic {
 
         ptr_vector<expr> m_todo;       
         void mark_occurs(expr_mark& occ, goal const& g, expr* v) {
-            expr_fast_mark2 visited;
-            occ.mark(v, true);
-            visited.mark(v, true);
-            for (unsigned j = 0; j < g.size(); ++j) {              
-                m_todo.push_back(g.form(j));
-            }
-            while (!m_todo.empty()) {
-                expr* e = m_todo.back();
-                if (visited.is_marked(e)) {
-                    m_todo.pop_back();
-                    continue;
-                }
-                if (is_app(e)) {
-                    bool does_occur = false;
-                    bool all_visited = true;
-                    for (expr* arg : *to_app(e)) {
-                        if (!visited.is_marked(arg)) {
-                            m_todo.push_back(arg);
-                            all_visited = false;
-                        }
-                        else {
-                            does_occur |= occ.is_marked(arg);
-                        }
-                    }
-                    if (all_visited) {
-                        occ.mark(e, does_occur);
-                        visited.mark(e, true);
-                        m_todo.pop_back();
-                    }
-                }
-                else if (is_quantifier(e)) {
-                    expr* body = to_quantifier(e)->get_expr();
-                    if (visited.is_marked(body)) {
-                        visited.mark(e, true);
-                        occ.mark(e, occ.is_marked(body));
-                        m_todo.pop_back();
-                    }
-                    else {
-                        m_todo.push_back(body);
-                    }
-                }
-                else {
-                    visited.mark(e, true);
-                    m_todo.pop_back();
-                }
-            }
+            SASSERT(m_todo.empty());
+            for (unsigned j = 0; j < g.size(); ++j)             
+                m_todo.push_back(g.form(j));            
+            ::mark_occurs(m_todo, v, occ);
+            SASSERT(m_todo.empty());
         }
 
         expr_mark m_compatible_tried;
@@ -659,9 +621,11 @@ class solve_eqs_tactic : public tactic {
                     expr* arg = args.get(i), *lhs = nullptr, *rhs = nullptr;
                     if (m().is_eq(arg, lhs, rhs) && !m().is_bool(lhs)) {                
                         if (trivial_solve1(lhs, rhs, var, def, pr) && is_compatible(g, idx, path, var, arg)) {
+                            IF_VERBOSE(11, verbose_stream() << "nested " << mk_bounded_pp(var.get(), m()) << " -> " << mk_bounded_pp(def, m()) << "\n");
                             insert_solution(g, idx, arg, var, def, pr);
                         }
                         else if (trivial_solve1(rhs, lhs, var, def, pr) && is_compatible(g, idx, path, var, arg)) {
+                            IF_VERBOSE(11, verbose_stream() << "nested " << mk_bounded_pp(var.get(), m()) << " -> " << mk_bounded_pp(def, m()) << "\n");
                             insert_solution(g, idx, arg, var, def, pr);
                         }
                         else {
@@ -702,8 +666,8 @@ class solve_eqs_tactic : public tactic {
             if (m_produce_proofs) 
                 return;
             unsigned size = g.size();
-            hoist_rewriter_star rw(m());
-            th_rewriter thrw(m());
+            hoist_rewriter_star rw(m(), m_params);
+            th_rewriter thrw(m(), m_params);
             expr_ref tmp(m()), tmp2(m());
             
             TRACE("solve_eqs", g.display(tout););
@@ -975,14 +939,8 @@ class solve_eqs_tactic : public tactic {
             if (m_produce_models) {
                 if (!mc.get())
                     mc = alloc(gmc, m(), "solve-eqs");
-                for (app* v : m_ordered_vars) {
-                    expr * def = nullptr;
-                    proof * pr;
-                    expr_dependency * dep = nullptr;
-                    m_norm_subst->find(v, def, pr, dep);
-                    SASSERT(def);
-                    static_cast<gmc*>(mc.get())->add(v, def);
-                }
+                for (app* v : m_ordered_vars) 
+                    static_cast<gmc*>(mc.get())->add(v, m_norm_subst->find(v));
             }
         }
         
@@ -1026,6 +984,10 @@ class solve_eqs_tactic : public tactic {
         unsigned get_num_eliminated_vars() const {
             return m_num_eliminated_vars;
         }
+
+        void collect_statistics(statistics& st) {
+            st.update("solve eqs elim vars", get_num_eliminated_vars());
+        }
         
         //
         // TBD: rewrite the tactic to first apply a topological sorting that
@@ -1035,6 +997,8 @@ class solve_eqs_tactic : public tactic {
         //
         void operator()(goal_ref const & g, goal_ref_buffer & result) {
             model_converter_ref mc;
+            std::function<void(statistics&)> coll = [&](statistics& st) { collect_statistics(st); };
+            statistics_report sreport(coll);
             tactic_report report("solve_eqs", *g);
             TRACE("goal", g->display(tout););
             m_produce_models = g->models_enabled();
@@ -1078,19 +1042,19 @@ class solve_eqs_tactic : public tactic {
             g->inc_depth();
             g->add(mc.get());
             result.push_back(g.get());
+
+            
         }
     };
     
     imp *      m_imp;
-    params_ref m_params;
 public:
-    solve_eqs_tactic(ast_manager & m, params_ref const & p, expr_replacer * r, bool owner):
-        m_params(p) {
+    solve_eqs_tactic(ast_manager & m, params_ref const & p, expr_replacer * r, bool owner) {
         m_imp = alloc(imp, m, p, r, owner);
     }
 
     tactic * translate(ast_manager & m) override {
-        return alloc(solve_eqs_tactic, m, m_params, mk_expr_simp_replacer(m, m_params), true);
+        return alloc(solve_eqs_tactic, m, m_imp->m_params, mk_expr_simp_replacer(m, m_imp->m_params), true);
     }
         
     ~solve_eqs_tactic() override {
@@ -1100,8 +1064,7 @@ public:
     char const* name() const override { return "solve_eqs"; }
 
     void updt_params(params_ref const & p) override {
-        m_params.append(p);
-        m_imp->updt_params(m_params);
+        m_imp->updt_params(p);
     }
 
     void collect_param_descrs(param_descrs & r) override {        
@@ -1114,7 +1077,6 @@ public:
     void operator()(goal_ref const & in, 
                     goal_ref_buffer & result) override {
         (*m_imp)(in, result);
-        report_tactic_progress(":num-elim-vars", m_imp->get_num_eliminated_vars());
     }
     
     void cleanup() override {
@@ -1126,14 +1088,14 @@ public:
         bool owner = m_imp->m_r_owner;
         m_imp->m_r_owner  = false; // stole replacer
 
-        imp * d = alloc(imp, m, m_params, r, owner);
+        imp * d = alloc(imp, m, m_imp->m_params, r, owner);
         d->m_num_eliminated_vars = num_elim_vars;
         std::swap(d, m_imp);        
         dealloc(d);
     }
 
     void collect_statistics(statistics & st) const override {
-        st.update("eliminated vars", m_imp->get_num_eliminated_vars());
+        m_imp->collect_statistics(st);        
     }
 
     void reset_statistics() override {
@@ -1142,9 +1104,6 @@ public:
     
 };
 
-tactic * mk_solve_eqs_tactic(ast_manager & m, params_ref const & p, expr_replacer * r) {
-    if (r == nullptr)
-        return clean(alloc(solve_eqs_tactic, m, p, mk_expr_simp_replacer(m, p), true));
-    else
-        return clean(alloc(solve_eqs_tactic, m, p, r, false));
+tactic * mk_solve_eqs1_tactic(ast_manager & m, params_ref const & p) {
+    return clean(alloc(solve_eqs_tactic, m, p, mk_expr_simp_replacer(m, p), true));
 }

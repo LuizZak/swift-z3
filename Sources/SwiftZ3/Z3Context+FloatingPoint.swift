@@ -1,7 +1,7 @@
 import CZ3
 
 public extension Z3Context {
-    // MARK: - Floating-Point Arighmetic
+    // MARK: - Floating-Point Arithmetic
     
     /// Create the `RoundingMode` sort.
     func makeFpaRoundingModeSort() -> Z3Sort {
@@ -163,7 +163,7 @@ public extension Z3Context {
     /// be in IEEE-754 biased representation.
     /// - Parameters:
     ///   - sgn: sign
-    ///   - exp: exponen
+    ///   - exp: exponent
     ///   - sig: significand
     func makeFpaFp<T: BitVectorSort, U: BitVectorSort, V: BitVectorSort>(sgn: Z3Ast<T>, exp: Z3Ast<U>, sig: Z3Ast<V>) -> AnyZ3Ast {
         return makeFpaFpAny(sgn: sgn, exp: exp, sig: sig)
@@ -181,7 +181,7 @@ public extension Z3Context {
     /// be in IEEE-754 biased representation.
     /// - Parameters:
     ///   - sgn: sign
-    ///   - exp: exponen
+    ///   - exp: exponent
     ///   - sig: significand
     func makeFpaFpAny(sgn: AnyZ3Ast, exp: AnyZ3Ast, sig: AnyZ3Ast) -> AnyZ3Ast {
         return AnyZ3Ast(context: self, ast: Z3_mk_fpa_fp(context, sgn.ast, exp.ast, sig.ast))

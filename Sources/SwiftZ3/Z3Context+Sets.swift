@@ -70,14 +70,14 @@ public extension Z3Context {
         return AnyZ3Ast(context: self, ast: Z3_mk_set_union(context, UInt32(sets.count), sets))
     }
 
-    /// Take the intersecion of a list of sets
+    /// Take the intersection of a list of sets
     func makeSetIntersect<T: SortKind>(_ sets: [Z3Set<T>]) -> Z3Set<T> {
         let sets = sets.toZ3_astPointerArray()
 
         return Z3Ast(context: self, ast: Z3_mk_set_intersect(context, UInt32(sets.count), sets))
     }
 
-    /// Take the intersecion of a list of sets
+    /// Take the intersection of a list of sets
     ///
     /// Type-erased version
     func makeSetIntersectAny(_ sets: [AnyZ3Ast]) -> AnyZ3Ast {
@@ -110,12 +110,12 @@ public extension Z3Context {
         return Z3Ast(context: self, ast: Z3_mk_set_member(context, element.ast, set.ast))
     }
 
-    /// Check for subsetness of sets
+    /// Check for subset-ness of sets
     func makeSetSubset<T: SortKind>(_ arg1: Z3Set<T>, _ arg2: Z3Set<T>) -> Z3Bool {
         return Z3Ast(context: self, ast: Z3_mk_set_subset(context, arg1.ast, arg2.ast))
     }
 
-    /// Check for subsetness of sets
+    /// Check for subset-ness of sets
     ///
     /// Type-erased version.
     func makeSetSubsetAny(_ arg1: AnyZ3Ast, _ arg2: AnyZ3Ast) -> Z3Bool {

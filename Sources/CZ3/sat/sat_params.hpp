@@ -54,7 +54,7 @@ struct sat_params {
     d.insert("threads", CPK_UINT, "number of parallel threads to use", "1","sat");
     d.insert("dimacs.core", CPK_BOOL, "extract core from DIMACS benchmarks", "false","sat");
     d.insert("drat.disable", CPK_BOOL, "override anything that enables DRAT", "false","sat");
-    d.insert("smt.proof", CPK_SYMBOL, "add SMT proof to file", "","sat");
+    d.insert("smt.proof", CPK_SYMBOL, "add SMT proof log to file", "","sat");
     d.insert("smt.proof.check", CPK_BOOL, "check SMT proof while it is created", "false","sat");
     d.insert("smt.proof.check_rup", CPK_BOOL, "apply forward RUP proof checking", "true","sat");
     d.insert("drat.file", CPK_SYMBOL, "file to dump DRAT proofs", "","sat");

@@ -38,6 +38,9 @@ public:
 
     void updt_params(params_ref const & p);
     static void get_param_descrs(param_descrs & r);
+
+    void set_flat_and_or(bool f);
+
     unsigned get_cache_size() const;
     unsigned get_num_steps() const;
    
@@ -47,6 +50,7 @@ public:
     expr_ref operator()(expr * n, unsigned num_bindings, expr * const * bindings);
 
     expr_ref mk_app(func_decl* f, unsigned num_args, expr* const* args);
+    expr_ref mk_app(func_decl* f, ptr_vector<expr> const& args) { return mk_app(f, args.size(), args.data()); }
 
     bool reduce_quantifier(quantifier * old_q, 
                            expr * new_body, 

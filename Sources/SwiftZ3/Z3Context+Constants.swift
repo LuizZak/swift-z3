@@ -172,7 +172,7 @@ public extension Z3Context {
     /// - parameter args: constants that are used as arguments to the recursive
     /// function in the definition.
     /// - parameter body: body of the recursive function
-    /// - sealso: `makeRecFuncDecl`
+    /// - seealso: `makeRecFuncDecl`
     func addRecDef(_ f: Z3FuncDecl, args: [AnyZ3Ast], body: AnyZ3Ast) {
         var args = args.toZ3_astPointerArray()
 

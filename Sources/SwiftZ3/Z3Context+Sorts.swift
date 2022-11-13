@@ -131,28 +131,32 @@ public extension Z3Context {
     /// - parameter enumNames: names of the enumerated elements.
     /// - returns:
     /// A tuple containing:
-    ///     - `enumConsts`: constants corresponding to the enumerated elements.
+    ///     - `enumConstants`: constants corresponding to the enumerated elements.
     ///     - `parameter`: predicates testing if terms of the enumeration sort
     ///     correspond to an enumeration.
     ///     - `sort`: The resulting sort
     ///
     /// For example, if this function is called with three symbols A, B, C and
     /// the name S, then `s` is a sort whose name is S, and the function returns
-    /// three terms corresponding to A, B, C in `enumConsts`. The array
+    /// three terms corresponding to A, B, C in `enumConstants`. The array
     /// `enumTesters` has three predicates of type `(s -> Bool)`. The first
     /// predicate (corresponding to A) is true when applied to A, and false
     /// otherwise. Similarly for the other predicates.
-    func makeEnumerationSort(name: Z3Symbol, enumNames: [Z3Symbol]) -> (enumConsts: [Z3FuncDecl], enumTesters: [Z3FuncDecl], sort: Z3Sort) {
+    func makeEnumerationSort(name: Z3Symbol, enumNames: [Z3Symbol]) -> (enumConstants: [Z3FuncDecl], enumTesters: [Z3FuncDecl], sort: Z3Sort) {
 
         let enumNames = enumNames.toZ3_symbolPointerArray()
-        var enumConsts: [Z3_func_decl?] = enumNames.map { _ in nil }
+        var enumConstants: [Z3_func_decl?] = enumNames.map { _ in nil }
         var enumTesters: [Z3_func_decl?] = enumNames.map { _ in nil }
 
         let sort =
             Z3_mk_enumeration_sort(context, name.symbol, UInt32(enumNames.count),
-                                   enumNames, &enumConsts, &enumTesters)
+                                   enumNames, &enumConstants, &enumTesters)
 
-        return (enumConsts.toZ3FuncDeclArray(context: self), enumTesters.toZ3FuncDeclArray(context: self), Z3Sort(context: self, sort: sort!))
+        return (
+            enumConstants.toZ3FuncDeclArray(context: self),
+            enumTesters.toZ3FuncDeclArray(context: self),
+            Z3Sort(context: self, sort: sort!)
+        )
     }
 
     /// Create a constructor.
@@ -165,7 +169,7 @@ public extension Z3Context {
     /// - parameter sortRefs: reference to datatype sort that is an argument to
     /// the constructor; if the corresponding sort reference is 0, then the value
     /// in `sortRefs` should be an index referring to one of the recursive
-    /// datatypes that is declared.
+    /// data types that is declared.
     /// - seealso: `makeConstructorList`
     /// - seealso: `queryConstructor`
     func makeConstructor(name: Z3Symbol, recognizer: Z3Symbol,

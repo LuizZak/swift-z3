@@ -24,7 +24,7 @@ Revision History:
 #include "ast/ast_pp.h"
 #include "ast/expr_substitution.h"
 #include "tactic/goal_shared_occs.h"
-#include "tactic/tactic_params.hpp"
+#include "params/tactic_params.hpp"
 
 namespace {
 class propagate_values_tactic : public tactic {
@@ -213,6 +213,7 @@ public:
         m_occs(m, true /* track atoms */),
         m_params(p) {
         updt_params_core(p);
+        m_r.set_flat_and_or(false);
     }
 
     tactic * translate(ast_manager & m) override {

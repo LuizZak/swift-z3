@@ -850,7 +850,7 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
         m_f_rw(m, p),
         m_dl_rw(m),
         m_pb_rw(m),
-        m_seq_rw(m),
+        m_seq_rw(m, p),
         m_char_rw(m),
         m_rec_rw(m),
         m_a_util(m),
@@ -923,6 +923,11 @@ void th_rewriter::get_param_descrs(param_descrs & r) {
     array_rewriter::get_param_descrs(r);
     rewriter_params::collect_param_descrs(r);
 }
+
+void th_rewriter::set_flat_and_or(bool f) {
+    m_imp->cfg().m_b_rw.set_flat_and_or(f);
+}
+
 
 th_rewriter::~th_rewriter() {
     dealloc(m_imp);

@@ -430,6 +430,9 @@ public:
     }
     app * mk_concat(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_CONCAT, num, args);  }
     app * mk_concat(expr_ref_vector const& es) { return m_manager.mk_app(get_fid(), OP_CONCAT, es.size(), es.data());  }
+    app * mk_concat(expr_ref_buffer const& es) { return m_manager.mk_app(get_fid(), OP_CONCAT, es.size(), es.data());  }
+    app * mk_concat(ptr_buffer<expr> const& es) { return m_manager.mk_app(get_fid(), OP_CONCAT, es.size(), es.data());  }
+    app * mk_concat(ptr_vector<expr> const& es) { return m_manager.mk_app(get_fid(), OP_CONCAT, es.size(), es.data());  }
     app * mk_bv_or(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_BOR, num, args);  }
     app * mk_bv_and(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_BAND, num, args);  }
     app * mk_bv_xor(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_BXOR, num, args);  }
@@ -445,9 +448,17 @@ public:
     app * mk_bv_srem(expr * arg1, expr * arg2) const { return m_manager.mk_app(get_fid(), OP_BSREM, arg1, arg2); }
     app * mk_bv_smod(expr * arg1, expr * arg2) const { return m_manager.mk_app(get_fid(), OP_BSMOD, arg1, arg2); }
     app * mk_bv_add(expr * arg1, expr * arg2) const { return m_manager.mk_app(get_fid(), OP_BADD, arg1, arg2); }
+    app * mk_bv_add(ptr_buffer<expr> const & args) const { return m_manager.mk_app(get_fid(), OP_BADD, args.size(), args.data()); }
+    app * mk_bv_add(ptr_vector<expr> const & args) const { return m_manager.mk_app(get_fid(), OP_BADD, args.size(), args.data()); }
+    app * mk_bv_add(expr_ref_vector const & args) const { return m_manager.mk_app(get_fid(), OP_BADD, args.size(), args.data()); }
+    app * mk_bv_add(expr_ref_buffer const & args) const { return m_manager.mk_app(get_fid(), OP_BADD, args.size(), args.data()); }
     app * mk_bv_sub(expr * arg1, expr * arg2) const { return m_manager.mk_app(get_fid(), OP_BSUB, arg1, arg2); }
     app * mk_bv_mul(expr * arg1, expr * arg2) const { return m_manager.mk_app(get_fid(), OP_BMUL, arg1, arg2); }
     app * mk_bv_mul(unsigned n, expr* const* args) const { return m_manager.mk_app(get_fid(), OP_BMUL, n, args); }
+    app* mk_bv_mul(ptr_buffer<expr> const& args) const { return m_manager.mk_app(get_fid(), OP_BMUL, args.size(), args.data()); }
+    app* mk_bv_mul(ptr_vector<expr> const& args) const { return m_manager.mk_app(get_fid(), OP_BMUL, args.size(), args.data()); }
+    app* mk_bv_mul(expr_ref_vector const& args) const { return m_manager.mk_app(get_fid(), OP_BMUL, args.size(), args.data()); }
+    app* mk_bv_mul(expr_ref_buffer const& args) const { return m_manager.mk_app(get_fid(), OP_BMUL, args.size(), args.data()); }
     app * mk_bv_udiv(expr * arg1, expr * arg2) const { return m_manager.mk_app(get_fid(), OP_BUDIV, arg1, arg2); }
     app * mk_bv_udiv_i(expr * arg1, expr * arg2) const { return m_manager.mk_app(get_fid(), OP_BUDIV_I, arg1, arg2); }
     app * mk_bv_udiv0(expr * arg) const { return m_manager.mk_app(get_fid(), OP_BUDIV0, arg); }
