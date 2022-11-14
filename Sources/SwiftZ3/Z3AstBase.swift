@@ -4,7 +4,7 @@ import CZ3
 public class Z3AstBase {
     /// The context this `Z3AstBase` belongs
     public let context: Z3Context
-    internal var ast: Z3_ast
+    internal let ast: Z3_ast
 
     /// Return a unique identifier for this AST.
     ///

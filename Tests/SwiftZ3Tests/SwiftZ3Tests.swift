@@ -41,8 +41,8 @@ final class SwiftZ3Tests: XCTestCase {
         let width = context.makeConstant(name: "width", sort: Float.self)
         let right = context.makeConstant(name: "right", sort: Float.self)
         
-        let lValue = left == context.makeFloat(50.0)
-        let wValue = width == context.makeFloat(100.0)
+        let lValue = left == 50.0
+        let wValue = width == 100.0
         
         let rightEq = right == left + width
         
@@ -72,6 +72,34 @@ final class SwiftZ3Tests: XCTestCase {
         let rhsValue = context.makeEqual(rhs, context.makeIntegerBv(3))
         
         let resValue = context.makeEqual(res, context.makeBvMul(lhs, rhs))
+        let resValueInt = context.makeBvToInt(res, isSigned: true)
+        
+        let solver = context.makeSolver()
+        
+        solver.assert([lhsValue, rhsValue, resValue])
+        XCTAssertEqual(solver.check(), .satisfiable)
+        
+        if let model = solver.getModel() {
+            XCTAssertEqual(model.intAny(resValueInt), 369)
+        } else {
+            XCTFail("Failed to get expected model")
+        }
+    }
+
+    func testBitwiseExprWithOperators() {
+        let config = Z3Config()
+        config.setParameter(name: "model", value: "true")
+        
+        let context = Z3Context(configuration: config)
+        
+        let lhs = context.makeConstant(name: "lhs", sort: BitVectorSort32.self)
+        let rhs = context.makeConstant(name: "rhs", sort: BitVectorSort32.self)
+        let res = context.makeConstant(name: "res", sort: BitVectorSort32.self)
+
+        let lhsValue = lhs == 123
+        let rhsValue = rhs == 3
+        
+        let resValue = res == lhs * rhs
         let resValueInt = context.makeBvToInt(res, isSigned: true)
         
         let solver = context.makeSolver()
