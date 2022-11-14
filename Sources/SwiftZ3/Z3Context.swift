@@ -43,7 +43,7 @@ public class Z3Context {
     public init(configuration: Z3Config? = nil) {
         context = Z3_mk_context(configuration?.config)
         Z3_set_error_handler(context) { (context, code) in
-            print("Z3 Error: \(String(cString: Z3_get_error_msg(context, code)))")
+            print("Z3 Error: \(Z3_get_error_msg(context, code).toString())")
         }
     }
     
@@ -60,7 +60,7 @@ public class Z3Context {
 
     /// Return a string describing the given error code.
     public func errorMessage(_ code: Z3ErrorCode) -> String {
-        return String(cString: Z3_get_error_msg(context, code))
+        return Z3_get_error_msg(context, code).toString()
     }
     
     /// Interrupt the execution of a Z3 procedure.

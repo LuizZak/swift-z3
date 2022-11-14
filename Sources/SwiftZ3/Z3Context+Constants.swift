@@ -47,8 +47,9 @@ public extension Z3Context {
     ///
     /// This function is a shorthand for:
     /// ```
-    /// Z3_func_decl d = Z3_mk_func_decl(c, s, 0, 0, ty);
-    /// Z3_ast n       = Z3_mk_app(c, d, 0, 0);
+    /// let symbol = context.makeStringSymbol(name)
+    /// let decl = context.makeFuncDecl(name: symbol, domain: [], range: sort)
+    /// let n = context.makeApply(decl, args: [])
     /// ```
     func makeConstant(name: String, sort: Z3Sort) -> AnyZ3Ast {
         let symbol = makeStringSymbol(name)
@@ -59,8 +60,8 @@ public extension Z3Context {
     ///
     /// This function is a shorthand for:
     /// ```
-    /// Z3_func_decl d = Z3_mk_func_decl(c, s, 0, 0, ty);
-    /// Z3_ast n       = Z3_mk_app(c, d, 0, 0);
+    /// let decl = context.makeFuncDecl(name: name, domain: [], range: sort)
+    /// let n = context.makeApply(decl, args: [])
     /// ```
     func makeConstant(name: Z3Symbol, sort: Z3Sort) -> AnyZ3Ast {
         return AnyZ3Ast(context: self, ast: Z3_mk_const(context, name.symbol, sort.sort))
@@ -70,8 +71,8 @@ public extension Z3Context {
     ///
     /// This function is a shorthand for:
     /// ```
-    /// let symbol = makeStringSymbol(name)
-    /// let n = makeConstant(name: symbol, sort: sort.getSort(self)).unsafeCastTo<T>()
+    /// let symbol = context.makeStringSymbol(name)
+    /// let n = context.makeConstant(name: symbol, sort: sort.getSort(self)).unsafeCastTo<T>()
     /// ```
     /// - seealso: `makeApply`
     /// - seealso: `makeFreshConst`
@@ -86,8 +87,8 @@ public extension Z3Context {
     ///
     /// This function is a shorthand for:
     /// ```
-    /// let symbol = makeStringSymbol(name)
-    /// let n = makeConstant(name: symbol, sort: sort.getSort(self)).unsafeCastTo<T>()
+    /// let symbol = context.makeStringSymbol(name)
+    /// let n = context.makeConstant(name: symbol, sort: sort.getSort(self)).unsafeCastTo<T>()
     /// ```
     /// - seealso: `makeApply`
     /// - seealso: `makeFreshConst`
@@ -118,8 +119,8 @@ public extension Z3Context {
     ///
     /// This function is a shorthand for:
     /// ```
-    /// Z3_func_decl d = Z3_mk_fresh_func_decl(c, prefix, 0, 0, ty);
-    /// Z3_ast n = Z3_mk_app(c, d, 0, 0);
+    /// let decl = context.makeFreshFuncDecl(prefix: prefix, domain: [], range: sort)
+    /// let n = context.makeApply(decl, args: [])
     /// ```
     ///
     /// - remark: If `prefix` is `nil`, then it is assumed to be the empty string.

@@ -593,6 +593,25 @@ public extension Z3Context {
         return Z3FloatingPoint(context: self, ast: Z3_mk_fpa_to_fp_float(context, rm.ast, t.ast, sort.getSort(self).sort))
     }
     
+    /// Conversion of a FloatingPoint term into another term of different
+    /// FloatingPoint sort.
+    ///
+    /// Produces a term that represents the conversion of a floating-point term
+    /// `t` to a floating-point term of sort `sort`. If necessary, the result will
+    /// be rounded according to rounding mode `rm`.
+    ///
+    /// Type-erased version.
+    ///
+    /// - Parameters:
+    ///   - bv: a bit-vector term
+    ///   - sort: floating-point sort
+    func makeFpaToFPFloatAny(_ rm: Z3Ast<RoundingModeSort>,
+                             _ t: AnyZ3Ast,
+                             sort: Z3Sort) -> AnyZ3Ast {
+        
+        return AnyZ3Ast(context: self, ast: Z3_mk_fpa_to_fp_float(context, rm.ast, t.ast, sort.sort))
+    }
+    
     /// Conversion of a term of real sort into a term of FloatingPoint sort.
     ///
     /// Produces a term that represents the conversion of term `t` of real sort
@@ -641,5 +660,87 @@ public extension Z3Context {
         let rounded = makeFpaRoundToIntegral(roundingMode, t1)
         let real = makeFpaToReal(rounded)
         return makeRealToInt(real)
+    }
+
+    /// Retrieves the number of bits reserved for the exponent in a FloatingPoint
+    /// sort.
+    func fpaGetEbits<T: FloatingSort>(sort: T.Type) -> UInt32 {
+        Z3_fpa_get_ebits(context, sort.getSort(self).sort)
+    }
+
+    /// Retrieves the number of bits reserved for the exponent in a FloatingPoint
+    /// sort.
+    func fpaGetEbits(sort: Z3Sort) -> UInt32 {
+        Z3_fpa_get_ebits(context, sort.sort)
+    }
+
+    /// Retrieves the number of bits reserved for the significand in a FloatingPoint
+    /// sort.
+    func fpaGetSbits<T: FloatingSort>(sort: T.Type) -> UInt32 {
+        Z3_fpa_get_sbits(context, sort.getSort(self).sort)
+    }
+
+    /// Retrieves the number of bits reserved for the significand in a FloatingPoint
+    /// sort.
+    func fpaGetSbits(sort: Z3Sort) -> UInt32 {
+        Z3_fpa_get_sbits(context, sort.sort)
+    }
+
+    /// Checks whether a given floating-point numeral is a NaN.
+    func fpaIsNumeralNan<T: FloatingSort>(_ ast: Z3Ast<T>) -> Bool {
+        Z3_fpa_is_numeral_nan(context, ast.ast)
+    }
+
+    /// Checks whether a given floating-point numeral is a +oo or -oo.
+    func fpaIsNumeralInfinite<T: FloatingSort>(_ ast: Z3Ast<T>) -> Bool {
+        Z3_fpa_is_numeral_inf(context, ast.ast)
+    }
+
+    /// Checks whether a given floating-point numeral is +zero or -zero.
+    func fpaIsNumeralZero<T: FloatingSort>(_ ast: Z3Ast<T>) -> Bool {
+        Z3_fpa_is_numeral_zero(context, ast.ast)
+    }
+
+    /// Checks whether a given floating-point numeral is normal.
+    func fpaIsNumeralNormal<T: FloatingSort>(_ ast: Z3Ast<T>) -> Bool {
+        Z3_fpa_is_numeral_normal(context, ast.ast)
+    }
+
+    /// Checks whether a given floating-point numeral is subnormal.
+    func fpaIsNumeralSubnormal<T: FloatingSort>(_ ast: Z3Ast<T>) -> Bool {
+        Z3_fpa_is_numeral_subnormal(context, ast.ast)
+    }
+
+    /// Checks whether a given floating-point numeral is positive.
+    func fpaIsNumeralPositive<T: FloatingSort>(_ ast: Z3Ast<T>) -> Bool {
+        Z3_fpa_is_numeral_positive(context, ast.ast)
+    }
+
+    /// Checks whether a given floating-point numeral is negative.
+    func fpaIsNumeralNegative<T: FloatingSort>(_ ast: Z3Ast<T>) -> Bool {
+        Z3_fpa_is_numeral_negative(context, ast.ast)
+    }
+
+    // TODO: Add error handler to function bellow
+
+    /// Retrieves the sign of a floating-point literal.
+    func fpaGetNumeralSign<T: FloatingSort>(_ ast: Z3Ast<T>) -> Int32 {
+        var result: Int32 = 0
+        Z3_fpa_get_numeral_sign(context, ast.ast, &result)
+        return result
+    }
+
+    /// Return the significand value of a floating-point numeral as a string.
+    func fpaGetNumeralSignificandString<T: FloatingSort>(_ ast: Z3Ast<T>) -> String {
+        Z3_fpa_get_numeral_significand_string(context, ast.ast).toString()
+    }
+
+    /// Return the exponent value of a floating-point numeral as a string.
+    ///
+    /// - Parameters:
+    ///   - ast: a floating-point numeral
+    ///   - biased: flag to indicate whether the result is in biased representation
+    func fpaGetNumeralExponentString<T: FloatingSort>(_ ast: Z3Ast<T>, biased: Bool) -> String {
+        Z3_fpa_get_numeral_exponent_string(context, ast.ast, biased).toString()
     }
 }
