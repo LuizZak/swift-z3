@@ -1,4 +1,3 @@
-
 public extension Z3Ast where T == BitVectorSort32 {
     // MARK: - Constants Casting
 

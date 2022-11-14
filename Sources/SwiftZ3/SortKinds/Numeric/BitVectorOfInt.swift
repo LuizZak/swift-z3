@@ -14,3 +14,15 @@ public typealias BitVectorSort32 = BitVectorOfInt<Int32>
 
 /// A bit vector of length 64
 public typealias BitVectorSort64 = BitVectorOfInt<Int64>
+
+/// A bit vector of length 8, unsigned.
+public typealias BitVectorSortUnsigned8 = BitVectorOfInt<UInt8>
+
+/// A bit vector of length 16, unsigned.
+public typealias BitVectorSortUnsigned16 = BitVectorOfInt<UInt16>
+
+/// A bit vector of length 32, unsigned.
+public typealias BitVectorSortUnsigned32 = BitVectorOfInt<UInt32>
+
+/// A bit vector of length 64, unsigned.
+public typealias BitVectorSortUnsigned64 = BitVectorOfInt<UInt64>

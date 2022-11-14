@@ -1,13 +1,16 @@
-public extension Z3Ast where T == Bool {
-    static prefix func ! (rhs: Z3Ast) -> Z3Ast {
+/// A Boolean AST type.
+public typealias Z3Bool = Z3Ast<Bool>
+
+public extension Z3Bool {
+    static prefix func ! (rhs: Z3Bool) -> Z3Bool {
         return rhs.context.makeNot(rhs)
     }
     
-    static func && (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+    static func && (lhs: Z3Bool, rhs: Z3Bool) -> Z3Bool {
         return rhs.context.makeAnd([lhs, rhs])
     }
     
-    static func || (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+    static func || (lhs: Z3Bool, rhs: Z3Bool) -> Z3Bool {
         return rhs.context.makeOr([lhs, rhs])
     }
 }
