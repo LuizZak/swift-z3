@@ -17,9 +17,9 @@ config.setParameter(name: "model", value: "true")
 
 let context = Z3Context(configuration: config)
 
-let left = context.makeConstant(name: "left", sort: Float.self)
-let width = context.makeConstant(name: "width", sort: Float.self)
-let right = context.makeConstant(name: "right", sort: Float.self)
+let left: Z3Float = context.makeConstant(name: "left")
+let width: Z3Float = context.makeConstant(name: "width")
+let right: Z3Float = context.makeConstant(name: "right")
 
 let lValue = left == 50.0
 let wValue = width == 100.0
