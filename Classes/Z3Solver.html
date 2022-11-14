@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Z3Solver Class Reference</title>
+    <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
+    <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
+    <meta charset="utf-8">
+    <script src="../js/jquery.min.js" defer></script>
+    <script src="../js/jazzy.js" defer></script>
+    
+    <script src="../js/lunr.min.js" defer></script>
+    <script src="../js/typeahead.jquery.js" defer></script>
+    <script src="../js/jazzy.search.js" defer></script>
+  </head>
+  <body>
+
+    <a name="//apple_ref/swift/Class/Z3Solver" class="dashAnchor"></a>
+
+    <a title="Z3Solver Class Reference"></a>
+
+    <header class="header">
+      <p class="header-col header-col--primary">
+        <a class="header-link" href="../index.html">
+           Docs
+        </a>
+         (75% documented)
+      </p>
+    
+      <div class="header-col--secondary">
+        <form role="search" action="../search.json">
+          <input type="text" placeholder="Search documentation" data-typeahead>
+        </form>
+      </div>
+    
+    
+    </header>
+
+    <p class="breadcrumbs">
+      <a class="breadcrumb" href="../index.html"> Reference</a>
+      <img class="carat" src="../img/carat.png" alt=""/>
+      Z3Solver Class Reference
+    </p>
+
+    <div class="content-wrapper">
+      <nav class="navigation">
+        <ul class="nav-groups">
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="../Guides.html">Guides</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../license.html">LICENSE</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../licensez3.html">LICENSE.z3</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../readme.html">README</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="../Classes.html">Classes</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Ast.html">Z3Ast</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3AstBase.html">Z3AstBase</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3AstVector.html">Z3AstVector</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Config.html">Z3Config</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Constructor.html">Z3Constructor</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3ConstructorList.html">Z3ConstructorList</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Context.html">Z3Context</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Goal.html">Z3Goal</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Model.html">Z3Model</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Optimize.html">Z3Optimize</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3ParamDescrs.html">Z3ParamDescrs</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Params.html">Z3Params</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Pattern.html">Z3Pattern</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Solver.html">Z3Solver</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Sort.html">Z3Sort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Stats.html">Z3Stats</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Symbol.html">Z3Symbol</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Tactic.html">Z3Tactic</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="../Enums.html">Enumerations</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Enums/Status.html">Status</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="../Extensions.html">Extensions</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Bool.html">Bool</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Double.html">Double</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Float.html">Float</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Float80.html">Float80</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3AstKind.html">Z3AstKind</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3AstPrintMode.html">Z3AstPrintMode</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3BitVector.html">Z3BitVector</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3BitVector32.html">Z3BitVector32</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3BitVector64.html">Z3BitVector64</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3BitVectorU32.html">Z3BitVectorU32</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3BitVectorU64.html">Z3BitVectorU64</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3Bool.html">Z3Bool</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3DeclKind.html">Z3DeclKind</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3ErrorCode.html">Z3ErrorCode</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3FloatingPoint.html">Z3FloatingPoint</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3GoalPrec.html">Z3GoalPrec</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3Int.html">Z3Int</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3LBool.html">Z3LBool</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3ParamKind.html">Z3ParamKind</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3ParameterKind.html">Z3ParameterKind</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3SortKind.html">Z3SortKind</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3SymbolKind.html">Z3SymbolKind</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="../Functions.html">Functions</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Functions.html#/s:7SwiftZ33absyAA0B3AstCyxGAeA12FloatingSortRzlF">abs(_:)</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Functions.html#/s:7SwiftZ33maxyAA0B3AstCyxGAE_AEtAA12FloatingSortRzlF">max(_:_:)</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Functions.html#/s:7SwiftZ33minyAA0B3AstCyxGAE_AEtAA12FloatingSortRzlF">min(_:_:)</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="../Protocols.html">Protocols</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Protocols/BitVectorSort.html">BitVectorSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Protocols/FloatingSort.html">FloatingSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Protocols.html#/s:7SwiftZ313NumericalSortP">NumericalSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Protocols/SortKind.html">SortKind</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="../Structs.html">Structures</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/AnyFPSort.html">AnyFPSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/ArraySort.html">ArraySort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/BitVectorOfInt.html">BitVectorOfInt</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/BitVectorSort1.html">BitVectorSort1</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/BitVectorSort128.html">BitVectorSort128</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/FP128Sort.html">FP128Sort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/FP16Sort.html">FP16Sort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/IntSort.html">IntSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/RealSort.html">RealSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/RoundingModeSort.html">RoundingModeSort</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="../Typealiases.html">Type Aliases</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ315BitVectorSort16a">BitVectorSort16</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ315BitVectorSort32a">BitVectorSort32</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ315BitVectorSort64a">BitVectorSort64</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ314BitVectorSort8a">BitVectorSort8</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ323BitVectorSortUnsigned16a">BitVectorSortUnsigned16</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ323BitVectorSortUnsigned32a">BitVectorSortUnsigned32</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ323BitVectorSortUnsigned64a">BitVectorSortUnsigned64</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ322BitVectorSortUnsigned8a">BitVectorSortUnsigned8</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ37SetSorta">SetSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B5Arraya">Z3Array</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B7AstKinda">Z3AstKind</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B12AstPrintModea">Z3AstPrintMode</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B11BitVector32a">Z3BitVector32</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B11BitVector64a">Z3BitVector64</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B12BitVectorU32a">Z3BitVectorU32</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B12BitVectorU64a">Z3BitVectorU64</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B8DeclKinda">Z3DeclKind</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B6Doublea">Z3Double</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B9ErrorCodea">Z3ErrorCode</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B5Floata">Z3Float</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B8GoalPreca">Z3GoalPrec</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B5LBoola">Z3LBool</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B9ParamKinda">Z3ParamKind</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B13ParameterKinda">Z3ParameterKind</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B4Reala">Z3Real</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B3Seta">Z3Set</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B8SortKinda">Z3SortKind</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B10SymbolKinda">Z3SymbolKind</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+      <article class="main-content">
+
+        <section class="section">
+          <div class="section-content top-matter">
+            <h1>Z3Solver</h1>
+              <div class="declaration">
+                <div class="language">
+                  
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3Solver</span></code></pre>
+
+                </div>
+              </div>
+            <p>Undocumented</p>
+
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-content">
+            <div class="task-group">
+              <ul class="item-container">
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC7contextAA0B7ContextCvp"></a>
+                    <a name="//apple_ref/swift/Property/context" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC7contextAA0B7ContextCvp">context</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>The context this <code>Z3Solver</code> belongs</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">let</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC7getHelpSSyF"></a>
+                    <a name="//apple_ref/swift/Method/getHelp()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC7getHelpSSyF">getHelp()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a string describing all solver available parameters.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>getParamDescrs</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>setParams</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getHelp</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC9setParamsyyAA0bE0CF"></a>
+                    <a name="//apple_ref/swift/Method/setParams(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC9setParamsyyAA0bE0CF">setParams(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Set this solver using the given parameters.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>getHelp</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>getParamDescrs</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">setParams</span><span class="p">(</span><span class="n">_</span> <span class="nv">params</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Params.html">Z3Params</a></span><span class="p">)</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC14getParamDescrsAA0beF0CyF"></a>
+                    <a name="//apple_ref/swift/Method/getParamDescrs()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC14getParamDescrsAA0beF0CyF">getParamDescrs()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the parameter description set for this solver object.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getParamDescrs</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3ParamDescrs.html">Z3ParamDescrs</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC9interruptyyF"></a>
+                    <a name="//apple_ref/swift/Method/interrupt()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC9interruptyyF">interrupt()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Solver local interrupt.</p>
+
+<p>Normally you should use <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC9interruptyyF">Z3Context.interrupt()</a></code> to cancel solvers because
+only one solver is enabled concurrently per context.
+However, per GitHub issue #1006, there are use cases where it is more
+convenient to cancel a specific solver. Solvers that are not selected
+for interrupts are left alone.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">interrupt</span><span class="p">()</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC4pushyyF"></a>
+                    <a name="//apple_ref/swift/Method/push()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC4pushyyF">push()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a backtracking point.</p>
+
+<p>The solver contains a stack of assertions.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC12getNumScopess6UInt32VyF">getNumScopes()</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>pop()</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">push</span><span class="p">()</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC3popyys6UInt32VF"></a>
+                    <a name="//apple_ref/swift/Method/pop(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC3popyys6UInt32VF">pop(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Backtrack <code>n</code> backtracking points.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>n &lt;= getNumScopes()</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC12getNumScopess6UInt32VyF">getNumScopes()</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC4pushyyF">push()</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">pop</span><span class="p">(</span><span class="n">_</span> <span class="nv">n</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC5resetyyF"></a>
+                    <a name="//apple_ref/swift/Method/reset()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC5resetyyF">reset()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Remove all assertions from the solver.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>assert()</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>assertAndTrack()</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">reset</span><span class="p">()</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC12getNumScopess6UInt32VyF"></a>
+                    <a name="//apple_ref/swift/Method/getNumScopes()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC12getNumScopess6UInt32VyF">getNumScopes()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the number of backtracking points.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC4pushyyF">push()</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>pop()</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getNumScopes</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">UInt32</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF"></a>
+                    <a name="//apple_ref/swift/Method/getModel()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">getModel()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve the model for the last <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC5checkAA6StatusOyF">check()</a></code> or <code>checkAssumptions()</code></p>
+
+<p>The error handler is invoked if a model is not available because the
+commands above were not invoked for the given solver, or if the result
+was <code>.unsatisfiable</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getModel</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Model.html">Z3Model</a></span><span class="p">?</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC6assertyyAA0B3AstCySbGF"></a>
+                    <a name="//apple_ref/swift/Method/assert(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC6assertyyAA0B3AstCySbGF">assert(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Assert a constraint into the solver.</p>
+
+<p>The methods <code>check</code> and <code>checkAssumptions</code> should be used to check whether
+the logical context is consistent or not.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">assert</span><span class="p">(</span><span class="n">_</span> <span class="nv">exp</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span><span class="p">)</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC14assertAndTrackyyAA0B3AstCySbG_AGtF"></a>
+                    <a name="//apple_ref/swift/Method/assertAndTrack(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC14assertAndTrackyyAA0B3AstCySbG_AGtF">assertAndTrack(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Assert a constraint <code>a</code> into the solver, and track it (in the unsat) core
+using the Boolean constant <code>p</code>.</p>
+
+<p>This API is an alternative to <code>checkAssumptions</code> for extracting unsat
+cores.
+Both APIs can be used in the same solver. The unsat core will contain a
+combination of the Boolean variables provided using <code>assertAndTrack</code> and
+the Boolean literals provided using <code>checkAssumptions</code>.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>a</code> must be a Boolean expression
+
+</div><div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>p</code> must be a Boolean constant (aka variable).
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>assert()</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC5resetyyF">reset()</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">assertAndTrack</span><span class="p">(</span><span class="n">_</span> <span class="nv">a</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">p</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span><span class="p">)</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC8fromFileyySSKF"></a>
+                    <a name="//apple_ref/swift/Method/fromFile(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC8fromFileyySSKF">fromFile(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Load solver assertions from a file.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>fromString()</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8toStringSSyF">toString()</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">fromFile</span><span class="p">(</span><span class="n">_</span> <span class="nv">fileName</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="k">throws</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC10fromStringyySSKF"></a>
+                    <a name="//apple_ref/swift/Method/fromString(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC10fromStringyySSKF">fromString(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Load solver assertions from a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>fromFile()</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8toStringSSyF">toString()</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">fromString</span><span class="p">(</span><span class="n">_</span> <span class="nv">s</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="k">throws</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC13getAssertionsAA0B9AstVectorCyF"></a>
+                    <a name="//apple_ref/swift/Method/getAssertions()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC13getAssertionsAA0B9AstVectorCyF">getAssertions()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the set of asserted formulas on the solver.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getAssertions</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC8getUnitsAA0B9AstVectorCyF"></a>
+                    <a name="//apple_ref/swift/Method/getUnits()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC8getUnitsAA0B9AstVectorCyF">getUnits()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the set of units modulo model conversion.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getUnits</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC8getTrailAA0B9AstVectorCyF"></a>
+                    <a name="//apple_ref/swift/Method/getTrail()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC8getTrailAA0B9AstVectorCyF">getTrail()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the trail modulo model conversion, in order of decision level
+The decision level can be retrieved using <code>getLevel()</code> based on the trail.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getTrail</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC11getNonUnitsAA0B9AstVectorCyF"></a>
+                    <a name="//apple_ref/swift/Method/getNonUnits()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC11getNonUnitsAA0B9AstVectorCyF">getNonUnits()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the set of non units in the solver state.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getNonUnits</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC9getLevels_5countSays6UInt32VGAA0B9AstVectorC_AGtF"></a>
+                    <a name="//apple_ref/swift/Method/getLevels(_:count:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC9getLevels_5countSays6UInt32VGAA0B9AstVectorC_AGtF">getLevels(_:<wbr>count:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>retrieve the decision depth of Boolean literals (variables or their
+negations).
+Assumes a check-sat call and no other calls (to extract models) have
+been invoked.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getLevels</span><span class="p">(</span><span class="n">_</span> <span class="nv">literals</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span><span class="p">,</span> <span class="nv">count</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="kt">UInt32</span><span class="p">]</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC5checkAA6StatusOyF"></a>
+                    <a name="//apple_ref/swift/Method/check()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC5checkAA6StatusOyF">check()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Check whether the assertions in a given solver are consistent or not.</p>
+
+<p>The method <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">getModel()</a></code> retrieves a model if the assertions is satisfiable
+(i.e., the result is <code><a href="../Enums/Status.html#/s:7SwiftZ36StatusO11satisfiableyA2CmF">Status.satisfiable</a></code>) and model construction is enabled.</p>
+
+<p>Note that if the call returns <code><a href="../Enums/Status.html#/s:7SwiftZ36StatusO7unknownyA2CmF">Status.unknown</a></code>, Z3 does not ensure that
+calls to <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">getModel()</a></code> succeed and any models produced in this case are
+not guaranteed to satisfy the assertions.</p>
+
+<p>The function <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getProofAA03AnyB3AstCSgyF">getProof()</a></code> retrieves a proof if proof generation was enabled
+when the context was created, and the assertions are unsatisfiable
+(i.e., the result is <code><a href="../Enums/Status.html#/s:7SwiftZ36StatusO13unsatisfiableyA2CmF">Status.unsatisfiable</a></code>).</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">check</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Enums/Status.html">Status</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC16checkAssumptionsyAA6StatusOSayAA03AnyB3AstCGF"></a>
+                    <a name="//apple_ref/swift/Method/checkAssumptions(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC16checkAssumptionsyAA6StatusOSayAA03AnyB3AstCGF">checkAssumptions(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Check whether the assertions in the given solver and optional assumptions
+are consistent or not.</p>
+
+<p>The function <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC12getUnsatCoreAA0B9AstVectorCyF">getUnsatCore()</a></code> retrieves the subset of the
+assumptions used in the unsatisfiability proof produced by Z3.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">checkAssumptions</span><span class="p">(</span><span class="n">_</span> <span class="nv">assumptions</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Enums/Status.html">Status</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC15getConsequences11assumptions9variables12consequencesAA6StatusOSayAA0B3AstCySbGG_SayAA03AnybJ0CGAA0bJ6VectorCtF"></a>
+                    <a name="//apple_ref/swift/Method/getConsequences(assumptions:variables:consequences:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC15getConsequences11assumptions9variables12consequencesAA6StatusOSayAA0B3AstCySbGG_SayAA03AnybJ0CGAA0bJ6VectorCtF">getConsequences(assumptions:<wbr>variables:<wbr>consequences:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve consequences from solver that determine values of the supplied
+function symbols.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getConsequences</span><span class="p">(</span><span class="nv">assumptions</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span><span class="p">],</span>
+                            <span class="nv">variables</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">],</span>
+                            <span class="nv">consequences</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Enums/Status.html">Status</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC6assertyySayAA0B3AstCySbGGF"></a>
+                    <a name="//apple_ref/swift/Method/assert(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC6assertyySayAA0B3AstCySbGGF">assert(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Asserts a series of constraints into the solver.</p>
+
+<p>The methods <code>check</code> and <code>checkAssumptions</code> should be used to check whether
+the logical context is consistent or not.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">assert</span><span class="p">(</span><span class="n">_</span> <span class="nv">expressions</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span><span class="p">])</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC8getProofAA03AnyB3AstCSgyF"></a>
+                    <a name="//apple_ref/swift/Method/getProof()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC8getProofAA03AnyB3AstCSgyF">getProof()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve the proof for the last <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC5checkAA6StatusOyF">check()</a></code> or <code>checkAssumptions()</code></p>
+
+<p>The error handler is invoked if proof generation is not enabled,
+or if the commands above were not invoked for the given solver,
+or if the result was different from <code><a href="../Enums/Status.html#/s:7SwiftZ36StatusO13unsatisfiableyA2CmF">Status.unsatisfiable</a></code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getProof</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">?</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC12getUnsatCoreAA0B9AstVectorCyF"></a>
+                    <a name="//apple_ref/swift/Method/getUnsatCore()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC12getUnsatCoreAA0B9AstVectorCyF">getUnsatCore()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve the unsat core for the last <code>checkAssumptions()</code></p>
+
+<p>The unsat core is a subset of the assumptions <code>a</code>.</p>
+
+<p>By default, the unsat core will not be minimized. Generation of a minimized
+unsat core can be enabled via the <code>&quot;sat.core.minimize&quot;</code> and <code>&quot;smt.core.minimize&quot;</code>
+settings for SAT and SMT cores respectively. Generation of minimized
+unsat cores will be more expensive.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getUnsatCore</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC16getReasonUnknownSSyF"></a>
+                    <a name="//apple_ref/swift/Method/getReasonUnknown()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC16getReasonUnknownSSyF">getReasonUnknown()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a brief justification for an &ldquo;unknown&rdquo; result (i.e., <code><a href="../Enums/Status.html#/s:7SwiftZ36StatusO7unknownyA2CmF">Status.unknown</a></code>)
+for the commands <code>check</code> and <code>checkAssumptions</code></p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getReasonUnknown</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC13getStatisticsAA0B5StatsCyF"></a>
+                    <a name="//apple_ref/swift/Method/getStatistics()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC13getStatisticsAA0B5StatsCyF">getStatistics()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return statistics for the given solver.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getStatistics</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Stats.html">Z3Stats</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC8toStringSSyF"></a>
+                    <a name="//apple_ref/swift/Method/toString()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC8toStringSSyF">toString()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Convert a solver into a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>fromFile()</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>fromString()</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">toString</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC14toDimacsString12includeNamesSSSb_tF"></a>
+                    <a name="//apple_ref/swift/Method/toDimacsString(includeNames:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC14toDimacsString12includeNamesSSSb_tF">toDimacsString(includeNames:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Convert a solver into a DIMACS formatted string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>Z3_goal_to_diamcs_string</code> for requirements.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">toDimacsString</span><span class="p">(</span><span class="nv">includeNames</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+      </article>
+    </div>
+    <section class="footer">
+      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-14)</p>
+      <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.1</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
+    </section>
+  </body>
+</html>

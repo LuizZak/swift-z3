@@ -1,0 +1,277 @@
+{
+    "tasks": {
+        "version": "2.0.0",
+        "problemMatcher": [
+            // Compilation
+            {
+                "owner": "swift",
+                "fileLocation": "autoDetect",
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }
+            },
+            // Fix to detect unit test executions, which do not feature a column during reporting
+            {
+                "owner": "swift",
+                "fileLocation": "autoDetect",
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "severity": 3,
+                    "message": 4
+                }
+            }
+        ],
+        "tasks": [
+            {
+                "label": "Build (debug)",
+                "type": "shell",
+                "command": "swift",
+                "args": [
+                    "build",
+                    "--build-tests",
+                ]
+            },
+            {
+                "label": "Test",
+                "type": "shell",
+                "command": "swift",
+                "args": [
+                    "test",
+                ]
+            },
+            {
+                "label": "Update Z3",
+                "type": "shell",
+                "command": "python",
+                "args": [
+                    "update-z3-code.py"
+                ]
+            },
+            {
+                "label": "Generate Types",
+                "type": "shell",
+                "command": "python",
+                "args": [
+                    "generate_types.py"
+                ]
+            },
+        ]
+    },
+    "folders": [
+        {
+            "path": "./",
+            "name": "SwiftZ3"
+        },
+        {
+            "name": "Swift Package Dependencies",
+            "path": ".build/checkouts"
+        },
+        {
+            "name": "Build",
+            "path": ".build/debug/.."
+        }
+    ],
+    "settings": {
+        "files.eol": "\n",
+        "files.insertFinalNewline": true,
+        "files.exclude": {
+            ".git": true,
+            ".build": true,
+            ".*.sw?": true,
+            "**/.DS_Store": true
+        },
+        "ShortcutMenuBar.userButton01Command": "workbench.action.tasks.runTask|Build (debug)",
+        "ShortcutMenuBar.userButton02Command": "workbench.action.tasks.runTask|Test",
+        "ShortcutMenuBar.userButton03Command": "workbench.action.tasks.runTask|Update Z3",
+        "ShortcutMenuBar.userButton04Command": "workbench.action.tasks.runTask|Generate Types",
+        "commentAnchors.workspace.excludeFiles": "**/{node_modules,.git,.idea,target,out,build,vendor,.build,.swiftpm}/**/*",
+        "commentAnchors.tags.anchors": {
+            "MARK:": {
+                "iconColor": "default",
+                "highlightColor": "#A8C023",
+                "scope": "file",
+            },
+            "TODO:": {
+                "iconColor": "blue",
+                "highlightColor": "#3ea8ff",
+                "scope": "workspace",
+            },
+            "FIXME:": {
+                "iconColor": "red",
+                "highlightColor": "#F44336",
+                "scope": "workspace",
+            },
+            "NOTE:": {
+                "iconColor": "orange",
+                "highlightColor": "#FFB300",
+                "scope": "file",
+            },
+        },
+        "cSpell.words": [
+            "Agnum",
+            "Anum",
+            "arity",
+            "Badd",
+            "Bashr",
+            "Bcomp",
+            "bitvector",
+            "Blshr",
+            "Bmul",
+            "Bnand",
+            "Bneg",
+            "Bnor",
+            "Bnot",
+            "Bnum",
+            "Bredand",
+            "Bredor",
+            "Bsdiv",
+            "Bshl",
+            "Bsmod",
+            "Bsmul",
+            "Bsrem",
+            "Bsub",
+            "Budiv",
+            "Bumul",
+            "Burem",
+            "bvadd",
+            "bvand",
+            "bvashr",
+            "bvlshr",
+            "bvmul",
+            "bvnand",
+            "bvneg",
+            "bvnor",
+            "bvnot",
+            "bvor",
+            "bvredand",
+            "bvredor",
+            "bvsdiv",
+            "bvsge",
+            "bvsgt",
+            "bvshl",
+            "bvsle",
+            "bvslt",
+            "bvsmod",
+            "bvsrem",
+            "bvsub",
+            "bvudiv",
+            "bvuge",
+            "bvugt",
+            "bvule",
+            "bvult",
+            "bvurem",
+            "Bvwrap",
+            "bvxnor",
+            "bvxor",
+            "Bxnor",
+            "Bxor",
+            "Datatypes",
+            "descr",
+            "Descrs",
+            "DIMACS",
+            "Doccomment",
+            "doccomments",
+            "ebits",
+            "Elim",
+            "forall",
+            "Idiv",
+            "idxs",
+            "lbool",
+            "memout",
+            "Ovfl",
+            "Ponens",
+            "prec",
+            "renamings",
+            "sbits",
+            "Sgeq",
+            "significand",
+            "Skolemize",
+            "Sleq",
+            "smtlib",
+            "swiftpm",
+            "Udfl",
+            "Ugeq",
+            "Uleq",
+            "Uminus",
+            "unsat",
+            "xnor"
+        ],
+        "C_Cpp.default.includePath": [
+            "${workspaceFolder}/Sources/CZ3/**",
+        ],
+        "C_Cpp.default.defines": [
+            "_DEBUG",
+            "UNICODE",
+            "_UNICODE",
+        ],
+        "C_Cpp.default.windowsSdkVersion": "10.0.18362.0",
+        "C_Cpp.default.cStandard": "c11",
+        "C_Cpp.default.cppStandard": "c++17",
+        
+        "files.associations": {
+            "iterator": "cpp",
+            "xutility": "cpp",
+            "cmath": "cpp"
+        },
+
+        "[python]": {
+            "editor.formatOnSave": true,
+        },
+
+        "python.formatting.provider": "black",
+        "python.linting.enabled": true,
+        "python.linting.flake8Enabled": true,
+        "python.linting.flake8Args": ["--ignore=E203,E225,E302,E501,W293,W503"],
+        
+        // Hack to disable mypy from looking into every workspace folder by default.
+        // Main workspace folder has a .vscode/settings.json that overrides this.
+        "mypy.targets": [
+            "/dev/null",
+        ],
+
+        "swift.buildArguments": [],
+        "swift.autoGenerateLaunchConfigurations": false,
+    },
+    "extensions": {
+        "recommendations": [
+            "exodiusstudios.comment-anchors"
+        ]
+    },
+    "launch": {
+        "configurations": [
+            {
+                "type": "lldb",
+                "request": "launch",
+                "name": "Debug SwiftZ3",
+                "program": "${workspaceFolder}/.build/debug/SwiftZ3Sample",
+                "args": [],
+                "cwd": "${workspaceFolder:SwiftZ3}",
+                "preLaunchTask": "swift: Build Debug SwiftZ3Sample"
+            },
+            {
+                "type": "lldb",
+                "request": "launch",
+                "name": "Release SwiftZ3Sample",
+                "program": "${workspaceFolder}/.build/release/SwiftZ3Sample",
+                "args": [],
+                "cwd": "${workspaceFolder:SwiftZ3}",
+                "preLaunchTask": "swift: Build Release SwiftZ3Sample"
+            },
+            {
+                "type": "lldb",
+                "request": "launch",
+                "name": "Test SwiftZ3",
+                "program": "./.build/debug/SwiftZ3PackageTests.xctest",
+                "cwd": "${workspaceFolder:SwiftZ3}",
+                "preLaunchTask": "swift: Build All"
+            }
+        ]
+    }
+}
