@@ -164,6 +164,7 @@ def remove_extra_z3_files(target_path: Path):
         "**/*.cmake.in",
         "**/*.smt",
         "**/*.disabled",
+        "**/README",
     ]
 
     for folder in folders:
