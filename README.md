@@ -1,9 +1,6 @@
 # SwiftZ3
 
-| Platform | Build Status |
-|----------|--------|
-| macOS    | [![Build Status](https://dev.azure.com/luiz-fs/swift-z3/_apis/build/status/LuizZak.swift-z3?branchName=master&jobName=macOS)](https://dev.azure.com/luiz-fs/swift-z3/_build/latest?definitionId=5&branchName=master) |
-| Linux    | [![Build Status](https://dev.azure.com/luiz-fs/swift-z3/_apis/build/status/LuizZak.swift-z3?branchName=master&jobName=Linux)](https://dev.azure.com/luiz-fs/swift-z3/_build/latest?definitionId=5&branchName=master) |
+[![Swift](https://github.com/LuizZak/swift-z3/actions/workflows/swift.yml/badge.svg)](https://github.com/LuizZak/swift-z3/actions/workflows/swift.yml)
 
 A Swift wrapper over Microsoft's [Z3 Theorem Prover](https://github.com/Z3Prover/z3)
 
@@ -42,7 +39,7 @@ Development is ongoing and the public API might change at any time without notic
 
 ### Requirements
 
-Swift 5.4
+Swift 5.4, macOS 10.13+
 
 ### Installation
 
