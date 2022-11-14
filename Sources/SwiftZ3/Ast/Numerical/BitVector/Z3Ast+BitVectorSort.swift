@@ -2,6 +2,16 @@
 public typealias Z3BitVector<T> = Z3Ast<T> where T: BitVectorSort
 
 public extension Z3BitVector {
+    /// Create an integer from this bit-vector.
+    ///
+    /// If `isSigned` is false, then this bit-vector is treated as unsigned.
+    /// So the result is non-negative and in the range `[0..2^N-1]`, where N are
+    /// the number of bits in this bit-vector.
+    /// If `isSigned` is true, this bit-vector is treated as a signed bit-vector.
+    func toInt(isSigned: Bool) -> Z3Int {
+        context.makeBvToInt(self, isSigned: isSigned)
+    }
+
     static func & (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
         return lhs.context.makeBvAnd(lhs, rhs)
     }

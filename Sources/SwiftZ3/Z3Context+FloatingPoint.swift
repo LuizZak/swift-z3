@@ -287,7 +287,7 @@ public extension Z3Context {
     /// - Parameters:
     ///   - value: value
     ///   - sort: result sort
-    func makeFpaNumeralInt<T: FloatingSort>(_ value: Int32, sort: T.Type) -> Z3FloatingPoint<T> {
+    func makeFpaNumeralInt<T: FloatingSort>(_ value: Int32, sort: T.Type = T.self) -> Z3FloatingPoint<T> {
         return makeFpaNumeralInt(value, sort: sort.getSort(self)).unsafeCastTo()
     }
     

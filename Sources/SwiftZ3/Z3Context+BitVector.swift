@@ -366,8 +366,8 @@ public extension Z3Context {
     /// If `isSigned` is true, `t1` is treated as a signed bit-vector.
     ///
     /// The node `t1` must have a bit-vector sort.
-    func makeBvToInt<T: BitVectorSort>(_ t1: Z3BitVector<T>, isSigned: Bool) -> AnyZ3Ast {
-        return AnyZ3Ast(context: self, ast: Z3_mk_bv2int(context, t1.ast, isSigned))
+    func makeBvToInt<T: BitVectorSort>(_ t1: Z3BitVector<T>, isSigned: Bool) -> Z3Int {
+        return Z3Int(context: self, ast: Z3_mk_bv2int(context, t1.ast, isSigned))
     }
     
     /// Create a predicate that checks that the bit-wise addition of `t1` and

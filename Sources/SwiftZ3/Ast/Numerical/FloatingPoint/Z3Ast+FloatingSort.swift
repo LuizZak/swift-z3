@@ -106,6 +106,31 @@ public extension Z3FloatingPoint {
     func convertToAny(roundingMode: Z3Ast<RoundingModeSort>, sort: Z3Sort) -> AnyZ3Ast {
         context.makeFpaToFPFloatAny(roundingMode, self, sort: sort)
     }
+
+    /// Conversion of a floating-point term into a real-numbered term.
+    ///
+    /// Produces a term that represents the conversion of this floating-point term
+    /// into a real number. Note that this type of conversion will often result
+    /// in non-linear constraints over real terms.
+    func convertToReal() -> Z3Real {
+        context.makeFpaToReal(self)
+    }
+
+    /// Produces a term that represents the conversion of this floating-point term
+    /// into a bit-vector term of bitWidth `T.bitWidth` in 2's complement
+    /// format (signed when signed==true). If necessary, the result will be
+    /// rounded according to rounding mode `roundingMode`.
+    func convertToBitVector<BV: BitVectorSort>(roundingMode: Z3Ast<RoundingModeSort>, sort: BV.Type = BV.self, signed: Bool) -> Z3BitVector<BV> {
+        context.makeFpaToBv(roundingMode, self, sort, signed: signed)
+    }
+
+    /// Produces a term that represents the conversion of this floating-point term
+    /// into a bit-vector term of bitWidth `T.bitWidth` into a bit-vector term
+    /// of size `sz` in 2's complement format (signed when signed==true). If
+    /// necessary, the result will be rounded according to rounding mode rm.
+    func convertToBitVectorAny(roundingMode: Z3Ast<RoundingModeSort>, _ sz: UInt32, signed: Bool) -> AnyZ3Ast {
+        context.makeFpaToBvAny(roundingMode, self, sz, signed: signed)
+    }
     
     static prefix func - (rhs: Z3FloatingPoint) -> Z3FloatingPoint {
         return rhs.context.makeFpaNeg(rhs)

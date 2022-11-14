@@ -234,7 +234,7 @@ public class Z3Context {
     /// - seealso: `makeInteger`
     /// - seealso: `makeUnsignedInteger`
     /// - precondition: `den != 0`
-    public func makeReal(_ num: Int32, _ den: Int32) -> Z3Real {
+    public func makeReal(_ num: Int32, _ den: Int32 = 1) -> Z3Real {
         return Z3Real(context: self, ast: Z3_mk_real(context, num, den))
     }
 
