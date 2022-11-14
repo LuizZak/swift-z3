@@ -152,18 +152,27 @@ def remove_extra_z3_files(target_path: Path):
         "api/dotnet",
         "api/julia",
         "api/java",
+        "api/js",
         "api/ml",
         "api/python",
         "shell",
         "test",
+    ]
+    globs = [
+        "**/CMakeLists.txt",
+        "**/*.pyg",
+        "**/*.cmake.in",
+        "**/*.smt",
+        "**/*.disabled",
     ]
 
     for folder in folders:
         folder_path = target_path.joinpath(folder)
         git_rmtree(folder_path)
 
-    for f in target_path.glob("**/CMakeLists.txt"):
-        os.remove(f)
+    for glob in globs:
+        for f in target_path.glob(glob):
+            os.remove(f)
 
 
 def update_code(z3_tag_or_branch: str | None, force: bool) -> int:
