@@ -1,29 +1,32 @@
-public extension Z3Ast where T: BitVectorSort {
-    static func & (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+/// A specialized BitVector AST type.
+public typealias Z3BitVector<T> = Z3Ast<T> where T: BitVectorSort
+
+public extension Z3BitVector {
+    static func & (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
         return lhs.context.makeBvAnd(lhs, rhs)
     }
     
-    static func | (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+    static func | (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
         return lhs.context.makeBvOr(lhs, rhs)
     }
     
-    static func ^ (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+    static func ^ (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
         return lhs.context.makeBvXor(lhs, rhs)
     }
     
-    static func + (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+    static func + (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
         return lhs.context.makeBvAdd(lhs, rhs)
     }
     
-    static func - (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+    static func - (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
         return lhs.context.makeBvSub(lhs, rhs)
     }
     
-    static func * (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+    static func * (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
         return lhs.context.makeBvMul(lhs, rhs)
     }
     
-    static func / (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+    static func / (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
         return lhs.context.makeBvSDiv(lhs, rhs)
     }
     
@@ -37,30 +40,30 @@ public extension Z3Ast where T: BitVectorSort {
     ///     (and (= (extract[|m-1|:|m-1|] t1) (extract[|m-1|:|m-1|] t2))
     ///         (bvult t1 t2)))
     /// ```
-    static func < (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+    static func < (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
         return lhs.context.makeBvSlt(lhs, rhs)
     }
     
     /// Two's complement signed less than or equal to.
-    static func <= (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+    static func <= (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
         return lhs.context.makeBvSle(lhs, rhs)
     }
     
     /// Two's complement signed greater than.
-    static func > (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+    static func > (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
         return lhs.context.makeBvSgt(lhs, rhs)
     }
     
     /// Two's complement signed greater than or equal to.
-    static func >= (lhs: Z3Ast, rhs: Z3Ast) -> Z3Ast {
+    static func >= (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
         return lhs.context.makeBvSge(lhs, rhs)
     }
     
-    static prefix func - (rhs: Z3Ast) -> Z3Ast {
+    static prefix func - (rhs: Z3BitVector) -> Z3BitVector {
         return rhs.context.makeBvNeg(rhs)
     }
     
-    static prefix func ! (rhs: Z3Ast) -> Z3Ast {
+    static prefix func ! (rhs: Z3BitVector) -> Z3BitVector {
         return rhs.context.makeBvNot(rhs)
     }
 }

@@ -104,3 +104,9 @@ public class Z3AstBase {
         return String(cString: Z3_ast_to_string(context.context, ast))
     }
 }
+
+internal extension Sequence where Element: Z3AstBase {
+    func toZ3_astPointerArray() -> [Z3_ast?] {
+        return map { $0.ast }
+    }
+}

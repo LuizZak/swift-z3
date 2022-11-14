@@ -29,14 +29,14 @@ public class AnyZ3Ast: Z3AstBase {
 
     /// Return numeral value, as a string of a numeric constant term
     ///
-    /// - precondition: `astKind == Z3AstKind.numeralAst`
+    /// - precondition: `self.astKind == Z3AstKind.numeralAst`
     public var numeralString: String {
         return String(cString: Z3_get_numeral_string(context.context, ast))
     }
 
     /// Return numeral as a double.
     ///
-    /// - precondition: `astKind == Z3AstKind.numeralAst`
+    /// - precondition: `self.astKind == Z3AstKind.numeralAst`
     public var numeralDouble: Double {
         return Z3_get_numeral_double(context.context, ast)
     }
@@ -45,7 +45,7 @@ public class AnyZ3Ast: Z3AstBase {
     ///
     /// Return 0 if numeral does not fit in an `Int32`.
     ///
-    /// - precondition: `astKind == Z3AstKind.numeralAst`
+    /// - precondition: `self.astKind == Z3AstKind.numeralAst`
     public var numeralInt: Int32 {
         var i: Int32 = 0
         Z3_get_numeral_int(context.context, ast, &i)
@@ -54,14 +54,14 @@ public class AnyZ3Ast: Z3AstBase {
 
     /// Return the numerator (as a numeral AST) of a numeral AST of sort Real.
     ///
-    /// - precondition: `astKind == Z3AstKind.numeralAst`
+    /// - precondition: `self.astKind == Z3AstKind.numeralAst`
     public var numerator: AnyZ3Ast? {
         return Z3_get_numerator(context.context, ast).map { AnyZ3Ast(context: context, ast: $0) }
     }
 
     /// Return the denominator (as a numeral AST) of a numeral AST of sort Real.
     ///
-    /// - precondition: `astKind == Z3AstKind.numeralAst`
+    /// - precondition: `self.astKind == Z3AstKind.numeralAst`
     public var denominator: AnyZ3Ast? {
         return Z3_get_denominator(context.context, ast).map { AnyZ3Ast(context: context, ast: $0) }
     }
@@ -75,7 +75,7 @@ public class AnyZ3Ast: Z3AstBase {
     ///
     /// The result has at most `precision` decimal places.
     ///
-    /// - precondition: `self.astKind == numeralAst || self.isAlgebraicNumber`
+    /// - precondition: `self.astKind == Z3AstKind.numeralAst || self.isAlgebraicNumber`
     public func getNumeralDecimalString(precision: UInt32) -> String {
         return String(cString: Z3_get_numeral_decimal_string(context.context, ast, precision))
     }
@@ -85,7 +85,7 @@ public class AnyZ3Ast: Z3AstBase {
     ///
     /// Return `nil` if the numeral value does not fit in 64-bit numerals.
     ///
-    /// - precondition: `self.astKind == numeralAst`
+    /// - precondition: `self.astKind == Z3AstKind.numeralAst`
     public func getNumeralSmall() -> (num: Int64, den: Int64)? {
         var num: Int64 = 0
         var den: Int64 = 0
@@ -109,8 +109,25 @@ public class AnyZ3Ast: Z3AstBase {
     }
 }
 
-internal extension Sequence where Element: AnyZ3Ast {
-    func toZ3_astPointerArray() -> [Z3_ast?] {
-        return map { $0.ast }
+public extension AnyZ3Ast {
+    /// An unsafe cast from a generic `AnyZ3Ast` or a specialized `Z3Ast` to
+    /// another specialized `Z3Ast` type
+    func unsafeCastTo<T: SortKind>(sort: T.Type = T.self) -> Z3Ast<T> {
+        return Z3Ast<T>(context: context, ast: ast)
+    }
+
+    /// An runtime type-checked cast from a generic `AnyZ3Ast` or a specialized
+    /// `Z3Ast` to another specialized `Z3Ast` type.
+    ///
+    /// The underlying `SortKind` of this AST type is checked, and if it matches
+    /// the incoming sort, the result is a non-nil `Z3Ast` instance annotated with
+    /// the requested type.
+    func castTo<T: SortKind>(sort: T.Type = T.self) -> Z3Ast<T>? {
+        let sort = T.getSort(context)
+        guard sort == self.sort else {
+            return nil
+        }
+
+        return Z3Ast<T>(context: context, ast: ast)
     }
 }

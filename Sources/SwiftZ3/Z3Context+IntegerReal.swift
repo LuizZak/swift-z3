@@ -80,25 +80,25 @@ public extension Z3Context {
     /// Create less than.
     /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
     func makeLessThan<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
-        return Z3Ast(context: self, ast: Z3_mk_lt(context, t1.ast, t2.ast))
+        return Z3Bool(context: self, ast: Z3_mk_lt(context, t1.ast, t2.ast))
     }
 
     /// Create less than or equal to.
     /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
     func makeLessThanOrEqualTo<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
-        return Z3Ast(context: self, ast: Z3_mk_le(context, t1.ast, t2.ast))
+        return Z3Bool(context: self, ast: Z3_mk_le(context, t1.ast, t2.ast))
     }
 
     /// Create greater than.
     /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
     func makeGreaterThan<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
-        return Z3Ast(context: self, ast: Z3_mk_gt(context, t1.ast, t2.ast))
+        return Z3Bool(context: self, ast: Z3_mk_gt(context, t1.ast, t2.ast))
     }
 
     /// Create greater than or equal to.
     /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
     func makeGreaterThanOrEqualTo<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
-        return Z3Ast(context: self, ast: Z3_mk_ge(context, t1.ast, t2.ast))
+        return Z3Bool(context: self, ast: Z3_mk_ge(context, t1.ast, t2.ast))
     }
 
     /// Create division predicate.
@@ -107,8 +107,8 @@ public extension Z3Context {
     /// The predicate is true when `t1` divides `t2`. For the predicate to be
     /// part of linear integer arithmetic, the first argument `t1` must be a
     /// non-zero integer.
-    func makeDivides(_ t1: Z3Int, _ t2: Z3Int) -> Z3Int {
-        return Z3Int(context: self, ast: Z3_mk_divides(context, t1.ast, t2.ast))
+    func makeDivides(_ t1: Z3Int, _ t2: Z3Int) -> Z3Bool {
+        return Z3Bool(context: self, ast: Z3_mk_divides(context, t1.ast, t2.ast))
     }
 
     /// Coerce an integer to a real.
@@ -159,6 +159,6 @@ public extension Z3Context {
     /// - seealso: `makeInt2Real`
     /// - seealso: `makeReal2Int`
     func makeIsInt(_ t1: Z3Real) -> Z3Bool {
-        return Z3Ast(context: self, ast: Z3_mk_is_int(context, t1.ast))
+        return Z3Bool(context: self, ast: Z3_mk_is_int(context, t1.ast))
     }
 }

@@ -9,7 +9,11 @@ public class Z3Context {
     internal var context: Z3_context
     
     /// Gets or sets a reference to a rounding mode for floating-point operations
-    /// performed on `Z3Ast` instances created by this context.
+    /// performed on `Z3FloatingPoint` instances created by this context.
+    ///
+    /// Changes to this value change the rounding mode that is passed to the
+    /// underlying `Z3_mk_fpa_*` methods that are generated via overloaded operators
+    /// on `Z3FloatingPoint` instances.
     ///
     /// Defaults to NearestTiesToEven rounding mode, if not configured.
     public var currentFpaRoundingMode: Z3Ast<RoundingModeSort> {
@@ -39,12 +43,11 @@ public class Z3Context {
     public init(configuration: Z3Config? = nil) {
         context = Z3_mk_context(configuration?.config)
         Z3_set_error_handler(context) { (context, code) in
-            let tempContext = Z3Context(borrowing: context!)
-            print("Z3 Error: \(tempContext.errorMessage(code))")
+            print("Z3 Error: \(String(cString: Z3_get_error_msg(context, code)))")
         }
     }
     
-    init(borrowing context: Z3_context) {
+    internal init(borrowing context: Z3_context) {
         self.context = context
         isBorrowed = true
     }
