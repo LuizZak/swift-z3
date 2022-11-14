@@ -14,4 +14,13 @@ class Z3AstTests: XCTestCase {
         XCTAssertNil(typeErased.castTo(sort: Bool.self))
         XCTAssertNil(typeErased.castTo(sort: Double.self))
     }
+
+    func testCastTo_AnyFPSort() {
+        let context = Z3Context()
+
+        let floatAst = context.makeConstant(name: "floatAst", sort: Float.self)
+        let typeErased = floatAst as AnyZ3Ast
+
+        XCTAssertNotNil(typeErased.castTo(sort: AnyFPSort.self))
+    }
 }

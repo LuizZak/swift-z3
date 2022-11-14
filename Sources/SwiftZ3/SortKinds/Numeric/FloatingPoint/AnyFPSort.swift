@@ -7,4 +7,14 @@ public struct AnyFPSort: FloatingSort {
     public static func getSort(_ context: Z3Context) -> Z3Sort {
         fatalError("Type-erased AnyFPSort cannot be used to create Z3Sorts")
     }
+
+    /// Returns `true` if `sort` represents a floating-point sort of any bit length.
+    public static func isAssignableFrom(_ context: Z3Context, _ sort: Z3Sort) -> Bool {
+        switch context.getSortKind(sort) {
+        case .floatingPointSort:
+            return true
+        default:
+            return false
+        }
+    }
 }

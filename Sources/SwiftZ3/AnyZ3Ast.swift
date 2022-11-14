@@ -116,18 +116,17 @@ public extension AnyZ3Ast {
         return Z3Ast<T>(context: context, ast: ast)
     }
 
-    /// An runtime type-checked cast from a generic `AnyZ3Ast` or a specialized
+    /// A runtime type-checked cast from a generic `AnyZ3Ast` or a specialized
     /// `Z3Ast` to another specialized `Z3Ast` type.
     ///
     /// The underlying `SortKind` of this AST type is checked, and if it matches
     /// the incoming sort, the result is a non-nil `Z3Ast` instance annotated with
     /// the requested type.
     func castTo<T: SortKind>(sort: T.Type = T.self) -> Z3Ast<T>? {
-        let sort = T.getSort(context)
-        guard sort == self.sort else {
-            return nil
+        if let currentSort = self.sort, T.isAssignableFrom(context, currentSort) {
+            return Z3Ast<T>(context: context, ast: ast)
         }
 
-        return Z3Ast<T>(context: context, ast: ast)
+        return nil
     }
 }
