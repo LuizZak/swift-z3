@@ -7,7 +7,7 @@ public extension Z3Context {
     ///
     /// The AST node must be a constant, application, numeral, bound variable,
     /// or quantifier.
-    func getSort(_ ast: AnyZ3Ast) -> Z3Sort {
+    func getSort(_ ast: Z3AstBase) -> Z3Sort {
         return Z3Sort(context: self, sort: Z3_get_sort(context, ast.ast))
     }
 

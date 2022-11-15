@@ -144,11 +144,48 @@ public class Z3Model {
         
         return 0
     }
+
+    /// Evaluates expression to an integer, assuming it is a numeral already
+    ///
+    /// Type-erased version.
+    ///
+    /// Returns 0, in case of failure
+    public func int64Any(_ expr: AnyZ3Ast) -> Int64 {
+        if let ast = evalAny(expr, completion: true) {
+            var i: Int64 = 0
+            if Z3_get_numeral_int64(context.context, ast.ast, &i) {
+                return i
+            }
+        }
+        
+        return 0
+    }
     
     /// Evaluates expression to an integer, assuming it is a numeral already
     ///
     /// Returns 0, in case of failure
     public func int(_ expr: Z3Int) -> Int32 {
         return intAny(expr)
+    }
+    
+    /// Evaluates expression to an integer, assuming it is a numeral already
+    ///
+    /// Returns 0, in case of failure
+    public func int64(_ expr: Z3Int) -> Int64 {
+        return int64Any(expr)
+    }
+    
+    /// Evaluates expression to an integer, assuming it is a numeral already
+    ///
+    /// Returns 0, in case of failure
+    public func int(_ expr: Z3BitVector32) -> Int32 {
+        return intAny(expr)
+    }
+    
+    /// Evaluates expression to an integer, assuming it is a numeral already
+    ///
+    /// Returns 0, in case of failure
+    public func int64(_ expr: Z3BitVector64) -> Int64 {
+        return int64Any(expr)
     }
 }

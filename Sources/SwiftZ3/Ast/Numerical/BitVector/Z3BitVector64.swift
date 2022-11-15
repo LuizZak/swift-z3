@@ -81,7 +81,7 @@ public extension Z3BitVector64 {
     ///     (and (= (extract[|m-1|:|m-1|] t1) (extract[|m-1|:|m-1|] t2))
     ///         (bvult t1 t2)))
     /// ```
-    static func < (lhs: Z3BitVector64, rhs: Int64) -> Z3BitVector64 {
+    static func < (lhs: Z3BitVector64, rhs: Int64) -> Z3Bool {
         return lhs.context.makeBvSlt(lhs, lhs.context.makeInteger64Bv(rhs))
     }
     /// Two's complement signed less than.
@@ -94,34 +94,34 @@ public extension Z3BitVector64 {
     ///     (and (= (extract[|m-1|:|m-1|] t1) (extract[|m-1|:|m-1|] t2))
     ///         (bvult t1 t2)))
     /// ```
-    static func < (lhs: Int64, rhs: Z3BitVector64) -> Z3BitVector64 {
+    static func < (lhs: Int64, rhs: Z3BitVector64) -> Z3Bool {
         return rhs.context.makeBvSlt(rhs.context.makeInteger64Bv(lhs), rhs)
     }
     
     /// Two's complement signed less than or equal to.
-    static func <= (lhs: Z3BitVector64, rhs: Int64) -> Z3BitVector64 {
+    static func <= (lhs: Z3BitVector64, rhs: Int64) -> Z3Bool {
         return lhs.context.makeBvSle(lhs, lhs.context.makeInteger64Bv(rhs))
     }
     /// Two's complement signed greater than or equal to.
-    static func <= (lhs: Int64, rhs: Z3BitVector64) -> Z3BitVector64 {
+    static func <= (lhs: Int64, rhs: Z3BitVector64) -> Z3Bool {
         return rhs.context.makeBvSle(rhs.context.makeInteger64Bv(lhs), rhs)
     }
     
     /// Two's complement signed greater than.
-    static func > (lhs: Z3BitVector64, rhs: Int64) -> Z3BitVector64 {
+    static func > (lhs: Z3BitVector64, rhs: Int64) -> Z3Bool {
         return lhs.context.makeBvSgt(lhs, lhs.context.makeInteger64Bv(rhs))
     }
     /// Two's complement signed greater than or equal to.
-    static func > (lhs: Int64, rhs: Z3BitVector64) -> Z3BitVector64 {
+    static func > (lhs: Int64, rhs: Z3BitVector64) -> Z3Bool {
         return rhs.context.makeBvSgt(rhs.context.makeInteger64Bv(lhs), rhs)
     }
     
     /// Two's complement signed greater than or equal to.
-    static func >= (lhs: Z3BitVector64, rhs: Int64) -> Z3BitVector64 {
+    static func >= (lhs: Z3BitVector64, rhs: Int64) -> Z3Bool {
         return lhs.context.makeBvSge(lhs, lhs.context.makeInteger64Bv(rhs))
     }
     /// Two's complement signed greater than or equal to.
-    static func >= (lhs: Int64, rhs: Z3BitVector64) -> Z3BitVector64 {
+    static func >= (lhs: Int64, rhs: Z3BitVector64) -> Z3Bool {
         return rhs.context.makeBvSge(rhs.context.makeInteger64Bv(lhs), rhs)
     }
 }

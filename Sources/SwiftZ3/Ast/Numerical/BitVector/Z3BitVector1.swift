@@ -71,7 +71,7 @@ public extension Z3BitVector1 {
         return lhs != rhsInt
     }
 
-    /// Two's complement signed less than.
+    /// Unsigned signed less than.
     ///
     /// It abbreviates:
     ///
@@ -81,10 +81,10 @@ public extension Z3BitVector1 {
     ///     (and (= (extract[|m-1|:|m-1|] t1) (extract[|m-1|:|m-1|] t2))
     ///         (bvult t1 t2)))
     /// ```
-    static func < (lhs: Z3BitVector1, rhs: UInt32) -> Z3BitVector1 {
-        return lhs.context.makeBvSlt(lhs, lhs.context.makeInteger1Bv(rhs))
+    static func < (lhs: Z3BitVector1, rhs: UInt32) -> Z3Bool {
+        return lhs.context.makeBvUlt(lhs, lhs.context.makeInteger1Bv(rhs))
     }
-    /// Two's complement signed less than.
+    /// Unsigned signed less than.
     ///
     /// It abbreviates:
     ///
@@ -94,34 +94,34 @@ public extension Z3BitVector1 {
     ///     (and (= (extract[|m-1|:|m-1|] t1) (extract[|m-1|:|m-1|] t2))
     ///         (bvult t1 t2)))
     /// ```
-    static func < (lhs: UInt32, rhs: Z3BitVector1) -> Z3BitVector1 {
-        return rhs.context.makeBvSlt(rhs.context.makeInteger1Bv(lhs), rhs)
+    static func < (lhs: UInt32, rhs: Z3BitVector1) -> Z3Bool {
+        return rhs.context.makeBvUlt(rhs.context.makeInteger1Bv(lhs), rhs)
     }
     
-    /// Two's complement signed less than or equal to.
-    static func <= (lhs: Z3BitVector1, rhs: UInt32) -> Z3BitVector1 {
-        return lhs.context.makeBvSle(lhs, lhs.context.makeInteger1Bv(rhs))
+    /// Unsigned less than or equal to.
+    static func <= (lhs: Z3BitVector1, rhs: UInt32) -> Z3Bool {
+        return lhs.context.makeBvUle(lhs, lhs.context.makeInteger1Bv(rhs))
     }
-    /// Two's complement signed greater than or equal to.
-    static func <= (lhs: UInt32, rhs: Z3BitVector1) -> Z3BitVector1 {
-        return rhs.context.makeBvSle(rhs.context.makeInteger1Bv(lhs), rhs)
-    }
-    
-    /// Two's complement signed greater than.
-    static func > (lhs: Z3BitVector1, rhs: UInt32) -> Z3BitVector1 {
-        return lhs.context.makeBvSgt(lhs, lhs.context.makeInteger1Bv(rhs))
-    }
-    /// Two's complement signed greater than or equal to.
-    static func > (lhs: UInt32, rhs: Z3BitVector1) -> Z3BitVector1 {
-        return rhs.context.makeBvSgt(rhs.context.makeInteger1Bv(lhs), rhs)
+    /// Unsigned signed greater than or equal to.
+    static func <= (lhs: UInt32, rhs: Z3BitVector1) -> Z3Bool {
+        return rhs.context.makeBvUle(rhs.context.makeInteger1Bv(lhs), rhs)
     }
     
-    /// Two's complement signed greater than or equal to.
-    static func >= (lhs: Z3BitVector1, rhs: UInt32) -> Z3BitVector1 {
-        return lhs.context.makeBvSge(lhs, lhs.context.makeInteger1Bv(rhs))
+    /// Unsigned signed greater than.
+    static func > (lhs: Z3BitVector1, rhs: UInt32) -> Z3Bool {
+        return lhs.context.makeBvUgt(lhs, lhs.context.makeInteger1Bv(rhs))
     }
-    /// Two's complement signed greater than or equal to.
-    static func >= (lhs: UInt32, rhs: Z3BitVector1) -> Z3BitVector1 {
-        return rhs.context.makeBvSge(rhs.context.makeInteger1Bv(lhs), rhs)
+    /// Unsigned signed greater than or equal to.
+    static func > (lhs: UInt32, rhs: Z3BitVector1) -> Z3Bool {
+        return rhs.context.makeBvUgt(rhs.context.makeInteger1Bv(lhs), rhs)
+    }
+    
+    /// Unsigned signed greater than or equal to.
+    static func >= (lhs: Z3BitVector1, rhs: UInt32) -> Z3Bool {
+        return lhs.context.makeBvUge(lhs, lhs.context.makeInteger1Bv(rhs))
+    }
+    /// Unsigned signed greater than or equal to.
+    static func >= (lhs: UInt32, rhs: Z3BitVector1) -> Z3Bool {
+        return rhs.context.makeBvUge(rhs.context.makeInteger1Bv(lhs), rhs)
     }
 }

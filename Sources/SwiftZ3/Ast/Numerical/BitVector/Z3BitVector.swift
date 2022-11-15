@@ -58,22 +58,22 @@ public extension Z3BitVector {
     ///     (and (= (extract[|m-1|:|m-1|] t1) (extract[|m-1|:|m-1|] t2))
     ///         (bvult t1 t2)))
     /// ```
-    static func < (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
+    static func < (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3Bool {
         return lhs.context.makeBvSlt(lhs, rhs)
     }
     
     /// Two's complement signed less than or equal to.
-    static func <= (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
+    static func <= (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3Bool {
         return lhs.context.makeBvSle(lhs, rhs)
     }
     
     /// Two's complement signed greater than.
-    static func > (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
+    static func > (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3Bool {
         return lhs.context.makeBvSgt(lhs, rhs)
     }
     
     /// Two's complement signed greater than or equal to.
-    static func >= (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3BitVector {
+    static func >= (lhs: Z3BitVector, rhs: Z3BitVector) -> Z3Bool {
         return lhs.context.makeBvSge(lhs, rhs)
     }
     

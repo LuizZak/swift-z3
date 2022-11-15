@@ -174,8 +174,8 @@ public extension Z3Context {
     /// Unsigned less than.
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
-    func makeBvUlt<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3BitVector<T> {
-        return Z3BitVector(context: self, ast: Z3_mk_bvult(context, t1.ast, t2.ast))
+    func makeBvUlt<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3Bool{
+        return Z3Bool(context: self, ast: Z3_mk_bvult(context, t1.ast, t2.ast))
     }
     
     /// Two's complement signed less than.
@@ -190,50 +190,50 @@ public extension Z3Context {
     /// ```
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
-    func makeBvSlt<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3BitVector<T> {
-        return Z3BitVector(context: self, ast: Z3_mk_bvslt(context, t1.ast, t2.ast))
+    func makeBvSlt<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3Bool {
+        return Z3Bool(context: self, ast: Z3_mk_bvslt(context, t1.ast, t2.ast))
     }
     
     /// Unsigned less than or equal to.
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
-    func makeBvUle<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3BitVector<T> {
-        return Z3BitVector(context: self, ast: Z3_mk_bvule(context, t1.ast, t2.ast))
+    func makeBvUle<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3Bool {
+        return Z3Bool(context: self, ast: Z3_mk_bvule(context, t1.ast, t2.ast))
     }
     
     /// Two's complement signed less than or equal to.
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
-    func makeBvSle<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3BitVector<T> {
-        return Z3BitVector(context: self, ast: Z3_mk_bvsle(context, t1.ast, t2.ast))
+    func makeBvSle<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3Bool {
+        return Z3Bool(context: self, ast: Z3_mk_bvsle(context, t1.ast, t2.ast))
     }
     
     /// Unsigned greater than or equal to.
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
-    func makeBvUge<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3BitVector<T> {
-        return Z3BitVector(context: self, ast: Z3_mk_bvuge(context, t1.ast, t2.ast))
+    func makeBvUge<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3Bool {
+        return Z3Bool(context: self, ast: Z3_mk_bvuge(context, t1.ast, t2.ast))
     }
     
     /// Two's complement signed greater than or equal to.
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
-    func makeBvSge<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3BitVector<T> {
-        return Z3BitVector(context: self, ast: Z3_mk_bvsge(context, t1.ast, t2.ast))
+    func makeBvSge<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3Bool {
+        return Z3Bool(context: self, ast: Z3_mk_bvsge(context, t1.ast, t2.ast))
     }
     
     /// Unsigned greater than.
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
-    func makeBvUgt<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3BitVector<T> {
-        return Z3BitVector(context: self, ast: Z3_mk_bvugt(context, t1.ast, t2.ast))
+    func makeBvUgt<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3Bool {
+        return Z3Bool(context: self, ast: Z3_mk_bvugt(context, t1.ast, t2.ast))
     }
     
     /// Two's complement signed greater than.
     ///
     /// The nodes `t1` and `t2` must have the same bit-vector sort.
-    func makeBvSgt<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3BitVector<T> {
-        return Z3BitVector(context: self, ast: Z3_mk_bvsgt(context, t1.ast, t2.ast))
+    func makeBvSgt<T: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<T>) -> Z3Bool {
+        return Z3Bool(context: self, ast: Z3_mk_bvsgt(context, t1.ast, t2.ast))
     }
     
     /// Concatenate the given bit-vectors.
