@@ -9,6 +9,8 @@ public extension Z3Context {
     ///
     /// - remark: The number of arguments must be greater than zero.
     func makeAdd<T: IntOrRealSort>(_ arguments: [Z3Ast<T>]) -> Z3Ast<T> {
+        precondition(!arguments.isEmpty)
+
         return preparingArgsAst(arguments) { count, args in
             Z3Ast(context: self, ast: Z3_mk_add(context, count, args))
         }

@@ -21,9 +21,10 @@ public extension Z3Context {
     func makePattern(_ terms: [AnyZ3Ast]) -> Z3Pattern {
         let terms = terms.toZ3_astPointerArray()
         
-        let pattern = Z3_mk_pattern(context, UInt32(terms.count), terms)
-        
-        return Z3Pattern(context: self, pattern: pattern!)
+        return Z3Pattern(
+            context: self,
+            pattern: Z3_mk_pattern(context, UInt32(terms.count), terms)
+        )
     }
     
     /// Create a bound variable.
@@ -85,13 +86,16 @@ public extension Z3Context {
         let sorts = declarations.map(\.0).toZ3_sortPointerArray()
         let symbols = declarations.map(\.1).toZ3_symbolPointerArray()
         
-        let ast = Z3_mk_forall(context,
-                               weight,
-                               UInt32(patterns.count), patterns,
-                               UInt32(declarations.count), sorts, symbols,
-                               body.ast)
-        
-        return AnyZ3Ast(context: self, ast: ast!)
+        return AnyZ3Ast(
+            context: self,
+            ast: Z3_mk_forall(
+                context,
+                weight,
+                UInt32(patterns.count), patterns,
+                UInt32(declarations.count), sorts, symbols,
+                body.ast
+            )
+        )
     }
     
     /// Create an exists formula. Similar to `makeForall`.
@@ -118,13 +122,16 @@ public extension Z3Context {
         let sorts = declarations.map(\.0).toZ3_sortPointerArray()
         let symbols = declarations.map(\.1).toZ3_symbolPointerArray()
         
-        let ast = Z3_mk_exists(context,
-                               weight,
-                               UInt32(patterns.count), patterns,
-                               UInt32(declarations.count), sorts, symbols,
-                               body.ast)
-        
-        return AnyZ3Ast(context: self, ast: ast!)
+        return AnyZ3Ast(
+            context: self,
+            ast: Z3_mk_exists(
+                context,
+                weight,
+                UInt32(patterns.count), patterns,
+                UInt32(declarations.count), sorts, symbols,
+                body.ast
+            )
+        )
     }
     
     /// Create a quantifier - universal or existential, with pattern hints.
@@ -154,13 +161,16 @@ public extension Z3Context {
         let sorts = declarations.map(\.0).toZ3_sortPointerArray()
         let symbols = declarations.map(\.1).toZ3_symbolPointerArray()
         
-        let ast = Z3_mk_quantifier(context,
-                                   isForall,
-                                   weight,
-                                   UInt32(patterns.count), patterns,
-                                   UInt32(declarations.count), sorts, symbols,
-                                   body.ast)
-        
-        return AnyZ3Ast(context: self, ast: ast!)
+        return AnyZ3Ast(
+            context: self,
+            ast: Z3_mk_quantifier(
+                context,
+                isForall,
+                weight,
+                UInt32(patterns.count), patterns,
+                UInt32(declarations.count), sorts, symbols,
+                body.ast
+            )
+        )
     }
 }

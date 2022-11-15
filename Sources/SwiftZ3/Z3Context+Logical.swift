@@ -41,6 +41,7 @@ public extension Z3Context {
     ///  than one.
     func makeDistinct<T>(_ args: [Z3Ast<T>]) -> Z3Bool {
         precondition(args.count > 1)
+
         return preparingArgsAst(args) { (count, args) -> Z3Bool in
             Z3Bool(context: self, ast: Z3_mk_distinct(context, count, args))
         }
@@ -60,6 +61,7 @@ public extension Z3Context {
     ///  than one.
     func makeDistinctAny(_ args: [Z3AstBase]) -> Z3Bool {
         precondition(args.count > 1)
+
         return preparingArgsAst(args) { (count, args) -> Z3Bool in
             Z3Bool(context: self, ast: Z3_mk_distinct(context, count, args))
         }
@@ -108,6 +110,8 @@ public extension Z3Context {
     ///
     /// - remark: The number of arguments must be greater than zero.
     func makeAnd(_ args: [Z3Bool]) -> Z3Bool {
+        precondition(!args.isEmpty)
+
         return preparingArgsAst(args) { (count, args) -> Z3Bool in
             return Z3Bool(context: self, ast: Z3_mk_and(context, count, args))
         }
@@ -121,6 +125,8 @@ public extension Z3Context {
     ///
     /// - remark: The number of arguments must be greater than zero.
     func makeAndAny(_ args: [AnyZ3Ast]) -> Z3Bool {
+        precondition(!args.isEmpty)
+
         return preparingArgsAst(args) { (count, args) -> Z3Bool in
             return Z3Bool(context: self, ast: Z3_mk_and(context, count, args))
         }
@@ -132,6 +138,8 @@ public extension Z3Context {
     ///
     /// - remark: The number of arguments must be greater than zero.
     func makeOr(_ args: [Z3Bool]) -> Z3Bool {
+        precondition(!args.isEmpty)
+
         return preparingArgsAst(args) { (count, args) -> Z3Bool in
             return Z3Bool(context: self, ast: Z3_mk_or(context, count, args))
         }
@@ -145,6 +153,8 @@ public extension Z3Context {
     ///
     /// - remark: The number of arguments must be greater than zero.
     func makeOrAny(_ args: [AnyZ3Ast]) -> Z3Bool {
+        precondition(!args.isEmpty)
+
         return preparingArgsAst(args) { (count, args) -> Z3Bool in
             return Z3Bool(context: self, ast: Z3_mk_or(context, count, args))
         }
