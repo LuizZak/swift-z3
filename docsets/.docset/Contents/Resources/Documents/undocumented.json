@@ -1996,6 +1996,13 @@
       "warning": "undocumented"
     },
     {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Sort.swift",
+      "line": 44,
+      "symbol": "Z3Sort",
+      "symbol_kind": "source.lang.swift.decl.extension",
+      "warning": "undocumented"
+    },
+    {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Stats.swift",
       "line": 3,
       "symbol": "Z3Stats",
