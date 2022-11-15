@@ -15,967 +15,1093 @@
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort.swift",
-      "line": 15,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector.swift",
+      "line": 23,
       "symbol": "Z3BitVector.&(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort.swift",
-      "line": 19,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector.swift",
+      "line": 27,
       "symbol": "Z3BitVector.|(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort.swift",
-      "line": 23,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector.swift",
+      "line": 31,
       "symbol": "Z3BitVector.^(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort.swift",
-      "line": 27,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector.swift",
+      "line": 35,
       "symbol": "Z3BitVector.+(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort.swift",
-      "line": 31,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector.swift",
+      "line": 39,
       "symbol": "Z3BitVector.-(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort.swift",
-      "line": 35,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector.swift",
+      "line": 43,
       "symbol": "Z3BitVector.*(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort.swift",
-      "line": 39,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector.swift",
+      "line": 47,
       "symbol": "Z3BitVector./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort.swift",
-      "line": 72,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector.swift",
+      "line": 80,
       "symbol": "Z3BitVector.-(_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort.swift",
-      "line": 76,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector.swift",
+      "line": 84,
       "symbol": "Z3BitVector.!(_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 7,
+      "symbol": "Z3BitVector1.&(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 10,
+      "symbol": "Z3BitVector1.&(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 14,
+      "symbol": "Z3BitVector1.|(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 17,
+      "symbol": "Z3BitVector1.|(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 21,
+      "symbol": "Z3BitVector1.^(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 24,
+      "symbol": "Z3BitVector1.^(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 28,
+      "symbol": "Z3BitVector1.+(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 31,
+      "symbol": "Z3BitVector1.+(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 35,
+      "symbol": "Z3BitVector1.-(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 38,
+      "symbol": "Z3BitVector1.-(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 42,
+      "symbol": "Z3BitVector1.*(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 45,
+      "symbol": "Z3BitVector1.*(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 49,
+      "symbol": "Z3BitVector1./(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 52,
+      "symbol": "Z3BitVector1./(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 56,
+      "symbol": "Z3BitVector1.==(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 60,
+      "symbol": "Z3BitVector1.==(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 65,
+      "symbol": "Z3BitVector1.!=(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector1.swift",
+      "line": 69,
+      "symbol": "Z3BitVector1.!=(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 7,
       "symbol": "Z3BitVector32.&(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 10,
       "symbol": "Z3BitVector32.&(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 14,
       "symbol": "Z3BitVector32.|(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 17,
       "symbol": "Z3BitVector32.|(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 21,
       "symbol": "Z3BitVector32.^(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 24,
       "symbol": "Z3BitVector32.^(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 28,
       "symbol": "Z3BitVector32.+(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 31,
       "symbol": "Z3BitVector32.+(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 35,
       "symbol": "Z3BitVector32.-(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 38,
       "symbol": "Z3BitVector32.-(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 42,
       "symbol": "Z3BitVector32.*(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 45,
       "symbol": "Z3BitVector32.*(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 49,
       "symbol": "Z3BitVector32./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 52,
       "symbol": "Z3BitVector32./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 56,
       "symbol": "Z3BitVector32.==(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 60,
       "symbol": "Z3BitVector32.==(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 65,
       "symbol": "Z3BitVector32.!=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector32.swift",
       "line": 69,
       "symbol": "Z3BitVector32.!=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 7,
       "symbol": "Z3BitVector64.&(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 10,
       "symbol": "Z3BitVector64.&(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 14,
       "symbol": "Z3BitVector64.|(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 17,
       "symbol": "Z3BitVector64.|(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 21,
       "symbol": "Z3BitVector64.^(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 24,
       "symbol": "Z3BitVector64.^(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 28,
       "symbol": "Z3BitVector64.+(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 31,
       "symbol": "Z3BitVector64.+(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 35,
       "symbol": "Z3BitVector64.-(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 38,
       "symbol": "Z3BitVector64.-(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 42,
       "symbol": "Z3BitVector64.*(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 45,
       "symbol": "Z3BitVector64.*(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 49,
       "symbol": "Z3BitVector64./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 52,
       "symbol": "Z3BitVector64./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 56,
       "symbol": "Z3BitVector64.==(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 60,
       "symbol": "Z3BitVector64.==(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 65,
       "symbol": "Z3BitVector64.!=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSort64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector64.swift",
       "line": 69,
       "symbol": "Z3BitVector64.!=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 7,
       "symbol": "Z3BitVectorU32./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 13,
       "symbol": "Z3BitVectorU32.&(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 16,
       "symbol": "Z3BitVectorU32.&(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 20,
       "symbol": "Z3BitVectorU32.|(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 23,
       "symbol": "Z3BitVectorU32.|(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 27,
       "symbol": "Z3BitVectorU32.^(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 30,
       "symbol": "Z3BitVectorU32.^(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 34,
       "symbol": "Z3BitVectorU32.+(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 37,
       "symbol": "Z3BitVectorU32.+(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 41,
       "symbol": "Z3BitVectorU32.-(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 44,
       "symbol": "Z3BitVectorU32.-(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 48,
       "symbol": "Z3BitVectorU32.*(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 51,
       "symbol": "Z3BitVectorU32.*(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 55,
       "symbol": "Z3BitVectorU32./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 58,
       "symbol": "Z3BitVectorU32./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 62,
       "symbol": "Z3BitVectorU32.==(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 66,
       "symbol": "Z3BitVectorU32.==(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 71,
       "symbol": "Z3BitVectorU32.!=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned32.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU32.swift",
       "line": 75,
       "symbol": "Z3BitVectorU32.!=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 7,
       "symbol": "Z3BitVectorU64./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 13,
       "symbol": "Z3BitVectorU64.&(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 16,
       "symbol": "Z3BitVectorU64.&(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 20,
       "symbol": "Z3BitVectorU64.|(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 23,
       "symbol": "Z3BitVectorU64.|(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 27,
       "symbol": "Z3BitVectorU64.^(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 30,
       "symbol": "Z3BitVectorU64.^(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 34,
       "symbol": "Z3BitVectorU64.+(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 37,
       "symbol": "Z3BitVectorU64.+(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 41,
       "symbol": "Z3BitVectorU64.-(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 44,
       "symbol": "Z3BitVectorU64.-(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 48,
       "symbol": "Z3BitVectorU64.*(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 51,
       "symbol": "Z3BitVectorU64.*(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 55,
       "symbol": "Z3BitVectorU64./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 58,
       "symbol": "Z3BitVectorU64./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 62,
       "symbol": "Z3BitVectorU64.==(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 66,
       "symbol": "Z3BitVectorU64.==(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 71,
       "symbol": "Z3BitVectorU64.!=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3Ast+BitVectorSortUnsigned64.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVectorU64.swift",
       "line": 75,
       "symbol": "Z3BitVectorU64.!=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 135,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 137,
       "symbol": "Z3FloatingPoint.-(_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 139,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 141,
       "symbol": "Z3FloatingPoint.>=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 143,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 145,
       "symbol": "Z3FloatingPoint.>(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 147,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 149,
       "symbol": "Z3FloatingPoint.<=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 151,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 153,
       "symbol": "Z3FloatingPoint.<(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 155,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 157,
       "symbol": "Z3FloatingPoint.+(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 159,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 161,
       "symbol": "Z3FloatingPoint.-(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 163,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 165,
       "symbol": "Z3FloatingPoint.*(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 167,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 169,
       "symbol": "Z3FloatingPoint./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 171,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 173,
       "symbol": "Z3FloatingPoint.%(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 178,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 180,
       "symbol": "Z3FloatingPoint.==(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 182,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 184,
       "symbol": "Z3FloatingPoint.==(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 187,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 189,
       "symbol": "Z3FloatingPoint.!=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 191,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 193,
       "symbol": "Z3FloatingPoint.!=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 196,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 198,
       "symbol": "Z3FloatingPoint.>=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 200,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 202,
       "symbol": "Z3FloatingPoint.>=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 205,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 207,
       "symbol": "Z3FloatingPoint.>(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 209,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 211,
       "symbol": "Z3FloatingPoint.>(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 214,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 216,
       "symbol": "Z3FloatingPoint.<=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 218,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 220,
       "symbol": "Z3FloatingPoint.<=(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 223,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 225,
       "symbol": "Z3FloatingPoint.<(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 227,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 229,
       "symbol": "Z3FloatingPoint.<(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 232,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 234,
       "symbol": "Z3FloatingPoint.+(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 236,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 238,
       "symbol": "Z3FloatingPoint.+(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 241,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 243,
       "symbol": "Z3FloatingPoint.-(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 245,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 247,
       "symbol": "Z3FloatingPoint.-(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 250,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 252,
       "symbol": "Z3FloatingPoint.*(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 254,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 256,
       "symbol": "Z3FloatingPoint.*(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 259,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 261,
       "symbol": "Z3FloatingPoint./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 263,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 265,
       "symbol": "Z3FloatingPoint./(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 268,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 270,
       "symbol": "Z3FloatingPoint.%(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3Ast+FloatingSort.swift",
-      "line": 272,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/FloatingPoint/Z3FloatingPoint.swift",
+      "line": 274,
       "symbol": "Z3FloatingPoint.%(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 6,
-      "symbol": "Z3Int.%(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 10,
-      "symbol": "Z3Int.==(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
       "line": 14,
-      "symbol": "Z3Int.==(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 19,
-      "symbol": "Z3Int.!=(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 23,
-      "symbol": "Z3Int.!=(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 28,
-      "symbol": "Z3Int.<(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 32,
-      "symbol": "Z3Int.<(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 37,
-      "symbol": "Z3Int.<=(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 41,
-      "symbol": "Z3Int.<=(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 46,
-      "symbol": "Z3Int.>(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 50,
-      "symbol": "Z3Int.>(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 55,
-      "symbol": "Z3Int.>=(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 59,
-      "symbol": "Z3Int.>=(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 67,
-      "symbol": "Z3Int.+(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 71,
-      "symbol": "Z3Int.+(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 76,
-      "symbol": "Z3Int.-(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 80,
-      "symbol": "Z3Int.-(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 85,
-      "symbol": "Z3Int.*(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 89,
-      "symbol": "Z3Int.*(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 94,
-      "symbol": "Z3Int./(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 98,
-      "symbol": "Z3Int./(_:_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 103,
       "symbol": "Z3Int.%(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Ast+IntSort.swift",
-      "line": 107,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 18,
+      "symbol": "Z3Int.==(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 22,
+      "symbol": "Z3Int.==(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 27,
+      "symbol": "Z3Int.!=(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 31,
+      "symbol": "Z3Int.!=(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 36,
+      "symbol": "Z3Int.<(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 40,
+      "symbol": "Z3Int.<(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 45,
+      "symbol": "Z3Int.<=(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 49,
+      "symbol": "Z3Int.<=(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 54,
+      "symbol": "Z3Int.>(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 58,
+      "symbol": "Z3Int.>(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 63,
+      "symbol": "Z3Int.>=(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 67,
+      "symbol": "Z3Int.>=(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 75,
+      "symbol": "Z3Int.+(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 79,
+      "symbol": "Z3Int.+(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 84,
+      "symbol": "Z3Int.-(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 88,
+      "symbol": "Z3Int.-(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 93,
+      "symbol": "Z3Int.*(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 97,
+      "symbol": "Z3Int.*(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 102,
+      "symbol": "Z3Int./(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 106,
+      "symbol": "Z3Int./(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 111,
+      "symbol": "Z3Int.%(_:_:)",
+      "symbol_kind": "source.lang.swift.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/Integer/Z3Int.swift",
+      "line": 115,
       "symbol": "Z3Int.%(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
@@ -1037,22 +1163,22 @@
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Z3Ast+Bool.swift",
-      "line": 5,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Z3Bool.swift",
+      "line": 13,
       "symbol": "Z3Bool.!(_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Z3Ast+Bool.swift",
-      "line": 9,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Z3Bool.swift",
+      "line": 17,
       "symbol": "Z3Bool.&&(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Z3Ast+Bool.swift",
-      "line": 13,
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Z3Bool.swift",
+      "line": 21,
       "symbol": "Z3Bool.||(_:_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.static",
       "warning": "undocumented"
@@ -1583,13 +1709,6 @@
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/SortKind.swift",
-      "line": 3,
-      "symbol": "SortKind.getSort(_:)",
-      "symbol_kind": "source.lang.swift.decl.function.method.static",
-      "warning": "undocumented"
-    },
-    {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Status.swift",
       "line": 5,
       "symbol": "Status.satisfiable",
@@ -1643,13 +1762,6 @@
       "line": 3,
       "symbol": "Z3Ast",
       "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Ast.swift",
-      "line": 4,
-      "symbol": "Z3Ast",
-      "symbol_kind": "source.lang.swift.decl.extension",
       "warning": "undocumented"
     },
     {
