@@ -2,8 +2,8 @@
 public typealias Z3Bool = Z3Ast<Bool>
 
 public extension Z3Bool {
-    /// Gets the statically-typed array Z3Sort associated with `Bool` from
-    /// this `Z3Bool`.
+    /// Gets the statically-typed Z3Sort associated with `Bool` from this
+    /// `Z3Bool`.
     static func getSort(_ context: Z3Context) -> Z3Sort {
         T.getSort(context)
     }
