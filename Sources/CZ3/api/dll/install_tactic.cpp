@@ -63,7 +63,6 @@
 #include "tactic/core/propagate_values_tactic.h"
 #include "tactic/core/reduce_args_tactic.h"
 #include "tactic/core/simplify_tactic.h"
-#include "tactic/core/solve_eqs2_tactic.h"
 #include "tactic/core/solve_eqs_tactic.h"
 #include "tactic/core/special_relations_tactic.h"
 #include "tactic/core/split_clause_tactic.h"
@@ -165,8 +164,7 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("reduce-args", "reduce the number of arguments of function applications, when for all occurrences of a function f the i-th is a value.", mk_reduce_args_tactic(m, p));
   ADD_TACTIC_CMD("simplify", "apply simplification rules.", mk_simplify_tactic(m, p));
   ADD_TACTIC_CMD("elim-and", "convert (and a b) into (not (or (not a) (not b))).", mk_elim_and_tactic(m, p));
-  ADD_TACTIC_CMD("solve-eqs2", "solve for variables.", mk_solve_eqs2_tactic(m, p));
-  ADD_TACTIC_CMD("solve-eqs", "eliminate variables by solving equations.", mk_solve_eqs1_tactic(m, p));
+  ADD_TACTIC_CMD("solve-eqs", "solve for variables.", mk_solve_eqs_tactic(m, p));
   ADD_TACTIC_CMD("special-relations", "detect and replace by special relations.", mk_special_relations_tactic(m, p));
   ADD_TACTIC_CMD("split-clause", "split a clause in many subgoals.", mk_split_clause_tactic(p));
   ADD_TACTIC_CMD("symmetry-reduce", "apply symmetry reduction.", mk_symmetry_reduce_tactic(m, p));

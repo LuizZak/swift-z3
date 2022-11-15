@@ -81,6 +81,11 @@ public:
         m_simp->updt_params(m_params);
     }
 
+    void collect_param_descrs(param_descrs& r) override {
+        init();
+        m_simp->collect_param_descrs(r);
+    }
+
     tactic * translate(ast_manager & m) override {
         return alloc(dependent_expr_state_tactic, m, m_params, m_factory.get(), name());
     }
@@ -94,6 +99,7 @@ public:
         if (!in->proofs_enabled())
             m_simp->reduce();
         m_goal->elim_true();
+        m_goal->elim_redundancies();
         m_goal->inc_depth();
         if (in->models_enabled())
             in->add(m_model_trail->get_model_converter().get());
