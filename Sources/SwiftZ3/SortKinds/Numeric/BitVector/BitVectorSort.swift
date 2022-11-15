@@ -10,13 +10,3 @@ public extension BitVectorSort {
         return context.bitVectorSort(size: bitWidth)
     }
 }
-
-/// A bit vector of length 1
-public struct BitVectorSort1: BitVectorSort {
-    public static let bitWidth: UInt32 = 1
-}
-
-/// A bit vector of length 128
-public struct BitVectorSort128: BitVectorSort {
-    public static let bitWidth: UInt32 = 128
-}

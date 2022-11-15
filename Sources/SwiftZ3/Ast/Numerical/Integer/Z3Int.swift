@@ -3,6 +3,14 @@
 public typealias Z3Int = Z3Ast<IntSort>
 
 public extension Z3Int {
+    /// Gets the statically-typed Z3Sort associated with `IntSort` from
+    /// this `Z3Int`.
+    static func getSort(_ context: Z3Context) -> Z3Sort {
+        T.getSort(context)
+    }
+}
+
+public extension Z3Int {
     static func % (lhs: Z3Int, rhs: Z3Int) -> Z3Int {
         return lhs.context.makeMod(lhs, rhs)
     }

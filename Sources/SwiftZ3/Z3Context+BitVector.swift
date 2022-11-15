@@ -243,39 +243,39 @@ public extension Z3Context {
     /// The result is a bit-vector of size `n1+n2`, where `n1` (`n2`)
     /// is the size of `t1` (`t2`).
     ///
-    func makeConcat<T: BitVectorSort, U: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<U>) -> AnyZ3Ast {
-        return AnyZ3Ast(context: self, ast: Z3_mk_bvsgt(context, t1.ast, t2.ast))
+    func makeConcat<T: BitVectorSort, U: BitVectorSort>(_ t1: Z3BitVector<T>, _ t2: Z3BitVector<U>) -> AnyZ3BitVector {
+        return AnyZ3BitVector(context: self, ast: Z3_mk_bvsgt(context, t1.ast, t2.ast))
     }
     
     /// Extract the bits `high` down to `low` from a bit-vector of
     /// size `m` to yield a new bit-vector of size `n`, where `n = high - low + 1`.
     ///
     /// The node `t1` must have a bit-vector sort.
-    func makeExtract<T: BitVectorSort>(high: UInt32, low: UInt32, _ t1: Z3BitVector<T>) -> AnyZ3Ast {
-        return AnyZ3Ast(context: self, ast: Z3_mk_extract(context, high, low, t1.ast))
+    func makeExtract<T: BitVectorSort>(high: UInt32, low: UInt32, _ t1: Z3BitVector<T>) -> AnyZ3BitVector {
+        return AnyZ3BitVector(context: self, ast: Z3_mk_extract(context, high, low, t1.ast))
     }
     
     /// Sign-extend of the given bit-vector to the (signed) equivalent bit-vector
     /// of size `m+i`, where `m` is the size of the given bit-vector.
     ///
     /// The node `t1` must have a bit-vector sort.
-    func makeSignExtend<T: BitVectorSort>(_ i: UInt32, _ t1: Z3BitVector<T>) -> AnyZ3Ast {
-        return AnyZ3Ast(context: self, ast: Z3_mk_sign_ext(context, i, t1.ast))
+    func makeSignExtend<T: BitVectorSort>(_ i: UInt32, _ t1: Z3BitVector<T>) -> AnyZ3BitVector {
+        return AnyZ3BitVector(context: self, ast: Z3_mk_sign_ext(context, i, t1.ast))
     }
     
     /// Extend the given bit-vector with zeros to the (unsigned) equivalent
     /// bit-vector of size `m+i`, where `m` is the size of the given bit-vector.
     ///
     /// The node `t1` must have a bit-vector sort.
-    func makeZeroExtend<T: BitVectorSort>(_ i: UInt32, _ t1: Z3BitVector<T>) -> AnyZ3Ast {
-        return AnyZ3Ast(context: self, ast: Z3_mk_zero_ext(context, i, t1.ast))
+    func makeZeroExtend<T: BitVectorSort>(_ i: UInt32, _ t1: Z3BitVector<T>) -> AnyZ3BitVector {
+        return AnyZ3BitVector(context: self, ast: Z3_mk_zero_ext(context, i, t1.ast))
     }
     
     /// Repeat the given bit-vector up length `i`.
     ///
     /// The node `t1` must have a bit-vector sort.
-    func makeRepeat<T: BitVectorSort>(_ i: UInt32, _ t1: Z3BitVector<T>) -> AnyZ3Ast {
-        return AnyZ3Ast(context: self, ast: Z3_mk_repeat(context, i, t1.ast))
+    func makeRepeat<T: BitVectorSort>(_ i: UInt32, _ t1: Z3BitVector<T>) -> AnyZ3BitVector {
+        return AnyZ3BitVector(context: self, ast: Z3_mk_repeat(context, i, t1.ast))
     }
     
     /// Shift left.
@@ -354,8 +354,8 @@ public extension Z3Context {
     /// from 0 to `n-1`) is 1 if `(t1 div 2^i)` mod 2 is 1.
     ///
     /// The node `t1` must have integer sort.
-    func makeIntToBv(_ n: UInt32, _ t1: Z3Int) -> AnyZ3Ast {
-        return AnyZ3Ast(context: self, ast: Z3_mk_int2bv(context, n, t1.ast))
+    func makeIntToBv(_ n: UInt32, _ t1: Z3Int) -> AnyZ3BitVector {
+        return AnyZ3BitVector(context: self, ast: Z3_mk_int2bv(context, n, t1.ast))
     }
 
     /// Create an integer from the bit-vector argument `t1`.
@@ -367,6 +367,20 @@ public extension Z3Context {
     ///
     /// The node `t1` must have a bit-vector sort.
     func makeBvToInt<T: BitVectorSort>(_ t1: Z3BitVector<T>, isSigned: Bool) -> Z3Int {
+        return Z3Int(context: self, ast: Z3_mk_bv2int(context, t1.ast, isSigned))
+    }
+    
+    /// Create an integer from the bit-vector argument `t1`.
+    ///
+    /// If `isSigned` is false, then the bit-vector `t1` is treated as unsigned.
+    /// So the result is non-negative and in the range `[0..2^N-1]`, where N are
+    /// the number of bits in `t1`.
+    /// If `isSigned` is true, `t1` is treated as a signed bit-vector.
+    ///
+    /// The node `t1` must have a bit-vector sort.
+    ///
+    /// Type-erased version.
+    func makeBvToIntAny(_ t1: AnyZ3BitVector, isSigned: Bool) -> Z3Int {
         return Z3Int(context: self, ast: Z3_mk_bv2int(context, t1.ast, isSigned))
     }
     

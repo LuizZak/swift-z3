@@ -1,11 +1,13 @@
 /// A typealias for general Floating Point-sort ASTs
 public typealias Z3FloatingPoint<T> = Z3Ast<T> where T: FloatingSort
 
-/// A 32-bit precision floating-point AST type.
-public typealias Z3Float = Z3FloatingPoint<Float>
-
-/// A 64-bit precision floating-point AST type.
-public typealias Z3Double = Z3FloatingPoint<Double>
+public extension Z3FloatingPoint {
+    /// Gets the statically-typed Z3Sort associated with `T` from this
+    /// `Z3FloatingPoint<T>`.
+    static func getSort(_ context: Z3Context) -> Z3Sort {
+        T.getSort(context)
+    }
+}
 
 public extension Z3FloatingPoint {
     /// Floating-point square root.

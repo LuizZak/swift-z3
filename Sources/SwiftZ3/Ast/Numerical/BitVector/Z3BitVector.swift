@@ -2,6 +2,14 @@
 public typealias Z3BitVector<T> = Z3Ast<T> where T: BitVectorSort
 
 public extension Z3BitVector {
+    /// Gets the statically-typed Z3Sort associated with `T` from this
+    /// `Z3BitVector<T>`.
+    static func getSort(_ context: Z3Context) -> Z3Sort {
+        T.getSort(context)
+    }
+}
+
+public extension Z3BitVector {
     /// Create an integer from this bit-vector.
     ///
     /// If `isSigned` is false, then this bit-vector is treated as unsigned.

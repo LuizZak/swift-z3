@@ -45,7 +45,8 @@ public class Z3Optimize {
     /// Assert soft constraint to the optimization context.
     ///
     /// - parameter a: formula
-    /// - parameter weight: a positive weight, penalty for violating soft constraint
+    /// - parameter weight: a weight, penalty for violating soft constraint.
+    /// Negative weights convert into rewards.
     /// - parameter id: optional identifier to group soft constraints
     /// - seealso: `assert`
     /// - seealso: `assertAndTrack`
@@ -106,7 +107,7 @@ public class Z3Optimize {
     /// Check consistency and produce optimal values.
     ///
     /// - parameter assumptions: the additional assumptions
-    /// - seealso: `getReasonUnkown`
+    /// - seealso: `getReasonUnknown`
     /// - seealso: `getModel`
     /// - seealso: `getStatistics`
     /// - seealso: `getUnsatCore`
@@ -122,7 +123,7 @@ public class Z3Optimize {
     /// Retrieve a string that describes the last status returned by `check(_:)`.
     ///
     /// Use this method when `check(_:)` returns `Status.unknown`.
-    public func getReasonUnkown() -> String {
+    public func getReasonUnknown() -> String {
         return String(cString: Z3_optimize_get_reason_unknown(context.context, optimize))
     }
 

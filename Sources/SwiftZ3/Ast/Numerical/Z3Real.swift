@@ -2,6 +2,14 @@
 /// Note that this type is not a floating point number.
 public typealias Z3Real = Z3Ast<RealSort>
 
+public extension Z3Real {
+    /// Gets the statically-typed Z3Sort associated with `RealSort` from
+    /// this `Z3Real`.
+    static func getSort(_ context: Z3Context) -> Z3Sort {
+        T.getSort(context)
+    }
+}
+
 extension Z3Real {
     // MARK: - Constants Casting
 
