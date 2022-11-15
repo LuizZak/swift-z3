@@ -135,6 +135,9 @@
             <a class="nav-group-name-link" href="../Extensions.html">Extensions</a>
             <ul class="nav-group-tasks">
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/AnyZ3BitVector.html">AnyZ3BitVector</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Extensions/Bool.html">Bool</a>
               </li>
               <li class="nav-group-task">
@@ -147,6 +150,9 @@
                 <a class="nav-group-task-link" href="../Extensions/Float80.html">Float80</a>
               </li>
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3Array.html">Z3Array</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Extensions/Z3AstKind.html">Z3AstKind</a>
               </li>
               <li class="nav-group-task">
@@ -154,6 +160,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Extensions/Z3BitVector.html">Z3BitVector</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3BitVector1.html">Z3BitVector1</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Extensions/Z3BitVector32.html">Z3BitVector32</a>
@@ -193,6 +202,12 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Extensions/Z3ParameterKind.html">Z3ParameterKind</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3Real.html">Z3Real</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3RoundingMode.html">Z3RoundingMode</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Extensions/Z3SortKind.html">Z3SortKind</a>
@@ -240,6 +255,9 @@
             <a class="nav-group-name-link" href="../Structs.html">Structures</a>
             <ul class="nav-group-tasks">
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/AnyBitVectorSort.html">AnyBitVectorSort</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Structs/AnyFPSort.html">AnyFPSort</a>
               </li>
               <li class="nav-group-task">
@@ -274,6 +292,12 @@
           <li class="nav-group-name">
             <a class="nav-group-name-link" href="../Typealiases.html">Type Aliases</a>
             <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a>
+              </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ315BitVectorSort16a">BitVectorSort16</a>
               </li>
@@ -312,6 +336,12 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B10BitVector1a">Z3BitVector1</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B12BitVector128a">Z3BitVector128</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B11BitVector32a">Z3BitVector32</a>
@@ -590,7 +620,8 @@
                               </td>
                               <td>
                                 <div>
-                                  <p>a positive weight, penalty for violating soft constraint</p>
+                                  <p>a weight, penalty for violating soft constraint.
+Negative weights convert into rewards.</p>
                                 </div>
                               </td>
                             </tr>
@@ -840,7 +871,7 @@
                         <p>Check consistency and produce optimal values.</p>
 <div class="aside aside-seealso">
     <p class="aside-title">Seealso</p>
-    <code>getReasonUnkown</code>
+    <code>getReasonUnknown</code>
 
 </div><div class="aside aside-seealso">
     <p class="aside-title">Seealso</p>
@@ -890,9 +921,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B8OptimizeC15getReasonUnkownSSyF"></a>
-                    <a name="//apple_ref/swift/Method/getReasonUnkown()" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B8OptimizeC15getReasonUnkownSSyF">getReasonUnkown()</a>
+                    <a name="/s:7SwiftZ30B8OptimizeC16getReasonUnknownSSyF"></a>
+                    <a name="//apple_ref/swift/Method/getReasonUnknown()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B8OptimizeC16getReasonUnknownSSyF">getReasonUnknown()</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -909,7 +940,7 @@
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getReasonUnkown</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getReasonUnknown</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
 
                         </div>
                       </div>
@@ -1594,7 +1625,7 @@ The set of rules, facts and assertions are restored upon calling <code><a href="
       </article>
     </div>
     <section class="footer">
-      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-14)</p>
+      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-15)</p>
       <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.1</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
     </section>
   </body>

@@ -135,6 +135,9 @@
             <a class="nav-group-name-link" href="../Extensions.html">Extensions</a>
             <ul class="nav-group-tasks">
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/AnyZ3BitVector.html">AnyZ3BitVector</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Extensions/Bool.html">Bool</a>
               </li>
               <li class="nav-group-task">
@@ -147,6 +150,9 @@
                 <a class="nav-group-task-link" href="../Extensions/Float80.html">Float80</a>
               </li>
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3Array.html">Z3Array</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Extensions/Z3AstKind.html">Z3AstKind</a>
               </li>
               <li class="nav-group-task">
@@ -154,6 +160,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Extensions/Z3BitVector.html">Z3BitVector</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3BitVector1.html">Z3BitVector1</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Extensions/Z3BitVector32.html">Z3BitVector32</a>
@@ -193,6 +202,12 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Extensions/Z3ParameterKind.html">Z3ParameterKind</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3Real.html">Z3Real</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Extensions/Z3RoundingMode.html">Z3RoundingMode</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Extensions/Z3SortKind.html">Z3SortKind</a>
@@ -240,6 +255,9 @@
             <a class="nav-group-name-link" href="../Structs.html">Structures</a>
             <ul class="nav-group-tasks">
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/AnyBitVectorSort.html">AnyBitVectorSort</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Structs/AnyFPSort.html">AnyFPSort</a>
               </li>
               <li class="nav-group-task">
@@ -274,6 +292,12 @@
           <li class="nav-group-name">
             <a class="nav-group-name-link" href="../Typealiases.html">Type Aliases</a>
             <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a>
+              </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ315BitVectorSort16a">BitVectorSort16</a>
               </li>
@@ -312,6 +336,12 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B10BitVector1a">Z3BitVector1</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B12BitVector128a">Z3BitVector128</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B11BitVector32a">Z3BitVector32</a>
@@ -1192,7 +1222,43 @@ parse a string.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeIntegerBv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/BitVectorOfInt.html">BitVectorOfInt</a></span><span class="o">&lt;</span><span class="kt">Int32</span><span class="o">&gt;&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeIntegerBv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B11BitVector32a">Z3BitVector32</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14makeInteger1BvyAA0B3AstCyAA14BitVectorSort1VGs6UInt32VF"></a>
+                    <a name="//apple_ref/swift/Method/makeInteger1Bv(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeInteger1BvyAA0B3AstCyAA14BitVectorSort1VGs6UInt32VF">makeInteger1Bv(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of a bit-vector of one bit.</p>
+
+<p>This method can be used to create numerals that fit in a machine integer.
+It is slightly faster than makeNumeral since it is not necessary to
+parse a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>Z3_mk_numeral</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeInteger1Bv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B10BitVector1a">Z3BitVector1</a></span></code></pre>
 
                         </div>
                       </div>
@@ -1265,7 +1331,7 @@ parse a string.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeUnsignedIntegerBv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/BitVectorOfInt.html">BitVectorOfInt</a></span><span class="o">&lt;</span><span class="kt">UInt32</span><span class="o">&gt;&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeUnsignedIntegerBv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12BitVectorU32a">Z3BitVectorU32</a></span></code></pre>
 
                         </div>
                       </div>
@@ -1339,7 +1405,7 @@ parse a string.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeInteger64Bv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/BitVectorOfInt.html">BitVectorOfInt</a></span><span class="o">&lt;</span><span class="kt">Int64</span><span class="o">&gt;&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeInteger64Bv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B11BitVector64a">Z3BitVector64</a></span></code></pre>
 
                         </div>
                       </div>
@@ -1413,7 +1479,113 @@ parse a string.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeUnsignedInteger64Bv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/BitVectorOfInt.html">BitVectorOfInt</a></span><span class="o">&lt;</span><span class="kt">UInt64</span><span class="o">&gt;&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeUnsignedInteger64Bv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12BitVectorU64a">Z3BitVectorU64</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16makeInteger128Bv8highBits03lowH0AA0B3AstCyAA16BitVectorSort128VGs6UInt64V_AMtF"></a>
+                    <a name="//apple_ref/swift/Method/makeInteger128Bv(highBits:lowBits:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16makeInteger128Bv8highBits03lowH0AA0B3AstCyAA16BitVectorSort128VGs6UInt64V_AMtF">makeInteger128Bv(highBits:<wbr>lowBits:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of a bit-vector.</p>
+
+<p>This method can be used to create numerals that fit in a 128-bit integer.
+The initial value is split into two <code>UInt64</code> bit patterns that fit the low
+(0-63) and high (64-127) bit ranges.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>Z3_mk_numeral</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeInteger128Bv</span><span class="p">(</span><span class="nv">highBits</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">,</span> <span class="nv">lowBits</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12BitVector128a">Z3BitVector128</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC24makeUnsignedInteger128Bv8highBits03lowI0AA0B3AstCyAA16BitVectorSort128VGs6UInt64V_AMtF"></a>
+                    <a name="//apple_ref/swift/Method/makeUnsignedInteger128Bv(highBits:lowBits:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC24makeUnsignedInteger128Bv8highBits03lowI0AA0B3AstCyAA16BitVectorSort128VGs6UInt64V_AMtF">makeUnsignedInteger128Bv(highBits:<wbr>lowBits:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of a bit-vector.</p>
+
+<p>This method can be used to create numerals that fit in a 128-bit integer.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>Z3_mk_numeral</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeUnsignedInteger128Bv</span><span class="p">(</span><span class="nv">highBits</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">,</span> <span class="nv">lowBits</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12BitVector128a">Z3BitVector128</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC22makeIntegerBvFromBoolsyAA0B3AstCyAA16AnyBitVectorSortVGSaySbGF"></a>
+                    <a name="//apple_ref/swift/Method/makeIntegerBvFromBools(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC22makeIntegerBvFromBoolsyAA0B3AstCyAA16AnyBitVectorSortVGSaySbGF">makeIntegerBvFromBools(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a bit-vector numeral from a vector of Booleans.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <p><code>!values.isEmpty</code></p>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <p><code>Z3_mk_numeral</code></p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeIntegerBvFromBools</span><span class="p">(</span><span class="n">_</span> <span class="nv">values</span><span class="p">:</span> <span class="p">[</span><span class="kt">Bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span></code></pre>
 
                         </div>
                       </div>
@@ -3011,9 +3183,9 @@ significant bit of <code>t1</code>.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC10makeConcatyAA03AnyB3AstCAA0bG0CyxG_AHyq_GtAA13BitVectorSortRzAaKR_r0_lF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC10makeConcatyAA0B3AstCyAA16AnyBitVectorSortVGAFyxG_AFyq_GtAA0hiJ0RzAaLR_r0_lF"></a>
                     <a name="//apple_ref/swift/Method/makeConcat(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeConcatyAA03AnyB3AstCAA0bG0CyxG_AHyq_GtAA13BitVectorSortRzAaKR_r0_lF">makeConcat(_:<wbr>_:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeConcatyAA0B3AstCyAA16AnyBitVectorSortVGAFyxG_AFyq_GtAA0hiJ0RzAaLR_r0_lF">makeConcat(_:<wbr>_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -3033,7 +3205,7 @@ is the size of <code>t1</code> (<code>t2</code>).</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeConcat</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">,</span> <span class="kt">U</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">U</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span><span class="p">,</span> <span class="kt">U</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeConcat</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">,</span> <span class="kt">U</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">U</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span><span class="p">,</span> <span class="kt">U</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
 
                         </div>
                       </div>
@@ -3043,9 +3215,9 @@ is the size of <code>t1</code> (<code>t2</code>).</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC11makeExtract4high3low_AA03AnyB3AstCs6UInt32V_AjA0bI0CyxGtAA13BitVectorSortRzlF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC11makeExtract4high3low_AA0B3AstCyAA16AnyBitVectorSortVGs6UInt32V_AmHyxGtAA0jkL0RzlF"></a>
                     <a name="//apple_ref/swift/Method/makeExtract(high:low:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeExtract4high3low_AA03AnyB3AstCs6UInt32V_AjA0bI0CyxGtAA13BitVectorSortRzlF">makeExtract(high:<wbr>low:<wbr>_:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeExtract4high3low_AA0B3AstCyAA16AnyBitVectorSortVGs6UInt32V_AmHyxGtAA0jkL0RzlF">makeExtract(high:<wbr>low:<wbr>_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -3063,7 +3235,7 @@ size <code>m</code> to yield a new bit-vector of size <code>n</code>, where <cod
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeExtract</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="nv">high</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="nv">low</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeExtract</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="nv">high</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="nv">low</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
 
                         </div>
                       </div>
@@ -3073,9 +3245,9 @@ size <code>m</code> to yield a new bit-vector of size <code>n</code>, where <cod
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC14makeSignExtendyAA03AnyB3AstCs6UInt32V_AA0bH0CyxGtAA13BitVectorSortRzlF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC14makeSignExtendyAA0B3AstCyAA16AnyBitVectorSortVGs6UInt32V_AFyxGtAA0ijK0RzlF"></a>
                     <a name="//apple_ref/swift/Method/makeSignExtend(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeSignExtendyAA03AnyB3AstCs6UInt32V_AA0bH0CyxGtAA13BitVectorSortRzlF">makeSignExtend(_:<wbr>_:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeSignExtendyAA0B3AstCyAA16AnyBitVectorSortVGs6UInt32V_AFyxGtAA0ijK0RzlF">makeSignExtend(_:<wbr>_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -3093,7 +3265,7 @@ of size <code>m+i</code>, where <code>m</code> is the size of the given bit-vect
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSignExtend</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">i</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSignExtend</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">i</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
 
                         </div>
                       </div>
@@ -3103,9 +3275,9 @@ of size <code>m+i</code>, where <code>m</code> is the size of the given bit-vect
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC14makeZeroExtendyAA03AnyB3AstCs6UInt32V_AA0bH0CyxGtAA13BitVectorSortRzlF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC14makeZeroExtendyAA0B3AstCyAA16AnyBitVectorSortVGs6UInt32V_AFyxGtAA0ijK0RzlF"></a>
                     <a name="//apple_ref/swift/Method/makeZeroExtend(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeZeroExtendyAA03AnyB3AstCs6UInt32V_AA0bH0CyxGtAA13BitVectorSortRzlF">makeZeroExtend(_:<wbr>_:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeZeroExtendyAA0B3AstCyAA16AnyBitVectorSortVGs6UInt32V_AFyxGtAA0ijK0RzlF">makeZeroExtend(_:<wbr>_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -3123,7 +3295,7 @@ bit-vector of size <code>m+i</code>, where <code>m</code> is the size of the giv
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeZeroExtend</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">i</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeZeroExtend</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">i</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
 
                         </div>
                       </div>
@@ -3133,9 +3305,9 @@ bit-vector of size <code>m+i</code>, where <code>m</code> is the size of the giv
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC10makeRepeatyAA03AnyB3AstCs6UInt32V_AA0bG0CyxGtAA13BitVectorSortRzlF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC10makeRepeatyAA0B3AstCyAA16AnyBitVectorSortVGs6UInt32V_AFyxGtAA0hiJ0RzlF"></a>
                     <a name="//apple_ref/swift/Method/makeRepeat(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeRepeatyAA03AnyB3AstCs6UInt32V_AA0bG0CyxGtAA13BitVectorSortRzlF">makeRepeat(_:<wbr>_:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeRepeatyAA0B3AstCyAA16AnyBitVectorSortVGs6UInt32V_AFyxGtAA0hiJ0RzlF">makeRepeat(_:<wbr>_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -3152,7 +3324,7 @@ bit-vector of size <code>m+i</code>, where <code>m</code> is the size of the giv
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeRepeat</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">i</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeRepeat</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">i</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
 
                         </div>
                       </div>
@@ -3386,9 +3558,9 @@ programming language or assembly architecture you are modeling.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC11makeIntToBvyAA03AnyB3AstCs6UInt32V_AA0bI0CyAA0E4SortVGtF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC11makeIntToBvyAA0B3AstCyAA16AnyBitVectorSortVGs6UInt32V_AFyAA0eL0VGtF"></a>
                     <a name="//apple_ref/swift/Method/makeIntToBv(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeIntToBvyAA03AnyB3AstCs6UInt32V_AA0bI0CyAA0E4SortVGtF">makeIntToBv(_:<wbr>_:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeIntToBvyAA0B3AstCyAA16AnyBitVectorSortVGs6UInt32V_AFyAA0eL0VGtF">makeIntToBv(_:<wbr>_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -3408,7 +3580,7 @@ from 0 to <code>n-1</code>) is 1 if <code>(t1 div 2^i)</code> mod 2 is 1.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeIntToBv</span><span class="p">(</span><span class="n">_</span> <span class="nv">n</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeIntToBv</span><span class="p">(</span><span class="n">_</span> <span class="nv">n</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span></code></pre>
 
                         </div>
                       </div>
@@ -3443,6 +3615,42 @@ If <code>isSigned</code> is true, <code>t1</code> is treated as a signed bit-vec
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeBvToInt</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">isSigned</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14makeBvToIntAny_8isSignedAA0B3AstCyAA0G4SortVGAGyAA0h9BitVectorL0VG_SbtF"></a>
+                    <a name="//apple_ref/swift/Method/makeBvToIntAny(_:isSigned:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeBvToIntAny_8isSignedAA0B3AstCyAA0G4SortVGAGyAA0h9BitVectorL0VG_SbtF">makeBvToIntAny(_:<wbr>isSigned:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an integer from the bit-vector argument <code>t1</code>.</p>
+
+<p>If <code>isSigned</code> is false, then the bit-vector <code>t1</code> is treated as unsigned.
+So the result is non-negative and in the range <code>[0..2^N-1]</code>, where N are
+the number of bits in <code>t1</code>.
+If <code>isSigned</code> is true, <code>t1</code> is treated as a signed bit-vector.</p>
+
+<p>The node <code>t1</code> must have a bit-vector sort.</p>
+
+<p>Type-erased version.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeBvToIntAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span><span class="p">,</span> <span class="nv">isSigned</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
 
                         </div>
                       </div>
@@ -4347,7 +4555,7 @@ NearestTiesToEven rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRoundNearestTiesToEven</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRoundNearestTiesToEven</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span></code></pre>
 
                         </div>
                       </div>
@@ -4375,7 +4583,7 @@ NearestTiesToEven rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRNE</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRNE</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span></code></pre>
 
                         </div>
                       </div>
@@ -4403,7 +4611,7 @@ NearestTiesToAway rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRoundNearestTiesToAway</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRoundNearestTiesToAway</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span></code></pre>
 
                         </div>
                       </div>
@@ -4431,7 +4639,7 @@ NearestTiesToAway rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRNA</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRNA</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span></code></pre>
 
                         </div>
                       </div>
@@ -4459,7 +4667,7 @@ rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRoundTowardPositive</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRoundTowardPositive</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span></code></pre>
 
                         </div>
                       </div>
@@ -4487,7 +4695,7 @@ rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRTP</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRTP</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span></code></pre>
 
                         </div>
                       </div>
@@ -4515,7 +4723,7 @@ rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRoundTowardNegative</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRoundTowardNegative</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span></code></pre>
 
                         </div>
                       </div>
@@ -4525,9 +4733,9 @@ rounding mode.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC10makeFpaRTNAA03AnyB3AstCyF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC10makeFpaRTNAA0B3AstCyAA16RoundingModeSortVGyF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaRTN()" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeFpaRTNAA03AnyB3AstCyF">makeFpaRTN()</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeFpaRTNAA0B3AstCyAA16RoundingModeSortVGyF">makeFpaRTN()</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -4543,7 +4751,7 @@ rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRTN</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRTN</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span></code></pre>
 
                         </div>
                       </div>
@@ -4571,7 +4779,7 @@ rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRoundTowardZero</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRoundTowardZero</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span></code></pre>
 
                         </div>
                       </div>
@@ -4599,7 +4807,7 @@ rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRTZ</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaRTZ</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span></code></pre>
 
                         </div>
                       </div>
@@ -4792,9 +5000,9 @@ rounding mode.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC10makeFpaNan4sortAA03AnyB3AstCAA0B4SortC_tF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC10makeFpaNan4sortAA0B3AstCyAA9AnyFPSortVGAA0B4SortC_tF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaNan(sort:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeFpaNan4sortAA03AnyB3AstCAA0B4SortC_tF">makeFpaNan(sort:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeFpaNan4sortAA0B3AstCyAA9AnyFPSortVGAA0B4SortC_tF">makeFpaNan(sort:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -4809,7 +5017,7 @@ rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaNan</span><span class="p">(</span><span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaNan</span><span class="p">(</span><span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a></span></code></pre>
 
                         </div>
                       </div>
@@ -4884,9 +5092,9 @@ rounding mode.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC15makeFpaInfinite4sort8negativeAA03AnyB3AstCAA0B4SortC_SbtF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC15makeFpaInfinite4sort8negativeAA0B3AstCyAA9AnyFPSortVGAA0B4SortC_SbtF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaInfinite(sort:negative:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeFpaInfinite4sort8negativeAA03AnyB3AstCAA0B4SortC_SbtF">makeFpaInfinite(sort:<wbr>negative:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeFpaInfinite4sort8negativeAA0B3AstCyAA9AnyFPSortVGAA0B4SortC_SbtF">makeFpaInfinite(sort:<wbr>negative:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -4903,7 +5111,7 @@ rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaInfinite</span><span class="p">(</span><span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">,</span> <span class="nv">negative</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaInfinite</span><span class="p">(</span><span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">,</span> <span class="nv">negative</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a></span></code></pre>
 
                         </div>
                       </div>
@@ -5004,9 +5212,9 @@ rounding mode.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC11makeFpaZero4sort8negativeAA03AnyB3AstCAA0B4SortC_SbtF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC11makeFpaZero4sort8negativeAA0B3AstCyAA9AnyFPSortVGAA0B4SortC_SbtF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaZero(sort:negative:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeFpaZero4sort8negativeAA03AnyB3AstCAA0B4SortC_SbtF">makeFpaZero(sort:<wbr>negative:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeFpaZero4sort8negativeAA0B3AstCyAA9AnyFPSortVGAA0B4SortC_SbtF">makeFpaZero(sort:<wbr>negative:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -5023,7 +5231,7 @@ rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaZero</span><span class="p">(</span><span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">,</span> <span class="nv">negative</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaZero</span><span class="p">(</span><span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">,</span> <span class="nv">negative</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a></span></code></pre>
 
                         </div>
                       </div>
@@ -5124,9 +5332,9 @@ rounding mode.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC9makeFpaFp3sgn3exp3sigAA03AnyB3AstCAA0bK0CyxG_AKyq_GAKyq0_GtAA13BitVectorSortRzAaOR_AaOR0_r1_lF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC9makeFpaFp3sgn3exp3sigAA0B3AstCyAA9AnyFPSortVGAIyxG_AIyq_GAIyq0_GtAA13BitVectorSortRzAaPR_AaPR0_r1_lF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaFp(sgn:exp:sig:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC9makeFpaFp3sgn3exp3sigAA03AnyB3AstCAA0bK0CyxG_AKyq_GAKyq0_GtAA13BitVectorSortRzAaOR_AaOR0_r1_lF">makeFpaFp(sgn:<wbr>exp:<wbr>sig:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC9makeFpaFp3sgn3exp3sigAA0B3AstCyAA9AnyFPSortVGAIyxG_AIyq_GAIyq0_GtAA13BitVectorSortRzAaPR_AaPR0_r1_lF">makeFpaFp(sgn:<wbr>exp:<wbr>sig:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -5152,7 +5360,7 @@ be in IEEE-754 biased representation.</p>
     <span class="nv">sgn</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span>
     <span class="nv">exp</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">U</span><span class="o">&gt;</span><span class="p">,</span>
     <span class="nv">sig</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">V</span><span class="o">&gt;</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a></span></code></pre>
 
                         </div>
                       </div>
@@ -5205,9 +5413,9 @@ be in IEEE-754 biased representation.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC12makeFpaFpAny3sgn3exp3sigAA0gB3AstCAI_A2ItF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC12makeFpaFpAny3sgn3exp3sigAA0B3AstCyAA0G6FPSortVGAA0gbK0C_A2NtF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaFpAny(sgn:exp:sig:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC12makeFpaFpAny3sgn3exp3sigAA0gB3AstCAI_A2ItF">makeFpaFpAny(sgn:<wbr>exp:<wbr>sig:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC12makeFpaFpAny3sgn3exp3sigAA0B3AstCyAA0G6FPSortVGAA0gbK0C_A2NtF">makeFpaFpAny(sgn:<wbr>exp:<wbr>sig:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -5231,7 +5439,7 @@ be in IEEE-754 biased representation.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaFpAny</span><span class="p">(</span><span class="nv">sgn</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">exp</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">sig</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaFpAny</span><span class="p">(</span><span class="nv">sgn</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">exp</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">sig</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a></span></code></pre>
 
                         </div>
                       </div>
@@ -5284,9 +5492,9 @@ be in IEEE-754 biased representation.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC19makeFpaNumeralFloat_4sortAA03AnyB3AstCSf_AA0B4SortCtF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC19makeFpaNumeralFloat_4sortAA0B3AstCyAA9AnyFPSortVGSf_AA0B4SortCtF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaNumeralFloat(_:sort:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC19makeFpaNumeralFloat_4sortAA03AnyB3AstCSf_AA0B4SortCtF">makeFpaNumeralFloat(_:<wbr>sort:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC19makeFpaNumeralFloat_4sortAA0B3AstCyAA9AnyFPSortVGSf_AA0B4SortCtF">makeFpaNumeralFloat(_:<wbr>sort:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -5305,7 +5513,7 @@ parse a string.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaNumeralFloat</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Float</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaNumeralFloat</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Float</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a></span></code></pre>
 
                         </div>
                       </div>
@@ -5408,9 +5616,9 @@ parse a string.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC20makeFpaNumeralDouble_4sortAA03AnyB3AstCSd_AA0B4SortCtF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC20makeFpaNumeralDouble_4sortAA0B3AstCyAA9AnyFPSortVGSd_AA0B4SortCtF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaNumeralDouble(_:sort:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC20makeFpaNumeralDouble_4sortAA03AnyB3AstCSd_AA0B4SortCtF">makeFpaNumeralDouble(_:<wbr>sort:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC20makeFpaNumeralDouble_4sortAA0B3AstCyAA9AnyFPSortVGSd_AA0B4SortCtF">makeFpaNumeralDouble(_:<wbr>sort:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -5429,7 +5637,7 @@ parse a string.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaNumeralDouble</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Double</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaNumeralDouble</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Double</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a></span></code></pre>
 
                         </div>
                       </div>
@@ -5630,9 +5838,9 @@ parse a string.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC17makeFpaNumeralInt_4sortAA03AnyB3AstCs5Int32V_AA0B4SortCtF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC17makeFpaNumeralInt_4sortAA0B3AstCyAA9AnyFPSortVGs5Int32V_AA0B4SortCtF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaNumeralInt(_:sort:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC17makeFpaNumeralInt_4sortAA03AnyB3AstCs5Int32V_AA0B4SortCtF">makeFpaNumeralInt(_:<wbr>sort:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC17makeFpaNumeralInt_4sortAA0B3AstCyAA9AnyFPSortVGs5Int32V_AA0B4SortCtF">makeFpaNumeralInt(_:<wbr>sort:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -5647,7 +5855,7 @@ parse a string.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaNumeralInt</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int32</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaNumeralInt</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int32</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a></span></code></pre>
 
                         </div>
                       </div>
@@ -5746,9 +5954,9 @@ parse a string.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC18makeFpaNumeralUInt___4sortAA03AnyB3AstCSb_s5Int32Vs6UInt32VAA0B4SortCtF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC18makeFpaNumeralUInt___4sortAA0B3AstCyAA9AnyFPSortVGSb_s5Int32Vs6UInt32VAA0B4SortCtF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaNumeralUInt(_:_:_:sort:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC18makeFpaNumeralUInt___4sortAA03AnyB3AstCSb_s5Int32Vs6UInt32VAA0B4SortCtF">makeFpaNumeralUInt(_:<wbr>_:<wbr>_:<wbr>sort:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC18makeFpaNumeralUInt___4sortAA0B3AstCyAA9AnyFPSortVGSb_s5Int32Vs6UInt32VAA0B4SortCtF">makeFpaNumeralUInt(_:<wbr>_:<wbr>_:<wbr>sort:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -5763,7 +5971,7 @@ parse a string.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaNumeralUInt</span><span class="p">(</span><span class="n">_</span> <span class="nv">sgn</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">,</span> <span class="n">_</span> <span class="nv">exp</span><span class="p">:</span> <span class="kt">Int32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">sig</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaNumeralUInt</span><span class="p">(</span><span class="n">_</span> <span class="nv">sgn</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">,</span> <span class="n">_</span> <span class="nv">exp</span><span class="p">:</span> <span class="kt">Int32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">sig</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a></span></code></pre>
 
                         </div>
                       </div>
@@ -6067,7 +6275,7 @@ FloatingPoint sort.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaAdd</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaAdd</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span>
                                  <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span>
                                  <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span></code></pre>
 
@@ -6118,7 +6326,7 @@ FloatingPoint sort.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaSubtract</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaSubtract</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span>
                                       <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span>
                                       <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span></code></pre>
 
@@ -6169,7 +6377,7 @@ FloatingPoint sort.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaMultiply</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaMultiply</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span>
                                       <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span>
                                       <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span></code></pre>
 
@@ -6220,7 +6428,7 @@ FloatingPoint sort.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaDivide</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaDivide</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span>
                                     <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span>
                                     <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span></code></pre>
 
@@ -6273,7 +6481,7 @@ same FloatingPoint sort.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaDivide</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaDivide</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span>
                                     <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span>
                                     <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span>
                                     <span class="n">_</span> <span class="nv">t3</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span></code></pre>
@@ -6322,7 +6530,7 @@ same FloatingPoint sort.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaSquareRoot</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaSquareRoot</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span>
                                         <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span></code></pre>
 
                         </div>
@@ -6379,7 +6587,7 @@ the closest integer, again represented as a floating-point number.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaRoundToIntegral</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaRoundToIntegral</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span>
                                              <span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span></code></pre>
 
                         </div>
@@ -6837,9 +7045,9 @@ format.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC15makeFpaToIEEEBvyAA03AnyB3AstCAA0bI0CyxGAA12FloatingSortRzlF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC15makeFpaToIEEEBvyAA0B3AstCyAA16AnyBitVectorSortVGAFyxGAA08FloatingL0RzlF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaToIEEEBv(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeFpaToIEEEBvyAA03AnyB3AstCAA0bI0CyxGAA12FloatingSortRzlF">makeFpaToIEEEBv(_:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeFpaToIEEEBvyAA0B3AstCyAA16AnyBitVectorSortVGAFyxGAA08FloatingL0RzlF">makeFpaToIEEEBv(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -6862,7 +7070,7 @@ bit-vector representation of that NaN.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaToIEEEBv</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaToIEEEBv</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span></code></pre>
 
                         </div>
                       </div>
@@ -6872,9 +7080,9 @@ bit-vector representation of that NaN.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC18makeFpaToIEEEBvAnyyAA0hB3AstCAFF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC18makeFpaToIEEEBvAnyyAA0B3AstCyAA0H13BitVectorSortVGAA0hbI0CF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaToIEEEBvAny(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC18makeFpaToIEEEBvAnyyAA0hB3AstCAFF">makeFpaToIEEEBvAny(_:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC18makeFpaToIEEEBvAnyyAA0B3AstCyAA0H13BitVectorSortVGAA0hbI0CF">makeFpaToIEEEBvAny(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -6899,7 +7107,7 @@ bit-vector representation of that NaN.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaToIEEEBvAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaToIEEEBvAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span></code></pre>
 
                         </div>
                       </div>
@@ -6936,9 +7144,9 @@ bit-vector representation of that NaN.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC14makeFpaToBvAny___6signedAA0hB3AstCAG_AGs6UInt32VSbtF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC14makeFpaToBvAny___6signedAA0B3AstCyAA0H13BitVectorSortVGAA0hbJ0C_ALs6UInt32VSbtF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaToBvAny(_:_:_:signed:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeFpaToBvAny___6signedAA0hB3AstCAG_AGs6UInt32VSbtF">makeFpaToBvAny(_:<wbr>_:<wbr>_:<wbr>signed:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeFpaToBvAny___6signedAA0B3AstCyAA0H13BitVectorSortVGAA0hbJ0C_ALs6UInt32VSbtF">makeFpaToBvAny(_:<wbr>_:<wbr>_:<wbr>signed:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -6956,7 +7164,7 @@ to rounding mode rm.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaToBvAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">sz</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="nv">signed</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaToBvAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">sz</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="nv">signed</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span></code></pre>
 
                         </div>
                       </div>
@@ -6986,7 +7194,7 @@ rounded according to rounding mode rm.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaToBv</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">,</span> <span class="kt">F</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">F</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">bvSort</span><span class="p">:</span> <span class="kt">T</span><span class="o">.</span><span class="k">Type</span><span class="p">,</span> <span class="nv">signed</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span><span class="p">,</span> <span class="kt">F</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaToBv</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">,</span> <span class="kt">F</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">F</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">bvSort</span><span class="p">:</span> <span class="kt">T</span><span class="o">.</span><span class="k">Type</span><span class="p">,</span> <span class="nv">signed</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span><span class="p">,</span> <span class="kt">F</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span></code></pre>
 
                         </div>
                       </div>
@@ -7018,7 +7226,7 @@ be rounded according to rounding mode <code>rm</code>.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaToFPFloat</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="p">,</span> <span class="kt">U</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaToFPFloat</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="p">,</span> <span class="kt">U</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span>
                                                         <span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span>
                                                         <span class="nv">sort</span><span class="p">:</span> <span class="kt">U</span><span class="o">.</span><span class="k">Type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">U</span><span class="o">&gt;</span></code></pre>
 
@@ -7061,9 +7269,9 @@ be rounded according to rounding mode <code>rm</code>.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC19makeFpaToFPFloatAny__4sortAA0hB3AstCAA0bJ0CyAA16RoundingModeSortVG_AgA0bM0CtF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC19makeFpaToFPFloatAny__4sortAA0B3AstCyAA0H6FPSortVGAGyAA16RoundingModeSortVG_AA0hbJ0CAA0bN0CtF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaToFPFloatAny(_:_:sort:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC19makeFpaToFPFloatAny__4sortAA0hB3AstCAA0bJ0CyAA16RoundingModeSortVG_AgA0bM0CtF">makeFpaToFPFloatAny(_:<wbr>_:<wbr>sort:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC19makeFpaToFPFloatAny__4sortAA0B3AstCyAA0H6FPSortVGAGyAA16RoundingModeSortVG_AA0hbJ0CAA0bN0CtF">makeFpaToFPFloatAny(_:<wbr>_:<wbr>sort:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -7085,9 +7293,9 @@ be rounded according to rounding mode <code>rm</code>.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaToFPFloatAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaToFPFloatAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span>
                          <span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span>
-                         <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                         <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a></span></code></pre>
 
                         </div>
                       </div>
@@ -7098,12 +7306,24 @@ be rounded according to rounding mode <code>rm</code>.</p>
                             <tr>
                               <td>
                                 <code>
-                                <em>bv</em>
+                                <em>rm</em>
                                 </code>
                               </td>
                               <td>
                                 <div>
-                                  <p>a bit-vector term</p>
+                                  <p>term of RoundingMode sort</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>t</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>a floating-point term</p>
                                 </div>
                               </td>
                             </tr>
@@ -7149,7 +7369,7 @@ be rounded according to rounding mode <code>rm</code>.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaToFPReal</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaToFPReal</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span>
                                       <span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Reala">Z3Real</a></span><span class="p">,</span>
                                       <span class="nv">sort</span><span class="p">:</span> <span class="kt">T</span><span class="o">.</span><span class="k">Type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span></code></pre>
 
@@ -7161,9 +7381,9 @@ be rounded according to rounding mode <code>rm</code>.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC15makeFpaToFPReal__4sortAA03AnyB3AstCAA0bJ0CyAA16RoundingModeSortVG_AIyAA04RealM0VGAA0bM0CtF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC15makeFpaToFPReal__4sortAA0B3AstCyAA9AnyFPSortVGAGyAA16RoundingModeSortVG_AGyAA04RealN0VGAA0bN0CtF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaToFPReal(_:_:sort:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeFpaToFPReal__4sortAA03AnyB3AstCAA0bJ0CyAA16RoundingModeSortVG_AIyAA04RealM0VGAA0bM0CtF">makeFpaToFPReal(_:<wbr>_:<wbr>sort:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeFpaToFPReal__4sortAA0B3AstCyAA9AnyFPSortVGAGyAA16RoundingModeSortVG_AGyAA04RealN0VGAA0bN0CtF">makeFpaToFPReal(_:<wbr>_:<wbr>sort:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -7184,9 +7404,9 @@ be rounded according to rounding mode <code>rm</code>.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaToFPReal</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaToFPReal</span><span class="p">(</span><span class="n">_</span> <span class="nv">rm</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span>
                      <span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Reala">Z3Real</a></span><span class="p">,</span>
-                     <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                     <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a></span></code></pre>
 
                         </div>
                       </div>
@@ -7227,6 +7447,37 @@ in non-linear constraints over real terms.</p>
                 <li class="item">
                   <div>
                     <code>
+                    <a name="/s:7SwiftZ30B7ContextC13makeFpaToRealyAA0B3AstCyAA0G4SortVGAFyAA9AnyFPSortVGF"></a>
+                    <a name="//apple_ref/swift/Method/makeFpaToReal(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeFpaToRealyAA0B3AstCyAA0G4SortVGAFyAA9AnyFPSortVGF">makeFpaToReal(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Conversion of a floating-point term into a real-numbered term.</p>
+
+<p>Produces a term that represents the conversion of the floating-point term
+t into a real number. Note that this type of conversion will often result
+in non-linear constraints over real terms.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFpaToReal</span><span class="p">(</span><span class="n">_</span> <span class="nv">t</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB13FloatingPointa">AnyZ3FloatingPoint</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Reala">Z3Real</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
                     <a name="/s:7SwiftZ30B7ContextC12makeFpaToInt12roundingMode_AA0B3AstCyAA0G4SortVGAGyAA08RoundingiK0VG_AGyxGtAA08FloatingK0RzlF"></a>
                     <a name="//apple_ref/swift/Method/makeFpaToInt(roundingMode:_:)" class="dashAnchor"></a>
                     <a class="token" href="#/s:7SwiftZ30B7ContextC12makeFpaToInt12roundingMode_AA0B3AstCyAA0G4SortVGAGyAA08RoundingiK0VG_AGyxGtAA08FloatingK0RzlF">makeFpaToInt(roundingMode:<wbr>_:<wbr>)</a>
@@ -7251,7 +7502,7 @@ given rounding mode.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaToInt</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="nv">roundingMode</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="../Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeFpaToInt</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="nv">roundingMode</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12RoundingModea">Z3RoundingMode</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingPoint</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span></code></pre>
 
                         </div>
                       </div>
@@ -10820,7 +11071,7 @@ name.</p>
       </article>
     </div>
     <section class="footer">
-      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-14)</p>
+      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-15)</p>
       <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.1</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
     </section>
   </body>
