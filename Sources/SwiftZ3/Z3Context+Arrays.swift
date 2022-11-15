@@ -64,7 +64,7 @@ public extension Z3Context {
     /// to `select`) on all indices except for `i`, where it maps to `v` (and
     /// the `select` of `a` with respect to `i` may be a different value).
     func makeStore<D, R>(_ a: Z3Array<D, R>, _ i: Z3Ast<D>, _ v: Z3Ast<R>) -> Z3Array<D, R> {
-        return Z3Ast(context: self, ast: Z3_mk_store(context, a.ast, i.ast, v.ast))
+        return Z3Array(context: self, ast: Z3_mk_store(context, a.ast, i.ast, v.ast))
     }
 
     /// Array update.
@@ -87,7 +87,7 @@ public extension Z3Context {
     func makeStoreN<D, R>(_ a: Z3Array<D, R>, _ idxs: [Z3Ast<D>], _ v: Z3Ast<R>) -> Z3Array<D, R> {
         let idxs = idxs.toZ3_astPointerArray()
 
-        return Z3Ast(context: self, ast: Z3_mk_store_n(context, a.ast, UInt32(idxs.count), idxs, v.ast))
+        return Z3Array(context: self, ast: Z3_mk_store_n(context, a.ast, UInt32(idxs.count), idxs, v.ast))
     }
 
     /// n-ary Array update.
@@ -165,6 +165,6 @@ public extension Z3Context {
     /// Create predicate that holds if Boolean array `set` has `k` elements set
     /// to true.
     func makeSetHasSize<T>(_ set: Z3Set<T>, _ k: AnyZ3Ast) -> Z3Bool {
-        return Z3Ast(context: self, ast: Z3_mk_set_has_size(context, set.ast, k.ast))
+        return Z3Bool(context: self, ast: Z3_mk_set_has_size(context, set.ast, k.ast))
     }
 }

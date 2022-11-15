@@ -1,9 +1,6 @@
 # SwiftZ3
 
-| Platform | Build Status |
-|----------|--------|
-| macOS    | [![Build Status](https://dev.azure.com/luiz-fs/swift-z3/_apis/build/status/LuizZak.swift-z3?branchName=master&jobName=macOS)](https://dev.azure.com/luiz-fs/swift-z3/_build/latest?definitionId=5&branchName=master) |
-| Linux    | [![Build Status](https://dev.azure.com/luiz-fs/swift-z3/_apis/build/status/LuizZak.swift-z3?branchName=master&jobName=Linux)](https://dev.azure.com/luiz-fs/swift-z3/_build/latest?definitionId=5&branchName=master) |
+[![Swift](https://github.com/LuizZak/swift-z3/actions/workflows/swift.yml/badge.svg)](https://github.com/LuizZak/swift-z3/actions/workflows/swift.yml)
 
 A Swift wrapper over Microsoft's [Z3 Theorem Prover](https://github.com/Z3Prover/z3)
 
@@ -17,9 +14,9 @@ config.setParameter(name: "model", value: "true")
 
 let context = Z3Context(configuration: config)
 
-let left = context.makeConstant(name: "left", sort: Float.self)
-let width = context.makeConstant(name: "width", sort: Float.self)
-let right = context.makeConstant(name: "right", sort: Float.self)
+let left: Z3Float = context.makeConstant(name: "left")
+let width: Z3Float = context.makeConstant(name: "width")
+let right: Z3Float = context.makeConstant(name: "right")
 
 let lValue = left == 50.0
 let wValue = width == 100.0
@@ -42,14 +39,22 @@ Development is ongoing and the public API might change at any time without notic
 
 ### Requirements
 
-Swift 5.4
+Swift 5.4, macOS 10.13+
 
-### Instalation
+### Installation
 
 SwiftZ3 is available to Swift Package Manager:
 
 ```swift
 dependencies: [
     .package(url: "https://github.com/LuizZak/swift-z3.git", .branch("master"))
+]
+```
+
+Specific tagged versions of Z3 are available as branches instead of tags in this repository. This allows base Swift API updates on master to be merged into different release versions of Z3 without requiring rewriting tags:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/LuizZak/swift-z3.git", .branch("4.11.2")) // Pulls 4.11.2 branch, with latest 'z3-4.11.2' source code + any API updates from master
 ]
 ```

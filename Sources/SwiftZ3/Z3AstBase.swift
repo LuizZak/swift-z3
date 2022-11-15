@@ -4,7 +4,7 @@ import CZ3
 public class Z3AstBase {
     /// The context this `Z3AstBase` belongs
     public let context: Z3Context
-    internal var ast: Z3_ast
+    internal let ast: Z3_ast
 
     /// Return a unique identifier for this AST.
     ///
@@ -102,5 +102,11 @@ public class Z3AstBase {
     /// Convert the current AST node into a string.
     public func toString() -> String {
         return String(cString: Z3_ast_to_string(context.context, ast))
+    }
+}
+
+internal extension Sequence where Element: Z3AstBase {
+    func toZ3_astPointerArray() -> [Z3_ast?] {
+        return map { $0.ast }
     }
 }

@@ -37,12 +37,12 @@ final class SwiftZ3Tests: XCTestCase {
 
         let context = Z3Context(configuration: config)
         
-        let left = context.makeConstant(name: "left", sort: Float.self)
-        let width = context.makeConstant(name: "width", sort: Float.self)
-        let right = context.makeConstant(name: "right", sort: Float.self)
+        let left: Z3Float = context.makeConstant(name: "left")
+        let width: Z3Float = context.makeConstant(name: "width")
+        let right: Z3Float = context.makeConstant(name: "right")
         
-        let lValue = left == context.makeFloat(50.0)
-        let wValue = width == context.makeFloat(100.0)
+        let lValue = left == 50.0
+        let wValue = width == 100.0
         
         let rightEq = right == left + width
         
@@ -80,7 +80,35 @@ final class SwiftZ3Tests: XCTestCase {
         XCTAssertEqual(solver.check(), .satisfiable)
         
         if let model = solver.getModel() {
-            XCTAssertEqual(model.intAny(resValueInt), 369)
+            XCTAssertEqual(model.int(resValueInt), 369)
+        } else {
+            XCTFail("Failed to get expected model")
+        }
+    }
+
+    func testBitwiseExprWithOperators() {
+        let config = Z3Config()
+        config.setParameter(name: "model", value: "true")
+        
+        let context = Z3Context(configuration: config)
+        
+        let lhs: Z3BitVector32 = context.makeConstant(name: "lhs")
+        let rhs: Z3BitVector32 = context.makeConstant(name: "rhs")
+        let res: Z3BitVector32 = context.makeConstant(name: "res")
+
+        let lhsValue = lhs == 123
+        let rhsValue = rhs == 3
+        
+        let resValue = res == lhs * rhs
+        let resValueInt = res.toInt(isSigned: true)
+        
+        let solver = context.makeSolver()
+        
+        solver.assert([lhsValue, rhsValue, resValue])
+        XCTAssertEqual(solver.check(), .satisfiable)
+        
+        if let model = solver.getModel() {
+            XCTAssertEqual(model.int(resValueInt), 369)
         } else {
             XCTFail("Failed to get expected model")
         }
@@ -138,17 +166,17 @@ final class SwiftZ3Tests: XCTestCase {
     func testFloatingPointExample2_withTypeSystem() {
         let ctx = Z3Context()
         
-        let rm = ctx.makeConstant(name: "rm", sort: RoundingModeSort.self)
-        let x = ctx.makeConstant(name: "x", sort: BitVectorSort64.self)
+        let rm: Z3RoundingMode = ctx.makeConstant(name: "rm")
+        let x: Z3BitVector64 = ctx.makeConstant(name: "x")
         
-        let y = ctx.makeConstant(name: "y", sort: Double.self)
-        let fpVal = ctx.makeFpaNumeralInt(42, sort: Double.self)
+        let y: Z3Double = ctx.makeConstant(name: "y")
+        let fpVal: Z3Double = ctx.makeFpaNumeralInt(42)
 
-        let c1 = ctx.makeEqual(y, fpVal)
-        let c2 = ctx.makeEqual(x, ctx.makeFpaToBv(rm, y, BitVectorSort64.self, signed: false))
-        let c3 = ctx.makeEqual(x, ctx.makeBitVector(42))
-        let c4 = ctx.makeEqual(ctx.makeNumeral(number: "42", sort: RealSort.self), ctx.makeFpaToReal(fpVal))
-        let c5 = ctx.makeAnd([c1, c2, c3, c4])
+        let c1 = y == fpVal
+        let c2 = x == y.convertToBitVector(roundingMode: rm, signed: false)
+        let c3 = x == ctx.makeBitVector(42)
+        let c4 = ctx.makeReal(42) == fpVal.convertToReal()
+        let c5 = c1 && c2 && c3 && c4
 
         /* Generic solver */
         let s = ctx.makeSolver()
@@ -505,43 +533,43 @@ final class SwiftZ3Tests: XCTestCase {
         //                x sep: 15 ---^    w >= 50.0
         
         // Setup
-        let label1Left = context.makeConstant(name: "label1_left", sort: RealSort.self)
-        let label1Right = context.makeConstant(name: "label1_right", sort: RealSort.self)
-        let label1Width = context.makeConstant(name: "label1_width", sort: RealSort.self)
-        let label1Top = context.makeConstant(name: "label1_top", sort: RealSort.self)
-        let label1Bottom = context.makeConstant(name: "label1_bottom", sort: RealSort.self)
-        let label1Height = context.makeConstant(name: "label1_height", sort: RealSort.self)
+        let label1Left: Z3Real = context.makeConstant(name: "label1_left")
+        let label1Right: Z3Real = context.makeConstant(name: "label1_right")
+        let label1Width: Z3Real = context.makeConstant(name: "label1_width")
+        let label1Top: Z3Real = context.makeConstant(name: "label1_top")
+        let label1Bottom: Z3Real = context.makeConstant(name: "label1_bottom")
+        let label1Height: Z3Real = context.makeConstant(name: "label1_height")
         
-        let label2Left = context.makeConstant(name: "label2_left", sort: RealSort.self)
-        let label2Right = context.makeConstant(name: "label2_right", sort: RealSort.self)
-        let label2Width = context.makeConstant(name: "label2_width", sort: RealSort.self)
-        let label2Top = context.makeConstant(name: "label2_top", sort: RealSort.self)
-        let label2Bottom = context.makeConstant(name: "label2_bottom", sort: RealSort.self)
-        let label2Height = context.makeConstant(name: "label2_height", sort: RealSort.self)
+        let label2Left: Z3Real = context.makeConstant(name: "label2_left")
+        let label2Right: Z3Real = context.makeConstant(name: "label2_right")
+        let label2Width: Z3Real = context.makeConstant(name: "label2_width")
+        let label2Top: Z3Real = context.makeConstant(name: "label2_top")
+        let label2Bottom: Z3Real = context.makeConstant(name: "label2_bottom")
+        let label2Height: Z3Real = context.makeConstant(name: "label2_height")
         
-        var constraints: [Z3Bool] = []
-        
-        // Invariants
-        constraints.append(label1Right == label1Left + label1Width)
-        constraints.append(label1Bottom == label1Top + label1Height)
-        constraints.append(label1Width >= context.makeReal(0, 1))
-        constraints.append(label1Height >= context.makeReal(0, 1))
-        
-        constraints.append(label2Right == label2Left + label2Width)
-        constraints.append(label2Bottom == label2Top + label2Height)
-        constraints.append(label2Width >= context.makeReal(0, 1))
-        constraints.append(label2Height >= context.makeReal(0, 1))
-        
-        // Constraints
-        constraints.append(label1Left == context.makeReal(0, 1))
-        constraints.append(label1Top == context.makeReal(0, 1))
-        constraints.append(label1Height == context.makeReal(70, 1))
-        constraints.append(label1Width == context.makeReal(120, 1))
-        constraints.append(label2Left == label1Right + context.makeReal(15, 1))
-        constraints.append(label2Top == label1Top + context.makeReal(20, 1))
-        constraints.append(label2Height == context.makeReal(70, 1))
-        constraints.append(label2Width >= context.makeReal(50, 1))
-        constraints.append(label2Right == context.makeReal(300, 1))
+        let constraints: [Z3Bool] = [
+            // Invariants
+            label1Right == label1Left + label1Width,
+            label1Bottom == label1Top + label1Height,
+            label1Width >= 0,
+            label1Height >= 0,
+            
+            label2Right == label2Left + label2Width,
+            label2Bottom == label2Top + label2Height,
+            label2Width >= 0,
+            label2Height >= 0,
+            
+            // Constraints
+            label1Left == 0,
+            label1Top == 0,
+            label1Height == 70,
+            label1Width == 120,
+            label2Left == label1Right + 15,
+            label2Top == label1Top + 20,
+            label2Height == 70,
+            label2Width >= 50,
+            label2Right == 300,
+        ]
         
         // Solve
         let optimize = context.makeOptimize()
@@ -588,9 +616,9 @@ final class SwiftZ3Tests: XCTestCase {
         XCTAssertNotEqual(s1, s3)
         XCTAssertNotEqual(s2, s3)
 
-        let e1 = ctx1.makeConstant(name: "e1", sort: IntSort.self)
-        let e2 = ctx1.makeConstant(name: "e1", sort: IntSort.self)
-        let e3 = e1.translate(to: ctx2)
+        let e1: Z3Int = ctx1.makeConstant(name: "e1")
+        let e2: Z3Int = ctx1.makeConstant(name: "e1")
+        let e3: Z3Int = e1.translate(to: ctx2)
 
         XCTAssert(e1.isEqual(to: e2))
         XCTAssertFalse(e1.isEqual(to: e3))

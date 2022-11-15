@@ -41,6 +41,12 @@ extension Z3Sort: Equatable {
     }
 }
 
+extension Z3Sort: CustomStringConvertible {
+    public var description: String {
+        "{ sortName: \(sortName.symbolString), sortKind: \(sortKind) }"
+    }
+}
+
 internal extension Sequence where Element == Z3Sort {
     func toZ3_sortPointerArray() -> [Z3_sort?] {
         return map { $0.sort }

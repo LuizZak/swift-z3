@@ -9,7 +9,11 @@ public class Z3Context {
     internal var context: Z3_context
     
     /// Gets or sets a reference to a rounding mode for floating-point operations
-    /// performed on `Z3Ast` instances created by this context.
+    /// performed on `Z3FloatingPoint` instances created by this context.
+    ///
+    /// Changes to this value change the rounding mode that is passed to the
+    /// underlying `Z3_mk_fpa_*` methods that are generated via overloaded operators
+    /// on `Z3FloatingPoint` instances.
     ///
     /// Defaults to NearestTiesToEven rounding mode, if not configured.
     public var currentFpaRoundingMode: Z3Ast<RoundingModeSort> {
@@ -39,12 +43,11 @@ public class Z3Context {
     public init(configuration: Z3Config? = nil) {
         context = Z3_mk_context(configuration?.config)
         Z3_set_error_handler(context) { (context, code) in
-            let tempContext = Z3Context(borrowing: context!)
-            print("Z3 Error: \(tempContext.errorMessage(code))")
+            print("Z3 Error: \(Z3_get_error_msg(context, code).toString())")
         }
     }
     
-    init(borrowing context: Z3_context) {
+    internal init(borrowing context: Z3_context) {
         self.context = context
         isBorrowed = true
     }
@@ -57,7 +60,7 @@ public class Z3Context {
 
     /// Return a string describing the given error code.
     public func errorMessage(_ code: Z3ErrorCode) -> String {
-        return String(cString: Z3_get_error_msg(context, code))
+        return Z3_get_error_msg(context, code).toString()
     }
     
     /// Interrupt the execution of a Z3 procedure.
@@ -114,7 +117,10 @@ public class Z3Context {
     /// The solver supports the commands `Z3Solver.push()` and `Z3Solver.pop()`,
     /// but it will always solve each `Z3Solver.check()` from scratch.
     public func makeSolver(forTactic tactic: Z3Tactic) -> Z3Solver {
-        return Z3Solver(context: self, solver: Z3_mk_solver_from_tactic(context, tactic.tactic))
+        return Z3Solver(
+            context: self,
+            solver: Z3_mk_solver_from_tactic(context, tactic.tactic)
+        )
     }
 
     /// Create a new incremental solver.
@@ -205,7 +211,10 @@ public class Z3Context {
     /// the given sort can be an int, real, finite-domain, or bit-vectors of
     /// arbitrary size.
     public func makeNumeral<T: NumericalSort>(number: String, sort: T.Type) -> Z3Ast<T> {
-        return makeNumeral(number: number, sort: sort.getSort(self)).unsafeCastTo()
+        return makeNumeral(
+            number: number,
+            sort: sort.getSort(self)
+        ).unsafeCastTo()
     }
     
     /// Create a numeral of a given sort.
@@ -220,7 +229,10 @@ public class Z3Context {
     /// the given sort can be an int, real, finite-domain, or bit-vectors of
     /// arbitrary size.
     public func makeNumeral(number: String, sort: Z3Sort) -> AnyZ3Ast {
-        return AnyZ3Ast(context: self, ast: Z3_mk_numeral(context, number, sort.sort))
+        return AnyZ3Ast(
+            context: self,
+            ast: Z3_mk_numeral(context, number, sort.sort)
+        )
     }
 
     /// Create a real from a fraction.
@@ -231,7 +243,7 @@ public class Z3Context {
     /// - seealso: `makeInteger`
     /// - seealso: `makeUnsignedInteger`
     /// - precondition: `den != 0`
-    public func makeReal(_ num: Int32, _ den: Int32) -> Z3Real {
+    public func makeReal(_ num: Int32, _ den: Int32 = 1) -> Z3Real {
         return Z3Real(context: self, ast: Z3_mk_real(context, num, den))
     }
 
@@ -243,7 +255,10 @@ public class Z3Context {
     ///
     /// - seealso: `Z3_mk_numeral`
     public func makeInteger(_ value: Int32) -> Z3Int {
-        return Z3Int(context: self, ast: Z3_mk_int(context, value, intSort().sort))
+        return Z3Int(
+            context: self,
+            ast: Z3_mk_int(context, value, Z3Int.getSort(self).sort)
+        )
     }
 
     /// Create a numeral of a bit-vector.
@@ -253,9 +268,25 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeIntegerBv(_ value: Int32) -> Z3Ast<BitVectorOfInt<Int32>> {
-        return Z3Ast(context: self,
-                     ast: Z3_mk_int(context, value, bitVectorSort(size: 32).sort))
+    public func makeIntegerBv(_ value: Int32) -> Z3BitVector32 {
+        return Z3BitVector32(
+            context: self,
+            ast: Z3_mk_int(context, value, Z3BitVector32.getSort(self).sort)
+        )
+    }
+
+    /// Create a numeral of a bit-vector of one bit.
+    ///
+    /// This method can be used to create numerals that fit in a machine integer.
+    /// It is slightly faster than makeNumeral since it is not necessary to
+    /// parse a string.
+    ///
+    /// - seealso: `Z3_mk_numeral`
+    public func makeInteger1Bv(_ value: UInt32) -> Z3BitVector1 {
+        return Z3BitVector1(
+            context: self,
+            ast: Z3_mk_unsigned_int(context, value, Z3BitVector1.getSort(self).sort)
+        )
     }
 
     /// Create a numeral of an int, bit-vector, or finite-domain sort.
@@ -267,7 +298,10 @@ public class Z3Context {
     ///
     /// - seealso: `Z3_mk_numeral`
     public func makeUnsignedInteger(_ value: UInt32) -> Z3Int {
-        return Z3Int(context: self, ast: Z3_mk_unsigned_int(context, value, intSort().sort))
+        return Z3Int(
+            context: self,
+            ast: Z3_mk_unsigned_int(context, value, Z3Int.getSort(self).sort)
+        )
     }
 
     /// Create a numeral of a bit-vector.
@@ -277,9 +311,11 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeUnsignedIntegerBv(_ value: UInt32) -> Z3Ast<BitVectorOfInt<UInt32>> {
-        return Z3Ast(context: self,
-                     ast: Z3_mk_unsigned_int(context, value, bitVectorSort(size: 32).sort))
+    public func makeUnsignedIntegerBv(_ value: UInt32) -> Z3BitVectorU32 {
+        return Z3BitVectorU32(
+            context: self,
+            ast: Z3_mk_unsigned_int(context, value, Z3BitVectorU32.getSort(self).sort)
+        )
     }
 
     /// Create a numeral of an int, bit-vector, or finite-domain sort.
@@ -291,7 +327,10 @@ public class Z3Context {
     ///
     /// - seealso: `Z3_mk_numeral`
     public func makeInteger64(_ value: Int64) -> Z3Int {
-        return Z3Int(context: self, ast: Z3_mk_int64(context, value, intSort().sort))
+        return Z3Int(
+            context: self,
+            ast: Z3_mk_int64(context, value, Z3Int.getSort(self).sort)
+        )
     }
 
     /// Create a numeral of a bit-vector.
@@ -302,8 +341,11 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeInteger64Bv(_ value: Int64) -> Z3Ast<BitVectorOfInt<Int64>> {
-        return Z3Ast(context: self, ast: Z3_mk_int64(context, value, bitVectorSort(size: 64).sort))
+    public func makeInteger64Bv(_ value: Int64) -> Z3BitVector64 {
+        return Z3BitVector64(
+            context: self,
+            ast: Z3_mk_int64(context, value, Z3BitVector64.getSort(self).sort)
+        )
     }
 
     /// Create a numeral of an int, bit-vector, or finite-domain sort.
@@ -315,7 +357,10 @@ public class Z3Context {
     ///
     /// - seealso: `Z3_mk_numeral`
     public func makeUnsignedInteger64(_ value: UInt64) -> Z3Int {
-        return Z3Int(context: self, ast: Z3_mk_unsigned_int64(context, value, intSort().sort))
+        return Z3Int(
+            context: self,
+            ast: Z3_mk_unsigned_int64(context, value, Z3Int.getSort(self).sort)
+        )
     }
 
     /// Create a numeral of a bit-vector.
@@ -326,8 +371,51 @@ public class Z3Context {
     /// parse a string.
     ///
     /// - seealso: `Z3_mk_numeral`
-    public func makeUnsignedInteger64Bv(_ value: UInt64) -> Z3Ast<BitVectorOfInt<UInt64>> {
-        return Z3Ast(context: self, ast: Z3_mk_unsigned_int64(context, value, bitVectorSort(size: 64).sort))
+    public func makeUnsignedInteger64Bv(_ value: UInt64) -> Z3BitVectorU64 {
+        return Z3BitVectorU64(
+            context: self,
+            ast: Z3_mk_unsigned_int64(context, value, Z3BitVectorU64.getSort(self).sort)
+        )
+    }
+    
+    /// Create a numeral of a bit-vector.
+    ///
+    /// This method can be used to create numerals that fit in a 128-bit integer.
+    /// The initial value is split into two `UInt64` bit patterns that fit the low
+    /// (0-63) and high (64-127) bit ranges.
+    ///
+    /// - seealso: `Z3_mk_numeral`
+    public func makeInteger128Bv(highBits: UInt64, lowBits: UInt64) -> Z3BitVector128 {
+        return Z3BitVector128(
+            context: self,
+            ast: Z3_mk_numeral(context, "\(highBits)\(lowBits)", Z3BitVector128.getSort(self).sort)
+        )
+    }
+
+    /// Create a numeral of a bit-vector.
+    ///
+    /// This method can be used to create numerals that fit in a 128-bit integer.
+    ///
+    /// - seealso: `Z3_mk_numeral`
+    public func makeUnsignedInteger128Bv(highBits: UInt64, lowBits: UInt64) -> Z3BitVector128 {
+        return Z3BitVector128(
+            context: self,
+            ast: Z3_mk_numeral(context, "\(highBits)\(lowBits)", Z3BitVector128.getSort(self).sort)
+        )
+    }
+
+    /// Create a bit-vector numeral from a vector of Booleans.
+    ///
+    /// - precondition: `!values.isEmpty`
+    ///
+    /// - seealso: `Z3_mk_numeral`
+    public func makeIntegerBvFromBools(_ values: [Bool]) -> AnyZ3BitVector {
+        precondition(!values.isEmpty)
+
+        return AnyZ3BitVector(
+            context: self,
+            ast: Z3_mk_bv_numeral(context, UInt32(values.count), values)
+        )
     }
 }
 
