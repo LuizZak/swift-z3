@@ -125,7 +125,7 @@ public class Z3Model {
     /// Evaluates expression to a double, assuming it is a numeral already
     ///
     /// Returns 0, in case of failure
-    public func double<T: IntOrRealSort>(_ expr: Z3Ast<T>) -> Double {
+    public func double<T: ArithmeticSort>(_ expr: Z3Ast<T>) -> Double {
         return doubleAny(expr)
     }
 

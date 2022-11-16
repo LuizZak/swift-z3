@@ -8,7 +8,7 @@ public extension Z3Context {
     /// All arguments must have int or real sort.
     ///
     /// - remark: The number of arguments must be greater than zero.
-    func makeAdd<T: IntOrRealSort>(_ arguments: [Z3Ast<T>]) -> Z3Ast<T> {
+    func makeAdd<T: ArithmeticSort>(_ arguments: [Z3Ast<T>]) -> Z3Ast<T> {
         precondition(!arguments.isEmpty)
 
         return preparingArgsAst(arguments) { count, args in
@@ -22,7 +22,7 @@ public extension Z3Context {
     ///
     /// - remark: Z3 has limited support for non-linear arithmetic.
     /// - remark: The number of arguments must be greater than zero.
-    func makeMul<T: IntOrRealSort>(_ arguments: [Z3Ast<T>]) -> Z3Ast<T> {
+    func makeMul<T: ArithmeticSort>(_ arguments: [Z3Ast<T>]) -> Z3Ast<T> {
         precondition(!arguments.isEmpty)
         
         return preparingArgsAst(arguments) { count, args in
@@ -35,7 +35,7 @@ public extension Z3Context {
     /// All arguments must have int or real sort.
     ///
     /// - remark: The number of arguments must be greater than zero.
-    func makeSub<T: IntOrRealSort>(_ arguments: [Z3Ast<T>]) -> Z3Ast<T> {
+    func makeSub<T: ArithmeticSort>(_ arguments: [Z3Ast<T>]) -> Z3Ast<T> {
         precondition(!arguments.isEmpty)
 
         return preparingArgsAst(arguments) { count, args in
@@ -45,7 +45,7 @@ public extension Z3Context {
 
     /// Create an AST node representing `- arg`.
     /// The arguments must have int or real type.
-    func makeUnaryMinus<T: IntOrRealSort>(_ ast: Z3Ast<T>) -> Z3Ast<T> {
+    func makeUnaryMinus<T: ArithmeticSort>(_ ast: Z3Ast<T>) -> Z3Ast<T> {
         return Z3Ast(context: self, ast: Z3_mk_unary_minus(context, ast.ast))
     }
 
@@ -54,7 +54,7 @@ public extension Z3Context {
     /// The arguments must either both have int type or both have real type.
     /// If the arguments have int type, then the result type is an int type,
     /// otherwise the the result type is real.
-    func makeDiv<T: IntOrRealSort>(_ arg1: Z3Ast<T>, _ arg2: Z3Ast<T>) -> Z3Ast<T> {
+    func makeDiv<T: ArithmeticSort>(_ arg1: Z3Ast<T>, _ arg2: Z3Ast<T>) -> Z3Ast<T> {
         return Z3Ast(context: self, ast: Z3_mk_div(context, arg1.ast, arg2.ast))
     }
 
@@ -75,31 +75,31 @@ public extension Z3Context {
     /// Create an AST node representing `arg1 ^ arg2`.
     ///
     /// The arguments must have int or real type.
-    func makePower<T: IntOrRealSort>(_ arg1: Z3Ast<T>, _ arg2: Z3Ast<T>) -> Z3Ast<T> {
+    func makePower<T: ArithmeticSort>(_ arg1: Z3Ast<T>, _ arg2: Z3Ast<T>) -> Z3Ast<T> {
         return Z3Ast(context: self, ast: Z3_mk_power(context, arg1.ast, arg2.ast))
     }
 
     /// Create less than.
     /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
-    func makeLessThan<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
+    func makeLessThan<T: ArithmeticSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
         return Z3Bool(context: self, ast: Z3_mk_lt(context, t1.ast, t2.ast))
     }
 
     /// Create less than or equal to.
     /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
-    func makeLessThanOrEqualTo<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
+    func makeLessThanOrEqualTo<T: ArithmeticSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
         return Z3Bool(context: self, ast: Z3_mk_le(context, t1.ast, t2.ast))
     }
 
     /// Create greater than.
     /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
-    func makeGreaterThan<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
+    func makeGreaterThan<T: ArithmeticSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
         return Z3Bool(context: self, ast: Z3_mk_gt(context, t1.ast, t2.ast))
     }
 
     /// Create greater than or equal to.
     /// The nodes `t1` and `t2` must have the same sort, and must be int or real.
-    func makeGreaterThanOrEqualTo<T: IntOrRealSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
+    func makeGreaterThanOrEqualTo<T: ArithmeticSort>(_ t1: Z3Ast<T>, _ t2: Z3Ast<T>) -> Z3Bool {
         return Z3Bool(context: self, ast: Z3_mk_ge(context, t1.ast, t2.ast))
     }
 

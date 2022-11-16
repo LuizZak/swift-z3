@@ -1,4 +1,4 @@
-public extension Z3Ast where T: IntOrRealSort {
+public extension Z3Ast where T: ArithmeticSort {
     static func < (lhs: Z3Ast, rhs: Z3Ast) -> Z3Bool {
         return lhs.context.makeLessThan(lhs, rhs)
     }

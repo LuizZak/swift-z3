@@ -65,7 +65,7 @@ public class Z3Optimize {
     /// Add a maximization constraint.
     ///
     /// - seealso: `minimize()`
-    public func maximize<T: IntOrRealSort>(_ a: Z3Ast<T>) -> UInt32 {
+    public func maximize<T: ArithmeticSort>(_ a: Z3Ast<T>) -> UInt32 {
         return Z3_optimize_maximize(context.context, optimize, a.ast)
     }
     
@@ -91,7 +91,7 @@ public class Z3Optimize {
     ///
     /// - seealso: `maximize()`
     /// - seealso: `maximizeAny()`
-    public func minimize<T: IntOrRealSort>(_ a: Z3Ast<T>) -> UInt32 {
+    public func minimize<T: ArithmeticSort>(_ a: Z3Ast<T>) -> UInt32 {
         return Z3_optimize_minimize(context.context, optimize, a.ast)
     }
     
