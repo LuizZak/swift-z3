@@ -5,8 +5,8 @@ public enum Z3GlobalParameters {
     /// - Restore the value of all global (and module) parameters.
     /// This command will not affect already created objects (such as tactics and solvers).
     ///
-    /// - seealso: `getParameter`
-    /// - seealso: `setParameter`
+    /// - seealso: `getParameter(id:)`
+    /// - seealso: `setParameter(id:value:)`
     public static func resetAll() {
         Z3_global_param_reset_all()
     }
@@ -15,8 +15,8 @@ public enum Z3GlobalParameters {
     ///
     /// Returns `nil` if the parameter value does not exist.
     ///
-    /// - seealso: `resetAll`
-    /// - seealso: `setParameter`
+    /// - seealso: `resetAll()`
+    /// - seealso: `setParameter(id:value:)`
     ///
     /// - remark: This function cannot be invoked simultaneously from different threads without synchronization.
     /// The result string stored in param_value is stored in shared location.
@@ -48,8 +48,8 @@ public enum Z3GlobalParameters {
     /// `setParameter(id: "pp.decimal", "true")`
     /// will set the parameter "decimal" in the module "pp" to true.
     ///
-    /// - seealso: `getParameter`
-    /// - seealso: `resetAll`
+    /// - seealso: `getParameter(id:)`
+    /// - seealso: `resetAll()`
     public static func setParameter(id: String, value: String) {
         Z3_global_param_set(id, value)
     }

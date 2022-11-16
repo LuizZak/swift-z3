@@ -106,6 +106,16 @@ public class Z3Solver {
     public func assert(_ exp: Z3Bool) {
         Z3_solver_assert(context.context, solver, exp.ast)
     }
+    
+    /// Assert a list of constraints into the solver.
+    ///
+    /// The methods `check` and `checkAssumptions` should be used to check whether
+    /// the logical context is consistent or not.
+    public func assert(_ constraints: [Z3Bool]) {
+        for a in constraints {
+            assert(a)
+        }
+    }
 
     /// Assert a constraint `a` into the solver, and track it (in the unsat) core
     /// using the Boolean constant `p`.
@@ -233,16 +243,6 @@ public class Z3Solver {
                                                 consequences.astVector)
 
         return Status.fromZ3_lbool(result)
-    }
-
-    /// Asserts a series of constraints into the solver.
-    ///
-    /// The methods `check` and `checkAssumptions` should be used to check whether
-    /// the logical context is consistent or not.
-    public func assert(_ expressions: [Z3Bool]) {
-        for exp in expressions {
-            assert(exp)
-        }
     }
 
     /// Retrieve the proof for the last `check()` or `checkAssumptions()`

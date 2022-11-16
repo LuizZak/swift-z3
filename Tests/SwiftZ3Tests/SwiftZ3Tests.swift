@@ -282,7 +282,7 @@ final class SwiftZ3Tests: XCTestCase {
             [1, 0, 2, 0, 0, 0, 0, 0, 0],
             [0, 7, 0, 0, 0, 0, 5, 2, 0],
             [9, 0, 0, 0, 6, 5, 0, 0, 0],
-            [0, 4, 0, 9, 7, 0, 0, 0, 0]
+            [0, 4, 0, 9, 7, 0, 0, 0, 0],
         ]
 
         var instanceC = context.makeTrue()
@@ -323,7 +323,7 @@ final class SwiftZ3Tests: XCTestCase {
                 [1, 5, 2, 4, 8, 9, 7, 6, 3],
                 [3, 7, 6, 1, 4, 8, 5, 2, 9],
                 [9, 2, 8, 3, 6, 5, 4, 7, 1],
-                [5, 4, 1, 9, 7, 2, 3, 8, 6]
+                [5, 4, 1, 9, 7, 2, 3, 8, 6],
             ]
 
             XCTAssertEqual(rInt, expected)
@@ -346,6 +346,10 @@ final class SwiftZ3Tests: XCTestCase {
         struct Hint {
             var coordinate: Coordinate
             var hint: Int32
+        }
+
+        func max(_ lhs: Z3Int, _ rhs: Z3Int) -> Z3Int {
+            context.makeIfThenElse(lhs > rhs, lhs, rhs)
         }
         
         func calculateTargetSum(coordinate: Coordinate, grid: [[Z3Int]], context: Z3Context) -> Z3Int {
@@ -389,9 +393,9 @@ final class SwiftZ3Tests: XCTestCase {
                 if subset.count == 1 {
                     subsetMax = subset[0]
                 } else {
-                    subsetMax = subset.dropFirst().reduce(subset[0]) {
-                        context.makeIfThenElse($0 > $1, $0, $1)
-                    }
+                    subsetMax = subset
+                        .dropFirst() // Drop first so we can skip computing max(subset[0], subset[0])
+                        .reduce(subset[0], max)
                 }
                 
                 let subsetNext = gridSubset[i + 1]
@@ -426,11 +430,10 @@ final class SwiftZ3Tests: XCTestCase {
         }
         
         // each cell contains a value in {1, ..., gridSize}
-        var cellsC: [[Z3Bool]] = []
+        var cellsC: [Z3Bool] = []
         for i in 0..<gridSize {
-            cellsC.append([])
             for j in 0..<gridSize {
-                cellsC[i].append(1 <= grid[i][j] && grid[i][j] <= Int32(gridSize))
+                cellsC.append(1 <= grid[i][j] && grid[i][j] <= Int32(gridSize))
             }
         }
         
@@ -451,12 +454,9 @@ final class SwiftZ3Tests: XCTestCase {
             colsC.append(context.makeDistinct(column))
         }
         
-        var towersC = context.makeTrue()
-        for t in cellsC {
-            towersC = towersC && context.makeAnd(t)
-        }
-        towersC = towersC && context.makeAnd(rowsC)
-        towersC = towersC && context.makeAnd(colsC)
+        let towersC: Z3Bool = context.makeAnd(
+            cellsC + rowsC + colsC
+        )
         
         let hints: [Hint] = [
             Hint(coordinate: .top(column: 1), hint: 1),
@@ -478,34 +478,39 @@ final class SwiftZ3Tests: XCTestCase {
             [0, 0, 0, 0, 0, 0],
         ]
         
-        var hintsC = context.makeTrue()
-        for hint in hints {
-            hintsC = hintsC && makeTarget(hint: hint, grid: grid, context: context)
-        }
-        
-        var initialGridC = context.makeTrue()
-        for i in 0..<gridSize {
-            for j in 0..<gridSize where initialGrid[i][j] != 0 {
-                initialGridC = initialGridC && grid[i][j] == initialGrid[i][j]
+        let hintsC: Z3Bool = context.makeAnd(
+            hints.map { hint in
+                makeTarget(hint: hint, grid: grid, context: context)
             }
-        }
+        )
+        
+        let gridSizeRange = (0..<gridSize)
+        let initialGridC: Z3Bool = context.makeAnd(
+            gridSizeRange.flatMap { i -> [Z3Bool] in
+                gridSizeRange
+                    .filter { j -> Bool in
+                        initialGrid[i][j] != 0
+                    }.map { j -> Z3Bool in
+                        grid[i][j] == initialGrid[i][j]
+                    }
+            }
+        )
 
         let s = context.makeSolver()
         s.assert(towersC)
         s.assert(hintsC)
         s.assert(initialGridC)
         
-        if s.check() == .satisfiable {
-            let m = s.getModel()!
-            var r: [[Z3Int]] = []
+        if s.check() == .satisfiable, let model = s.getModel() {
+            var result: [[Int32]] = []
             for i in 0..<gridSize {
-                r.append([])
+                result.append([])
                 for j in 0..<gridSize {
-                    r[i].append(m.eval(grid[i][j])!)
+                    result[i].append(
+                        model.int(grid[i][j])
+                    )
                 }
             }
-
-            let rInt = r.map { $0.map { $0.numeralInt } }
 
             let expectedGrid: [[Int32]] = [
                 [1, 6, 3, 2, 4, 5],
@@ -516,7 +521,7 @@ final class SwiftZ3Tests: XCTestCase {
                 [6, 4, 5, 3, 1, 2],
             ]
             
-            XCTAssertEqual(rInt, expectedGrid)
+            XCTAssertEqual(result, expectedGrid)
         } else {
             XCTFail("Failed to solve Towers game")
         }
