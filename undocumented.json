@@ -1,20 +1,6 @@
 {
   "warnings": [
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/AnyZ3Ast.swift",
-      "line": 3,
-      "symbol": "AnyZ3Ast",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/AnyZ3Ast.swift",
-      "line": 112,
-      "symbol": "AnyZ3Ast",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Numerical/BitVector/Z3BitVector.swift",
       "line": 23,
       "symbol": "Z3BitVector.&(_:_:)",
@@ -1744,27 +1730,6 @@
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Ast.swift",
-      "line": 1,
-      "symbol": "Z3Ast",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Ast.swift",
-      "line": 1,
-      "symbol": "Z3Ast",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Ast.swift",
-      "line": 3,
-      "symbol": "Z3Ast",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3AstBase.swift",
       "line": 35,
       "symbol": "Z3AstBase.isNumeralAst",
@@ -1829,107 +1794,9 @@
     },
     {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 3,
-      "symbol": "Z3Context",
-      "symbol_kind": "source.lang.swift.decl.extension",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 43,
+      "line": 45,
       "symbol": "Z3Context.init(configuration:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3FuncDecl.swift",
-      "line": 3,
-      "symbol": "Z3FuncDecl",
-      "symbol_kind": "source.lang.swift.decl.class",
       "warning": "undocumented"
     },
     {

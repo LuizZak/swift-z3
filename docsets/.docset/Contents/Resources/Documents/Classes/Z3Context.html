@@ -23,7 +23,7 @@
         <a class="header-link" href="../index.html">
            Docs
         </a>
-         (75% documented)
+         (77% documented)
       </p>
     
       <div class="header-col--secondary">
@@ -419,7 +419,7 @@
 
                 </div>
               </div>
-            <p>Undocumented</p>
+            <p>Main interaction point to Z3.</p>
 
           </div>
         </section>
@@ -648,8 +648,8 @@ solver (solver2). This combined solver changes its behaviour based on how
 it is used and how its parameters are set.</p>
 
 <p>If the solver is used in a non incremental way (i.e. no calls to
-<code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC4pushyyF">Z3Solver.push()</a></code> or <code>Z3Solver.pop()</code>, and no calls to <code>Z3Solver.assert()</code> or
-<code>Z3Solver.assertAndTrack</code> after checking satisfiability without an
+<code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC4pushyyF">Z3Solver.push()</a></code> or <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC3popyys6UInt32VF">Z3Solver.pop(_:)</a></code>, and no calls to <code>Z3Solver.assert()</code>
+or <code>Z3Solver.assertAndTrack</code> after checking satisfiability without an
 intervening <code>Solver.reset()</code>) then solver1 will be used. This solver will
 apply Z3&rsquo;s &ldquo;default&rdquo; tactic.</p>
 
@@ -666,11 +666,11 @@ will switch to using solver2 (which behaves similarly to the general
 solver to change its behaviour.</p>
 
 <p>The method <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">Z3Solver.getModel()</a></code> retrieves a model if the assertions is
-satisfiable (i.e., the result is <code>Z3_L_TRUE</code>) and model construction is
+satisfiable (i.e., the result is <code>Z3LBool.lUndef</code>) and model construction is
 enabled.</p>
 
 <p>The method <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">Z3Solver.getModel()</a></code> can also be used even if the result is
-<code>Z3_L_UNDEF</code>, but the returned model is not guaranteed to satisfy
+<code>Z3LBool.lUndef</code>, but the returned model is not guaranteed to satisfy
 quantified assertions.</p>
 
                       </div>
@@ -1592,6 +1592,19 @@ The initial value is split into two <code>UInt64</code> bit patterns that fit th
                     </section>
                   </div>
                 </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Accessors"></a>
+                <a name="//apple_ref/swift/Section/Accessors" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Accessors"></a>
+                  <h3 class="section-name"><span>Accessors</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
                 <li class="item">
                   <div>
                     <code>
@@ -1787,6 +1800,19 @@ and <code>Z3_STRING_SYMBOL</code> if the symbol was constructed using <code>make
                     </section>
                   </div>
                 </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Arrays"></a>
+                <a name="//apple_ref/swift/Section/Arrays" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Arrays"></a>
+                  <h3 class="section-name"><span>Arrays</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
                 <li class="item">
                   <div>
                     <code>
@@ -9475,6 +9501,19 @@ of the bound variables.</p>
                     </section>
                   </div>
                 </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Sets"></a>
+                <a name="//apple_ref/swift/Section/Sets" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Sets"></a>
+                  <h3 class="section-name"><span>Sets</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
                 <li class="item">
                   <div>
                     <code>
@@ -10857,6 +10896,19 @@ user. The array contains <code>numFields</code> elements.</li>
                     </section>
                   </div>
                 </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Symbols"></a>
+                <a name="//apple_ref/swift/Section/Symbols" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Symbols"></a>
+                  <h3 class="section-name"><span>Symbols</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
                 <li class="item">
                   <div>
                     <code>
@@ -10936,6 +10988,19 @@ The legal range of unsigned integers is 0 to 2^30-1.</p>
                     </section>
                   </div>
                 </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Tactics%20and%20Probes"></a>
+                <a name="//apple_ref/swift/Section/Tactics and Probes" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Tactics%20and%20Probes"></a>
+                  <h3 class="section-name"><span>Tactics and Probes</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
                 <li class="item">
                   <div>
                     <code>
@@ -11071,7 +11136,7 @@ name.</p>
       </article>
     </div>
     <section class="footer">
-      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-15)</p>
+      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-16)</p>
       <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.3</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
     </section>
   </body>
