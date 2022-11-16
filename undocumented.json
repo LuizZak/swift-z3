@@ -1807,13 +1807,6 @@
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Optimize.swift",
-      "line": 3,
-      "symbol": "Z3Optimize",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3ParamDescrs.swift",
       "line": 3,
       "symbol": "Z3ParamDescrs",

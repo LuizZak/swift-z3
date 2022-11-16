@@ -1759,21 +1759,14 @@
     },
     {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Config.swift",
-      "line": 3,
-      "symbol": "Z3Config",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Config.swift",
-      "line": 6,
+      "line": 30,
       "symbol": "Z3Config.init()",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Config.swift",
-      "line": 14,
+      "line": 38,
       "symbol": "Z3Config.setParameter(name:value:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
@@ -1874,6 +1867,13 @@
       "line": 3,
       "symbol": "Z3Stats",
       "symbol_kind": "source.lang.swift.decl.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3String.swift",
+      "line": 3,
+      "symbol": "Z3String",
+      "symbol_kind": "source.lang.swift.decl.typealias",
       "warning": "undocumented"
     },
     {
