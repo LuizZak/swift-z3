@@ -1,5 +1,6 @@
 import CZ3
 
+/// The abstract syntax tree (AST) class for Expression syntaxes.
 public class AnyZ3Ast: Z3AstBase {
     /// Return the sort of this AST node.
     ///

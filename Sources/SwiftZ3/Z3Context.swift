@@ -1,11 +1,13 @@
 import CZ3
 
+/// Main interaction point to Z3.
 public class Z3Context {
     /// Indicates whether the current Z3_context associated with this Z3Context
     /// was borrowed from another live Z3Context instance. Used to avoid calling
     /// deinitializers on the borrowed pointer.
-    private var isBorrowed: Bool = false
-    private var cachedFpaRoundingMode: Z3Ast<RoundingModeSort>?
+    private var _isBorrowed: Bool = false
+    private var _cachedFpaRoundingMode: Z3Ast<RoundingModeSort>?
+
     internal var context: Z3_context
     
     /// Gets or sets a reference to a rounding mode for floating-point operations
@@ -18,15 +20,15 @@ public class Z3Context {
     /// Defaults to NearestTiesToEven rounding mode, if not configured.
     public var currentFpaRoundingMode: Z3Ast<RoundingModeSort> {
         get {
-            if let cached = cachedFpaRoundingMode {
+            if let cached = _cachedFpaRoundingMode {
                 return cached
             }
             let new = makeFpaRoundNearestTiesToEven()
-            cachedFpaRoundingMode = new
+            _cachedFpaRoundingMode = new
             return new
         }
         set {
-            cachedFpaRoundingMode = newValue
+            _cachedFpaRoundingMode = newValue
         }
     }
 
@@ -49,11 +51,11 @@ public class Z3Context {
     
     internal init(borrowing context: Z3_context) {
         self.context = context
-        isBorrowed = true
+        _isBorrowed = true
     }
 
     deinit {
-        if !isBorrowed {
+        if !_isBorrowed {
             Z3_del_context(context)
         }
     }
@@ -85,8 +87,8 @@ public class Z3Context {
     /// it is used and how its parameters are set.
     ///
     /// If the solver is used in a non incremental way (i.e. no calls to
-    /// `Z3Solver.push()` or `Z3Solver.pop()`, and no calls to `Z3Solver.assert()` or
-    /// `Z3Solver.assertAndTrack` after checking satisfiability without an
+    /// `Z3Solver.push()` or `Z3Solver.pop(_:)`, and no calls to `Z3Solver.assert()`
+    /// or `Z3Solver.assertAndTrack` after checking satisfiability without an
     /// intervening `Solver.reset()`) then solver1 will be used. This solver will
     /// apply Z3's "default" tactic.
     ///
@@ -103,11 +105,11 @@ public class Z3Context {
     /// solver to change its behaviour.
     ///
     /// The method `Z3Solver.getModel()` retrieves a model if the assertions is
-    /// satisfiable (i.e., the result is `Z3_L_TRUE`) and model construction is
+    /// satisfiable (i.e., the result is `Z3LBool.lUndef`) and model construction is
     /// enabled.
     ///
     /// The method `Z3Solver.getModel()` can also be used even if the result is
-    /// `Z3_L_UNDEF`, but the returned model is not guaranteed to satisfy
+    /// `Z3LBool.lUndef`, but the returned model is not guaranteed to satisfy
     /// quantified assertions.
     public func makeSolver() -> Z3Solver {
         return Z3Solver(context: self, solver: Z3_mk_solver(context))

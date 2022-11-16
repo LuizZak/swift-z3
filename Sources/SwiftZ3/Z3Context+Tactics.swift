@@ -1,6 +1,7 @@
 import CZ3
 
 public extension Z3Context {
+    // MARK: - Tactics and Probes
     
     /// Return a tactic associated with the given name.
     ///

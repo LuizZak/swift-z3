@@ -1,6 +1,8 @@
 import CZ3
 
 public extension Z3Context {
+    // MARK: - Arrays
+
     /// Array read.
     ///
     /// The argument `a` is the array and `i` is the index of the array that

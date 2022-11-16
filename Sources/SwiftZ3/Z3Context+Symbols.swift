@@ -1,6 +1,8 @@
 import CZ3
 
 public extension Z3Context {
+    // MARK: - Symbols
+
     /// Create a Z3 symbol using an integer.
     ///
     /// Symbols are used to name several term and type constructors.

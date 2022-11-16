@@ -1,6 +1,8 @@
 import CZ3
 
 public extension Z3Context {
+    // MARK: - Accessors
+
     /// Return `Z3_INT_SYMBOL` if the symbol was constructed using `makeIntSymbol`,
     /// and `Z3_STRING_SYMBOL` if the symbol was constructed using `makeStringSymbol`.
     func getSymbolKind(_ symbol: Z3Symbol) -> Z3_symbol_kind {

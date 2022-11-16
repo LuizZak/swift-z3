@@ -1,6 +1,6 @@
 import CZ3
 
-/// Base class for `Z3Sort` and `AnyZ3Ast`
+/// Base class for `Z3Sort`, `Z3FuncDecl`, `Z3Pattern`, and `AnyZ3Ast`.
 public class Z3AstBase {
     /// The context this `Z3AstBase` belongs
     public let context: Z3Context

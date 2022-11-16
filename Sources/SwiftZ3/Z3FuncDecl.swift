@@ -1,5 +1,6 @@
 import CZ3
 
+/// A function declaration node.
 public class Z3FuncDecl: Z3AstBase {
     /// Alias for `ast`
     var funcDecl: Z3_func_decl {

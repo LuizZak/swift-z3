@@ -1,6 +1,8 @@
 import CZ3
 
 public extension Z3Context {
+    // MARK: - Sets
+
     /// Create Set type.
     func makeSetSort(_ ty: Z3Sort) -> Z3Sort {
         return Z3Sort(context: self, sort: Z3_mk_set_sort(context, ty.sort))

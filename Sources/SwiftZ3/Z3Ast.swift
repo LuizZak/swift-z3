@@ -1,5 +1,7 @@
 import CZ3
 
+/// An expression abstract syntax tree (AST) class that is typed with a sort to
+/// allow for compile-time static type checking of expressions.
 public class Z3Ast<T: SortKind>: AnyZ3Ast {
     override init(context: Z3Context, ast: Z3_ast) {
         assert(
