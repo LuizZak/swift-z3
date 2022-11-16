@@ -129,6 +129,9 @@
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Enums/Status.html">Status</a>
               </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Enums/Z3GlobalParameters.html">Z3GlobalParameters</a>
+              </li>
             </ul>
           </li>
           <li class="nav-group-name">
@@ -401,6 +404,9 @@
                 <a class="nav-group-task-link" href="Typealiases.html#/s:7SwiftZ30B8SortKinda">Z3SortKind</a>
               </li>
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Typealiases.html#/s:7SwiftZ30B6Stringa">Z3String</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Typealiases.html#/s:7SwiftZ30B10SymbolKinda">Z3SymbolKind</a>
               </li>
             </ul>
@@ -548,7 +554,35 @@ allow for compile-time static type checking of expressions.</p>
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>A configuration object for the Z3 context object.</p>
+
+<p>Configurations are created in order to assign parameters prior to creating
+contexts for Z3 interaction. For example, if the users wishes to use proof
+generation, then call:</p>
+
+<p><code>Z3Config.setParameter(&quot;proof&quot;, &quot;true&quot;)</code></p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    In previous versions of Z3, the <code>Z3_config</code> was used to store
+global and module configurations. Now, we should use <code><a href="Enums/Z3GlobalParameters.html#/s:7SwiftZ30B16GlobalParametersO12setParameter2id5valueySS_SStFZ">Z3GlobalParameters.setParameter(id:value:)</a></code>.
+
+</div>
+
+<p>The following parameters can be set:</p>
+
+<ul>
+<li><code>proof</code>:  (Boolean)           Enable proof generation</li>
+<li><code>debug_ref_count</code>: (Boolean)  Enable debug support for Z3_ast reference counting</li>
+<li><code>trace</code>:  (Boolean)           Tracing support for VCC</li>
+<li><code>trace_file_name</code>: (String)   Trace out file for VCC traces</li>
+<li><code>timeout</code>: (unsigned)         default timeout (in milliseconds) used for solvers</li>
+<li><code>well_sorted_check</code>:          type checker</li>
+<li><code>auto_config</code>:                use heuristics to automatically select solver and configure it</li>
+<li><code>model</code>:                      model generation for solvers, this parameter can be overwritten when creating a solver</li>
+<li><code>model_validate</code>:             validate models produced by solvers</li>
+<li><code>unsat_core</code>:                 unsat-core generation for solvers, this parameter can be overwritten when creating a solver</li>
+<li><code>encoding</code>:                   the string encoding used internally (must be either &ldquo;unicode&rdquo; - 18 bit, &ldquo;bmp&rdquo; - 16 bit or &ldquo;ascii&rdquo; - 8 bit)</li>
+</ul>
 
                         <a href="Classes/Z3Config.html" class="slightly-smaller">See more</a>
                       </div>

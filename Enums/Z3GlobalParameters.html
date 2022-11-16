@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Float80 Extension Reference</title>
+    <title>Z3GlobalParameters Enumeration Reference</title>
     <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
     <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
     <meta charset="utf-8">
@@ -14,9 +14,9 @@
   </head>
   <body>
 
-    <a name="//apple_ref/swift/Extension/Float80" class="dashAnchor"></a>
+    <a name="//apple_ref/swift/Enum/Z3GlobalParameters" class="dashAnchor"></a>
 
-    <a title="Float80 Extension Reference"></a>
+    <a title="Z3GlobalParameters Enumeration Reference"></a>
 
     <header class="header">
       <p class="header-col header-col--primary">
@@ -38,7 +38,7 @@
     <p class="breadcrumbs">
       <a class="breadcrumb" href="../index.html"> Reference</a>
       <img class="carat" src="../img/carat.png" alt=""/>
-      Float80 Extension Reference
+      Z3GlobalParameters Enumeration Reference
     </p>
 
     <div class="content-wrapper">
@@ -417,15 +417,16 @@
 
         <section class="section">
           <div class="section-content top-matter">
-            <h1>Float80</h1>
+            <h1>Z3GlobalParameters</h1>
               <div class="declaration">
                 <div class="language">
                   
-                  <pre class="highlight swift"><code><span class="kd">extension</span> <span class="kt">Float80</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span></code></pre>
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">enum</span> <span class="kt">Z3GlobalParameters</span></code></pre>
 
                 </div>
               </div>
-            
+            <p>Contains static APIs for configuring global parameters for all Z3 contexts.</p>
+
           </div>
         </section>
 
@@ -436,9 +437,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:s7Float80V7SwiftZ3E7getSortyAC0cE0CAC0C7ContextCFZ"></a>
-                    <a name="//apple_ref/swift/Method/getSort(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:s7Float80V7SwiftZ3E7getSortyAC0cE0CAC0C7ContextCFZ">getSort(_:<wbr>)</a>
+                    <a name="/s:7SwiftZ30B16GlobalParametersO8resetAllyyFZ"></a>
+                    <a name="//apple_ref/swift/Method/resetAll()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B16GlobalParametersO8resetAllyyFZ">resetAll()</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -446,14 +447,121 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Returns an 80-bit FloatingPoint sort.</p>
+                        
+<ul>
+<li><p>Restore the value of all global (and module) parameters.
+This command will not affect already created objects (such as tactics and solvers).</p></li>
+</ul><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <p><code>getParameter</code></p>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <p><code>setParameter</code></p>
+
+</div>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">static</span> <span class="kd">func</span> <span class="nf">getSort</span><span class="p">(</span><span class="n">_</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">static</span> <span class="kd">func</span> <span class="nf">resetAll</span><span class="p">()</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B16GlobalParametersO12getParameter2idSSSgSS_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/getParameter(id:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B16GlobalParametersO12getParameter2idSSSgSS_tFZ">getParameter(id:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Get a global (or module) parameter.</p>
+
+<p>Returns <code>nil</code> if the parameter value does not exist.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>resetAll</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <p><code>setParameter</code></p>
+
+</div><div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    <p>This function cannot be invoked simultaneously from different threads without synchronization.
+The result string stored in param_value is stored in shared location.</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">static</span> <span class="kd">func</span> <span class="nf">getParameter</span><span class="p">(</span><span class="nv">id</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span><span class="p">?</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B16GlobalParametersO12setParameter2id5valueySS_SStFZ"></a>
+                    <a name="//apple_ref/swift/Method/setParameter(id:value:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B16GlobalParametersO12setParameter2id5valueySS_SStFZ">setParameter(id:<wbr>value:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Set a global (or module) parameter.
+This setting is shared by all Z3 contexts.</p>
+
+<p>When a Z3 module is initialized it will use the value of these parameters
+when Z3_params objects are not provided.</p>
+
+<p>The name of parameter can be composed of characters [a-z][A-Z], digits [0-9], &lsquo;-&rsquo; and &lsquo;_&rsquo;.
+The character &lsquo;.&rsquo; is a delimiter (more later).</p>
+
+<p>The parameter names are case-insensitive. The character &lsquo;-&rsquo; should be viewed as an &ldquo;alias&rdquo; for &lsquo;_&rsquo;.
+Thus, the following parameter names are considered equivalent: &ldquo;pp.decimal-precision&rdquo;  and &ldquo;PP.DECIMAL_PRECISION&rdquo;.</p>
+
+<p>This function can be used to set parameters for a specific Z3 module.
+This can be done by using <module-name>.<parameter-name>.
+For example:
+<code>setParameter(id: &quot;pp.decimal&quot;, &quot;true&quot;)</code>
+will set the parameter &ldquo;decimal&rdquo; in the module &ldquo;pp&rdquo; to true.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>getParameter</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>resetAll</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">static</span> <span class="kd">func</span> <span class="nf">setParameter</span><span class="p">(</span><span class="nv">id</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span></code></pre>
 
                         </div>
                       </div>
