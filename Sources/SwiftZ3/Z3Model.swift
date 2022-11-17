@@ -152,9 +152,8 @@ public class Z3Model {
     /// Returns 0, in case of failure
     public func int64Any(_ expr: AnyZ3Ast) -> Int64 {
         if let ast = evalAny(expr, completion: true) {
-            var i: Int64 = 0
-            if Z3_get_numeral_int64(context.context, ast.ast, &i) {
-                return i
+            if let number = context.getNumeralInt64(ast) {
+                return number
             }
         }
         

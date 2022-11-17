@@ -62,8 +62,13 @@ public extension Z3Context {
     /// the less than the size of the domain.
     ///
     /// - seealso: `getFiniteDomainSortSize`
-    func makeFiniteDomainSort(name: Z3Symbol, size: UInt64) -> Z3Sort {
-        return Z3Sort(context: self, sort: Z3_mk_finite_domain_sort(context, name.symbol, size))
+    func makeFiniteDomainSort(name: Z3Symbol, size: UInt64) -> Z3FiniteDomainSort {
+        return Z3FiniteDomainSort(
+            context: self,
+            sort: Z3_mk_finite_domain_sort(context, name.symbol, size),
+            name: name,
+            size: size
+        )
     }
 
     /// Create an array type.
