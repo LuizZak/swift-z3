@@ -86,6 +86,12 @@
                 <a class="nav-group-task-link" href="../Classes/Z3Context.html">Z3Context</a>
               </li>
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3FiniteDomainNumeral.html">Z3FiniteDomainNumeral</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3FiniteDomainSort.html">Z3FiniteDomainSort</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a>
               </li>
               <li class="nav-group-task">
@@ -944,660 +950,6 @@ simplifier can be configured using the given parameter set.</p>
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">simplifyEx</span><span class="p">(</span><span class="n">_</span> <span class="nv">a</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">p</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Params.html">Z3Params</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF"></a>
-                    <a name="//apple_ref/swift/Method/makeNumeral(number:sort:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:<wbr>sort:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of a given sort.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeInteger()</code>
-
-</div><div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeUnsignedInteger()</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="n">makeNumeral</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="nv">number</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt">T</span><span class="o">.</span><span class="k">Type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ313NumericalSortP">NumericalSort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                      <div>
-                        <h4>Parameters</h4>
-                        <table class="graybox">
-                          <tbody>
-                            <tr>
-                              <td>
-                                <code>
-                                <em>number</em>
-                                </code>
-                              </td>
-                              <td>
-                                <div>
-                                  <p>A string representing the numeral value in decimal
-notation. The string may be of the form <code>[num]*[.[num]*][E[+|-][num]+]</code>.
-If the given sort is a real, then the numeral can be a rational, that is,
-a string of the form <code>[num]* / [num]*</code> .</p>
-                                </div>
-                              </td>
-                            </tr>
-                            <tr>
-                              <td>
-                                <code>
-                                <em>sort</em>
-                                </code>
-                              </td>
-                              <td>
-                                <div>
-                                  <p>The sort of the numeral. In the current implementation,
-the given sort can be an int, real, finite-domain, or bit-vectors of
-arbitrary size.</p>
-                                </div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA03AnyB3AstCSS_AA0B4SortCtF"></a>
-                    <a name="//apple_ref/swift/Method/makeNumeral(number:sort:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA03AnyB3AstCSS_AA0B4SortCtF">makeNumeral(number:<wbr>sort:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of a given sort.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeInteger()</code>
-
-</div><div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeUnsignedInteger()</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeNumeral</span><span class="p">(</span><span class="nv">number</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
-
-                        </div>
-                      </div>
-                      <div>
-                        <h4>Parameters</h4>
-                        <table class="graybox">
-                          <tbody>
-                            <tr>
-                              <td>
-                                <code>
-                                <em>number</em>
-                                </code>
-                              </td>
-                              <td>
-                                <div>
-                                  <p>A string representing the numeral value in decimal
-notation. The string may be of the form <code>[num]*[.[num]*][E[+|-][num]+]</code>.
-If the given sort is a real, then the numeral can be a rational, that is,
-a string of the form <code>[num]* / [num]*</code> .</p>
-                                </div>
-                              </td>
-                            </tr>
-                            <tr>
-                              <td>
-                                <code>
-                                <em>sort</em>
-                                </code>
-                              </td>
-                              <td>
-                                <div>
-                                  <p>The sort of the numeral. In the current implementation,
-the given sort can be an int, real, finite-domain, or bit-vectors of
-arbitrary size.</p>
-                                </div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC8makeRealyAA0B3AstCyAA0E4SortVGs5Int32V_AKtF"></a>
-                    <a name="//apple_ref/swift/Method/makeReal(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC8makeRealyAA0B3AstCyAA0E4SortVGs5Int32V_AKtF">makeReal(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a real from a fraction.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeNumeral</code>
-
-</div><div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeInteger</code>
-
-</div><div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeUnsignedInteger</code>
-
-</div><div class="aside aside-precondition">
-    <p class="aside-title">Precondition</p>
-    <code>den != 0</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeReal</span><span class="p">(</span><span class="n">_</span> <span class="nv">num</span><span class="p">:</span> <span class="kt">Int32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">den</span><span class="p">:</span> <span class="kt">Int32</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Reala">Z3Real</a></span></code></pre>
-
-                        </div>
-                      </div>
-                      <div>
-                        <h4>Parameters</h4>
-                        <table class="graybox">
-                          <tbody>
-                            <tr>
-                              <td>
-                                <code>
-                                <em>num</em>
-                                </code>
-                              </td>
-                              <td>
-                                <div>
-                                  <p>numerator of rational.</p>
-                                </div>
-                              </td>
-                            </tr>
-                            <tr>
-                              <td>
-                                <code>
-                                <em>den</em>
-                                </code>
-                              </td>
-                              <td>
-                                <div>
-                                  <p>denominator of rational.</p>
-                                </div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC11makeIntegeryAA0B3AstCyAA7IntSortVGs5Int32VF"></a>
-                    <a name="//apple_ref/swift/Method/makeInteger(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeIntegeryAA0B3AstCyAA7IntSortVGs5Int32VF">makeInteger(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of an int, bit-vector, or finite-domain sort.</p>
-
-<p>This method can be used to create numerals that fit in a machine integer.
-It is slightly faster than makeNumeral since it is not necessary to
-parse a string.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>Z3_mk_numeral</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeInteger</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC13makeIntegerBvyAA0B3AstCyAA14BitVectorOfIntVys5Int32VGGAJF"></a>
-                    <a name="//apple_ref/swift/Method/makeIntegerBv(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeIntegerBvyAA0B3AstCyAA14BitVectorOfIntVys5Int32VGGAJF">makeIntegerBv(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of a bit-vector.</p>
-
-<p>This method can be used to create numerals that fit in a machine integer.
-It is slightly faster than makeNumeral since it is not necessary to
-parse a string.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>Z3_mk_numeral</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeIntegerBv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B11BitVector32a">Z3BitVector32</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC14makeInteger1BvyAA0B3AstCyAA14BitVectorSort1VGs6UInt32VF"></a>
-                    <a name="//apple_ref/swift/Method/makeInteger1Bv(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeInteger1BvyAA0B3AstCyAA14BitVectorSort1VGs6UInt32VF">makeInteger1Bv(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of a bit-vector of one bit.</p>
-
-<p>This method can be used to create numerals that fit in a machine integer.
-It is slightly faster than makeNumeral since it is not necessary to
-parse a string.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>Z3_mk_numeral</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeInteger1Bv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B10BitVector1a">Z3BitVector1</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC19makeUnsignedIntegeryAA0B3AstCyAA7IntSortVGs6UInt32VF"></a>
-                    <a name="//apple_ref/swift/Method/makeUnsignedInteger(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC19makeUnsignedIntegeryAA0B3AstCyAA7IntSortVGs6UInt32VF">makeUnsignedInteger(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of an int, bit-vector, or finite-domain sort.</p>
-
-<p>This method can be used to create numerals that fit in a machine unsigned
-integer.
-It is slightly faster than makeNumeral since it is not necessary to
-parse a string.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>Z3_mk_numeral</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeUnsignedInteger</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC21makeUnsignedIntegerBvyAA0B3AstCyAA14BitVectorOfIntVys6UInt32VGGAJF"></a>
-                    <a name="//apple_ref/swift/Method/makeUnsignedIntegerBv(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC21makeUnsignedIntegerBvyAA0B3AstCyAA14BitVectorOfIntVys6UInt32VGGAJF">makeUnsignedIntegerBv(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of a bit-vector.</p>
-
-<p>This method can be used to create numerals that fit in a machine integer.
-It is slightly faster than makeNumeral since it is not necessary to
-parse a string.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>Z3_mk_numeral</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeUnsignedIntegerBv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12BitVectorU32a">Z3BitVectorU32</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC13makeInteger64yAA0B3AstCyAA7IntSortVGs5Int64VF"></a>
-                    <a name="//apple_ref/swift/Method/makeInteger64(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeInteger64yAA0B3AstCyAA7IntSortVGs5Int64VF">makeInteger64(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of an int, bit-vector, or finite-domain sort.</p>
-
-<p>This method can be used to create numerals that fit in a machine <code>Int64</code>
-integer.
-It is slightly faster than makeNumeral since it is not necessary to
-parse a string.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>Z3_mk_numeral</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeInteger64</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC15makeInteger64BvyAA0B3AstCyAA14BitVectorOfIntVys5Int64VGGAJF"></a>
-                    <a name="//apple_ref/swift/Method/makeInteger64Bv(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeInteger64BvyAA0B3AstCyAA14BitVectorOfIntVys5Int64VGGAJF">makeInteger64Bv(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of a bit-vector.</p>
-
-<p>This method can be used to create numerals that fit in a machine <code>Int64</code>
-integer.
-It is slightly faster than makeNumeral since it is not necessary to
-parse a string.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>Z3_mk_numeral</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeInteger64Bv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B11BitVector64a">Z3BitVector64</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC21makeUnsignedInteger64yAA0B3AstCyAA7IntSortVGs6UInt64VF"></a>
-                    <a name="//apple_ref/swift/Method/makeUnsignedInteger64(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC21makeUnsignedInteger64yAA0B3AstCyAA7IntSortVGs6UInt64VF">makeUnsignedInteger64(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of an int, bit-vector, or finite-domain sort.</p>
-
-<p>This method can be used to create numerals that fit in a machine <code>UInt64</code>
-integer.
-It is slightly faster than makeNumeral since it is not necessary to
-parse a string.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>Z3_mk_numeral</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeUnsignedInteger64</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC23makeUnsignedInteger64BvyAA0B3AstCyAA14BitVectorOfIntVys6UInt64VGGAJF"></a>
-                    <a name="//apple_ref/swift/Method/makeUnsignedInteger64Bv(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC23makeUnsignedInteger64BvyAA0B3AstCyAA14BitVectorOfIntVys6UInt64VGGAJF">makeUnsignedInteger64Bv(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of a bit-vector.</p>
-
-<p>This method can be used to create numerals that fit in a machine <code>Int64</code>
-integer.
-It is slightly faster than makeNumeral since it is not necessary to
-parse a string.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>Z3_mk_numeral</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeUnsignedInteger64Bv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12BitVectorU64a">Z3BitVectorU64</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC16makeInteger128Bv8highBits03lowH0AA0B3AstCyAA16BitVectorSort128VGs6UInt64V_AMtF"></a>
-                    <a name="//apple_ref/swift/Method/makeInteger128Bv(highBits:lowBits:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC16makeInteger128Bv8highBits03lowH0AA0B3AstCyAA16BitVectorSort128VGs6UInt64V_AMtF">makeInteger128Bv(highBits:<wbr>lowBits:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of a bit-vector.</p>
-
-<p>This method can be used to create numerals that fit in a 128-bit integer.
-The initial value is split into two <code>UInt64</code> bit patterns that fit the low
-(0-63) and high (64-127) bit ranges.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>Z3_mk_numeral</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeInteger128Bv</span><span class="p">(</span><span class="nv">highBits</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">,</span> <span class="nv">lowBits</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12BitVector128a">Z3BitVector128</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC24makeUnsignedInteger128Bv8highBits03lowI0AA0B3AstCyAA16BitVectorSort128VGs6UInt64V_AMtF"></a>
-                    <a name="//apple_ref/swift/Method/makeUnsignedInteger128Bv(highBits:lowBits:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC24makeUnsignedInteger128Bv8highBits03lowI0AA0B3AstCyAA16BitVectorSort128VGs6UInt64V_AMtF">makeUnsignedInteger128Bv(highBits:<wbr>lowBits:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a numeral of a bit-vector.</p>
-
-<p>This method can be used to create numerals that fit in a 128-bit integer.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>Z3_mk_numeral</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeUnsignedInteger128Bv</span><span class="p">(</span><span class="nv">highBits</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">,</span> <span class="nv">lowBits</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12BitVector128a">Z3BitVector128</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC22makeIntegerBvFromBoolsyAA0B3AstCyAA16AnyBitVectorSortVGSaySbGF"></a>
-                    <a name="//apple_ref/swift/Method/makeIntegerBvFromBools(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC22makeIntegerBvFromBoolsyAA0B3AstCyAA16AnyBitVectorSortVGSaySbGF">makeIntegerBvFromBools(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a bit-vector numeral from a vector of Booleans.</p>
-<div class="aside aside-precondition">
-    <p class="aside-title">Precondition</p>
-    <p><code>!values.isEmpty</code></p>
-
-</div><div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <p><code>Z3_mk_numeral</code></p>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeIntegerBvFromBools</span><span class="p">(</span><span class="n">_</span> <span class="nv">values</span><span class="p">:</span> <span class="p">[</span><span class="kt">Bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span></code></pre>
 
                         </div>
                       </div>
@@ -9042,6 +8394,797 @@ The sort of the new node is equal to the sort of <code>t2</code> and <code>t3</c
             </div>
             <div class="task-group">
               <div class="task-name-container">
+                <a name="/Numeral%20creation%20and%20extraction"></a>
+                <a name="//apple_ref/swift/Section/Numeral creation and extraction" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Numeral%20creation%20and%20extraction"></a>
+                  <h3 class="section-name"><span>Numeral creation and extraction</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeNumeral(number:sort:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:<wbr>sort:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of a given sort.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeInteger()</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeUnsignedInteger()</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeNumeral</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="nv">number</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt">T</span><span class="o">.</span><span class="k">Type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ313NumericalSortP">NumericalSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>number</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>A string representing the numeral value in decimal
+notation. The string may be of the form <code>[num]*[.[num]*][E[+|-][num]+]</code>.
+If the given sort is a real, then the numeral can be a rational, that is,
+a string of the form <code>[num]* / [num]*</code> .</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>sort</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The sort of the numeral. In the current implementation,
+the given sort can be an int, real, finite-domain, or bit-vectors of
+arbitrary size.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA03AnyB3AstCSS_AA0B4SortCtF"></a>
+                    <a name="//apple_ref/swift/Method/makeNumeral(number:sort:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA03AnyB3AstCSS_AA0B4SortCtF">makeNumeral(number:<wbr>sort:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of a given sort.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeInteger()</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeUnsignedInteger()</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeNumeral</span><span class="p">(</span><span class="nv">number</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>number</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>A string representing the numeral value in decimal
+notation. The string may be of the form <code>[num]*[.[num]*][E[+|-][num]+]</code>.
+If the given sort is a real, then the numeral can be a rational, that is,
+a string of the form <code>[num]* / [num]*</code> .</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>sort</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The sort of the numeral. In the current implementation,
+the given sort can be an int, real, finite-domain, or bit-vectors of
+arbitrary size.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC8makeRealyAA0B3AstCyAA0E4SortVGs5Int32V_AKtF"></a>
+                    <a name="//apple_ref/swift/Method/makeReal(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC8makeRealyAA0B3AstCyAA0E4SortVGs5Int32V_AKtF">makeReal(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a real from a fraction.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeNumeral</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeInteger</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeUnsignedInteger</code>
+
+</div><div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>den != 0</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeReal</span><span class="p">(</span><span class="n">_</span> <span class="nv">num</span><span class="p">:</span> <span class="kt">Int32</span><span class="p">,</span> <span class="n">_</span> <span class="nv">den</span><span class="p">:</span> <span class="kt">Int32</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Reala">Z3Real</a></span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>num</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>numerator of rational.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>den</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>denominator of rational.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC11makeIntegeryAA0B3AstCyAA7IntSortVGs5Int32VF"></a>
+                    <a name="//apple_ref/swift/Method/makeInteger(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeIntegeryAA0B3AstCyAA7IntSortVGs5Int32VF">makeInteger(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of an int, bit-vector, or finite-domain sort.</p>
+
+<p>This method can be used to create numerals that fit in a machine integer.
+It is slightly faster than makeNumeral since it is not necessary to
+parse a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeInteger</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13makeIntegerBvyAA0B3AstCyAA14BitVectorOfIntVys5Int32VGGAJF"></a>
+                    <a name="//apple_ref/swift/Method/makeIntegerBv(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeIntegerBvyAA0B3AstCyAA14BitVectorOfIntVys5Int32VGGAJF">makeIntegerBv(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of a bit-vector.</p>
+
+<p>This method can be used to create numerals that fit in a machine integer.
+It is slightly faster than makeNumeral since it is not necessary to
+parse a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeIntegerBv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B11BitVector32a">Z3BitVector32</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14makeInteger1BvyAA0B3AstCyAA14BitVectorSort1VGs6UInt32VF"></a>
+                    <a name="//apple_ref/swift/Method/makeInteger1Bv(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeInteger1BvyAA0B3AstCyAA14BitVectorSort1VGs6UInt32VF">makeInteger1Bv(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of a bit-vector of one bit.</p>
+
+<p>This method can be used to create numerals that fit in a machine integer.
+It is slightly faster than makeNumeral since it is not necessary to
+parse a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeInteger1Bv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B10BitVector1a">Z3BitVector1</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC19makeUnsignedIntegeryAA0B3AstCyAA7IntSortVGs6UInt32VF"></a>
+                    <a name="//apple_ref/swift/Method/makeUnsignedInteger(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC19makeUnsignedIntegeryAA0B3AstCyAA7IntSortVGs6UInt32VF">makeUnsignedInteger(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of an int, bit-vector, or finite-domain sort.</p>
+
+<p>This method can be used to create numerals that fit in a machine unsigned
+integer.
+It is slightly faster than makeNumeral since it is not necessary to
+parse a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeUnsignedInteger</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC21makeUnsignedIntegerBvyAA0B3AstCyAA14BitVectorOfIntVys6UInt32VGGAJF"></a>
+                    <a name="//apple_ref/swift/Method/makeUnsignedIntegerBv(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC21makeUnsignedIntegerBvyAA0B3AstCyAA14BitVectorOfIntVys6UInt32VGGAJF">makeUnsignedIntegerBv(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of a bit-vector.</p>
+
+<p>This method can be used to create numerals that fit in a machine integer.
+It is slightly faster than makeNumeral since it is not necessary to
+parse a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeUnsignedIntegerBv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12BitVectorU32a">Z3BitVectorU32</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13makeInteger64yAA0B3AstCyAA7IntSortVGs5Int64VF"></a>
+                    <a name="//apple_ref/swift/Method/makeInteger64(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeInteger64yAA0B3AstCyAA7IntSortVGs5Int64VF">makeInteger64(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of an int, bit-vector, or finite-domain sort.</p>
+
+<p>This method can be used to create numerals that fit in a machine <code>Int64</code>
+integer.
+It is slightly faster than makeNumeral since it is not necessary to
+parse a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeInteger64</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC15makeInteger64BvyAA0B3AstCyAA14BitVectorOfIntVys5Int64VGGAJF"></a>
+                    <a name="//apple_ref/swift/Method/makeInteger64Bv(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeInteger64BvyAA0B3AstCyAA14BitVectorOfIntVys5Int64VGGAJF">makeInteger64Bv(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of a bit-vector.</p>
+
+<p>This method can be used to create numerals that fit in a machine <code>Int64</code>
+integer.
+It is slightly faster than makeNumeral since it is not necessary to
+parse a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeInteger64Bv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Int64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B11BitVector64a">Z3BitVector64</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC21makeUnsignedInteger64yAA0B3AstCyAA7IntSortVGs6UInt64VF"></a>
+                    <a name="//apple_ref/swift/Method/makeUnsignedInteger64(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC21makeUnsignedInteger64yAA0B3AstCyAA7IntSortVGs6UInt64VF">makeUnsignedInteger64(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of an int, bit-vector, or finite-domain sort.</p>
+
+<p>This method can be used to create numerals that fit in a machine <code>UInt64</code>
+integer.
+It is slightly faster than makeNumeral since it is not necessary to
+parse a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeUnsignedInteger64</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC24makeUnsignedInteger64Any_4sortAA0gB3AstCs6UInt64V_AA0B4SortCtF"></a>
+                    <a name="//apple_ref/swift/Method/makeUnsignedInteger64Any(_:sort:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC24makeUnsignedInteger64Any_4sortAA0gB3AstCs6UInt64V_AA0B4SortCtF">makeUnsignedInteger64Any(_:<wbr>sort:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of an int, bit-vector, or finite-domain sort.</p>
+
+<p>This method can be used to create numerals that fit in a machine <code>UInt64</code>
+integer.
+It is slightly faster than makeNumeral since it is not necessary to
+parse a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC21makeUnsignedInteger64yAA0B3AstCyAA7IntSortVGs6UInt64VF">makeUnsignedInteger64(_:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeUnsignedInteger64Any</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC23makeUnsignedInteger64BvyAA0B3AstCyAA14BitVectorOfIntVys6UInt64VGGAJF"></a>
+                    <a name="//apple_ref/swift/Method/makeUnsignedInteger64Bv(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC23makeUnsignedInteger64BvyAA0B3AstCyAA14BitVectorOfIntVys6UInt64VGGAJF">makeUnsignedInteger64Bv(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of a bit-vector.</p>
+
+<p>This method can be used to create numerals that fit in a machine <code>Int64</code>
+integer.
+It is slightly faster than makeNumeral since it is not necessary to
+parse a string.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeUnsignedInteger64Bv</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12BitVectorU64a">Z3BitVectorU64</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16makeInteger128Bv8highBits03lowH0AA0B3AstCyAA16BitVectorSort128VGs6UInt64V_AMtF"></a>
+                    <a name="//apple_ref/swift/Method/makeInteger128Bv(highBits:lowBits:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16makeInteger128Bv8highBits03lowH0AA0B3AstCyAA16BitVectorSort128VGs6UInt64V_AMtF">makeInteger128Bv(highBits:<wbr>lowBits:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of a bit-vector.</p>
+
+<p>This method can be used to create numerals that fit in a 128-bit integer.
+The initial value is split into two <code>UInt64</code> bit patterns that fit the low
+(0-63) and high (64-127) bit ranges.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeInteger128Bv</span><span class="p">(</span><span class="nv">highBits</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">,</span> <span class="nv">lowBits</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12BitVector128a">Z3BitVector128</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC24makeUnsignedInteger128Bv8highBits03lowI0AA0B3AstCyAA16BitVectorSort128VGs6UInt64V_AMtF"></a>
+                    <a name="//apple_ref/swift/Method/makeUnsignedInteger128Bv(highBits:lowBits:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC24makeUnsignedInteger128Bv8highBits03lowI0AA0B3AstCyAA16BitVectorSort128VGs6UInt64V_AMtF">makeUnsignedInteger128Bv(highBits:<wbr>lowBits:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a numeral of a bit-vector.</p>
+
+<p>This method can be used to create numerals that fit in a 128-bit integer.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeUnsignedInteger128Bv</span><span class="p">(</span><span class="nv">highBits</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">,</span> <span class="nv">lowBits</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12BitVector128a">Z3BitVector128</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC22makeIntegerBvFromBoolsyAA0B3AstCyAA16AnyBitVectorSortVGSaySbGF"></a>
+                    <a name="//apple_ref/swift/Method/makeIntegerBvFromBools(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC22makeIntegerBvFromBoolsyAA0B3AstCyAA16AnyBitVectorSortVGSaySbGF">makeIntegerBvFromBools(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a bit-vector numeral from a vector of Booleans.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <p><code>!values.isEmpty</code></p>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <p><code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC11makeNumeral6number4sortAA0B3AstCyxGSS_xmtAA13NumericalSortRzlF">makeNumeral(number:sort:)</a></code></p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeIntegerBvFromBools</span><span class="p">(</span><span class="n">_</span> <span class="nv">values</span><span class="p">:</span> <span class="p">[</span><span class="kt">Bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ303AnyB9BitVectora">AnyZ3BitVector</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16getNumeralStringySSAA03AnyB3AstCF"></a>
+                    <a name="//apple_ref/swift/Method/getNumeralString(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16getNumeralStringySSAA03AnyB3AstCF">getNumeralString(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return numeral value, as a decimal string of a numeric constant term</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">getNumeralString</span><span class="p">(</span><span class="n">_</span> <span class="nv">numeral</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC15getNumeralInt64ys0F0VSgAA03AnyB3AstCF"></a>
+                    <a name="//apple_ref/swift/Method/getNumeralInt64(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC15getNumeralInt64ys0F0VSgAA03AnyB3AstCF">getNumeralInt64(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Similar to <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC16getNumeralStringySSAA03AnyB3AstCF">getNumeralString(_:)</a></code>, but only succeeds if the value can
+fit in a machine <code>Int64</code> int. Returns <code>nil</code> if it fails.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">getNumeralInt64</span><span class="p">(</span><span class="n">_</span> <span class="nv">numeral</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Int64</span><span class="p">?</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16getNumeralUInt64ys0F0VSgAA03AnyB3AstCF"></a>
+                    <a name="//apple_ref/swift/Method/getNumeralUInt64(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16getNumeralUInt64ys0F0VSgAA03AnyB3AstCF">getNumeralUInt64(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Similar to <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC16getNumeralStringySSAA03AnyB3AstCF">getNumeralString(_:)</a></code>, but only succeeds if the value can
+fit in a machine <code>UInt64</code> int. Returns <code>nil</code> if it fails.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">getNumeralUInt64</span><span class="p">(</span><span class="n">_</span> <span class="nv">numeral</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">UInt64</span><span class="p">?</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
                 <a name="/Qualifiers"></a>
                 <a name="//apple_ref/swift/Section/Qualifiers" class="dashAnchor"></a>
                 <div class="section-name-container">
@@ -11167,9 +11310,9 @@ This type can also be seen as a machine integer.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC20makeFiniteDomainSort4name4sizeAA0bG0CAA0B6SymbolC_s6UInt64VtF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC20makeFiniteDomainSort4name4sizeAA0befG0CAA0B6SymbolC_s6UInt64VtF"></a>
                     <a name="//apple_ref/swift/Method/makeFiniteDomainSort(name:size:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC20makeFiniteDomainSort4name4sizeAA0bG0CAA0B6SymbolC_s6UInt64VtF">makeFiniteDomainSort(name:<wbr>size:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC20makeFiniteDomainSort4name4sizeAA0befG0CAA0B6SymbolC_s6UInt64VtF">makeFiniteDomainSort(name:<wbr>size:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -11194,7 +11337,7 @@ the less than the size of the domain.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFiniteDomainSort</span><span class="p">(</span><span class="nv">name</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span><span class="p">,</span> <span class="nv">size</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFiniteDomainSort</span><span class="p">(</span><span class="nv">name</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span><span class="p">,</span> <span class="nv">size</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3FiniteDomainSort.html">Z3FiniteDomainSort</a></span></code></pre>
 
                         </div>
                       </div>

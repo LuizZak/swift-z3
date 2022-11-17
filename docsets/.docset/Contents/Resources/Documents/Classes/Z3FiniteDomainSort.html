@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Double Extension Reference</title>
+    <title>Z3FiniteDomainSort Class Reference</title>
     <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
     <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
     <meta charset="utf-8">
@@ -14,9 +14,9 @@
   </head>
   <body>
 
-    <a name="//apple_ref/swift/Extension/Double" class="dashAnchor"></a>
+    <a name="//apple_ref/swift/Class/Z3FiniteDomainSort" class="dashAnchor"></a>
 
-    <a title="Double Extension Reference"></a>
+    <a title="Z3FiniteDomainSort Class Reference"></a>
 
     <header class="header">
       <p class="header-col header-col--primary">
@@ -38,7 +38,7 @@
     <p class="breadcrumbs">
       <a class="breadcrumb" href="../index.html"> Reference</a>
       <img class="carat" src="../img/carat.png" alt=""/>
-      Double Extension Reference
+      Z3FiniteDomainSort Class Reference
     </p>
 
     <div class="content-wrapper">
@@ -429,15 +429,16 @@
 
         <section class="section">
           <div class="section-content top-matter">
-            <h1>Double</h1>
+            <h1>Z3FiniteDomainSort</h1>
               <div class="declaration">
                 <div class="language">
                   
-                  <pre class="highlight swift"><code><span class="kd">extension</span> <span class="kt">Double</span><span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span></code></pre>
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3FiniteDomainSort</span> <span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span></code></pre>
 
                 </div>
               </div>
-            
+            <p>A named finite domain.</p>
+
           </div>
         </section>
 
@@ -448,9 +449,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:Sd7SwiftZ3E7getSortyAA0bD0CAA0B7ContextCFZ"></a>
-                    <a name="//apple_ref/swift/Method/getSort(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:Sd7SwiftZ3E7getSortyAA0bD0CAA0B7ContextCFZ">getSort(_:<wbr>)</a>
+                    <a name="/s:7SwiftZ30B16FiniteDomainSortC4nameAA0B6SymbolCvp"></a>
+                    <a name="//apple_ref/swift/Property/name" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B16FiniteDomainSortC4nameAA0B6SymbolCvp">name</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -458,14 +459,73 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Returns a 64-bit FloatingPoint sort.</p>
+                        <p>Gets the symbol for the name of this finite domain.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">static</span> <span class="kd">func</span> <span class="nf">getSort</span><span class="p">(</span><span class="n">_</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">let</span> <span class="nv">name</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B16FiniteDomainSortC4sizes6UInt64Vvp"></a>
+                    <a name="//apple_ref/swift/Property/size" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B16FiniteDomainSortC4sizes6UInt64Vvp">size</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>The size of this finite domain.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">let</span> <span class="nv">size</span><span class="p">:</span> <span class="kt">UInt64</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B16FiniteDomainSortC13createNumeralyAA0bcdG0Cs6UInt64VF"></a>
+                    <a name="//apple_ref/swift/Method/createNumeral(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B16FiniteDomainSortC13createNumeralyAA0bcdG0Cs6UInt64VF">createNumeral(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Creates a new numeral belonging to this finite domain sort.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>value &lt;= self.size</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">createNumeral</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">UInt64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3FiniteDomainNumeral.html">Z3FiniteDomainNumeral</a></span></code></pre>
 
                         </div>
                       </div>
