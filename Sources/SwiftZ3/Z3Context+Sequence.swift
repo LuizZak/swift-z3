@@ -133,7 +133,7 @@ public extension Z3Context {
         )
     }
 
-    /// Check if `suffix` is a suffix of `sequence`.
+    /// Check if `subsequence` is a subsequence of `sequence`.
     func makeSeqContains<Element>(_ sequence: Z3Seq<Element>, subsequence: Z3Seq<Element>) -> Z3Bool {
         Z3Bool(
             context: self,
@@ -141,11 +141,11 @@ public extension Z3Context {
         )
     }
 
-    /// Check if `suffix` is a suffix of `sequence`.
+    /// Check if `subsequence` is a subsequence of `sequence`.
     ///
     /// Type-erased version.
     ///
-    /// - precondition: `suffix` and `sequence` are the same sequence sorts.
+    /// - precondition: `subsequence` and `sequence` are the same sequence sorts.
     func makeSeqContainsAny(_ sequence: AnyZ3Ast, subsequence: AnyZ3Ast) -> Z3Bool {
         Z3Bool(
             context: self,

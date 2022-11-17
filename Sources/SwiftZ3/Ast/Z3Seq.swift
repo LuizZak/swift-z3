@@ -57,12 +57,31 @@ public extension Z3Seq {
         context.makeSeqIndex(self, substr: search, offset: offset)
     }
 
-    /// Return index of the last occurrence of `search` in `sequence`.
+    /// Return index of the last occurrence of `search` in this sequence.
     ///
-    /// If `sequence` does not contain `search`, then the value is -1.
+    /// If this sequence does not contain `search`, then the value is -1.
     func lastIndex(of search: Z3Seq<Element>) -> Z3Int {
         context.makeSeqLastIndex(self, substr: search)
     }
+
+    /// Check if `subsequence` is a subsequence of this sequence.
+    func contains(search: Z3Seq<Element>) -> Z3Bool {
+        context.makeSeqContains(self, subsequence: search)
+    }
+
+    /// Extract a subsequence starting at `offset` of `length`.
+    func extract(offset: Z3Int, length: Z3Int) -> Z3Seq {
+        context.makeSeqExtract(self, offset: offset, length: length)
+    }
+
+    /// Replace the first occurrence of `src` with `dst` in this sequence.
+    func replace(source: Z3Seq, dest: Z3Seq) -> Z3Seq {
+        context.makeSeqReplace(self, src: source, dest: dest)
+    }
+
+    /// Retrieve from this sequence the unit sequence positioned at position
+    /// `index`.
+    func at(index: Z3Int) -> Z3Seq {
+        context.makeSeqAt(self, index: index)
+    }
 }
-
-
