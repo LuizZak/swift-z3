@@ -1,28 +1,7 @@
 import CZ3
 
 public extension Z3Context {
-    // MARK: - Sequences and regular expressions
-
-    /// Create a sequence sort out of the sort for the elements.
-    func seqSort(element: Z3Sort) -> Z3Sort {
-        Z3Sort(
-            context: self,
-            sort: Z3_mk_seq_sort(context, element.sort)
-        )
-    }
-
-    /// Returns whether `sort` is a sequence sort.
-    func isSeqSort(_ sort: Z3Sort) -> Bool {
-        Z3_is_seq_sort(context, sort.sort)
-    }
-
-    /// Retrieve basis sort for sequence sort.
-    func getSeqSortBasis(_ sort: Z3Sort) -> Z3Sort {
-        Z3Sort(
-            context: self,
-            sort: Z3_get_seq_sort_basis(context, sort.sort)
-        )
-    }
+    // MARK: - Sequences
 
     /// Create an empty sequence of the sequence of sort `sort`.
     func makeSeqEmpty<Element>(_ sort: SeqSort<Element>.Type = SeqSort<Element>.self) -> Z3Seq<Element> {
