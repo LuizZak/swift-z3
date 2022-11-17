@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>BitVectorSort1 Structure Reference</title>
+    <title>SeqSort Structure Reference</title>
     <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
     <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
     <meta charset="utf-8">
@@ -14,9 +14,9 @@
   </head>
   <body>
 
-    <a name="//apple_ref/swift/Struct/BitVectorSort1" class="dashAnchor"></a>
+    <a name="//apple_ref/swift/Struct/SeqSort" class="dashAnchor"></a>
 
-    <a title="BitVectorSort1 Structure Reference"></a>
+    <a title="SeqSort Structure Reference"></a>
 
     <header class="header">
       <p class="header-col header-col--primary">
@@ -38,7 +38,7 @@
     <p class="breadcrumbs">
       <a class="breadcrumb" href="../index.html"> Reference</a>
       <img class="carat" src="../img/carat.png" alt=""/>
-      BitVectorSort1 Structure Reference
+      SeqSort Structure Reference
     </p>
 
     <div class="content-wrapper">
@@ -423,15 +423,17 @@
 
         <section class="section">
           <div class="section-content top-matter">
-            <h1>BitVectorSort1</h1>
+            <h1>SeqSort</h1>
               <div class="declaration">
                 <div class="language">
                   
-                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">BitVectorSort1</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">SeqSort</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
 
                 </div>
               </div>
-            <p>A bit vector of length 1</p>
+            <p>A meta-sort that is used to represent sequence sorts.
+Is not a <code><a href="../Protocols/SortKind.html">SortKind</a></code> itself as it is not a concrete type that can specialize
+<code><a href="../Classes/Z3Ast.html">Z3Ast</a></code> instances, but used solely to refer to sequence sorts.</p>
 
           </div>
         </section>
@@ -443,9 +445,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ313BitVectorSortP8bitWidths6UInt32VvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/bitWidth" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ313BitVectorSortP8bitWidths6UInt32VvpZ">bitWidth</a>
+                    <a name="/s:7SwiftZ37SeqSortV03getD0yAA0bD0CAA0B7ContextCFZ"></a>
+                    <a name="//apple_ref/swift/Method/getSort(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ37SeqSortV03getD0yAA0bD0CAA0B7ContextCFZ">getSort(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -453,13 +455,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        
+                        <p>Creates a concrete instance of a Z3 sort that represents this sort kind.</p>
+
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">static</span> <span class="k">let</span> <span class="nv">bitWidth</span><span class="p">:</span> <span class="kt">UInt32</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">static</span> <span class="kd">func</span> <span class="nf">getSort</span><span class="p">(</span><span class="n">_</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span></code></pre>
 
                         </div>
                       </div>

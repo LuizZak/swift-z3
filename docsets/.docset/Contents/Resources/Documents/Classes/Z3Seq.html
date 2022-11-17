@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>BitVectorSort1 Structure Reference</title>
+    <title>Z3Seq Class Reference</title>
     <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
     <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
     <meta charset="utf-8">
@@ -14,9 +14,9 @@
   </head>
   <body>
 
-    <a name="//apple_ref/swift/Struct/BitVectorSort1" class="dashAnchor"></a>
+    <a name="//apple_ref/swift/Class/Z3Seq" class="dashAnchor"></a>
 
-    <a title="BitVectorSort1 Structure Reference"></a>
+    <a title="Z3Seq Class Reference"></a>
 
     <header class="header">
       <p class="header-col header-col--primary">
@@ -38,7 +38,7 @@
     <p class="breadcrumbs">
       <a class="breadcrumb" href="../index.html"> Reference</a>
       <img class="carat" src="../img/carat.png" alt=""/>
-      BitVectorSort1 Structure Reference
+      Z3Seq Class Reference
     </p>
 
     <div class="content-wrapper">
@@ -423,15 +423,15 @@
 
         <section class="section">
           <div class="section-content top-matter">
-            <h1>BitVectorSort1</h1>
+            <h1>Z3Seq</h1>
               <div class="declaration">
                 <div class="language">
                   
-                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">BitVectorSort1</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/BitVectorSort.html">BitVectorSort</a></span></code></pre>
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3Seq</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
 
                 </div>
               </div>
-            <p>A bit vector of length 1</p>
+            <p>An AST class for Z3 sequence sorts with a given base element sort.</p>
 
           </div>
         </section>
@@ -443,9 +443,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ313BitVectorSortP8bitWidths6UInt32VvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/bitWidth" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ313BitVectorSortP8bitWidths6UInt32VvpZ">bitWidth</a>
+                    <a name="/s:7SwiftZ30B3SeqC7getSortyAA0bE0CAA0B7ContextCFZ"></a>
+                    <a name="//apple_ref/swift/Method/getSort(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B3SeqC7getSortyAA0bE0CAA0B7ContextCFZ">getSort(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -453,13 +453,252 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        
+                        <p>Gets the statically-typed Z3Sort associated with this <code>Z3Seq</code>.</p>
+
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">static</span> <span class="k">let</span> <span class="nv">bitWidth</span><span class="p">:</span> <span class="kt">UInt32</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">getSort</span><span class="p">(</span><span class="n">_</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Functions%20and%20members"></a>
+                <a name="//apple_ref/swift/Section/Functions and members" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Functions%20and%20members"></a>
+                  <h3 class="section-name"><span>Functions and members</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B3SeqC6lengthAA0B3AstCyAA7IntSortVGvp"></a>
+                    <a name="//apple_ref/swift/Property/length" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B3SeqC6lengthAA0B3AstCyAA7IntSortVGvp">length</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns the AST for this sequence&rsquo;s length.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="k">var</span> <span class="nv">length</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B3SeqCyAA0B3AstCyxGAEyAA7IntSortVGcip"></a>
+                    <a name="//apple_ref/swift/Method/subscript(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B3SeqCyAA0B3AstCyxGAEyAA7IntSortVGcip">subscript(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve from this sequence the the element positioned at position <code>index</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="nf">subscript</span><span class="p">(</span><span class="nv">index</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B3SeqC5index2of6offsetAA0B3AstCyAA7IntSortVGACyxG_AKtF"></a>
+                    <a name="//apple_ref/swift/Method/index(of:offset:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B3SeqC5index2of6offsetAA0B3AstCyAA7IntSortVGACyxG_AKtF">index(of:<wbr>offset:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return index of the first occurrence of <code>search</code> in this sequence starting
+from <code>offset</code>.</p>
+
+<p>If this sequence does not contain <code>search</code>, then the value is -1, if <code>offset</code>
+is the length of this sequence, then the value is -1 as well.
+The value is -1 if <code>offset</code> is negative or larger than the length of
+this sequence.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">index</span><span class="p">(</span><span class="n">of</span> <span class="nv">search</span><span class="p">:</span> <span class="kt">Z3Seq</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">offset</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B3SeqC9lastIndex2ofAA0B3AstCyAA7IntSortVGACyxG_tF"></a>
+                    <a name="//apple_ref/swift/Method/lastIndex(of:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B3SeqC9lastIndex2ofAA0B3AstCyAA7IntSortVGACyxG_tF">lastIndex(of:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return index of the last occurrence of <code>search</code> in this sequence.</p>
+
+<p>If this sequence does not contain <code>search</code>, then the value is -1.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">lastIndex</span><span class="p">(</span><span class="n">of</span> <span class="nv">search</span><span class="p">:</span> <span class="kt">Z3Seq</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B3SeqC8contains6searchAA0B3AstCySbGACyxG_tF"></a>
+                    <a name="//apple_ref/swift/Method/contains(search:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B3SeqC8contains6searchAA0B3AstCySbGACyxG_tF">contains(search:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Check if <code>subsequence</code> is a subsequence of this sequence.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">contains</span><span class="p">(</span><span class="nv">search</span><span class="p">:</span> <span class="kt">Z3Seq</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B3SeqC7extract6offset6lengthACyxGAA0B3AstCyAA7IntSortVG_ALtF"></a>
+                    <a name="//apple_ref/swift/Method/extract(offset:length:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B3SeqC7extract6offset6lengthACyxGAA0B3AstCyAA7IntSortVG_ALtF">extract(offset:<wbr>length:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Extract a subsequence starting at <code>offset</code> of <code><a href="../Classes/Z3Seq.html#/s:7SwiftZ30B3SeqC6lengthAA0B3AstCyAA7IntSortVGvp">length</a></code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">extract</span><span class="p">(</span><span class="nv">offset</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">,</span> <span class="nv">length</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Seq</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B3SeqC7replace6source4destACyxGAG_AGtF"></a>
+                    <a name="//apple_ref/swift/Method/replace(source:dest:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B3SeqC7replace6source4destACyxGAG_AGtF">replace(source:<wbr>dest:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Replace the first occurrence of <code>src</code> with <code>dst</code> in this sequence.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">replace</span><span class="p">(</span><span class="nv">source</span><span class="p">:</span> <span class="kt">Z3Seq</span><span class="p">,</span> <span class="nv">dest</span><span class="p">:</span> <span class="kt">Z3Seq</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Seq</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B3SeqC2at5indexACyxGAA0B3AstCyAA7IntSortVG_tF"></a>
+                    <a name="//apple_ref/swift/Method/at(index:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B3SeqC2at5indexACyxGAA0B3AstCyAA7IntSortVG_tF">at(index:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve from this sequence the unit sequence positioned at position
+<code>index</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">at</span><span class="p">(</span><span class="nv">index</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Seq</span></code></pre>
 
                         </div>
                       </div>

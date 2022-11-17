@@ -23,7 +23,7 @@
         <a class="header-link" href="index.html">
            Docs
         </a>
-         (77% documented)
+         (78% documented)
       </p>
     
       <div class="header-col--secondary">
@@ -105,6 +105,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Classes/Z3Pattern.html">Z3Pattern</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/Z3Seq.html">Z3Seq</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Classes/Z3Solver.html">Z3Solver</a>
@@ -238,13 +241,13 @@
             <a class="nav-group-name-link" href="Protocols.html">Protocols</a>
             <ul class="nav-group-tasks">
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Protocols/BitVectorSort.html">BitVectorSort</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Protocols/FloatingSort.html">FloatingSort</a>
-              </li>
-              <li class="nav-group-task">
-                <a class="nav-group-task-link" href="Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Protocols.html#/s:7SwiftZ313NumericalSortP">NumericalSort</a>
@@ -289,6 +292,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Structs/RoundingModeSort.html">RoundingModeSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/SeqSort.html">SeqSort</a>
               </li>
             </ul>
           </li>
@@ -427,6 +433,62 @@
           <div class="section-content">
             <div class="task-group">
               <ul class="item-container">
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B3Inta"></a>
+                    <a name="//apple_ref/swift/Alias/Z3Int" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B3Inta">Z3Int</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>An integer AST type.
+Note that this is not the same as a machine integer.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">typealias</span> <span class="kt">Z3Int</span> <span class="o">=</span> <span class="kt"><a href="Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="Structs/IntSort.html">IntSort</a></span><span class="o">&gt;</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B4Reala"></a>
+                    <a name="//apple_ref/swift/Alias/Z3Real" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B4Reala">Z3Real</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>A real number AST type.
+Note that this type is not a floating point number.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">typealias</span> <span class="kt">Z3Real</span> <span class="o">=</span> <span class="kt"><a href="Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="Structs/RealSort.html">RealSort</a></span><span class="o">&gt;</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
                 <li class="item">
                   <div>
                     <code>
@@ -774,62 +836,6 @@ underlying AST that is a non-specific floating-point number.</p>
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">typealias</span> <span class="kt">Z3RoundingMode</span> <span class="o">=</span> <span class="kt"><a href="Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="Structs/RoundingModeSort.html">RoundingModeSort</a></span><span class="o">&gt;</span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B3Inta"></a>
-                    <a name="//apple_ref/swift/Alias/Z3Int" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3Inta">Z3Int</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>An integer AST type.
-Note that this is not the same as a machine integer.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">typealias</span> <span class="kt">Z3Int</span> <span class="o">=</span> <span class="kt"><a href="Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="Structs/IntSort.html">IntSort</a></span><span class="o">&gt;</span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B4Reala"></a>
-                    <a name="//apple_ref/swift/Alias/Z3Real" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B4Reala">Z3Real</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>A real number AST type.
-Note that this type is not a floating point number.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">typealias</span> <span class="kt">Z3Real</span> <span class="o">=</span> <span class="kt"><a href="Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt"><a href="Structs/RealSort.html">RealSort</a></span><span class="o">&gt;</span></code></pre>
 
                         </div>
                       </div>
@@ -1483,7 +1489,7 @@ In Z3, a symbol can be represented using integers and strings (See #Z3_get_symbo
       </article>
     </div>
     <section class="footer">
-      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-16)</p>
+      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-17)</p>
       <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.3</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
     </section>
   </body>

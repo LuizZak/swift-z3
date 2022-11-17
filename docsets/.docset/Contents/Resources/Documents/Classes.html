@@ -23,7 +23,7 @@
         <a class="header-link" href="index.html">
            Docs
         </a>
-         (77% documented)
+         (78% documented)
       </p>
     
       <div class="header-col--secondary">
@@ -105,6 +105,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Classes/Z3Pattern.html">Z3Pattern</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/Z3Seq.html">Z3Seq</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Classes/Z3Solver.html">Z3Solver</a>
@@ -238,13 +241,13 @@
             <a class="nav-group-name-link" href="Protocols.html">Protocols</a>
             <ul class="nav-group-tasks">
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Protocols/BitVectorSort.html">BitVectorSort</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Protocols/FloatingSort.html">FloatingSort</a>
-              </li>
-              <li class="nav-group-task">
-                <a class="nav-group-task-link" href="Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Protocols.html#/s:7SwiftZ313NumericalSortP">NumericalSort</a>
@@ -289,6 +292,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Structs/RoundingModeSort.html">RoundingModeSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/SeqSort.html">SeqSort</a>
               </li>
             </ul>
           </li>
@@ -478,6 +484,120 @@ allow for compile-time static type checking of expressions.</p>
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3Ast</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="p">:</span> <span class="kt"><a href="Classes/AnyZ3Ast.html">AnyZ3Ast</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B3SeqC"></a>
+                    <a name="//apple_ref/swift/Class/Z3Seq" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B3SeqC">Z3Seq</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>An AST class for Z3 sequence sorts with a given base element sort.</p>
+
+                        <a href="Classes/Z3Seq.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3Seq</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="p">:</span> <span class="kt"><a href="Classes/AnyZ3Ast.html">AnyZ3Ast</a></span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B8FuncDeclC"></a>
+                    <a name="//apple_ref/swift/Class/Z3FuncDecl" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B8FuncDeclC">Z3FuncDecl</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>A function declaration node.</p>
+
+                        <a href="Classes/Z3FuncDecl.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3FuncDecl</span> <span class="p">:</span> <span class="kt"><a href="Classes/Z3AstBase.html">Z3AstBase</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7PatternC"></a>
+                    <a name="//apple_ref/swift/Class/Z3Pattern" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7PatternC">Z3Pattern</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                        <a href="Classes/Z3Pattern.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3Pattern</span> <span class="p">:</span> <span class="kt"><a href="Classes/Z3AstBase.html">Z3AstBase</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B4SortC"></a>
+                    <a name="//apple_ref/swift/Class/Z3Sort" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B4SortC">Z3Sort</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                        <a href="Classes/Z3Sort.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3Sort</span> <span class="p">:</span> <span class="kt"><a href="Classes/Z3AstBase.html">Z3AstBase</a></span></code></pre>
+<pre class="highlight swift"><code><span class="kd">extension</span> <span class="kt">Z3Sort</span><span class="p">:</span> <span class="kt">Equatable</span></code></pre>
+<pre class="highlight swift"><code><span class="kd">extension</span> <span class="kt">Z3Sort</span><span class="p">:</span> <span class="kt">CustomStringConvertible</span></code></pre>
 
                         </div>
                       </div>
@@ -684,34 +804,6 @@ global and module configurations. Now, we should use <code><a href="Enums/Z3Glob
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B8FuncDeclC"></a>
-                    <a name="//apple_ref/swift/Class/Z3FuncDecl" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B8FuncDeclC">Z3FuncDecl</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>A function declaration node.</p>
-
-                        <a href="Classes/Z3FuncDecl.html" class="slightly-smaller">See more</a>
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3FuncDecl</span> <span class="p">:</span> <span class="kt"><a href="Classes/Z3AstBase.html">Z3AstBase</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
                     <a name="/s:7SwiftZ30B4GoalC"></a>
                     <a name="//apple_ref/swift/Class/Z3Goal" class="dashAnchor"></a>
                     <a class="token" href="#/s:7SwiftZ30B4GoalC">Z3Goal</a>
@@ -852,34 +944,6 @@ global and module configurations. Now, we should use <code><a href="Enums/Z3Glob
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7PatternC"></a>
-                    <a name="//apple_ref/swift/Class/Z3Pattern" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7PatternC">Z3Pattern</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                        <a href="Classes/Z3Pattern.html" class="slightly-smaller">See more</a>
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3Pattern</span> <span class="p">:</span> <span class="kt"><a href="Classes/Z3AstBase.html">Z3AstBase</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
                     <a name="/s:7SwiftZ30B6SolverC"></a>
                     <a name="//apple_ref/swift/Class/Z3Solver" class="dashAnchor"></a>
                     <a class="token" href="#/s:7SwiftZ30B6SolverC">Z3Solver</a>
@@ -899,36 +963,6 @@ global and module configurations. Now, we should use <code><a href="Enums/Z3Glob
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3Solver</span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B4SortC"></a>
-                    <a name="//apple_ref/swift/Class/Z3Sort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B4SortC">Z3Sort</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                        <a href="Classes/Z3Sort.html" class="slightly-smaller">See more</a>
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3Sort</span> <span class="p">:</span> <span class="kt"><a href="Classes/Z3AstBase.html">Z3AstBase</a></span></code></pre>
-<pre class="highlight swift"><code><span class="kd">extension</span> <span class="kt">Z3Sort</span><span class="p">:</span> <span class="kt">Equatable</span></code></pre>
-<pre class="highlight swift"><code><span class="kd">extension</span> <span class="kt">Z3Sort</span><span class="p">:</span> <span class="kt">CustomStringConvertible</span></code></pre>
 
                         </div>
                       </div>
@@ -1027,7 +1061,7 @@ global and module configurations. Now, we should use <code><a href="Enums/Z3Glob
       </article>
     </div>
     <section class="footer">
-      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-16)</p>
+      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-17)</p>
       <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.3</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
     </section>
   </body>

@@ -23,7 +23,7 @@
         <a class="header-link" href="../index.html">
            Docs
         </a>
-         (77% documented)
+         (78% documented)
       </p>
     
       <div class="header-col--secondary">
@@ -105,6 +105,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3Pattern.html">Z3Pattern</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Seq.html">Z3Seq</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3Solver.html">Z3Solver</a>
@@ -238,13 +241,13 @@
             <a class="nav-group-name-link" href="../Protocols.html">Protocols</a>
             <ul class="nav-group-tasks">
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Protocols/BitVectorSort.html">BitVectorSort</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Protocols/FloatingSort.html">FloatingSort</a>
-              </li>
-              <li class="nav-group-task">
-                <a class="nav-group-task-link" href="../Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Protocols.html#/s:7SwiftZ313NumericalSortP">NumericalSort</a>
@@ -289,6 +292,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Structs/RoundingModeSort.html">RoundingModeSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/SeqSort.html">SeqSort</a>
               </li>
             </ul>
           </li>
@@ -1800,6 +1806,590 @@ and <code>Z3_STRING_SYMBOL</code> if the symbol was constructed using <code>make
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">getBvSortSize</span><span class="p">(</span><span class="n">_</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">UInt32</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Integers%20and%20Reals"></a>
+                <a name="//apple_ref/swift/Section/Integers and Reals" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Integers%20and%20Reals"></a>
+                  <h3 class="section-name"><span>Integers and Reals</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7makeAddyAA0B3AstCyxGSayAGGAA14ArithmeticSortRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeAdd(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7makeAddyAA0B3AstCyxGSayAGGAA14ArithmeticSortRzlF">makeAdd(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an AST node representing <code>args[0] + ... + args[num_args-1]</code>.</p>
+
+<p>All arguments must have int or real sort.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    The number of arguments must be greater than zero.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeAdd</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">arguments</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7makeMulyAA0B3AstCyxGSayAGGAA14ArithmeticSortRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeMul(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7makeMulyAA0B3AstCyxGSayAGGAA14ArithmeticSortRzlF">makeMul(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an AST node representing <code>args[0] * ... * args[num_args-1]</code>.</p>
+
+<p>All arguments must have int or real sort.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    Z3 has limited support for non-linear arithmetic.
+
+</div><div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    The number of arguments must be greater than zero.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeMul</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">arguments</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7makeSubyAA0B3AstCyxGSayAGGAA14ArithmeticSortRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSub(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7makeSubyAA0B3AstCyxGSayAGGAA14ArithmeticSortRzlF">makeSub(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an AST node representing <code>args[0] + ... + args[num_args-1]</code>.</p>
+
+<p>All arguments must have int or real sort.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    The number of arguments must be greater than zero.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSub</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">arguments</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14makeUnaryMinusyAA0B3AstCyxGAgA14ArithmeticSortRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeUnaryMinus(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeUnaryMinusyAA0B3AstCyxGAgA14ArithmeticSortRzlF">makeUnaryMinus(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an AST node representing <code>- arg</code>.
+The arguments must have int or real type.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeUnaryMinus</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">ast</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7makeDivyAA0B3AstCyxGAG_AGtAA14ArithmeticSortRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeDiv(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7makeDivyAA0B3AstCyxGAG_AGtAA14ArithmeticSortRzlF">makeDiv(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an AST node representing <code>arg1 div arg2</code>.</p>
+
+<p>The arguments must either both have int type or both have real type.
+If the arguments have int type, then the result type is an int type,
+otherwise the the result type is real.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeDiv</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">arg1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">arg2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7makeModyAA0B3AstCyAA7IntSortVGAI_AItF"></a>
+                    <a name="//apple_ref/swift/Method/makeMod(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7makeModyAA0B3AstCyAA7IntSortVGAI_AItF">makeMod(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an AST node representing <code>arg1 mod arg2</code>.</p>
+
+<p>The arguments must have int type.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeMod</span><span class="p">(</span><span class="n">_</span> <span class="nv">arg1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">arg2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7makeRemyAA0B3AstCyAA7IntSortVGAI_AItF"></a>
+                    <a name="//apple_ref/swift/Method/makeRem(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7makeRemyAA0B3AstCyAA7IntSortVGAI_AItF">makeRem(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an AST node representing <code>arg1 rem arg2</code>.</p>
+
+<p>The arguments must have int type.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeRem</span><span class="p">(</span><span class="n">_</span> <span class="nv">arg1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">arg2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC9makePoweryAA0B3AstCyxGAG_AGtAA14ArithmeticSortRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makePower(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC9makePoweryAA0B3AstCyxGAG_AGtAA14ArithmeticSortRzlF">makePower(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an AST node representing <code>arg1 ^ arg2</code>.</p>
+
+<p>The arguments must have int or real type.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makePower</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">arg1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">arg2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC12makeLessThanyAA0B3AstCySbGAFyxG_AHtAA14ArithmeticSortRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeLessThan(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC12makeLessThanyAA0B3AstCySbGAFyxG_AHtAA14ArithmeticSortRzlF">makeLessThan(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create less than.
+The nodes <code>t1</code> and <code>t2</code> must have the same sort, and must be int or real.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeLessThan</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC21makeLessThanOrEqualToyAA0B3AstCySbGAFyxG_AHtAA14ArithmeticSortRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeLessThanOrEqualTo(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC21makeLessThanOrEqualToyAA0B3AstCySbGAFyxG_AHtAA14ArithmeticSortRzlF">makeLessThanOrEqualTo(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create less than or equal to.
+The nodes <code>t1</code> and <code>t2</code> must have the same sort, and must be int or real.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeLessThanOrEqualTo</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC15makeGreaterThanyAA0B3AstCySbGAFyxG_AHtAA14ArithmeticSortRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeGreaterThan(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeGreaterThanyAA0B3AstCySbGAFyxG_AHtAA14ArithmeticSortRzlF">makeGreaterThan(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create greater than.
+The nodes <code>t1</code> and <code>t2</code> must have the same sort, and must be int or real.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeGreaterThan</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC24makeGreaterThanOrEqualToyAA0B3AstCySbGAFyxG_AHtAA14ArithmeticSortRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeGreaterThanOrEqualTo(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC24makeGreaterThanOrEqualToyAA0B3AstCySbGAFyxG_AHtAA14ArithmeticSortRzlF">makeGreaterThanOrEqualTo(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create greater than or equal to.
+The nodes <code>t1</code> and <code>t2</code> must have the same sort, and must be int or real.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeGreaterThanOrEqualTo</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC11makeDividesyAA0B3AstCySbGAFyAA7IntSortVG_AJtF"></a>
+                    <a name="//apple_ref/swift/Method/makeDivides(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeDividesyAA0B3AstCySbGAFyAA7IntSortVG_AJtF">makeDivides(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create division predicate.</p>
+
+<p>The nodes <code>t1</code> and <code>t2</code> must be of integer sort.
+The predicate is true when <code>t1</code> divides <code>t2</code>. For the predicate to be
+part of linear integer arithmetic, the first argument <code>t1</code> must be a
+non-zero integer.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeDivides</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13makeIntToRealyAA0B3AstCyAA0G4SortVGAFyAA0eI0VGF"></a>
+                    <a name="//apple_ref/swift/Method/makeIntToReal(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeIntToRealyAA0B3AstCyAA0G4SortVGAFyAA0eI0VGF">makeIntToReal(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Coerce an integer to a real.</p>
+
+<p>There is also a converse operation exposed.
+It follows the semantics prescribed by the SMT-LIB standard.</p>
+
+<p>You can take the floor of a real by creating an auxiliary integer constant
+<code>k</code> and and asserting <code>mk_int2real(k) &lt;= t1 &lt; mk_int2real(k)+1</code>.</p>
+
+<p>The node <code>t1</code> must have sort integer.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeReal2Int</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeIsInt</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeIntToReal</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Reala">Z3Real</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13makeRealToIntyAA0B3AstCyAA0G4SortVGAFyAA0eI0VGF"></a>
+                    <a name="//apple_ref/swift/Method/makeRealToInt(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeRealToIntyAA0B3AstCyAA0G4SortVGAFyAA0eI0VGF">makeRealToInt(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Coerce a real to an integer.</p>
+
+<p>The semantics of this function follows the SMT-LIB standard
+for the function to_int</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeInt2Real</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeIsInt</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeRealToInt</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Reala">Z3Real</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14makeIntToFloat_4sortAA0B3AstCyxGAGyAA0E4SortVG_xmtAA08FloatingJ0RzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeIntToFloat(_:sort:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeIntToFloat_4sortAA0B3AstCyxGAGyAA0E4SortVG_xmtAA08FloatingJ0RzlF">makeIntToFloat(_:<wbr>sort:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Coerce an integer to a float.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeIntToFloat</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt">T</span><span class="o">.</span><span class="k">Type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14makeIntToFloat_4sortAA03AnyB3AstCAA0bJ0CyAA0E4SortVG_AA0bK0CtF"></a>
+                    <a name="//apple_ref/swift/Method/makeIntToFloat(_:sort:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeIntToFloat_4sortAA03AnyB3AstCAA0bJ0CyAA0E4SortVG_AA0bK0CtF">makeIntToFloat(_:<wbr>sort:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Coerce an integer to a float.</p>
+
+<p><code>sort</code> must be a float sort</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeIntToFloat</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC9makeIsIntyAA0B3AstCySbGAFyAA8RealSortVGF"></a>
+                    <a name="//apple_ref/swift/Method/makeIsInt(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC9makeIsIntyAA0B3AstCySbGAFyAA8RealSortVGF">makeIsInt(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Check if a real number is an integer.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeInt2Real</code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code>makeReal2Int</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeIsInt</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Reala">Z3Real</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
 
                         </div>
                       </div>
@@ -7958,590 +8548,6 @@ sort.</p>
             </div>
             <div class="task-group">
               <div class="task-name-container">
-                <a name="/Integers%20and%20Reals"></a>
-                <a name="//apple_ref/swift/Section/Integers and Reals" class="dashAnchor"></a>
-                <div class="section-name-container">
-                  <a class="section-name-link" href="#/Integers%20and%20Reals"></a>
-                  <h3 class="section-name"><span>Integers and Reals</span>
-</h3>
-                </div>
-              </div>
-              <ul class="item-container">
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC7makeAddyAA0B3AstCyxGSayAGGAA13IntOrRealSortRzlF"></a>
-                    <a name="//apple_ref/swift/Method/makeAdd(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC7makeAddyAA0B3AstCyxGSayAGGAA13IntOrRealSortRzlF">makeAdd(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create an AST node representing <code>args[0] + ... + args[num_args-1]</code>.</p>
-
-<p>All arguments must have int or real sort.</p>
-<div class="aside aside-remark">
-    <p class="aside-title">Remark</p>
-    The number of arguments must be greater than zero.
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeAdd</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">arguments</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC7makeMulyAA0B3AstCyxGSayAGGAA13IntOrRealSortRzlF"></a>
-                    <a name="//apple_ref/swift/Method/makeMul(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC7makeMulyAA0B3AstCyxGSayAGGAA13IntOrRealSortRzlF">makeMul(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create an AST node representing <code>args[0] * ... * args[num_args-1]</code>.</p>
-
-<p>All arguments must have int or real sort.</p>
-<div class="aside aside-remark">
-    <p class="aside-title">Remark</p>
-    Z3 has limited support for non-linear arithmetic.
-
-</div><div class="aside aside-remark">
-    <p class="aside-title">Remark</p>
-    The number of arguments must be greater than zero.
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeMul</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">arguments</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC7makeSubyAA0B3AstCyxGSayAGGAA13IntOrRealSortRzlF"></a>
-                    <a name="//apple_ref/swift/Method/makeSub(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC7makeSubyAA0B3AstCyxGSayAGGAA13IntOrRealSortRzlF">makeSub(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create an AST node representing <code>args[0] + ... + args[num_args-1]</code>.</p>
-
-<p>All arguments must have int or real sort.</p>
-<div class="aside aside-remark">
-    <p class="aside-title">Remark</p>
-    The number of arguments must be greater than zero.
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSub</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">arguments</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC14makeUnaryMinusyAA0B3AstCyxGAgA13IntOrRealSortRzlF"></a>
-                    <a name="//apple_ref/swift/Method/makeUnaryMinus(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeUnaryMinusyAA0B3AstCyxGAgA13IntOrRealSortRzlF">makeUnaryMinus(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create an AST node representing <code>- arg</code>.
-The arguments must have int or real type.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeUnaryMinus</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">ast</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC7makeDivyAA0B3AstCyxGAG_AGtAA13IntOrRealSortRzlF"></a>
-                    <a name="//apple_ref/swift/Method/makeDiv(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC7makeDivyAA0B3AstCyxGAG_AGtAA13IntOrRealSortRzlF">makeDiv(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create an AST node representing <code>arg1 div arg2</code>.</p>
-
-<p>The arguments must either both have int type or both have real type.
-If the arguments have int type, then the result type is an int type,
-otherwise the the result type is real.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeDiv</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">arg1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">arg2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC7makeModyAA0B3AstCyAA7IntSortVGAI_AItF"></a>
-                    <a name="//apple_ref/swift/Method/makeMod(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC7makeModyAA0B3AstCyAA7IntSortVGAI_AItF">makeMod(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create an AST node representing <code>arg1 mod arg2</code>.</p>
-
-<p>The arguments must have int type.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeMod</span><span class="p">(</span><span class="n">_</span> <span class="nv">arg1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">arg2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC7makeRemyAA0B3AstCyAA7IntSortVGAI_AItF"></a>
-                    <a name="//apple_ref/swift/Method/makeRem(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC7makeRemyAA0B3AstCyAA7IntSortVGAI_AItF">makeRem(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create an AST node representing <code>arg1 rem arg2</code>.</p>
-
-<p>The arguments must have int type.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeRem</span><span class="p">(</span><span class="n">_</span> <span class="nv">arg1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">arg2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC9makePoweryAA0B3AstCyxGAG_AGtAA13IntOrRealSortRzlF"></a>
-                    <a name="//apple_ref/swift/Method/makePower(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC9makePoweryAA0B3AstCyxGAG_AGtAA13IntOrRealSortRzlF">makePower(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create an AST node representing <code>arg1 ^ arg2</code>.</p>
-
-<p>The arguments must have int or real type.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makePower</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">arg1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">arg2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC12makeLessThanyAA0B3AstCySbGAFyxG_AHtAA13IntOrRealSortRzlF"></a>
-                    <a name="//apple_ref/swift/Method/makeLessThan(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC12makeLessThanyAA0B3AstCySbGAFyxG_AHtAA13IntOrRealSortRzlF">makeLessThan(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create less than.
-The nodes <code>t1</code> and <code>t2</code> must have the same sort, and must be int or real.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeLessThan</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC21makeLessThanOrEqualToyAA0B3AstCySbGAFyxG_AHtAA03IntG8RealSortRzlF"></a>
-                    <a name="//apple_ref/swift/Method/makeLessThanOrEqualTo(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC21makeLessThanOrEqualToyAA0B3AstCySbGAFyxG_AHtAA03IntG8RealSortRzlF">makeLessThanOrEqualTo(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create less than or equal to.
-The nodes <code>t1</code> and <code>t2</code> must have the same sort, and must be int or real.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeLessThanOrEqualTo</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC15makeGreaterThanyAA0B3AstCySbGAFyxG_AHtAA13IntOrRealSortRzlF"></a>
-                    <a name="//apple_ref/swift/Method/makeGreaterThan(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeGreaterThanyAA0B3AstCySbGAFyxG_AHtAA13IntOrRealSortRzlF">makeGreaterThan(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create greater than.
-The nodes <code>t1</code> and <code>t2</code> must have the same sort, and must be int or real.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeGreaterThan</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC24makeGreaterThanOrEqualToyAA0B3AstCySbGAFyxG_AHtAA03IntG8RealSortRzlF"></a>
-                    <a name="//apple_ref/swift/Method/makeGreaterThanOrEqualTo(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC24makeGreaterThanOrEqualToyAA0B3AstCySbGAFyxG_AHtAA03IntG8RealSortRzlF">makeGreaterThanOrEqualTo(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create greater than or equal to.
-The nodes <code>t1</code> and <code>t2</code> must have the same sort, and must be int or real.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeGreaterThanOrEqualTo</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ313IntOrRealSortP">IntOrRealSort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC11makeDividesyAA0B3AstCySbGAFyAA7IntSortVG_AJtF"></a>
-                    <a name="//apple_ref/swift/Method/makeDivides(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeDividesyAA0B3AstCySbGAFyAA7IntSortVG_AJtF">makeDivides(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create division predicate.</p>
-
-<p>The nodes <code>t1</code> and <code>t2</code> must be of integer sort.
-The predicate is true when <code>t1</code> divides <code>t2</code>. For the predicate to be
-part of linear integer arithmetic, the first argument <code>t1</code> must be a
-non-zero integer.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeDivides</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">t2</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC13makeIntToRealyAA0B3AstCyAA0G4SortVGAFyAA0eI0VGF"></a>
-                    <a name="//apple_ref/swift/Method/makeIntToReal(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeIntToRealyAA0B3AstCyAA0G4SortVGAFyAA0eI0VGF">makeIntToReal(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Coerce an integer to a real.</p>
-
-<p>There is also a converse operation exposed.
-It follows the semantics prescribed by the SMT-LIB standard.</p>
-
-<p>You can take the floor of a real by creating an auxiliary integer constant
-<code>k</code> and and asserting <code>mk_int2real(k) &lt;= t1 &lt; mk_int2real(k)+1</code>.</p>
-
-<p>The node <code>t1</code> must have sort integer.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeReal2Int</code>
-
-</div><div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeIsInt</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeIntToReal</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Reala">Z3Real</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC13makeRealToIntyAA0B3AstCyAA0G4SortVGAFyAA0eI0VGF"></a>
-                    <a name="//apple_ref/swift/Method/makeRealToInt(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeRealToIntyAA0B3AstCyAA0G4SortVGAFyAA0eI0VGF">makeRealToInt(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Coerce a real to an integer.</p>
-
-<p>The semantics of this function follows the SMT-LIB standard
-for the function to_int</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeInt2Real</code>
-
-</div><div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeIsInt</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeRealToInt</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Reala">Z3Real</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC14makeIntToFloat_4sortAA0B3AstCyxGAGyAA0E4SortVG_xmtAA08FloatingJ0RzlF"></a>
-                    <a name="//apple_ref/swift/Method/makeIntToFloat(_:sort:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeIntToFloat_4sortAA0B3AstCyxGAGyAA0E4SortVG_xmtAA08FloatingJ0RzlF">makeIntToFloat(_:<wbr>sort:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Coerce an integer to a float.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeIntToFloat</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt">T</span><span class="o">.</span><span class="k">Type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/FloatingSort.html">FloatingSort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC14makeIntToFloat_4sortAA03AnyB3AstCAA0bJ0CyAA0E4SortVG_AA0bK0CtF"></a>
-                    <a name="//apple_ref/swift/Method/makeIntToFloat(_:sort:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeIntToFloat_4sortAA03AnyB3AstCAA0bJ0CyAA0E4SortVG_AA0bK0CtF">makeIntToFloat(_:<wbr>sort:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Coerce an integer to a float.</p>
-
-<p><code>sort</code> must be a float sort</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeIntToFloat</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">,</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC9makeIsIntyAA0B3AstCySbGAFyAA8RealSortVGF"></a>
-                    <a name="//apple_ref/swift/Method/makeIsInt(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC9makeIsIntyAA0B3AstCySbGAFyAA8RealSortVGF">makeIsInt(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Check if a real number is an integer.</p>
-<div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeInt2Real</code>
-
-</div><div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeReal2Int</code>
-
-</div>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeIsInt</span><span class="p">(</span><span class="n">_</span> <span class="nv">t1</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Reala">Z3Real</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-              </ul>
-            </div>
-            <div class="task-group">
-              <div class="task-name-container">
                 <a name="/Propositional%20Logic%20and%20Equality"></a>
                 <a name="//apple_ref/swift/Section/Propositional Logic and Equality" class="dashAnchor"></a>
                 <div class="section-name-container">
@@ -8685,8 +8691,8 @@ distinct.
 That is, <code>Forall 0 &lt;= i &lt; j &lt; num_args. not args[i] = args[j]</code>.</p>
 
 <p>All arguments must have the same sort.</p>
-<div class="aside aside-remark">
-    <p class="aside-title">Remark</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
     The number of arguments of a distinct construct must be greater
 than one.
 
@@ -8726,10 +8732,10 @@ That is, <code>Forall 0 &lt;= i &lt; j &lt; num_args. not args[i] = args[j]</cod
 <p>All arguments must have the same sort.</p>
 
 <p>Type-erased version.</p>
-<div class="aside aside-remark">
-    <p class="aside-title">Remark</p>
-    The number of arguments of a distinct construct must be greater
-than one.
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    The number of arguments of a distinct construct must be
+greater than one.
 
 </div>
 
@@ -8908,8 +8914,8 @@ The sort of the new node is equal to the sort of <code>t2</code> and <code>t3</c
                         <p>Create an AST node representing <code>args[0] and ... and args[num_args-1]</code>.</p>
 
 <p>All arguments must have Boolean sort.</p>
-<div class="aside aside-remark">
-    <p class="aside-title">Remark</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
     The number of arguments must be greater than zero.
 
 </div>
@@ -8944,8 +8950,8 @@ The sort of the new node is equal to the sort of <code>t2</code> and <code>t3</c
 <p>All arguments must have Boolean sort.</p>
 
 <p>Type-erased version of <code>makeAny</code>.</p>
-<div class="aside aside-remark">
-    <p class="aside-title">Remark</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
     The number of arguments must be greater than zero.
 
 </div>
@@ -8978,8 +8984,8 @@ The sort of the new node is equal to the sort of <code>t2</code> and <code>t3</c
                         <p>Create an AST node representing <code>args[0] or ... or args[num_args-1]</code>.</p>
 
 <p>All arguments must have Boolean sort.</p>
-<div class="aside aside-remark">
-    <p class="aside-title">Remark</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
     The number of arguments must be greater than zero.
 
 </div>
@@ -9014,8 +9020,8 @@ The sort of the new node is equal to the sort of <code>t2</code> and <code>t3</c
 <p>All arguments must have Boolean sort.</p>
 
 <p>Type-erased version of <code>makeOr</code>.</p>
-<div class="aside aside-remark">
-    <p class="aside-title">Remark</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
     The number of arguments must be greater than zero.
 
 </div>
@@ -9503,6 +9509,915 @@ of the bound variables.</p>
                             </tr>
                           </tbody>
                         </table>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Sequences%20and%20regular%20expressions"></a>
+                <a name="//apple_ref/swift/Section/Sequences and regular expressions" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Sequences%20and%20regular%20expressions"></a>
+                  <h3 class="section-name"><span>Sequences and regular expressions</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7seqSort7elementAA0bE0CAG_tF"></a>
+                    <a name="//apple_ref/swift/Method/seqSort(element:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7seqSort7elementAA0bE0CAG_tF">seqSort(element:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a sequence sort out of the sort for the elements.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">seqSort</span><span class="p">(</span><span class="nv">element</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC9isSeqSortySbAA0bF0CF"></a>
+                    <a name="//apple_ref/swift/Method/isSeqSort(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC9isSeqSortySbAA0bF0CF">isSeqSort(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns whether <code>sort</code> is a sequence sort.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">isSeqSort</span><span class="p">(</span><span class="n">_</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC15getSeqSortBasisyAA0bF0CAFF"></a>
+                    <a name="//apple_ref/swift/Method/getSeqSortBasis(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC15getSeqSortBasisyAA0bF0CAFF">getSeqSortBasis(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve basis sort for sequence sort.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">getSeqSortBasis</span><span class="p">(</span><span class="n">_</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC12makeSeqEmptyyAA0bE0CyxGAA0E4SortVyxGmAA0G4KindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqEmpty(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC12makeSeqEmptyyAA0bE0CyxGAA0E4SortVyxGmAA0G4KindRzlF">makeSeqEmpty(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an empty sequence of the sequence of sort <code>sort</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqEmpty</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Structs/SeqSort.html">SeqSort</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;.</span><span class="k">Type</span> <span class="o">=</span> <span class="kt"><a href="../Structs/SeqSort.html">SeqSort</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;.</span><span class="k">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC15makeSeqEmptyAnyyAA0gB3AstCAA0B4SortCF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqEmptyAny(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeSeqEmptyAnyyAA0gB3AstCAA0B4SortCF">makeSeqEmptyAny(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an empty sequence of the sequence of sort <code>sort</code>.</p>
+
+<p>Type-erased version.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>sort</code> is a sequence sort.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqEmptyAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC11makeSeqUnityAA0bE0CyxGAA0B3AstCyxGAA8SortKindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqUnit(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11makeSeqUnityAA0bE0CyxGAA0B3AstCyxGAA8SortKindRzlF">makeSeqUnit(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a unit sequence of <code>ast</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqUnit</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">ast</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14makeSeqUnitAnyyAA0gB3AstCAFF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqUnitAny(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeSeqUnitAnyyAA0gB3AstCAFF">makeSeqUnitAny(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a unit sequence of <code>ast</code>.</p>
+
+<p>Type-erased version.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqUnitAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">ast</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13makeSeqConcatyAA0bE0CyxGSayAGGAA8SortKindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqConcat(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeSeqConcatyAA0bE0CyxGSayAGGAA8SortKindRzlF">makeSeqConcat(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Concatenate sequences.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    The number of arguments must be greater than zero.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqConcat</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">args</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16makeSeqConcatAnyyAA0gB3AstCSayAFGF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqConcatAny(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16makeSeqConcatAnyyAA0gB3AstCSayAFGF">makeSeqConcatAny(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Concatenate sequences.</p>
+
+<p>Type-erased version.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    The number of arguments must be greater than zero.
+
+</div><div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    All arguments are the same sequence sort.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqConcatAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">args</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13makeSeqPrefix_6prefixAA0B3AstCySbGAA0bE0CyxG_AKtAA8SortKindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqPrefix(_:prefix:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeSeqPrefix_6prefixAA0B3AstCySbGAA0bE0CyxG_AKtAA8SortKindRzlF">makeSeqPrefix(_:<wbr>prefix:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Check if <code>prefix</code> is a prefix of <code>sequence</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqPrefix</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">prefix</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16makeSeqPrefixAny_6prefixAA0B3AstCySbGAA0gbI0C_AJtF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqPrefixAny(_:prefix:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16makeSeqPrefixAny_6prefixAA0B3AstCySbGAA0gbI0C_AJtF">makeSeqPrefixAny(_:<wbr>prefix:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Check if <code>prefix</code> is a prefix of <code>sequence</code>.</p>
+
+<p>Type-erased version.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>prefix</code> and <code>sequence</code> are the same sequence sorts.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqPrefixAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">prefix</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13makeSeqSuffix_6suffixAA0B3AstCySbGAA0bE0CyxG_AKtAA8SortKindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqSuffix(_:suffix:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeSeqSuffix_6suffixAA0B3AstCySbGAA0bE0CyxG_AKtAA8SortKindRzlF">makeSeqSuffix(_:<wbr>suffix:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Check if <code>suffix</code> is a suffix of <code>sequence</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqSuffix</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">suffix</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16makeSeqSuffixAny_6suffixAA0B3AstCySbGAA0gbI0C_AJtF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqSuffixAny(_:suffix:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16makeSeqSuffixAny_6suffixAA0B3AstCySbGAA0gbI0C_AJtF">makeSeqSuffixAny(_:<wbr>suffix:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Check if <code>suffix</code> is a suffix of <code>sequence</code>.</p>
+
+<p>Type-erased version.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>suffix</code> and <code>sequence</code> are the same sequence sorts.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqSuffixAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">suffix</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC15makeSeqContains_11subsequenceAA0B3AstCySbGAA0bE0CyxG_AKtAA8SortKindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqContains(_:subsequence:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeSeqContains_11subsequenceAA0B3AstCySbGAA0bE0CyxG_AKtAA8SortKindRzlF">makeSeqContains(_:<wbr>subsequence:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Check if <code>subsequence</code> is a subsequence of <code>sequence</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqContains</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">subsequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC18makeSeqContainsAny_11subsequenceAA0B3AstCySbGAA0gbI0C_AJtF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqContainsAny(_:subsequence:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC18makeSeqContainsAny_11subsequenceAA0B3AstCySbGAA0gbI0C_AJtF">makeSeqContainsAny(_:<wbr>subsequence:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Check if <code>subsequence</code> is a subsequence of <code>sequence</code>.</p>
+
+<p>Type-erased version.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>subsequence</code> and <code>sequence</code> are the same sequence sorts.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqContainsAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">subsequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14makeSeqExtract_6offset6lengthAA0bE0CyxGAI_AA0B3AstCyAA7IntSortVGANtAA0K4KindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqExtract(_:offset:length:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeSeqExtract_6offset6lengthAA0bE0CyxGAI_AA0B3AstCyAA7IntSortVGANtAA0K4KindRzlF">makeSeqExtract(_:<wbr>offset:<wbr>length:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Extract subsequence starting at <code>offset</code> of <code>length</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqExtract</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">offset</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">,</span> <span class="nv">length</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC17makeSeqExtractAny_6offset6lengthAA0gB3AstCAH_A2HtF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqExtractAny(_:offset:length:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC17makeSeqExtractAny_6offset6lengthAA0gB3AstCAH_A2HtF">makeSeqExtractAny(_:<wbr>offset:<wbr>length:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Extract subsequence starting at <code>offset</code> of <code>length</code>.</p>
+
+<p>Type-erased version.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>sequence</code> is a sequence sort, <code>offset</code> and <code>length</code> are
+int sort.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqExtractAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">offset</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">length</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14makeSeqReplace_3src4destAA0bE0CyxGAI_A2ItAA8SortKindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqReplace(_:src:dest:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeSeqReplace_3src4destAA0bE0CyxGAI_A2ItAA8SortKindRzlF">makeSeqReplace(_:<wbr>src:<wbr>dest:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Replace the first occurrence of <code>src</code> with <code>dst</code> in <code>sequence</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqReplace</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">src</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">dest</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC17makeSeqReplaceAny_3src4destAA0gB3AstCAH_A2HtF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqReplaceAny(_:src:dest:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC17makeSeqReplaceAny_3src4destAA0gB3AstCAH_A2HtF">makeSeqReplaceAny(_:<wbr>src:<wbr>dest:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Replace the first occurrence of <code>src</code> with <code>dst</code> in <code>sequence</code>.</p>
+
+<p>Type-erased version.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>sequence</code>, <code>src</code>, and <code>dest</code> are the same sequence sort.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqReplaceAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">src</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">dest</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC9makeSeqAt_5indexAA0bE0CyxGAH_AA0B3AstCyAA7IntSortVGtAA0J4KindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqAt(_:index:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC9makeSeqAt_5indexAA0bE0CyxGAH_AA0B3AstCyAA7IntSortVGtAA0J4KindRzlF">makeSeqAt(_:<wbr>index:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve from <code>sequence</code> the unit sequence positioned at position <code>index</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqAt</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">index</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC12makeSeqAtAny_5indexAA0gB3AstCAG_AGtF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqAtAny(_:index:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC12makeSeqAtAny_5indexAA0gB3AstCAG_AGtF">makeSeqAtAny(_:<wbr>index:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve from <code>sequence</code> the unit sequence positioned at position <code>index</code>.</p>
+
+<p>Type-erased version.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>sequence</code> is a sequence sort, <code>index</code> is int sort.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqAtAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">index</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC10makeSeqNth_5indexAA0B3AstCyxGAA0bE0CyxG_AGyAA7IntSortVGtAA0J4KindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqNth(_:index:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeSeqNth_5indexAA0B3AstCyxGAA0bE0CyxG_AGyAA7IntSortVGtAA0J4KindRzlF">makeSeqNth(_:<wbr>index:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve from <code>sequence</code> the the element positioned at position <code>index</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqNth</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">index</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13makeSeqNthAny_5indexAA0gB3AstCAG_AGtF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqNthAny(_:index:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeSeqNthAny_5indexAA0gB3AstCAG_AGtF">makeSeqNthAny(_:<wbr>index:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve from <code>sequence</code> the the element positioned at position <code>index</code>.</p>
+
+<p>Type-erased version.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>sequence</code> is a sequence sort, <code>index</code> is int sort.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqNthAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">index</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13makeSeqLengthyAA0B3AstCyAA7IntSortVGAA0bE0CyxGAA0I4KindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqLength(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13makeSeqLengthyAA0B3AstCyAA7IntSortVGAA0bE0CyxGAA0I4KindRzlF">makeSeqLength(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns the length of <code>sequence</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqLength</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16makeSeqLengthAnyyAA0B3AstCyAA7IntSortVGAA0gbH0CF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqLengthAny(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16makeSeqLengthAnyyAA0B3AstCyAA7IntSortVGAA0gbH0CF">makeSeqLengthAny(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns the length of <code>sequence</code>.</p>
+
+<p>Type-erased version.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>sequence</code>, is a sequence sort.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqLengthAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC12makeSeqIndex_6substr6offsetAA0B3AstCyAA7IntSortVGAA0bE0CyxG_AnKtAA0K4KindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqIndex(_:substr:offset:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC12makeSeqIndex_6substr6offsetAA0B3AstCyAA7IntSortVGAA0bE0CyxG_AnKtAA0K4KindRzlF">makeSeqIndex(_:<wbr>substr:<wbr>offset:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return index of the first occurrence of <code>substr</code> in <code>sequence</code> starting
+from <code>offset</code>.</p>
+
+<p>If <code>sequence</code> does not contain <code>substr</code>, then the value is -1, if <code>offset</code>
+is the length of <code>sequence</code>, then the value is -1 as well.
+The value is -1 if <code>offset</code> is negative or larger than the length of
+<code>sequence</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqIndex</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">substr</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">offset</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC15makeSeqIndexAny_6substr6offsetAA0B3AstCyAA7IntSortVGAA0gbJ0C_A2MtF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqIndexAny(_:substr:offset:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC15makeSeqIndexAny_6substr6offsetAA0B3AstCyAA7IntSortVGAA0gbJ0C_A2MtF">makeSeqIndexAny(_:<wbr>substr:<wbr>offset:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return index of the first occurrence of <code>substr</code> in <code>sequence</code> starting
+from <code>offset</code>.</p>
+
+<p>If <code>sequence</code> does not contain <code>substr</code>, then the value is -1, if <code>offset</code>
+is the length of <code>sequence</code>, then the value is -1 as well.
+The value is -1 if <code>offset</code> is negative or larger than the length of
+<code>sequence</code>.</p>
+
+<p>Type-erased version.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>sequence</code> and <code>substr</code> are the same sequence sort, <code>offset</code>
+is int sort.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqIndexAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">substr</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">offset</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16makeSeqLastIndex_6substrAA0B3AstCyAA7IntSortVGAA0bE0CyxG_AMtAA0K4KindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqLastIndex(_:substr:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16makeSeqLastIndex_6substrAA0B3AstCyAA7IntSortVGAA0bE0CyxG_AMtAA0K4KindRzlF">makeSeqLastIndex(_:<wbr>substr:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return index of the last occurrence of <code>substr</code> in <code>sequence</code>.</p>
+
+<p>If <code>sequence</code> does not contain <code>substr</code>, then the value is -1.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">makeSeqLastIndex</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">substr</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC19makeSeqLastIndexAny_6substrAA0B3AstCyAA7IntSortVGAA0hbJ0C_ALtF"></a>
+                    <a name="//apple_ref/swift/Method/makeSeqLastIndexAny(_:substr:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC19makeSeqLastIndexAny_6substrAA0B3AstCyAA7IntSortVGAA0hbJ0C_ALtF">makeSeqLastIndexAny(_:<wbr>substr:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return index of the last occurrence of <code>substr</code> in <code>sequence</code>.</p>
+
+<p>If <code>sequence</code> does not contain <code>substr</code>, then the value is -1.</p>
+
+<p>Type-erased version.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>sequence</code> and <code>substr</code> are the same sequence sort.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSeqLastIndexAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">sequence</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="nv">substr</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
+
+                        </div>
                       </div>
                     </section>
                   </div>
@@ -11142,7 +12057,7 @@ name.</p>
       </article>
     </div>
     <section class="footer">
-      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-16)</p>
+      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-17)</p>
       <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.3</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
     </section>
   </body>
