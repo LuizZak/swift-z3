@@ -1,7 +1,7 @@
 // TODO: Ideally `Z3Seq` would be a typealias of `Z3Ast` but because of limitations
 // in extensions of nested generic types, we make it a subclass for now.
 
-/// A AST class for Z3 sequence sorts with a given base element sort.
+/// An AST class for Z3 sequence sorts with a given base element sort.
 public class Z3Seq<Element: SortKind>: AnyZ3Ast {
 
 }
