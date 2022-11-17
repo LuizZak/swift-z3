@@ -37,7 +37,7 @@ public extension Z3Context {
     ///
     /// All arguments must have the same sort.
     ///
-    /// - remark: The number of arguments of a distinct construct must be greater
+    /// - precondition: The number of arguments of a distinct construct must be greater
     ///  than one.
     func makeDistinct<T>(_ args: [Z3Ast<T>]) -> Z3Bool {
         precondition(args.count > 1)
@@ -57,8 +57,8 @@ public extension Z3Context {
     ///
     /// Type-erased version.
     ///
-    /// - remark: The number of arguments of a distinct construct must be greater
-    ///  than one.
+    /// - precondition: The number of arguments of a distinct construct must be
+    /// greater than one.
     func makeDistinctAny(_ args: [Z3AstBase]) -> Z3Bool {
         precondition(args.count > 1)
 
@@ -108,7 +108,7 @@ public extension Z3Context {
     ///
     /// All arguments must have Boolean sort.
     ///
-    /// - remark: The number of arguments must be greater than zero.
+    /// - precondition: The number of arguments must be greater than zero.
     func makeAnd(_ args: [Z3Bool]) -> Z3Bool {
         precondition(!args.isEmpty)
 
@@ -123,7 +123,7 @@ public extension Z3Context {
     ///
     /// Type-erased version of `makeAny`.
     ///
-    /// - remark: The number of arguments must be greater than zero.
+    /// - precondition: The number of arguments must be greater than zero.
     func makeAndAny(_ args: [AnyZ3Ast]) -> Z3Bool {
         precondition(!args.isEmpty)
 
@@ -136,7 +136,7 @@ public extension Z3Context {
     ///
     /// All arguments must have Boolean sort.
     ///
-    /// - remark: The number of arguments must be greater than zero.
+    /// - precondition: The number of arguments must be greater than zero.
     func makeOr(_ args: [Z3Bool]) -> Z3Bool {
         precondition(!args.isEmpty)
 
@@ -151,7 +151,7 @@ public extension Z3Context {
     ///
     /// Type-erased version of `makeOr`.
     ///
-    /// - remark: The number of arguments must be greater than zero.
+    /// - precondition: The number of arguments must be greater than zero.
     func makeOrAny(_ args: [AnyZ3Ast]) -> Z3Bool {
         precondition(!args.isEmpty)
 
