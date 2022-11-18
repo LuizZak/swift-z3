@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>SortKind Protocol Reference</title>
+    <title>ReSort Structure Reference</title>
     <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
     <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
     <meta charset="utf-8">
@@ -14,9 +14,9 @@
   </head>
   <body>
 
-    <a name="//apple_ref/swift/Protocol/SortKind" class="dashAnchor"></a>
+    <a name="//apple_ref/swift/Struct/ReSort" class="dashAnchor"></a>
 
-    <a title="SortKind Protocol Reference"></a>
+    <a title="ReSort Structure Reference"></a>
 
     <header class="header">
       <p class="header-col header-col--primary">
@@ -38,7 +38,7 @@
     <p class="breadcrumbs">
       <a class="breadcrumb" href="../index.html"> Reference</a>
       <img class="carat" src="../img/carat.png" alt=""/>
-      SortKind Protocol Reference
+      ReSort Structure Reference
     </p>
 
     <div class="content-wrapper">
@@ -444,15 +444,20 @@
 
         <section class="section">
           <div class="section-content top-matter">
-            <h1>SortKind</h1>
+            <h1>ReSort</h1>
               <div class="declaration">
                 <div class="language">
                   
-                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">SortKind</span></code></pre>
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">ReSort</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
 
                 </div>
               </div>
-            <p>Protocol for types that represent Z3 sorts.</p>
+            <p>A meta-sort that is used to represent regular expression sorts.
+Is not a <code><a href="../Protocols/SortKind.html">SortKind</a></code> itself as it is not a concrete type that can specialize
+<code><a href="../Classes/Z3Ast.html">Z3Ast</a></code> instances, but used solely to refer to regular expression sorts.</p>
+
+<p>The element is the element of the underlying sequence sort of the regular
+expression.</p>
 
           </div>
         </section>
@@ -464,48 +469,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ38SortKindP10isConcreteSbvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/isConcrete" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ38SortKindP10isConcreteSbvpZ">isConcrete</a>
-                    </code>
-                      <span class="declaration-note">
-                        Default implementation
-                      </span>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Whether this is a concrete Sort kind, that is, it can be used to generate
-valid <code><a href="../Classes/Z3Sort.html">Z3Sort</a></code> instances, or whether it represents a generic arrangement
-of sort categories.</p>
-
-<p>Calling <code>Self.getSort()</code> on non-concrete sort kinds results in runtime
-errors.</p>
-
-                      </div>
-                      <h4>Default Implementation</h4>
-                      <div class="default_impl abstract">
-                        
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">var</span> <span class="nv">isConcrete</span><span class="p">:</span> <span class="kt">Bool</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ38SortKindP03getC0yAA0bC0CAA0B7ContextCFZ"></a>
+                    <a name="/s:7SwiftZ36ReSortV03getD0yAA0bD0CAA0B7ContextCFZ"></a>
                     <a name="//apple_ref/swift/Method/getSort(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ38SortKindP03getC0yAA0bC0CAA0B7ContextCFZ">getSort(_:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ36ReSortV03getD0yAA0bD0CAA0B7ContextCFZ">getSort(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -520,46 +486,7 @@ errors.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">getSort</span><span class="p">(</span><span class="n">_</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ38SortKindP16isAssignableFromySbAA0B7ContextC_AA0bC0CtFZ"></a>
-                    <a name="//apple_ref/swift/Method/isAssignableFrom(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ38SortKindP16isAssignableFromySbAA0B7ContextC_AA0bC0CtFZ">isAssignableFrom(_:<wbr>_:<wbr>)</a>
-                    </code>
-                      <span class="declaration-note">
-                        Default implementation
-                      </span>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Returns whether this sort kind can be used to represent a more specialized
-typed <code><a href="../Classes/Z3Ast.html">Z3Ast</a></code> instance with a given sort.</p>
-
-<p>Used for cross casts and downcasts of <code><a href="../Classes/Z3Ast.html">Z3Ast&lt;T&gt;</a></code> and <code><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></code>.</p>
-
-<p>Always returns <code>true</code> if <code>sort</code> is the same as <code>self.getSort(context)</code>.</p>
-
-                      </div>
-                      <h4>Default Implementation</h4>
-                      <div class="default_impl abstract">
-                        
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">isAssignableFrom</span><span class="p">(</span><span class="n">_</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">static</span> <span class="kd">func</span> <span class="nf">getSort</span><span class="p">(</span><span class="n">_</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span></code></pre>
 
                         </div>
                       </div>

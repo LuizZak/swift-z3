@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>SortKind Protocol Reference</title>
+    <title>Z3RegularExp Class Reference</title>
     <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
     <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
     <meta charset="utf-8">
@@ -14,9 +14,9 @@
   </head>
   <body>
 
-    <a name="//apple_ref/swift/Protocol/SortKind" class="dashAnchor"></a>
+    <a name="//apple_ref/swift/Class/Z3RegularExp" class="dashAnchor"></a>
 
-    <a title="SortKind Protocol Reference"></a>
+    <a title="Z3RegularExp Class Reference"></a>
 
     <header class="header">
       <p class="header-col header-col--primary">
@@ -38,7 +38,7 @@
     <p class="breadcrumbs">
       <a class="breadcrumb" href="../index.html"> Reference</a>
       <img class="carat" src="../img/carat.png" alt=""/>
-      SortKind Protocol Reference
+      Z3RegularExp Class Reference
     </p>
 
     <div class="content-wrapper">
@@ -444,15 +444,15 @@
 
         <section class="section">
           <div class="section-content top-matter">
-            <h1>SortKind</h1>
+            <h1>Z3RegularExp</h1>
               <div class="declaration">
                 <div class="language">
                   
-                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">SortKind</span></code></pre>
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3RegularExp</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
 
                 </div>
               </div>
-            <p>Protocol for types that represent Z3 sorts.</p>
+            <p>An AST class for Z3 regular expression sorts with a given base element sort.</p>
 
           </div>
         </section>
@@ -464,48 +464,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ38SortKindP10isConcreteSbvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/isConcrete" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ38SortKindP10isConcreteSbvpZ">isConcrete</a>
-                    </code>
-                      <span class="declaration-note">
-                        Default implementation
-                      </span>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Whether this is a concrete Sort kind, that is, it can be used to generate
-valid <code><a href="../Classes/Z3Sort.html">Z3Sort</a></code> instances, or whether it represents a generic arrangement
-of sort categories.</p>
-
-<p>Calling <code>Self.getSort()</code> on non-concrete sort kinds results in runtime
-errors.</p>
-
-                      </div>
-                      <h4>Default Implementation</h4>
-                      <div class="default_impl abstract">
-                        
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">var</span> <span class="nv">isConcrete</span><span class="p">:</span> <span class="kt">Bool</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ38SortKindP03getC0yAA0bC0CAA0B7ContextCFZ"></a>
+                    <a name="/s:7SwiftZ30B10RegularExpC7getSortyAA0bF0CAA0B7ContextCFZ"></a>
                     <a name="//apple_ref/swift/Method/getSort(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ38SortKindP03getC0yAA0bC0CAA0B7ContextCFZ">getSort(_:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B10RegularExpC7getSortyAA0bF0CAA0B7ContextCFZ">getSort(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -513,7 +474,7 @@ errors.</p>
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Creates a concrete instance of a Z3 sort that represents this sort kind.</p>
+                        <p>Gets the statically-typed Z3Sort associated with this <code>Z3RegularExp</code>.</p>
 
                       </div>
                       <div class="declaration">
@@ -530,36 +491,299 @@ errors.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ38SortKindP16isAssignableFromySbAA0B7ContextC_AA0bC0CtFZ"></a>
-                    <a name="//apple_ref/swift/Method/isAssignableFrom(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ38SortKindP16isAssignableFromySbAA0B7ContextC_AA0bC0CtFZ">isAssignableFrom(_:<wbr>_:<wbr>)</a>
+                    <a name="/s:7SwiftZ30B10RegularExpC4plusACyxGyF"></a>
+                    <a name="//apple_ref/swift/Method/plus()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10RegularExpC4plusACyxGyF">plus()</a>
                     </code>
-                      <span class="declaration-note">
-                        Default implementation
-                      </span>
                   </div>
                   <div class="height-container">
                     <div class="pointer-container"></div>
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Returns whether this sort kind can be used to represent a more specialized
-typed <code><a href="../Classes/Z3Ast.html">Z3Ast</a></code> instance with a given sort.</p>
+                        <p>Create a regular expression language <code>self+</code>.</p>
 
-<p>Used for cross casts and downcasts of <code><a href="../Classes/Z3Ast.html">Z3Ast&lt;T&gt;</a></code> and <code><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></code>.</p>
-
-<p>Always returns <code>true</code> if <code>sort</code> is the same as <code>self.getSort(context)</code>.</p>
-
-                      </div>
-                      <h4>Default Implementation</h4>
-                      <div class="default_impl abstract">
-                        
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">isAssignableFrom</span><span class="p">(</span><span class="n">_</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">plus</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">Z3RegularExp</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10RegularExpC4starACyxGyF"></a>
+                    <a name="//apple_ref/swift/Method/star()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10RegularExpC4starACyxGyF">star()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a regular expression language <code>self*</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">star</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">Z3RegularExp</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10RegularExpC6optionACyxGyF"></a>
+                    <a name="//apple_ref/swift/Method/option()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10RegularExpC6optionACyxGyF">option()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a regular expression language <code>[self]</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">option</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">Z3RegularExp</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10RegularExpC5unionyACyxGSayAEGF"></a>
+                    <a name="//apple_ref/swift/Method/union(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10RegularExpC5unionyACyxGSayAEGF">union(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create the union of this regular language and every other in <code>others</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">union</span><span class="p">(</span><span class="n">_</span> <span class="nv">others</span><span class="p">:</span> <span class="p">[</span><span class="kt">Z3RegularExp</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">Z3RegularExp</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10RegularExpC6concatyACyxGSayAEGF"></a>
+                    <a name="//apple_ref/swift/Method/concat(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10RegularExpC6concatyACyxGSayAEGF">concat(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create the concatenation of this regular language and every other in <code>others</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">concat</span><span class="p">(</span><span class="n">_</span> <span class="nv">others</span><span class="p">:</span> <span class="p">[</span><span class="kt">Z3RegularExp</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">Z3RegularExp</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10RegularExpC5range3low4highACyxGAA0B3SeqCyxG_AJtF"></a>
+                    <a name="//apple_ref/swift/Method/range(low:high:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10RegularExpC5range3low4highACyxGAA0B3SeqCyxG_AJtF">range(low:<wbr>high:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create the range regular expression over two sequences of length 1.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">range</span><span class="p">(</span><span class="nv">low</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">,</span> <span class="nv">high</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Seq.html">Z3Seq</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3RegularExp</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10RegularExpC4loop3low4highACyxGs6UInt32V_AItF"></a>
+                    <a name="//apple_ref/swift/Method/loop(low:high:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10RegularExpC4loop3low4highACyxGs6UInt32V_AItF">loop(low:<wbr>high:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a regular expression loop.</p>
+
+<p>The supplied regular expression <code>self</code> is repeated between <code>low</code> and <code>high</code>
+times. The <code>low</code> should be below <code>high</code> with one exception: when supplying
+the value <code>high</code> as 0, the meaning is to repeat the argument <code>self</code> at
+least <code>low</code> number of times, and with an unbounded upper bound.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">loop</span><span class="p">(</span><span class="nv">low</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">,</span> <span class="nv">high</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3RegularExp</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10RegularExpC5power5countACyxGs6UInt32V_tF"></a>
+                    <a name="//apple_ref/swift/Method/power(count:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10RegularExpC5power5countACyxGs6UInt32V_tF">power(count:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a power regular expression.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">power</span><span class="p">(</span><span class="nv">count</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3RegularExp</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10RegularExpC9intersectyACyxGSayAEGF"></a>
+                    <a name="//apple_ref/swift/Method/intersect(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10RegularExpC9intersectyACyxGSayAEGF">intersect(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create the intersection of the regular languages.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">intersect</span><span class="p">(</span><span class="n">_</span> <span class="nv">others</span><span class="p">:</span> <span class="p">[</span><span class="kt">Z3RegularExp</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">Z3RegularExp</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10RegularExpC10complementACyxGyF"></a>
+                    <a name="//apple_ref/swift/Method/complement()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10RegularExpC10complementACyxGyF">complement()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create the complement of the regular language <code>self</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">complement</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">Z3RegularExp</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10RegularExpC10differenceyACyxGAEF"></a>
+                    <a name="//apple_ref/swift/Method/difference(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10RegularExpC10differenceyACyxGAEF">difference(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create the difference of this regular expression and <code>other</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">difference</span><span class="p">(</span><span class="n">_</span> <span class="nv">other</span><span class="p">:</span> <span class="kt">Z3RegularExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3RegularExp</span></code></pre>
 
                         </div>
                       </div>

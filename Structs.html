@@ -23,7 +23,7 @@
         <a class="header-link" href="index.html">
            Docs
         </a>
-         (78% documented)
+         (79% documented)
       </p>
     
       <div class="header-col--secondary">
@@ -111,6 +111,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Classes/Z3Pattern.html">Z3Pattern</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/Z3RegularExp.html">Z3RegularExp</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Classes/Z3Seq.html">Z3Seq</a>
@@ -285,6 +288,9 @@
                 <a class="nav-group-task-link" href="Structs/BitVectorSort128.html">BitVectorSort128</a>
               </li>
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/CharSort.html">CharSort</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Structs/FP128Sort.html">FP128Sort</a>
               </li>
               <li class="nav-group-task">
@@ -292,6 +298,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Structs/IntSort.html">IntSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/ReSort.html">ReSort</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Structs/RealSort.html">RealSort</a>
@@ -372,6 +381,12 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Typealiases.html#/s:7SwiftZ30B7CStringa">Z3CString</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Typealiases.html#/s:7SwiftZ30B4Chara">Z3Char</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="Typealiases.html#/s:7SwiftZ30B8DeclKinda">Z3DeclKind</a>
@@ -462,6 +477,34 @@ generic type arguments.</p>
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">ArraySort</span><span class="o">&lt;</span><span class="kt">Domain</span><span class="p">,</span> <span class="kt">Range</span><span class="o">&gt;</span> <span class="p">:</span> <span class="kt"><a href="Protocols/SortKind.html">SortKind</a></span> <span class="k">where</span> <span class="kt">Domain</span> <span class="p">:</span> <span class="kt"><a href="Protocols/SortKind.html">SortKind</a></span><span class="p">,</span> <span class="kt">Range</span> <span class="p">:</span> <span class="kt"><a href="Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ38CharSortV"></a>
+                    <a name="//apple_ref/swift/Struct/CharSort" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ38CharSortV">CharSort</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>A unicode character sort.</p>
+
+                        <a href="Structs/CharSort.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">CharSort</span> <span class="p">:</span> <span class="kt"><a href="Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span></code></pre>
 
                         </div>
                       </div>
@@ -760,6 +803,39 @@ point values</p>
                 <li class="item">
                   <div>
                     <code>
+                    <a name="/s:7SwiftZ36ReSortV"></a>
+                    <a name="//apple_ref/swift/Struct/ReSort" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ36ReSortV">ReSort</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>A meta-sort that is used to represent regular expression sorts.
+Is not a <code><a href="Protocols/SortKind.html">SortKind</a></code> itself as it is not a concrete type that can specialize
+<code><a href="Classes/Z3Ast.html">Z3Ast</a></code> instances, but used solely to refer to regular expression sorts.</p>
+
+<p>The element is the element of the underlying sequence sort of the regular
+expression.</p>
+
+                        <a href="Structs/ReSort.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">ReSort</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
                     <a name="/s:7SwiftZ37SeqSortV"></a>
                     <a name="//apple_ref/swift/Struct/SeqSort" class="dashAnchor"></a>
                     <a class="token" href="#/s:7SwiftZ37SeqSortV">SeqSort</a>
@@ -795,7 +871,7 @@ Is not a <code><a href="Protocols/SortKind.html">SortKind</a></code> itself as i
       </article>
     </div>
     <section class="footer">
-      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-17)</p>
+      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-18)</p>
       <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.3</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
     </section>
   </body>

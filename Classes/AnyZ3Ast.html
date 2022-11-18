@@ -23,7 +23,7 @@
         <a class="header-link" href="../index.html">
            Docs
         </a>
-         (78% documented)
+         (79% documented)
       </p>
     
       <div class="header-col--secondary">
@@ -111,6 +111,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3Pattern.html">Z3Pattern</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3RegularExp.html">Z3RegularExp</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3Seq.html">Z3Seq</a>
@@ -285,6 +288,9 @@
                 <a class="nav-group-task-link" href="../Structs/BitVectorSort128.html">BitVectorSort128</a>
               </li>
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/CharSort.html">CharSort</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Structs/FP128Sort.html">FP128Sort</a>
               </li>
               <li class="nav-group-task">
@@ -292,6 +298,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Structs/IntSort.html">IntSort</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Structs/ReSort.html">ReSort</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Structs/RealSort.html">RealSort</a>
@@ -372,6 +381,12 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B7CStringa">Z3CString</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B4Chara">Z3Char</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Typealiases.html#/s:7SwiftZ30B8DeclKinda">Z3DeclKind</a>
@@ -879,6 +894,66 @@ the requested type.</p>
                 <li class="item">
                   <div>
                     <code>
+                    <a name="/s:7SwiftZ303AnyB3AstC22unsafeCastToRegularExp11elementSortAA0bhI0CyxGxm_tAA0K4KindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/unsafeCastToRegularExp(elementSort:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ303AnyB3AstC22unsafeCastToRegularExp11elementSortAA0bhI0CyxGxm_tAA0K4KindRzlF">unsafeCastToRegularExp(elementSort:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>An unsafe cast from a generic <code>AnyZ3Ast</code> or a specialized <code><a href="../Classes/Z3Ast.html">Z3Ast</a></code> to
+another specialized <code><a href="../Classes/Z3RegularExp.html">Z3RegularExp</a></code> type.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">unsafeCastToRegularExp</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="nv">elementSort</span><span class="p">:</span> <span class="kt">Element</span><span class="o">.</span><span class="k">Type</span> <span class="o">=</span> <span class="kt">Element</span><span class="o">.</span><span class="k">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3RegularExp.html">Z3RegularExp</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ303AnyB3AstC16castToRegularExp11elementSortAA0bgH0CyxGSgxm_tAA0J4KindRzlF"></a>
+                    <a name="//apple_ref/swift/Method/castToRegularExp(elementSort:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ303AnyB3AstC16castToRegularExp11elementSortAA0bgH0CyxGSgxm_tAA0J4KindRzlF">castToRegularExp(elementSort:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>A runtime type-checked cast from a generic <code>AnyZ3Ast</code> or a specialized
+<code><a href="../Classes/Z3RegularExp.html">Z3RegularExp</a></code> to another specialized <code><a href="../Classes/Z3RegularExp.html">Z3RegularExp</a></code> type.</p>
+
+<p>The underlying <code><a href="../Protocols/SortKind.html">SortKind</a></code> of this AST type is checked, and if it matches
+the incoming sort, the result is a non-nil <code><a href="../Classes/Z3RegularExp.html">Z3RegularExp</a></code> instance
+annotated with the requested type.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">castToRegularExp</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">(</span><span class="nv">elementSort</span><span class="p">:</span> <span class="kt">Element</span><span class="o">.</span><span class="k">Type</span> <span class="o">=</span> <span class="kt">Element</span><span class="o">.</span><span class="k">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3RegularExp.html">Z3RegularExp</a></span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span><span class="p">?</span> <span class="k">where</span> <span class="kt">Element</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/SortKind.html">SortKind</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
                     <a name="/s:7SwiftZ303AnyB3AstC20unsafeCastToSequence11elementSortAA0B3SeqCyxGxm_tAA0J4KindRzlF"></a>
                     <a name="//apple_ref/swift/Method/unsafeCastToSequence(elementSort:)" class="dashAnchor"></a>
                     <a class="token" href="#/s:7SwiftZ303AnyB3AstC20unsafeCastToSequence11elementSortAA0B3SeqCyxGxm_tAA0J4KindRzlF">unsafeCastToSequence(elementSort:<wbr>)</a>
@@ -944,7 +1019,7 @@ the requested type.</p>
       </article>
     </div>
     <section class="footer">
-      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-17)</p>
+      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-18)</p>
       <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.3</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
     </section>
   </body>
