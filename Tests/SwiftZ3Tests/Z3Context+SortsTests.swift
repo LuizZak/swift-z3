@@ -31,4 +31,38 @@ class Z3Context_SortsTests: XCTestCase {
         XCTAssertEqual(basis.sortKind, .seqSort)
         XCTAssertEqual(basis, seqSort)
     }
+
+    func testStringSort() {
+        let context = Z3Context()
+
+        let sort = context.stringSort()
+
+        XCTAssertEqual(sort.sortKind, .seqSort)
+        XCTAssertEqual(sort, SeqSort<CharSort>.getSort(context))
+    }
+
+    func testIsStringSort() {
+        let context = Z3Context()
+
+        let sort = context.stringSort()
+
+        XCTAssertTrue(context.isStringSort(sort))
+    }
+
+    func testCharSort() {
+        let context = Z3Context()
+
+        let sort = context.charSort()
+
+        XCTAssertEqual(sort.sortKind, .charSort)
+        XCTAssertEqual(sort, CharSort.getSort(context))
+    }
+
+    func testIsCharSort() {
+        let context = Z3Context()
+
+        let sort = context.charSort()
+
+        XCTAssertTrue(context.isCharSort(sort))
+    }
 }
