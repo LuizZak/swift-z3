@@ -127,8 +127,8 @@ public extension Z3Context {
 
     /// Create the range regular expression over two sequences of length 1.
     func makeReRange<Element>(
-        low: Z3RegularExp<Element>,
-        high: Z3RegularExp<Element>
+        low: Z3Seq<Element>,
+        high: Z3Seq<Element>
     ) -> Z3RegularExp<Element> {
 
         Z3RegularExp(
@@ -141,7 +141,7 @@ public extension Z3Context {
     ///
     /// Type-erased version.
     ///
-    /// - precondition: `low` and `high` are the same regular expression sort.
+    /// - precondition: `low` and `high` are the same sequence sort.
     func makeReRangeAny(low: AnyZ3Ast, high: AnyZ3Ast) -> AnyZ3Ast {
         AnyZ3Ast(
             context: self,
