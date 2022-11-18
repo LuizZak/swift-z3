@@ -84,4 +84,14 @@ public extension Z3Seq {
     func at(index: Z3Int) -> Z3Seq {
         context.makeSeqAt(self, index: index)
     }
+
+    /// Create a regular expression that accepts this sequence.
+    func toRegularExp() -> Z3RegularExp<Element> {
+        context.makeSeqToRe(self)
+    }
+
+    /// Check for regular expression membership.
+    func inRegExp(_ re: Z3RegularExp<Element>) -> Z3Bool {
+        context.makeSeqInRe(self, regex: re)
+    }
 }
