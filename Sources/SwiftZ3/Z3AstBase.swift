@@ -78,6 +78,11 @@ public class Z3AstBase {
         return Z3_is_lambda(context.context, ast)
     }
 
+    /// Determine if this ast is a string.
+    public var isString: Bool {
+        return context.isString(self)
+    }
+
     /// Return the kind of the given AST.
     public var astKind: Z3AstKind {
         return Z3_get_ast_kind(context.context, ast)

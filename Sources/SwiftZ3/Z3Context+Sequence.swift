@@ -1,28 +1,7 @@
 import CZ3
 
 public extension Z3Context {
-    // MARK: - Sequences and regular expressions
-
-    /// Create a sequence sort out of the sort for the elements.
-    func seqSort(element: Z3Sort) -> Z3Sort {
-        Z3Sort(
-            context: self,
-            sort: Z3_mk_seq_sort(context, element.sort)
-        )
-    }
-
-    /// Returns whether `sort` is a sequence sort.
-    func isSeqSort(_ sort: Z3Sort) -> Bool {
-        Z3_is_seq_sort(context, sort.sort)
-    }
-
-    /// Retrieve basis sort for sequence sort.
-    func getSeqSortBasis(_ sort: Z3Sort) -> Z3Sort {
-        Z3Sort(
-            context: self,
-            sort: Z3_get_seq_sort_basis(context, sort.sort)
-        )
-    }
+    // MARK: - Sequences
 
     /// Create an empty sequence of the sequence of sort `sort`.
     func makeSeqEmpty<Element>(_ sort: SeqSort<Element>.Type = SeqSort<Element>.self) -> Z3Seq<Element> {
@@ -308,6 +287,47 @@ public extension Z3Context {
         Z3Int(
             context: self,
             ast: Z3_mk_seq_last_index(context, sequence.ast, substr.ast)
+        )
+    }
+
+    /// Create a regular expression that accepts the sequence `sequence`.
+    func makeSeqToRe<Element>(_ sequence: Z3Seq<Element>) -> Z3RegularExp<Element> {
+        Z3RegularExp(
+            context: self,
+            ast: Z3_mk_seq_to_re(context, sequence.ast)
+        )
+    }
+
+    /// Create a regular expression that accepts the sequence `sequence`.
+    ///
+    /// Type-erased version.
+    ///
+    /// - precondition: `sequence` is a sequence sort.
+    func makeSeqToReAny(_ sequence: AnyZ3Ast) -> AnyZ3Ast {
+        AnyZ3Ast(
+            context: self,
+            ast: Z3_mk_seq_to_re(context, sequence.ast)
+        )
+    }
+
+    /// Check for regular expression membership.
+    func makeSeqInRe<Element>(_ sequence: Z3Seq<Element>, regex: Z3RegularExp<Element>) -> Z3Bool {
+        Z3Bool(
+            context: self,
+            ast: Z3_mk_seq_in_re(context, sequence.ast, regex.ast)
+        )
+    }
+
+    /// Check for regular expression membership.
+    ///
+    /// Type-erased version.
+    ///
+    /// - precondition: `sequence` is a sequence sort, and `regex` is a regular
+    /// expression sort with the same basis sort as `sequence`.
+    func makeSeqInReAny(_ sequence: AnyZ3Ast, regex: AnyZ3Ast) -> Z3Bool {
+        Z3Bool(
+            context: self,
+            ast: Z3_mk_seq_in_re(context, sequence.ast, regex.ast)
         )
     }
 }

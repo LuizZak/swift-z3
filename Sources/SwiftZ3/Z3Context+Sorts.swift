@@ -275,4 +275,81 @@ public extension Z3Context {
             accessors.toZ3FuncDeclArray(context: self)
         )
     }
+
+    /// Create a sequence sort out of the sort for the elements.
+    func seqSort(element: Z3Sort) -> Z3Sort {
+        Z3Sort(
+            context: self,
+            sort: Z3_mk_seq_sort(context, element.sort)
+        )
+    }
+
+    /// Returns whether `sort` is a sequence sort.
+    func isSeqSort(_ sort: Z3Sort) -> Bool {
+        Z3_is_seq_sort(context, sort.sort)
+    }
+
+    /// Retrieve basis sort for sequence sort.
+    func getSeqSortBasis(_ sort: Z3Sort) -> Z3Sort {
+        Z3Sort(
+            context: self,
+            sort: Z3_get_seq_sort_basis(context, sort.sort)
+        )
+    }
+
+    /// Create a regular expression sort out of the sort for the underlying sequence
+    /// sort.
+    func reSort(seqSort: Z3Sort) -> Z3Sort {
+        Z3Sort(
+            context: self,
+            sort: Z3_mk_re_sort(context, seqSort.sort)
+        )
+    }
+
+    /// Check if `sort` is a regular expression sort.
+    func isReSort(_ sort: Z3Sort) -> Bool {
+        Z3_is_re_sort(context, sort.sort)
+    }
+
+    /// Retrieve basis sort for a regex sort.
+    func getReSortBasis(_ sort: Z3Sort) -> Z3Sort {
+        Z3Sort(
+            context: self,
+            sort: Z3_get_re_sort_basis(context, sort.sort)
+        )
+    }
+
+    /// Create a sort for unicode strings.
+    ///
+    /// The sort for characters can be changed to ASCII by setting the global
+    /// parameter `encoding` to `ascii`, or alternatively to 16 bit characters
+    /// by setting `encoding` to `bmp`.
+    func stringSort() -> Z3Sort {
+        Z3Sort(
+            context: self,
+            sort: Z3_mk_string_sort(context)
+        )
+    }
+
+    /// Check if `sort` is a string sort.
+    func isStringSort(_ sort: Z3Sort) -> Bool {
+        Z3_is_string_sort(context, sort.sort)
+    }
+
+    /// Create a sort for unicode characters.
+    /// 
+    /// The sort for characters can be changed to ASCII by setting the global
+    /// parameter encoding to ascii, or alternative to 16 bit characters by
+    /// setting encoding to bmp.
+    func charSort() -> Z3Sort {
+        Z3Sort(
+            context: self,
+            sort: Z3_mk_char_sort(context)
+        )
+    }
+
+    /// Check if `sort` is a character sort.
+    func isCharSort(_ sort: Z3Sort) -> Bool {
+        Z3_is_char_sort(context, sort.sort)
+    }
 }
