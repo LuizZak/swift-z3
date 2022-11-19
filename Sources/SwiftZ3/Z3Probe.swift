@@ -25,4 +25,73 @@ public class Z3Probe {
     public func apply(over goal: Z3Goal) -> Double {
         Z3_probe_apply(context.context, probe, goal.goal)
     }
+
+    /// Return a tactic that fails if this probe evaluates to false.
+    public func tacticForFailure() -> Z3Tactic {
+        context.tacticFailIf(self)
+    }
+}
+
+public extension Z3Probe {
+    /// Return a probe that evaluates to "true" when the value returned by `lhs`
+    /// is less than the value returned by `rhs`.
+    ///
+    /// - remark: For probes, "true" is any value different from 0.0.
+    /// - precondition: `lhs` and `rhs` share the same context.
+    static func < (lhs: Z3Probe, rhs: Z3Probe) -> Z3Probe {
+        lhs.context.probeLt(lhs, rhs)
+    }
+
+    /// Return a probe that evaluates to "true" when the value returned by `lhs`
+    /// is less than or equal to the value returned by `rhs`.
+    ///
+    /// - remark: For probes, "true" is any value different from 0.0.
+    /// - precondition: `lhs` and `rhs` share the same context.
+    static func <= (lhs: Z3Probe, rhs: Z3Probe) -> Z3Probe {
+        lhs.context.probeLe(lhs, rhs)
+    }
+
+    /// Return a probe that evaluates to "true" when the value returned by `lhs`
+    /// is greater than the value returned by `rhs`.
+    ///
+    /// - remark: For probes, "true" is any value different from 0.0.
+    /// - precondition: `lhs` and `rhs` share the same context.
+    static func > (lhs: Z3Probe, rhs: Z3Probe) -> Z3Probe {
+        lhs.context.probeGt(lhs, rhs)
+    }
+
+    /// Return a probe that evaluates to "true" when the value returned by `lhs`
+    /// is greater than or equal to the value returned by `rhs`.
+    ///
+    /// - remark: For probes, "true" is any value different from 0.0.
+    /// - precondition: `lhs` and `rhs` share the same context.
+    static func >= (lhs: Z3Probe, rhs: Z3Probe) -> Z3Probe {
+        lhs.context.probeGe(lhs, rhs)
+    }
+
+    /// Return a probe that evaluates to "true" when `lhs` and `rhs` evaluate to
+    /// true.
+    ///
+    /// - remark: For probes, "true" is any value different from 0.0.
+    /// - precondition: `lhs` and `rhs` share the same context.
+    static func == (lhs: Z3Probe, rhs: Z3Probe) -> Z3Probe {
+        lhs.context.probeAnd(lhs, rhs)
+    }
+
+    /// Return a probe that evaluates to "true" when `lhs` or `rhs` evaluate to
+    /// true.
+    ///
+    /// - remark: For probes, "true" is any value different from 0.0.
+    /// - precondition: `lhs` and `rhs` share the same context.
+    static func || (lhs: Z3Probe, rhs: Z3Probe) -> Z3Probe {
+        lhs.context.probeOr(lhs, rhs)
+    }
+
+    /// Return a probe that evaluates to "true" when `probe` does not evaluate
+    /// to true.
+    ///
+    /// - remark: For probes, "true" is any value different from 0.0.
+    static prefix func ! (probe: Z3Probe) -> Z3Probe {
+        probe.context.probeNot(probe)
+    }
 }
