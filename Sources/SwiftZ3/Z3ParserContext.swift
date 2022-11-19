@@ -1,5 +1,7 @@
 import CZ3
 
+/// Context for incrementally parsing strings. Declarations can be added
+/// incrementally to the parser state.
 public class Z3ParserContext {
     /// The context this `Z3ParserContext` belongs
     public let context: Z3Context

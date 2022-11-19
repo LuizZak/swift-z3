@@ -1,5 +1,6 @@
 import CZ3
 
+/// Model for the constraints asserted into the logical context.
 public class Z3Model {
     /// The context this `Z3Model` belongs
     public let context: Z3Context
@@ -8,6 +9,7 @@ public class Z3Model {
     init(context: Z3Context, model: Z3_model) {
         self.context = context
         self.model = model
+        
         Z3_model_inc_ref(context.context, model)
     }
     

@@ -1,6 +1,6 @@
 import CZ3
 
-/// Object for managing optimization context
+/// Object for managing optimization context.
 public class Z3Optimize {
     /// The context this `Z3Optimize` belongs
     public let context: Z3Context

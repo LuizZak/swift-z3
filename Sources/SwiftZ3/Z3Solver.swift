@@ -1,5 +1,6 @@
 import CZ3
 
+/// Incremental solver, possibly specialized by a particular tactic or logic.
 public class Z3Solver {
     /// The context this `Z3Solver` belongs
     public let context: Z3Context

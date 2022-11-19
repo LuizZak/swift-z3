@@ -1,5 +1,7 @@
 import CZ3
 
+/// Kind of AST used to represent pattern and multi-patterns used to guide
+/// quantifier instantiation.
 public class Z3Pattern: Z3AstBase {
     /// Alias for `ast`
     var pattern: Z3_pattern {

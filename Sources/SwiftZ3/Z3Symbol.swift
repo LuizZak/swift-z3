@@ -1,5 +1,7 @@
 import CZ3
 
+/// Lisp-like symbol used to name types, constants, and functions.
+/// A symbol can be created using string or integers.
 public class Z3Symbol {
     /// The context this `Z3Symbol` belongs
     public let context: Z3Context

@@ -1,5 +1,6 @@
 import CZ3
 
+/// vector of `Z3AstBase` objects.
 public class Z3AstVector {
     /// The context this `Z3AstVector` belongs
     public let context: Z3Context
@@ -13,12 +14,12 @@ public class Z3AstVector {
     /// Return or update the AST at position `index` in this AST vector.
     ///
     /// - precondition: `i < size`
-    public subscript(index: UInt32) -> AnyZ3Ast {
+    public subscript(index: UInt32) -> Z3AstBase {
         get {
             precondition(index < size)
 
             let ast = Z3_ast_vector_get(context.context, astVector, index)
-            return AnyZ3Ast(context: context, ast: ast!)
+            return Z3AstBase(context: context, ast: ast!)
         }
         set {
             precondition(index < size)
@@ -30,7 +31,7 @@ public class Z3AstVector {
     /// Return or update the AST at position `index` in this AST vector.
     ///
     /// - precondition: `i >= 0 && i < size`
-    public subscript(index: Int) -> AnyZ3Ast {
+    public subscript(index: Int) -> Z3AstBase {
         get {
             return self[UInt32(index)]
         }
@@ -57,7 +58,7 @@ public class Z3AstVector {
         Z3_ast_vector_dec_ref(context.context, astVector)
     }
 
-    public func push(_ ast: AnyZ3Ast) {
+    public func push(_ ast: Z3AstBase) {
         Z3_ast_vector_push(context.context, astVector, ast.ast)
     }
     
@@ -78,7 +79,7 @@ public class Z3AstVector {
 }
 
 extension Z3AstVector: Sequence {
-    public func makeIterator() -> AnyIterator<AnyZ3Ast> {
+    public func makeIterator() -> AnyIterator<Z3AstBase> {
         var index: UInt32 = 0
         var isAtEnd = false
         

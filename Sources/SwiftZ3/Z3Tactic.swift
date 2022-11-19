@@ -1,5 +1,6 @@
 import CZ3
 
+/// Basic building block for creating custom solvers for specific problem domains.
 public class Z3Tactic {
     /// The context this `Z3Tactic` belongs
     public let context: Z3Context
@@ -14,6 +15,12 @@ public class Z3Tactic {
     init(context: Z3Context, tactic: Z3_tactic) {
         self.context = context
         self.tactic = tactic
+
+        Z3_tactic_inc_ref(context.context, tactic)
+    }
+
+    deinit {
+        Z3_tactic_dec_ref(context.context, tactic)
     }
     
     /// Return the parameter description set for this tactic object.

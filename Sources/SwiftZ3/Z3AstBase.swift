@@ -1,5 +1,7 @@
 import CZ3
 
+/// Abstract syntax tree node. That is, the data-structure used in Z3 to
+/// represent terms, formulas and types.
 /// Base class for `Z3Sort`, `Z3FuncDecl`, `Z3Pattern`, and `AnyZ3Ast`.
 public class Z3AstBase {
     /// The context this `Z3AstBase` belongs

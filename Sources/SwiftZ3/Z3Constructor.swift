@@ -1,5 +1,6 @@
 import CZ3
 
+/// Type constructor for a (recursive) datatype.
 public class Z3Constructor {
     /// The context this `Z3Constructor` belongs
     public let context: Z3Context

@@ -1,5 +1,7 @@
 import CZ3
 
+/// Set of formulas that can be solved and/or transformed using tactics and
+/// solvers.
 public class Z3Goal {
     /// The context this `Z3Goal` belongs
     public let context: Z3Context

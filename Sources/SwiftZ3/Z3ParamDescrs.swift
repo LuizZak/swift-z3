@@ -1,5 +1,8 @@
 import CZ3
 
+/// Provides a collection of parameter names, their types, default values and
+/// documentation strings. Solvers, tactics, and other objects accept different
+/// collection of parameters.
 public class Z3ParamDescrs {
     /// The context this `Z3ParamDescrs` belongs
     public let context: Z3Context
@@ -8,6 +11,12 @@ public class Z3ParamDescrs {
     init(context: Z3Context, descr: Z3_param_descrs) {
         self.context = context
         self.descrs = descr
+
+        Z3_param_descrs_inc_ref(context.context, descrs)
+    }
+
+    deinit {
+        Z3_param_descrs_dec_ref(context.context, descrs)
     }
     
     /// Return the kind associated with the given parameter name `n`.
