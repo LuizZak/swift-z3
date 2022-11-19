@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Z3Symbol Class Reference</title>
+    <title>Z3ParserContext Class Reference</title>
     <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
     <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
     <meta charset="utf-8">
@@ -14,9 +14,9 @@
   </head>
   <body>
 
-    <a name="//apple_ref/swift/Class/Z3Symbol" class="dashAnchor"></a>
+    <a name="//apple_ref/swift/Class/Z3ParserContext" class="dashAnchor"></a>
 
-    <a title="Z3Symbol Class Reference"></a>
+    <a title="Z3ParserContext Class Reference"></a>
 
     <header class="header">
       <p class="header-col header-col--primary">
@@ -38,7 +38,7 @@
     <p class="breadcrumbs">
       <a class="breadcrumb" href="../index.html"> Reference</a>
       <img class="carat" src="../img/carat.png" alt=""/>
-      Z3Symbol Class Reference
+      Z3ParserContext Class Reference
     </p>
 
     <div class="content-wrapper">
@@ -447,11 +447,11 @@
 
         <section class="section">
           <div class="section-content top-matter">
-            <h1>Z3Symbol</h1>
+            <h1>Z3ParserContext</h1>
               <div class="declaration">
                 <div class="language">
                   
-                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3Symbol</span></code></pre>
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3ParserContext</span></code></pre>
 
                 </div>
               </div>
@@ -467,9 +467,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B6SymbolC7contextAA0B7ContextCvp"></a>
+                    <a name="/s:7SwiftZ30B13ParserContextC7contextAA0bD0Cvp"></a>
                     <a name="//apple_ref/swift/Property/context" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B6SymbolC7contextAA0B7ContextCvp">context</a>
+                    <a class="token" href="#/s:7SwiftZ30B13ParserContextC7contextAA0bD0Cvp">context</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -477,7 +477,7 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>The context this <code>Z3Symbol</code> belongs</p>
+                        <p>The context this <code>Z3ParserContext</code> belongs</p>
 
                       </div>
                       <div class="declaration">
@@ -494,9 +494,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B6SymbolC10symbolKindSo0b1_D5_kindavp"></a>
-                    <a name="//apple_ref/swift/Property/symbolKind" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B6SymbolC10symbolKindSo0b1_D5_kindavp">symbolKind</a>
+                    <a name="/s:7SwiftZ30B13ParserContextC7addSortyyAA0bF0CF"></a>
+                    <a name="//apple_ref/swift/Method/addSort(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B13ParserContextC7addSortyyAA0bF0CF">addSort(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -504,16 +504,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Return <code>Z3SymbolKind.intSymbol</code> if the symbol was constructed using
-<code>makeIntSymbol</code>, and <code>Z3SymbolKind.stringSymbol</code> if the symbol was
-constructed using <code>makeStringSymbol</code>.</p>
+                        <p>Add a sort declaration.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">symbolKind</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B10SymbolKinda">Z3SymbolKind</a></span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">addSort</span><span class="p">(</span><span class="n">_</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span></code></pre>
 
                         </div>
                       </div>
@@ -523,9 +521,9 @@ constructed using <code>makeStringSymbol</code>.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B6SymbolC9symbolInts5Int32Vvp"></a>
-                    <a name="//apple_ref/swift/Property/symbolInt" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B6SymbolC9symbolInts5Int32Vvp">symbolInt</a>
+                    <a name="/s:7SwiftZ30B13ParserContextC7addDeclyyAA0b4FuncF0CF"></a>
+                    <a name="//apple_ref/swift/Method/addDecl(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B13ParserContextC7addDeclyyAA0b4FuncF0CF">addDecl(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -533,19 +531,14 @@ constructed using <code>makeStringSymbol</code>.</p>
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Return the symbol int value.</p>
-<div class="aside aside-precondition">
-    <p class="aside-title">Precondition</p>
-    <code>symbolKind == Z3SymbolKind.intSymbol</code>
-
-</div>
+                        <p>Add a function declaration.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">symbolInt</span><span class="p">:</span> <span class="kt">Int32</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">addDecl</span><span class="p">(</span><span class="n">_</span> <span class="nv">decl</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a></span><span class="p">)</span></code></pre>
 
                         </div>
                       </div>
@@ -555,9 +548,9 @@ constructed using <code>makeStringSymbol</code>.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B6SymbolC12symbolStringSSvp"></a>
-                    <a name="//apple_ref/swift/Property/symbolString" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B6SymbolC12symbolStringSSvp">symbolString</a>
+                    <a name="/s:7SwiftZ30B13ParserContextC11parseStringyAA0B9AstVectorCSSF"></a>
+                    <a name="//apple_ref/swift/Method/parseString(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B13ParserContextC11parseStringyAA0B9AstVectorCSSF">parseString(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -565,23 +558,14 @@ constructed using <code>makeStringSymbol</code>.</p>
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Return the symbol name.</p>
-<div class="aside aside-precondition">
-    <p class="aside-title">Precondition</p>
-    <code>symbolKind == Z3SymbolKind.stringSymbol</code>
-
-</div><div class="aside aside-seealso">
-    <p class="aside-title">Seealso</p>
-    <code>makeStringSymbol</code>
-
-</div>
+                        <p>Parse a string of SMTLIB2 commands. Return assertions.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">symbolString</span><span class="p">:</span> <span class="kt">String</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">parseString</span><span class="p">(</span><span class="n">_</span> <span class="nv">str</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
 
                         </div>
                       </div>

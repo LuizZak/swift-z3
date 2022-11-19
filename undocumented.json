@@ -1185,14 +1185,14 @@
     },
     {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Z3Sort.swift",
-      "line": 37,
+      "line": 42,
       "symbol": "Z3Sort",
       "symbol_kind": "source.lang.swift.decl.extension",
       "warning": "undocumented"
     },
     {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Z3Sort.swift",
-      "line": 44,
+      "line": 49,
       "symbol": "Z3Sort",
       "symbol_kind": "source.lang.swift.decl.extension",
       "warning": "undocumented"
@@ -1852,6 +1852,13 @@
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Params.swift",
       "line": 3,
       "symbol": "Z3Params",
+      "symbol_kind": "source.lang.swift.decl.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3ParserContext.swift",
+      "line": 3,
+      "symbol": "Z3ParserContext",
       "symbol_kind": "source.lang.swift.decl.class",
       "warning": "undocumented"
     },

@@ -23,7 +23,7 @@
         <a class="header-link" href="../index.html">
            Docs
         </a>
-         (79% documented)
+         (80% documented)
       </p>
     
       <div class="header-col--secondary">
@@ -108,6 +108,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3Params.html">Z3Params</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3ParserContext.html">Z3ParserContext</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3Pattern.html">Z3Pattern</a>
@@ -967,6 +970,166 @@ simplifier can be configured using the given parameter set.</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">simplifyEx</span><span class="p">(</span><span class="n">_</span> <span class="nv">a</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">p</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Params.html">Z3Params</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
 
                         </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC15setAstPrintModeyySo0B15_ast_print_modeaF"></a>
+                    <a name="//apple_ref/swift/Method/setAstPrintMode(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC15setAstPrintModeyySo0B15_ast_print_modeaF">setAstPrintMode(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Select mode for the format used for pretty-printing AST nodes.</p>
+
+<p>The default mode for pretty printing AST nodes is to produce SMT-LIB style
+output where common subexpressions are printed
+at each occurrence. The mode is called <code>Z3AstPrintMode.printSmtlibFull</code>.
+To print shared common subexpressions only once, use the
+<code>Z3AstPrintMode.printLowLevel</code> mode.
+To print in way that conforms to SMT-LIB standards and uses let expressions
+to share common sub-expressions use <code>Z3AstPrintMode.printSmtlib2Compliant</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">setAstPrintMode</span><span class="p">(</span><span class="n">_</span> <span class="nv">mode</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B12AstPrintModea">Z3AstPrintMode</a></span><span class="p">)</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC23benchmarkToSmtlibString4name5logic6status10attributes11assumptions7formulaS2SSg_S3SSayAA0B7AstBaseCGAMtF"></a>
+                    <a name="//apple_ref/swift/Method/benchmarkToSmtlibString(name:logic:status:attributes:assumptions:formula:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC23benchmarkToSmtlibString4name5logic6status10attributes11assumptions7formulaS2SSg_S3SSayAA0B7AstBaseCGAMtF">benchmarkToSmtlibString(name:<wbr>logic:<wbr>status:<wbr>attributes:<wbr>assumptions:<wbr>formula:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Convert the given benchmark into SMT-LIB formatted string.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">benchmarkToSmtlibString</span><span class="p">(</span>
+    <span class="nv">name</span><span class="p">:</span> <span class="kt">String</span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">,</span>
+    <span class="nv">logic</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+    <span class="nv">status</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+    <span class="nv">attributes</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+    <span class="nv">assumptions</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/Z3AstBase.html">Z3AstBase</a></span><span class="p">],</span>
+    <span class="nv">formula</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3AstBase.html">Z3AstBase</a></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>name</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>- name of benchmark. The argument is optional.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>logic</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>- the benchmark logic.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>status</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>- the status string (sat, unsat, or unknown)</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>attributes</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>- other attributes, such as source, difficulty or category.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>num_assumptions</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>- number of assumptions.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>assumptions</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>- auxiliary assumptions.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>formula</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>- formula to be checked for consistency in conjunction with assumptions.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
                     </section>
                   </div>
@@ -9200,6 +9363,152 @@ fit in a machine <code>UInt64</code> int. Returns <code>nil</code> if it fails.<
             </div>
             <div class="task-group">
               <div class="task-name-container">
+                <a name="/Parser%20interface"></a>
+                <a name="//apple_ref/swift/Section/Parser interface" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Parser%20interface"></a>
+                  <h3 class="section-name"><span>Parser interface</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC18parseSmtlib2String_5sorts5declsAA0B9AstVectorCSS_SayAA0B6SymbolC4name_AA0B4SortCtGSayAjK_AA0B8FuncDeclCtGtF"></a>
+                    <a name="//apple_ref/swift/Method/parseSmtlib2String(_:sorts:decls:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC18parseSmtlib2String_5sorts5declsAA0B9AstVectorCSS_SayAA0B6SymbolC4name_AA0B4SortCtGSayAjK_AA0B8FuncDeclCtGtF">parseSmtlib2String(_:<wbr>sorts:<wbr>decls:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Parse the given string using the SMT-LIB2 parser.</p>
+
+<p>It returns a formula comprising of the conjunction of assertions in the
+scope (up to push/pop) at the end of the string.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">parseSmtlib2String</span><span class="p">(</span>
+    <span class="n">_</span> <span class="nv">str</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+    <span class="nv">sorts</span><span class="p">:</span> <span class="p">[(</span><span class="nv">name</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span><span class="p">,</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)],</span>
+    <span class="nv">decls</span><span class="p">:</span> <span class="p">[(</span><span class="nv">name</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span><span class="p">,</span> <span class="kt"><a href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a></span><span class="p">)]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16parseSmtlib2File8filePath5sorts5declsAA0B9AstVectorCSS_SayAA0B6SymbolC4name_AA0B4SortCtGSayAkL_AA0B8FuncDeclCtGtKF"></a>
+                    <a name="//apple_ref/swift/Method/parseSmtlib2File(filePath:sorts:decls:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16parseSmtlib2File8filePath5sorts5declsAA0B9AstVectorCSS_SayAA0B6SymbolC4name_AA0B4SortCtGSayAkL_AA0B8FuncDeclCtGtKF">parseSmtlib2File(filePath:<wbr>sorts:<wbr>decls:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Parse the contents of a given file path using the SMT-LIB2 parser.</p>
+
+<p>It returns a formula comprising of the conjunction of assertions in the
+scope (up to push/pop) at the end of the file.</p>
+
+<p>Similar to <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC18parseSmtlib2String_5sorts5declsAA0B9AstVectorCSS_SayAA0B6SymbolC4name_AA0B4SortCtGSayAjK_AA0B8FuncDeclCtGtF">parseSmtlib2String(_:sorts:decls:)</a></code>, but reads the benchmark
+from a file.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">parseSmtlib2File</span><span class="p">(</span>
+    <span class="nv">filePath</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+    <span class="nv">sorts</span><span class="p">:</span> <span class="p">[(</span><span class="nv">name</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span><span class="p">,</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)],</span>
+    <span class="nv">decls</span><span class="p">:</span> <span class="p">[(</span><span class="nv">name</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span><span class="p">,</span> <span class="kt"><a href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a></span><span class="p">)]</span>
+<span class="p">)</span> <span class="k">throws</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC17evalSmtlib2StringyS2SF"></a>
+                    <a name="//apple_ref/swift/Method/evalSmtlib2String(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC17evalSmtlib2StringyS2SF">evalSmtlib2String(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Parse and evaluate and SMT-LIB2 command sequence. The state from a
+previous call is saved so the next evaluation builds on top of the
+previous call.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">evalSmtlib2String</span><span class="p">(</span><span class="n">_</span> <span class="nv">str</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC012createParserC0AA0beC0CyF"></a>
+                    <a name="//apple_ref/swift/Method/createParserContext()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC012createParserC0AA0beC0CyF">createParserContext()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a parser context.</p>
+
+<p>A parser context maintains state between calls to <code><a href="../Classes/Z3ParserContext.html#/s:7SwiftZ30B13ParserContextC11parseStringyAA0B9AstVectorCSSF">Z3ParserContext.parseString(_:)</a></code>
+where the caller can pass in a set of SMTLIB2 commands.
+It maintains all the declarations from previous calls together with of
+sorts and function declarations (including 0-ary) that are added directly
+to the context.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">createParserContext</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3ParserContext.html">Z3ParserContext</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
                 <a name="/Qualifiers"></a>
                 <a name="//apple_ref/swift/Section/Qualifiers" class="dashAnchor"></a>
                 <div class="section-name-container">
@@ -13958,7 +14267,7 @@ name.</p>
       </article>
     </div>
     <section class="footer">
-      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-18)</p>
+      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-19)</p>
       <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.3</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
     </section>
   </body>

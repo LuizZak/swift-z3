@@ -1786,6 +1786,13 @@
       "warning": "undocumented"
     },
     {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3CString.swift",
+      "line": 3,
+      "symbol": "Z3CString",
+      "symbol_kind": "source.lang.swift.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Config.swift",
       "line": 30,
       "symbol": "Z3Config.init()",
@@ -1860,13 +1867,6 @@
       "line": 3,
       "symbol": "Z3Stats",
       "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3String.swift",
-      "line": 3,
-      "symbol": "Z3String",
-      "symbol_kind": "source.lang.swift.decl.typealias",
       "warning": "undocumented"
     },
     {
