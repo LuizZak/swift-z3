@@ -65,6 +65,9 @@
                 <a class="nav-group-task-link" href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a>
               </li>
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3ApplyResult.html">Z3ApplyResult</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3Ast.html">Z3Ast</a>
               </li>
               <li class="nav-group-task">
@@ -114,6 +117,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3Pattern.html">Z3Pattern</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Probe.html">Z3Probe</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3RegularExp.html">Z3RegularExp</a>
@@ -540,6 +546,296 @@ tactic.</p>
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getParamDescrs</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3ParamDescrs.html">Z3ParamDescrs</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6TacticC7andThenyA2CF"></a>
+                    <a name="//apple_ref/swift/Method/andThen(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6TacticC7andThenyA2CF">andThen(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that applies <code>self</code> to a given goal and <code>next</code> to every
+subgoal produced by <code>self</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">andThen</span><span class="p">(</span><span class="n">_</span> <span class="nv">next</span><span class="p">:</span> <span class="kt">Z3Tactic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Tactic</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6TacticC6orElseyA2CF"></a>
+                    <a name="//apple_ref/swift/Method/orElse(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6TacticC6orElseyA2CF">orElse(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that first applies <code>self</code> to a given goal, if it fails
+then returns the result of <code>other</code> applied to the given goal.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">orElse</span><span class="p">(</span><span class="n">_</span> <span class="nv">other</span><span class="p">:</span> <span class="kt">Z3Tactic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Tactic</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6TacticC15parallelAndThenyA2CF"></a>
+                    <a name="//apple_ref/swift/Method/parallelAndThen(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6TacticC15parallelAndThenyA2CF">parallelAndThen(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that applies <code>self</code> to a given goal and then <code>other</code>
+to every subgoal produced by <code>self</code>. The subgoals are processed in
+parallel.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">parallelAndThen</span><span class="p">(</span><span class="n">_</span> <span class="nv">other</span><span class="p">:</span> <span class="kt">Z3Tactic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Tactic</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6TacticC6tryFor12millisecondsACs6UInt32V_tF"></a>
+                    <a name="//apple_ref/swift/Method/tryFor(milliseconds:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6TacticC6tryFor12millisecondsACs6UInt32V_tF">tryFor(milliseconds:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that applies <code>self</code> to a given goal for <code>milliseconds</code>.
+If <code>self</code> does not terminate in <code>milliseconds</code>, then it fails.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">tryFor</span><span class="p">(</span><span class="nv">milliseconds</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Tactic</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6TacticC4whenyAcA0B5ProbeCF"></a>
+                    <a name="//apple_ref/swift/Method/when(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6TacticC4whenyAcA0B5ProbeCF">when(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that applies <code>self</code> to a given goal is the probe <code>probe</code>
+evaluates to true.
+If <code>probe</code> evaluates to false, then the new tactic behaves like the skip
+tactic.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">when</span><span class="p">(</span><span class="n">_</span> <span class="nv">probe</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Tactic</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6TacticC11conditional7ifProbe4elseAcA0bF0C_ACtF"></a>
+                    <a name="//apple_ref/swift/Method/conditional(ifProbe:else:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6TacticC11conditional7ifProbe4elseAcA0bF0C_ACtF">conditional(ifProbe:<wbr>else:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that applies <code>self</code> to a given goal if the probe <code>probe</code>
+evaluates to true, and <code>other</code> if <code>probe</code> evaluates to false.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">conditional</span><span class="p">(</span><span class="n">ifProbe</span> <span class="nv">probe</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">,</span> <span class="k">else</span> <span class="nv">other</span><span class="p">:</span> <span class="kt">Z3Tactic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Tactic</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6TacticC9repeating3maxACs6UInt32V_tF"></a>
+                    <a name="//apple_ref/swift/Method/repeating(max:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6TacticC9repeating3maxACs6UInt32V_tF">repeating(max:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that keeps applying <code>self</code> until the goal is not modified
+anymore or the maximum number of iterations <code>max</code> is reached.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">repeating</span><span class="p">(</span><span class="nv">max</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Tactic</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6TacticC11usingParamsyAcA0bE0CF"></a>
+                    <a name="//apple_ref/swift/Method/usingParams(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6TacticC11usingParamsyAcA0bE0CF">usingParams(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that applies <code>self</code> using the given set of parameters.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">usingParams</span><span class="p">(</span><span class="n">_</span> <span class="nv">params</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Params.html">Z3Params</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Tactic</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6TacticC5apply2to6paramsAA0B11ApplyResultCAA0B4GoalC_AA0B6ParamsCSgtF"></a>
+                    <a name="//apple_ref/swift/Method/apply(to:params:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6TacticC5apply2to6paramsAA0B11ApplyResultCAA0B4GoalC_AA0B6ParamsCSgtF">apply(to:<wbr>params:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Apply tactic <code>self</code> to <code>goal</code>, optionally using a set of parameters
+<code>params</code> if non-nil.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">apply</span><span class="p">(</span><span class="n">to</span> <span class="nv">goal</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Goal.html">Z3Goal</a></span><span class="p">,</span> <span class="nv">params</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Params.html">Z3Params</a></span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3ApplyResult.html">Z3ApplyResult</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6TacticC10parallelOryACSayACGFZ"></a>
+                    <a name="//apple_ref/swift/Method/parallelOr(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6TacticC10parallelOryACSayACGFZ">parallelOr(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that applies the given tactics in parallel.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>tactics.count &gt; 0</code>
+
+</div><div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    All tactics belong to the same context.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">static</span> <span class="kd">func</span> <span class="nf">parallelOr</span><span class="p">(</span><span class="n">_</span> <span class="nv">tactics</span><span class="p">:</span> <span class="p">[</span><span class="kt">Z3Tactic</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">Z3Tactic</span></code></pre>
 
                         </div>
                       </div>

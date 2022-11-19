@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Z3FiniteDomainNumeral Class Reference</title>
+    <title>Z3ApplyResult Class Reference</title>
     <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
     <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
     <meta charset="utf-8">
@@ -14,9 +14,9 @@
   </head>
   <body>
 
-    <a name="//apple_ref/swift/Class/Z3FiniteDomainNumeral" class="dashAnchor"></a>
+    <a name="//apple_ref/swift/Class/Z3ApplyResult" class="dashAnchor"></a>
 
-    <a title="Z3FiniteDomainNumeral Class Reference"></a>
+    <a title="Z3ApplyResult Class Reference"></a>
 
     <header class="header">
       <p class="header-col header-col--primary">
@@ -38,7 +38,7 @@
     <p class="breadcrumbs">
       <a class="breadcrumb" href="../index.html"> Reference</a>
       <img class="carat" src="../img/carat.png" alt=""/>
-      Z3FiniteDomainNumeral Class Reference
+      Z3ApplyResult Class Reference
     </p>
 
     <div class="content-wrapper">
@@ -453,15 +453,16 @@
 
         <section class="section">
           <div class="section-content top-matter">
-            <h1>Z3FiniteDomainNumeral</h1>
+            <h1>Z3ApplyResult</h1>
               <div class="declaration">
                 <div class="language">
                   
-                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3FiniteDomainNumeral</span> <span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3ApplyResult</span></code></pre>
 
                 </div>
               </div>
-            <p>A numeral value belonging to a specific finite domain.</p>
+            <p>Z3ApplyResult objects represent the result of an application of a tactic to
+a goal. It contains the subgoals that were produced.</p>
 
           </div>
         </section>
@@ -473,9 +474,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B19FiniteDomainNumeralC11uint64Values6UInt64Vvp"></a>
-                    <a name="//apple_ref/swift/Property/uint64Value" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B19FiniteDomainNumeralC11uint64Values6UInt64Vvp">uint64Value</a>
+                    <a name="/s:7SwiftZ30B11ApplyResultC7contextAA0B7ContextCvp"></a>
+                    <a name="//apple_ref/swift/Property/context" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B11ApplyResultC7contextAA0B7ContextCvp">context</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -483,14 +484,103 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Gets the <code>UInt64</code> value associated with this finite domain numeral value.</p>
+                        <p>Undocumented</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">uint64Value</span><span class="p">:</span> <span class="kt">UInt64</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">let</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B11ApplyResultC12subgoalCounts6UInt32Vvp"></a>
+                    <a name="//apple_ref/swift/Property/subgoalCount" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B11ApplyResultC12subgoalCounts6UInt32Vvp">subgoalCount</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the number of subgoals in this <code>Z3ApplyResult</code> object returned by
+<code><a href="../Classes/Z3Tactic.html#/s:7SwiftZ30B6TacticC5apply2to6paramsAA0B11ApplyResultCAA0B4GoalC_AA0B6ParamsCSgtF">Z3Tactic.apply(to:params:)</a></code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">subgoalCount</span><span class="p">:</span> <span class="kt">UInt32</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B11ApplyResultC8toStringSSyF"></a>
+                    <a name="//apple_ref/swift/Method/toString()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B11ApplyResultC8toStringSSyF">toString()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Converts this <code>Z3ApplyResult</code> object returned by <code><a href="../Classes/Z3Tactic.html#/s:7SwiftZ30B6TacticC5apply2to6paramsAA0B11ApplyResultCAA0B4GoalC_AA0B6ParamsCSgtF">Z3Tactic.apply(to:params:)</a></code>
+into a string.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">toString</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B11ApplyResultC9subgoalAt5indexAA0B4GoalCs6UInt32V_tF"></a>
+                    <a name="//apple_ref/swift/Method/subgoalAt(index:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B11ApplyResultC9subgoalAt5indexAA0B4GoalCs6UInt32V_tF">subgoalAt(index:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return one of the subgoals in this <code>Z3ApplyResult</code> object returned by
+<code><a href="../Classes/Z3Tactic.html#/s:7SwiftZ30B6TacticC5apply2to6paramsAA0B11ApplyResultCAA0B4GoalC_AA0B6ParamsCSgtF">Z3Tactic.apply(to:params:)</a></code>.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3ApplyResult.html#/s:7SwiftZ30B11ApplyResultC12subgoalCounts6UInt32Vvp">subgoalCount</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">subgoalAt</span><span class="p">(</span><span class="nv">index</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Goal.html">Z3Goal</a></span></code></pre>
 
                         </div>
                       </div>

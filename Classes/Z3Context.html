@@ -65,6 +65,9 @@
                 <a class="nav-group-task-link" href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a>
               </li>
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3ApplyResult.html">Z3ApplyResult</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3Ast.html">Z3Ast</a>
               </li>
               <li class="nav-group-task">
@@ -114,6 +117,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3Pattern.html">Z3Pattern</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Probe.html">Z3Probe</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3RegularExp.html">Z3RegularExp</a>
@@ -546,6 +552,60 @@ on <code><a href="../Typealiases.html#/s:7SwiftZ30B13FloatingPointa">Z3FloatingP
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">hasError</span><span class="p">:</span> <span class="kt">Bool</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC10probeCounts6UInt32Vvp"></a>
+                    <a name="//apple_ref/swift/Property/probeCount" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC10probeCounts6UInt32Vvp">probeCount</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the number of builtin probes available in Z3.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">probeCount</span><span class="p">:</span> <span class="kt">UInt32</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC11tacticCounts6UInt32Vvp"></a>
+                    <a name="//apple_ref/swift/Property/tacticCount" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11tacticCounts6UInt32Vvp">tacticCount</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the number of builtin tactics available in Z3.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">tacticCount</span><span class="p">:</span> <span class="kt">UInt32</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
 
                         </div>
                       </div>
@@ -14253,6 +14313,555 @@ name.</p>
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">getTacticDescription</span><span class="p">(</span><span class="nv">name</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC10tacticSkipAA0B6TacticCyF"></a>
+                    <a name="//apple_ref/swift/Method/tacticSkip()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC10tacticSkipAA0B6TacticCyF">tacticSkip()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that just return the given goal.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">tacticSkip</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Tactic.html">Z3Tactic</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC10tacticFailAA0B6TacticCyF"></a>
+                    <a name="//apple_ref/swift/Method/tacticFail()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC10tacticFailAA0B6TacticCyF">tacticFail()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that always fails.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">tacticFail</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Tactic.html">Z3Tactic</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC12tacticFailIfyAA0B6TacticCAA0B5ProbeCF"></a>
+                    <a name="//apple_ref/swift/Method/tacticFailIf(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC12tacticFailIfyAA0B6TacticCAA0B5ProbeCF">tacticFailIf(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that fails if <code>probe</code> evaluates to false.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">tacticFailIf</span><span class="p">(</span><span class="n">_</span> <span class="nv">probe</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Tactic.html">Z3Tactic</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC22tacticFailIfNotDecidedAA0B6TacticCyF"></a>
+                    <a name="//apple_ref/swift/Method/tacticFailIfNotDecided()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC22tacticFailIfNotDecidedAA0B6TacticCyF">tacticFailIfNotDecided()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that fails if the goal is not trivially satisfiable (i.e.,
+empty) or trivially unsatisfiable (i.e., contains false).</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">tacticFailIfNotDecided</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Tactic.html">Z3Tactic</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC5probe5namedAA0B5ProbeCSS_tF"></a>
+                    <a name="//apple_ref/swift/Method/probe(named:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC5probe5namedAA0B5ProbeCSS_tF">probe(named:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe associated with the given name.
+The complete list of probes may be obtained using the methods
+<code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC10probeCounts6UInt32Vvp">probeCount</a></code> and <code>probeName(_:)</code>.
+It may also be obtained using the command <code>(help-tactic)</code> in the SMT
+2.0 front-end.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">probe</span><span class="p">(</span><span class="n">named</span> <span class="nv">name</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC10probeConstyAA0B5ProbeCSdF"></a>
+                    <a name="//apple_ref/swift/Method/probeConst(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC10probeConstyAA0B5ProbeCSdF">probeConst(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that always evaluates to <code>value</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">probeConst</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">Double</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7probeLtyAA0B5ProbeCAF_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/probeLt(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7probeLtyAA0B5ProbeCAF_AFtF">probeLt(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when the value returned by <code>p1</code>
+is less than the value returned by <code>p2</code>.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">probeLt</span><span class="p">(</span><span class="n">_</span> <span class="nv">p1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">p2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7probeGtyAA0B5ProbeCAF_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/probeGt(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7probeGtyAA0B5ProbeCAF_AFtF">probeGt(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when the value returned by <code>p1</code>
+is greater than the value returned by <code>p2</code>.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">probeGt</span><span class="p">(</span><span class="n">_</span> <span class="nv">p1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">p2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7probeLeyAA0B5ProbeCAF_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/probeLe(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7probeLeyAA0B5ProbeCAF_AFtF">probeLe(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when the value returned by <code>p1</code>
+is less than or equal the value returned by <code>p2</code>.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">probeLe</span><span class="p">(</span><span class="n">_</span> <span class="nv">p1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">p2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7probeGeyAA0B5ProbeCAF_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/probeGe(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7probeGeyAA0B5ProbeCAF_AFtF">probeGe(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when the value returned by <code>p1</code>
+is greater than or equal the value returned by <code>p2</code>.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">probeGe</span><span class="p">(</span><span class="n">_</span> <span class="nv">p1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">p2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7probeEqyAA0B5ProbeCAF_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/probeEq(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7probeEqyAA0B5ProbeCAF_AFtF">probeEq(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when the value returned by <code>p1</code>
+is equal to the value returned by <code>p2</code>.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">probeEq</span><span class="p">(</span><span class="n">_</span> <span class="nv">p1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">p2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC8probeAndyAA0B5ProbeCAF_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/probeAnd(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC8probeAndyAA0B5ProbeCAF_AFtF">probeAnd(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when <code>p1</code> and <code>p2</code> evaluate to
+true.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">probeAnd</span><span class="p">(</span><span class="n">_</span> <span class="nv">p1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">p2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC7probeOryAA0B5ProbeCAF_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/probeOr(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC7probeOryAA0B5ProbeCAF_AFtF">probeOr(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when <code>p1</code> or <code>p2</code> evaluate to
+true.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">probeOr</span><span class="p">(</span><span class="n">_</span> <span class="nv">p1</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">p2</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC8probeNotyAA0B5ProbeCAFF"></a>
+                    <a name="//apple_ref/swift/Method/probeNot(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC8probeNotyAA0B5ProbeCAFF">probeNot(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when <code>probe</code> does not evaluate
+to true.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">probeNot</span><span class="p">(</span><span class="n">_</span> <span class="nv">probe</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Probe.html">Z3Probe</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC10tacticName7atIndexSSs6UInt32V_tF"></a>
+                    <a name="//apple_ref/swift/Method/tacticName(atIndex:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC10tacticName7atIndexSSs6UInt32V_tF">tacticName(atIndex:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the name of the tactic of index <code>index</code>.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>index &lt; self.tacticCount</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">tacticName</span><span class="p">(</span><span class="n">atIndex</span> <span class="nv">index</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC9probeName7atIndexSSs6UInt32V_tF"></a>
+                    <a name="//apple_ref/swift/Method/probeName(atIndex:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC9probeName7atIndexSSs6UInt32V_tF">probeName(atIndex:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the name of the probe of index <code>index</code>.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>index &lt; self.probeCount</code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">probeName</span><span class="p">(</span><span class="n">atIndex</span> <span class="nv">index</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC17tacticDescription0D4NameS2S_tF"></a>
+                    <a name="//apple_ref/swift/Method/tacticDescription(tacticName:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC17tacticDescription0D4NameS2S_tF">tacticDescription(tacticName:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a string containing a description of the tactic with the given name.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">tacticDescription</span><span class="p">(</span><span class="nv">tacticName</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16probeDescription0D4NameS2S_tF"></a>
+                    <a name="//apple_ref/swift/Method/probeDescription(probeName:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16probeDescription0D4NameS2S_tF">probeDescription(probeName:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a string containing a description of the probe with the given name.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">probeDescription</span><span class="p">(</span><span class="nv">probeName</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
 
                         </div>
                       </div>
