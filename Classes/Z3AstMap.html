@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Z3SortKind Extension Reference</title>
+    <title>Z3AstMap Class Reference</title>
     <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
     <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
     <meta charset="utf-8">
@@ -14,9 +14,9 @@
   </head>
   <body>
 
-    <a name="//apple_ref/swift/Extension/Z3SortKind" class="dashAnchor"></a>
+    <a name="//apple_ref/swift/Class/Z3AstMap" class="dashAnchor"></a>
 
-    <a title="Z3SortKind Extension Reference"></a>
+    <a title="Z3AstMap Class Reference"></a>
 
     <header class="header">
       <p class="header-col header-col--primary">
@@ -38,7 +38,7 @@
     <p class="breadcrumbs">
       <a class="breadcrumb" href="../index.html"> Reference</a>
       <img class="carat" src="../img/carat.png" alt=""/>
-      Z3SortKind Extension Reference
+      Z3AstMap Class Reference
     </p>
 
     <div class="content-wrapper">
@@ -462,15 +462,17 @@
 
         <section class="section">
           <div class="section-content top-matter">
-            <h1>Z3SortKind</h1>
+            <h1>Z3AstMap</h1>
               <div class="declaration">
                 <div class="language">
                   
-                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">extension</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B8SortKinda">Z3SortKind</a></span></code></pre>
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3AstMap</span> <span class="p">:</span> <span class="kt"><a href="../Classes.html#/s:7SwiftZ30B16RefCountedObjectC">Z3RefCountedObject</a></span></code></pre>
+<pre class="highlight swift"><code><span class="kd">extension</span> <span class="kt">Z3AstMap</span><span class="p">:</span> <span class="kt">Sequence</span></code></pre>
 
                 </div>
               </div>
-            
+            <p>Map of <code><a href="../Classes/Z3AstBase.html">Z3AstBase</a></code> objects.</p>
+
           </div>
         </section>
 
@@ -481,9 +483,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E17uninterpretedSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/uninterpretedSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E17uninterpretedSortABvpZ">uninterpretedSort</a>
+                    <a name="/s:7SwiftZ30B6AstMapC7contextAA0B7ContextCvp"></a>
+                    <a name="//apple_ref/swift/Property/context" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6AstMapC7contextAA0B7ContextCvp">context</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -491,14 +493,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>The context this <code><a href="../Classes/Z3AstVector.html">Z3AstVector</a></code> belongs</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">uninterpretedSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">let</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span></code></pre>
 
                         </div>
                       </div>
@@ -508,9 +510,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E8boolSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/boolSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E8boolSortABvpZ">boolSort</a>
+                    <a name="/s:7SwiftZ30B6AstMapC4sizes6UInt32Vvp"></a>
+                    <a name="//apple_ref/swift/Property/size" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6AstMapC4sizes6UInt32Vvp">size</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -518,14 +520,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return the size of this AST map.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">boolSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">size</span><span class="p">:</span> <span class="kt">UInt32</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
 
                         </div>
                       </div>
@@ -535,9 +537,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E7intSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/intSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E7intSortABvpZ">intSort</a>
+                    <a name="/s:7SwiftZ30B6AstMapC4keysAA0bC6VectorCvp"></a>
+                    <a name="//apple_ref/swift/Property/keys" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6AstMapC4keysAA0bC6VectorCvp">keys</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -545,14 +547,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return the keys stored in this AST map.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">intSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">keys</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
 
                         </div>
                       </div>
@@ -562,9 +564,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E8realSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/realSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E8realSortABvpZ">realSort</a>
+                    <a name="/s:7SwiftZ30B6AstMapCyAA0bC4BaseCSgAEcip"></a>
+                    <a name="//apple_ref/swift/Method/subscript(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6AstMapCyAA0bC4BaseCSgAEcip">subscript(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -572,14 +574,16 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return the value associated with the key <code>key</code>.</p>
+
+<p>If the key is not present in this AST map, <code>nil</code> is returned, instead.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">realSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="nf">subscript</span><span class="p">(</span><span class="nv">key</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3AstBase.html">Z3AstBase</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstBase.html">Z3AstBase</a></span><span class="p">?</span> <span class="p">{</span> <span class="k">get</span> <span class="k">set</span> <span class="p">}</span></code></pre>
 
                         </div>
                       </div>
@@ -589,9 +593,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E6bvSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/bvSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E6bvSortABvpZ">bvSort</a>
+                    <a name="/s:7SwiftZ30B6AstMapC9removeAllyyF"></a>
+                    <a name="//apple_ref/swift/Method/removeAll()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6AstMapC9removeAllyyF">removeAll()</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -599,14 +603,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Removes all keys from this map.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">bvSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">removeAll</span><span class="p">()</span></code></pre>
 
                         </div>
                       </div>
@@ -616,9 +620,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E9arraySortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/arraySort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E9arraySortABvpZ">arraySort</a>
+                    <a name="/s:7SwiftZ30B6AstMapC4pushyyAA0bC4BaseCF"></a>
+                    <a name="//apple_ref/swift/Method/push(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6AstMapC4pushyyAA0bC4BaseCF">push(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -633,7 +637,7 @@
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">arraySort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">push</span><span class="p">(</span><span class="n">_</span> <span class="nv">ast</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3AstBase.html">Z3AstBase</a></span><span class="p">)</span></code></pre>
 
                         </div>
                       </div>
@@ -643,9 +647,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E12datatypeSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/datatypeSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E12datatypeSortABvpZ">datatypeSort</a>
+                    <a name="/s:7SwiftZ30B6AstMapC8containsySbAA0bC4BaseCF"></a>
+                    <a name="//apple_ref/swift/Method/contains(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6AstMapC8containsySbAA0bC4BaseCF">contains(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -653,14 +657,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return true if this AST map contains the AST key <code>key</code>.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">datatypeSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">contains</span><span class="p">(</span><span class="n">_</span> <span class="nv">key</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3AstBase.html">Z3AstBase</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
 
                         </div>
                       </div>
@@ -670,9 +674,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E12relationSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/relationSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E12relationSortABvpZ">relationSort</a>
+                    <a name="/s:7SwiftZ30B6AstMapC8toStringSSyF"></a>
+                    <a name="//apple_ref/swift/Method/toString()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6AstMapC8toStringSSyF">toString()</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -680,14 +684,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Convert this AST map into a string.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">relationSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">toString</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
 
                         </div>
                       </div>
@@ -697,9 +701,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E16finiteDomainSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/finiteDomainSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E16finiteDomainSortABvpZ">finiteDomainSort</a>
+                    <a name="/s:7SwiftZ30B6AstMapC9translate2toAcA0B7ContextC_tF"></a>
+                    <a name="//apple_ref/swift/Method/translate(to:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6AstMapC9translate2toAcA0B7ContextC_tF">translate(to:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -707,14 +711,15 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Translate/Copy the AST map <code>self</code> from its current context to context
+<code>target</code></p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">finiteDomainSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">translate</span><span class="p">(</span><span class="n">to</span> <span class="nv">newContext</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3AstMap</span></code></pre>
 
                         </div>
                       </div>
@@ -724,9 +729,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E17floatingPointSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/floatingPointSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E17floatingPointSortABvpZ">floatingPointSort</a>
+                    <a name="/s:ST12makeIterator0B0QzyF"></a>
+                    <a name="//apple_ref/swift/Method/makeIterator()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:ST12makeIterator0B0QzyF">makeIterator()</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -734,149 +739,13 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
-
+                        
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">floatingPointSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E16roundingModeSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/roundingModeSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E16roundingModeSortABvpZ">roundingModeSort</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">roundingModeSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E7seqSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/seqSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E7seqSortABvpZ">seqSort</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">seqSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E6reSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/reSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E6reSortABvpZ">reSort</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">reSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E8charSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/charSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E8charSortABvpZ">charSort</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">charSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E11unknownSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/unknownSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E11unknownSortABvpZ">unknownSort</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">unknownSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeIterator</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">AnyIterator</span><span class="o">&lt;</span><span class="p">(</span><span class="nv">key</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3AstBase.html">Z3AstBase</a></span><span class="p">,</span> <span class="nv">value</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3AstBase.html">Z3AstBase</a></span><span class="p">)</span><span class="o">&gt;</span></code></pre>
 
                         </div>
                       </div>

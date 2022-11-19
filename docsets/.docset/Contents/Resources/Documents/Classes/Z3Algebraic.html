@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Z3SortKind Extension Reference</title>
+    <title>Z3Algebraic Class Reference</title>
     <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
     <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
     <meta charset="utf-8">
@@ -14,9 +14,9 @@
   </head>
   <body>
 
-    <a name="//apple_ref/swift/Extension/Z3SortKind" class="dashAnchor"></a>
+    <a name="//apple_ref/swift/Class/Z3Algebraic" class="dashAnchor"></a>
 
-    <a title="Z3SortKind Extension Reference"></a>
+    <a title="Z3Algebraic Class Reference"></a>
 
     <header class="header">
       <p class="header-col header-col--primary">
@@ -38,7 +38,7 @@
     <p class="breadcrumbs">
       <a class="breadcrumb" href="../index.html"> Reference</a>
       <img class="carat" src="../img/carat.png" alt=""/>
-      Z3SortKind Extension Reference
+      Z3Algebraic Class Reference
     </p>
 
     <div class="content-wrapper">
@@ -462,15 +462,16 @@
 
         <section class="section">
           <div class="section-content top-matter">
-            <h1>Z3SortKind</h1>
+            <h1>Z3Algebraic</h1>
               <div class="declaration">
                 <div class="language">
                   
-                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">extension</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B8SortKinda">Z3SortKind</a></span></code></pre>
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3Algebraic</span> <span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
 
                 </div>
               </div>
-            
+            <p>An algebraic number that can be used in the Z3 real algebraic number package.</p>
+
           </div>
         </section>
 
@@ -481,9 +482,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E17uninterpretedSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/uninterpretedSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E17uninterpretedSortABvpZ">uninterpretedSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC10isPositiveSbvp"></a>
+                    <a name="//apple_ref/swift/Property/isPositive" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC10isPositiveSbvp">isPositive</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -491,14 +492,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Returns <code>true</code> if <code>self</code> is positive, <code>false</code> otherwise.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">uninterpretedSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">isPositive</span><span class="p">:</span> <span class="kt">Bool</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
 
                         </div>
                       </div>
@@ -508,9 +509,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E8boolSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/boolSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E8boolSortABvpZ">boolSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC10isNegativeSbvp"></a>
+                    <a name="//apple_ref/swift/Property/isNegative" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC10isNegativeSbvp">isNegative</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -518,14 +519,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Returns <code>true</code> if <code>self</code> is negative, <code>false</code> otherwise.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">boolSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">isNegative</span><span class="p">:</span> <span class="kt">Bool</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
 
                         </div>
                       </div>
@@ -535,9 +536,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E7intSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/intSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E7intSortABvpZ">intSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC6isZeroSbvp"></a>
+                    <a name="//apple_ref/swift/Property/isZero" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC6isZeroSbvp">isZero</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -545,14 +546,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Returns <code>true</code> if <code>self</code> is zero, <code>false</code> otherwise.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">intSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">isZero</span><span class="p">:</span> <span class="kt">Bool</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
 
                         </div>
                       </div>
@@ -562,9 +563,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E8realSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/realSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E8realSortABvpZ">realSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC4signSivp"></a>
+                    <a name="//apple_ref/swift/Property/sign" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC4signSivp">sign</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -572,14 +573,15 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Returns <code>1</code> if <code>self</code> is positive, <code>0</code> if <code>self</code> is zero, and <code>-1</code> if it
+is negative.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">realSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">var</span> <span class="nv">sign</span><span class="p">:</span> <span class="kt">Int</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span></code></pre>
 
                         </div>
                       </div>
@@ -589,9 +591,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E6bvSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/bvSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E6bvSortABvpZ">bvSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC4rootyACs6UInt32VF"></a>
+                    <a name="//apple_ref/swift/Method/root(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC4rootyACs6UInt32VF">root(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -599,14 +601,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return the <code>self^(1/k)</code></p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">bvSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">root</span><span class="p">(</span><span class="n">_</span> <span class="nv">k</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Algebraic</span></code></pre>
 
                         </div>
                       </div>
@@ -616,9 +618,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E9arraySortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/arraySort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E9arraySortABvpZ">arraySort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC5poweryACs6UInt32VF"></a>
+                    <a name="//apple_ref/swift/Method/power(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC5poweryACs6UInt32VF">power(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -626,14 +628,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return the <code>self^k</code></p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">arraySort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">power</span><span class="p">(</span><span class="n">_</span> <span class="nv">k</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Algebraic</span></code></pre>
 
                         </div>
                       </div>
@@ -643,9 +645,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E12datatypeSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/datatypeSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E12datatypeSortABvpZ">datatypeSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC5rootsyAA0B9AstVectorCSayACGF"></a>
+                    <a name="//apple_ref/swift/Method/roots(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC5rootsyAA0B9AstVectorCSayACGF">roots(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -653,14 +655,21 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Given a multivariate polynomial <code>self(x_0, ..., x_{n-1}, x_n)</code>, returns
+the roots of the univariate polynomial <code>self(a[0], ..., a[n-1], x_n)</code>.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>self</code> is a Z3 expression that contains only arithmetic
+terms and free variables.
+
+</div>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">datatypeSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">roots</span><span class="p">(</span><span class="n">_</span> <span class="nv">a</span><span class="p">:</span> <span class="p">[</span><span class="kt">Z3Algebraic</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
 
                         </div>
                       </div>
@@ -670,9 +679,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E12relationSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/relationSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E12relationSortABvpZ">relationSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC4evalySiSayACGF"></a>
+                    <a name="//apple_ref/swift/Method/eval(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC4evalySiSayACGF">eval(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -680,14 +689,21 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Given a multivariate polynomial <code>self(x_0, ..., x_{n-1})</code>, return the
+sign of <code>self(a[0], ..., a[n-1])</code>.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>self</code>  is a Z3 expression that contains only arithmetic
+terms and free variables.
+
+</div>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">relationSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">eval</span><span class="p">(</span><span class="n">_</span> <span class="nv">a</span><span class="p">:</span> <span class="p">[</span><span class="kt">Z3Algebraic</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">Int</span></code></pre>
 
                         </div>
                       </div>
@@ -697,9 +713,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E16finiteDomainSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/finiteDomainSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E16finiteDomainSortABvpZ">finiteDomainSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC12coefficientsAA0B9AstVectorCyF"></a>
+                    <a name="//apple_ref/swift/Method/coefficients()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC12coefficientsAA0B9AstVectorCyF">coefficients()</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -707,14 +723,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return the coefficients of this polynomial.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">finiteDomainSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">coefficients</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
 
                         </div>
                       </div>
@@ -724,9 +740,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E17floatingPointSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/floatingPointSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E17floatingPointSortABvpZ">floatingPointSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC19polynomialRootIndexs6UInt32VyF"></a>
+                    <a name="//apple_ref/swift/Method/polynomialRootIndex()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC19polynomialRootIndexs6UInt32VyF">polynomialRootIndex()</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -734,14 +750,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return which root of a polynomial the algebraic number represents.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">floatingPointSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">polynomialRootIndex</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">UInt32</span></code></pre>
 
                         </div>
                       </div>
@@ -751,9 +767,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E16roundingModeSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/roundingModeSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E16roundingModeSortABvpZ">roundingModeSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC1poiyA2C_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/+(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC1poiyA2C_ACtFZ">+(_:<wbr>_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -761,14 +777,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return the value a + b.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">roundingModeSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">+</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Algebraic</span></code></pre>
 
                         </div>
                       </div>
@@ -778,9 +794,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E7seqSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/seqSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E7seqSortABvpZ">seqSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC1soiyA2C_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/-(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC1soiyA2C_ACtFZ">-(_:<wbr>_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -788,14 +804,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return the value a - b.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">seqSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">-</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Algebraic</span></code></pre>
 
                         </div>
                       </div>
@@ -805,9 +821,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E6reSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/reSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E6reSortABvpZ">reSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC1moiyA2C_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/*(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC1moiyA2C_ACtFZ">*(_:<wbr>_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -815,14 +831,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return the value a * b.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">reSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">*</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Algebraic</span></code></pre>
 
                         </div>
                       </div>
@@ -832,9 +848,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E8charSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/charSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E8charSortABvpZ">charSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC1doiyA2C_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method//(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC1doiyA2C_ACtFZ">/(_:<wbr>_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -842,14 +858,14 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return the value a / b.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">charSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">/</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Algebraic</span></code></pre>
 
                         </div>
                       </div>
@@ -859,9 +875,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:So12Z3_sort_kinda05SwiftA0E11unknownSortABvpZ"></a>
-                    <a name="//apple_ref/swift/Variable/unknownSort" class="dashAnchor"></a>
-                    <a class="token" href="#/s:So12Z3_sort_kinda05SwiftA0E11unknownSortABvpZ">unknownSort</a>
+                    <a name="/s:7SwiftZ30B9AlgebraicC1loiySbAC_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/&lt;(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC1loiySbAC_ACtFZ"><(_:<wbr>_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -869,14 +885,149 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Return <code>true</code> if <code>lhs &lt; rhs</code>, <code>false</code> otherwise.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">unknownSort</span><span class="p">:</span> <span class="kt">Z3_sort_kind</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&lt;</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B9AlgebraicC2leoiySbAC_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/&lt;=(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC2leoiySbAC_ACtFZ"><=(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return <code>true</code> if <code>lhs &lt;= rhs</code>, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B9AlgebraicC1goiySbAC_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/&gt;(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC1goiySbAC_ACtFZ">>(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return <code>true</code> if <code>lhs &gt; rhs</code>, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&gt;</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B9AlgebraicC2geoiySbAC_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/&gt;=(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC2geoiySbAC_ACtFZ">>=(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return <code>true</code> if <code>lhs &gt;= rhs</code>, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B9AlgebraicC2eeoiySbAC_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/==(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC2eeoiySbAC_ACtFZ">==(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return <code>true</code> if <code>lhs == rhs</code>, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">==</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B9AlgebraicC2neoiySbAC_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/!=(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B9AlgebraicC2neoiySbAC_ACtFZ">!=(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return <code>true</code> if <code>lhs != rhs</code>, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">!=</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Algebraic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
 
                         </div>
                       </div>

@@ -23,7 +23,7 @@
         <a class="header-link" href="../index.html">
            Docs
         </a>
-         (81% documented)
+         (82% documented)
       </p>
     
       <div class="header-col--secondary">
@@ -65,6 +65,9 @@
                 <a class="nav-group-task-link" href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a>
               </li>
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3Algebraic.html">Z3Algebraic</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3ApplyResult.html">Z3ApplyResult</a>
               </li>
               <li class="nav-group-task">
@@ -72,6 +75,9 @@
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3AstBase.html">Z3AstBase</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3AstMap.html">Z3AstMap</a>
               </li>
               <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3AstVector.html">Z3AstVector</a>
@@ -1270,6 +1276,602 @@ and <code>Z3_STRING_SYMBOL</code> if the symbol was constructed using <code>make
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">getBvSortSize</span><span class="p">(</span><span class="n">_</span> <span class="nv">sort</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">UInt32</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Algebraic%20Numbers"></a>
+                <a name="//apple_ref/swift/Section/Algebraic Numbers" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Algebraic%20Numbers"></a>
+                  <h3 class="section-name"><span>Algebraic Numbers</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16algebraicIsValueySbAA0B7AstBaseCF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicIsValue(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16algebraicIsValueySbAA0B7AstBaseCF">algebraicIsValue(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns <code>true</code> if <code>ast</code> can be used as value in the Z3 real algebraic
+number package.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicIsValue</span><span class="p">(</span><span class="n">_</span> <span class="nv">ast</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3AstBase.html">Z3AstBase</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14algebraicIsPosySbAA0B9AlgebraicCF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicIsPos(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14algebraicIsPosySbAA0B9AlgebraicCF">algebraicIsPos(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns <code>true</code> if <code>ast</code> is positive, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicIsPos</span><span class="p">(</span><span class="n">_</span> <span class="nv">ast</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14algebraicIsNegySbAA0B9AlgebraicCF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicIsNeg(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14algebraicIsNegySbAA0B9AlgebraicCF">algebraicIsNeg(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns <code>true</code> if <code>ast</code> is negative, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicIsNeg</span><span class="p">(</span><span class="n">_</span> <span class="nv">ast</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC15algebraicIsZeroySbAA0B9AlgebraicCF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicIsZero(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC15algebraicIsZeroySbAA0B9AlgebraicCF">algebraicIsZero(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns <code>true</code> if <code>ast</code> is zero, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicIsZero</span><span class="p">(</span><span class="n">_</span> <span class="nv">ast</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13algebraicSignySiAA0B9AlgebraicCF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicSign(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13algebraicSignySiAA0B9AlgebraicCF">algebraicSign(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns <code>1</code> if <code>ast</code> is positive, <code>0</code> if <code>ast</code> is zero, and <code>-1</code> if it
+is negative.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicSign</span><span class="p">(</span><span class="n">_</span> <span class="nv">ast</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Int</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC12algebraicAddyAA0B9AlgebraicCAF_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicAdd(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC12algebraicAddyAA0B9AlgebraicCAF_AFtF">algebraicAdd(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the value lhs + rhs.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicAdd</span><span class="p">(</span><span class="n">_</span> <span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC12algebraicSubyAA0B9AlgebraicCAF_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicSub(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC12algebraicSubyAA0B9AlgebraicCAF_AFtF">algebraicSub(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the value lhs - rhs.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicSub</span><span class="p">(</span><span class="n">_</span> <span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC12algebraicMulyAA0B9AlgebraicCAF_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicMul(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC12algebraicMulyAA0B9AlgebraicCAF_AFtF">algebraicMul(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the value lhs * rhs.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicMul</span><span class="p">(</span><span class="n">_</span> <span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC12algebraicDivyAA0B9AlgebraicCAF_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicDiv(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC12algebraicDivyAA0B9AlgebraicCAF_AFtF">algebraicDiv(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the value lhs / rhs.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicDiv</span><span class="p">(</span><span class="n">_</span> <span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13algebraicRootyAA0B9AlgebraicCAF_s6UInt32VtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicRoot(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13algebraicRootyAA0B9AlgebraicCAF_s6UInt32VtF">algebraicRoot(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the ast^(1/k)</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicRoot</span><span class="p">(</span><span class="n">_</span> <span class="nv">ast</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">k</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14algebraicPoweryAA0B9AlgebraicCAF_s6UInt32VtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicPower(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14algebraicPoweryAA0B9AlgebraicCAF_s6UInt32VtF">algebraicPower(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the ast^k</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicPower</span><span class="p">(</span><span class="n">_</span> <span class="nv">ast</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">k</span><span class="p">:</span> <span class="kt">UInt32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC11algebraicLtySbAA0B9AlgebraicC_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicLt(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11algebraicLtySbAA0B9AlgebraicC_AFtF">algebraicLt(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return <code>true</code> if <code>lhs &lt; rhs</code>, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicLt</span><span class="p">(</span><span class="n">_</span> <span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC11algebraicGtySbAA0B9AlgebraicC_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicGt(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11algebraicGtySbAA0B9AlgebraicC_AFtF">algebraicGt(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return <code>true</code> if <code>lhs &gt; rhs</code>, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicGt</span><span class="p">(</span><span class="n">_</span> <span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC11algebraicLeySbAA0B9AlgebraicC_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicLe(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11algebraicLeySbAA0B9AlgebraicC_AFtF">algebraicLe(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return <code>true</code> if <code>lhs &lt;= rhs</code>, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicLe</span><span class="p">(</span><span class="n">_</span> <span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC11algebraicGeySbAA0B9AlgebraicC_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicGe(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11algebraicGeySbAA0B9AlgebraicC_AFtF">algebraicGe(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return <code>true</code> if <code>lhs &gt;= rhs</code>, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicGe</span><span class="p">(</span><span class="n">_</span> <span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC11algebraicEqySbAA0B9AlgebraicC_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicEq(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC11algebraicEqySbAA0B9AlgebraicC_AFtF">algebraicEq(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return <code>true</code> if <code>lhs == rhs</code>, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicEq</span><span class="p">(</span><span class="n">_</span> <span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC12algebraicNeqySbAA0B9AlgebraicC_AFtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicNeq(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC12algebraicNeqySbAA0B9AlgebraicC_AFtF">algebraicNeq(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return <code>true</code> if <code>lhs != rhs</code>, <code>false</code> otherwise.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicNeq</span><span class="p">(</span><span class="n">_</span> <span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14algebraicRootsyAA0B9AstVectorCAA0B9AlgebraicC_SayAHGtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicRoots(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14algebraicRootsyAA0B9AstVectorCAA0B9AlgebraicC_SayAHGtF">algebraicRoots(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Given a multivariate polynomial <code>polynomial(x_0, ..., x_{n-1}, x_n)</code>, returns the
+roots of the univariate polynomial <code>polynomial(a[0], ..., a[n-1], x_n)</code>.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>polynomial</code>  is a Z3 expression that contains only
+arithmetic terms and free variables.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicRoots</span><span class="p">(</span><span class="n">_</span> <span class="nv">polynomial</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">a</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13algebraicEvalySiAA0B9AlgebraicC_SayAFGtF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicEval(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13algebraicEvalySiAA0B9AlgebraicC_SayAFGtF">algebraicEval(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Given a multivariate polynomial <code>polynomial(x_0, ..., x_{n-1})</code>, return
+the sign of <code>polynomial(a[0], ..., a[n-1])</code>.</p>
+<div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>polynomial</code>  is a Z3 expression that contains only
+arithmetic terms and free variables.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicEval</span><span class="p">(</span><span class="n">_</span> <span class="nv">polynomial</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">a</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">Int</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16algebraicGetPolyyAA0B9AstVectorCAA0B9AlgebraicCF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicGetPoly(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16algebraicGetPolyyAA0B9AstVectorCAA0B9AlgebraicCF">algebraicGetPoly(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the coefficients of the defining polynomial.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicGetPoly</span><span class="p">(</span><span class="n">_</span> <span class="nv">polynomial</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC13algebraicGetIys6UInt32VAA0B9AlgebraicCF"></a>
+                    <a name="//apple_ref/swift/Method/algebraicGetI(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC13algebraicGetIys6UInt32VAA0B9AlgebraicCF">algebraicGetI(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return which root of the polynomial the algebraic number represents.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">algebraicGetI</span><span class="p">(</span><span class="n">_</span> <span class="nv">polynomial</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Algebraic.html">Z3Algebraic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">UInt32</span></code></pre>
 
                         </div>
                       </div>
