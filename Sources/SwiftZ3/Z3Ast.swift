@@ -4,6 +4,8 @@ import CZ3
 /// allow for compile-time static type checking of expressions.
 public class Z3Ast<T: SortKind>: AnyZ3Ast {
     override init(context: Z3Context, ast: Z3_ast) {
+        super.init(context: context, ast: ast)
+
         assert(
             T.isAssignableFrom(
                 context,
@@ -11,8 +13,6 @@ public class Z3Ast<T: SortKind>: AnyZ3Ast {
             ),
             "Attempted to initialize \(Self.self) AST with incompatible Z3 sort \(context.getSort(Z3AstBase(context: context, ast: ast)))"
         )
-
-        super.init(context: context, ast: ast)
     }
 
     /// Translate/Copy the AST `self` from its current context to context `target`

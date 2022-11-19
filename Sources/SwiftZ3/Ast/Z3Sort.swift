@@ -24,7 +24,7 @@ public class Z3Sort: Z3AstBase {
     
     /// Convert the current AST node into a string.
     public override func toString() -> String {
-        return String(cString: Z3_sort_to_string(context.context, ast))
+        return Z3_sort_to_string(context.context, ast).toString()
     }
 
     /// Translate/Copy the AST `self` from its current context to context `target`

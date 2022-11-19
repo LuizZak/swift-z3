@@ -6,7 +6,7 @@ public class Z3Context {
     /// was borrowed from another live Z3Context instance. Used to avoid calling
     /// deinitializers on the borrowed pointer.
     private var _isBorrowed: Bool = false
-    private var _cachedFpaRoundingMode: Z3Ast<RoundingModeSort>?
+    private var _cachedFpaRoundingMode: Z3_ast
 
     internal var context: Z3_context
     
@@ -18,17 +18,18 @@ public class Z3Context {
     /// on `Z3FloatingPoint` instances.
     ///
     /// Defaults to NearestTiesToEven rounding mode, if not configured.
-    public var currentFpaRoundingMode: Z3Ast<RoundingModeSort> {
+    public var currentFpaRoundingMode: Z3RoundingMode {
         get {
-            if let cached = _cachedFpaRoundingMode {
-                return cached
-            }
-            let new = makeFpaRoundNearestTiesToEven()
-            _cachedFpaRoundingMode = new
-            return new
+            return Z3RoundingMode(
+                context: self,
+                ast: _cachedFpaRoundingMode
+            )
         }
         set {
-            _cachedFpaRoundingMode = newValue
+            Z3_inc_ref(context, newValue.ast)
+            Z3_dec_ref(context, _cachedFpaRoundingMode)
+
+            _cachedFpaRoundingMode = newValue.ast
         }
     }
 
@@ -53,18 +54,26 @@ public class Z3Context {
     }
 
     public init(configuration: Z3Config? = nil) {
-        context = Z3_mk_context(configuration?.config)
+        context = Z3_mk_context_rc(configuration?.config)
         Z3_set_error_handler(context) { (context, code) in
             print("Z3 Error: \(Z3_get_error_msg(context, code).toString())")
         }
+
+        _cachedFpaRoundingMode = Z3_mk_fpa_round_nearest_ties_to_even(context)
+        Z3_inc_ref(context, _cachedFpaRoundingMode)
     }
     
     internal init(borrowing context: Z3_context) {
         self.context = context
         _isBorrowed = true
+
+        _cachedFpaRoundingMode = Z3_mk_fpa_round_nearest_ties_to_even(context)
+        Z3_inc_ref(context, _cachedFpaRoundingMode)
     }
 
     deinit {
+        Z3_dec_ref(context, _cachedFpaRoundingMode)
+        
         if !_isBorrowed {
             Z3_del_context(context)
         }

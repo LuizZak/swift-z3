@@ -93,6 +93,12 @@ public class Z3AstBase {
     init(context: Z3Context, ast: Z3_ast) {
         self.context = context
         self.ast = ast
+
+        Z3_inc_ref(context.context, ast)
+    }
+
+    deinit {
+        Z3_dec_ref(context.context, ast)
     }
 
     /// Translate/Copy the AST `self` from its current context to context `target`
