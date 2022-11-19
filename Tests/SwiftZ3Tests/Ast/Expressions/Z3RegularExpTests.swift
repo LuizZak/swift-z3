@@ -23,7 +23,7 @@ class Z3RegularExpTests: XCTestCase {
         )
     }
 
-    func testCastTo() {
+    func testCastToRegularExp() {
         let context = Z3Context()
 
         let reAst = context.makeReAllChar(ReSort<IntSort>.self)

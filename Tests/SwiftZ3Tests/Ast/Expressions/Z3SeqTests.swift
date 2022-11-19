@@ -14,10 +14,13 @@ class Z3SeqTests: XCTestCase {
     func testGetSort() {
         let context = Z3Context()
 
-        XCTAssertEqual(Z3Seq<IntSort>.getSort(context), context.seqSort(element: context.intSort()))
+        XCTAssertEqual(
+            Z3Seq<IntSort>.getSort(context),
+            context.seqSort(element: context.intSort())
+        )
     }
 
-    func testCastTo() {
+    func testCastToSequence() {
         let context = Z3Context()
 
         let seqAst = context.makeSeqEmpty(SeqSort<IntSort>.self)
