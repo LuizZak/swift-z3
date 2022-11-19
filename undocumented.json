@@ -1170,13 +1170,6 @@
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Z3Pattern.swift",
-      "line": 3,
-      "symbol": "Z3Pattern",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Ast/Z3Sort.swift",
       "line": 3,
       "symbol": "Z3Sort",
@@ -1766,30 +1759,16 @@
     },
     {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3AstBase.swift",
-      "line": 35,
+      "line": 37,
       "symbol": "Z3AstBase.isNumeralAst",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3AstVector.swift",
-      "line": 3,
-      "symbol": "Z3AstVector",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3AstVector.swift",
-      "line": 60,
+      "line": 61,
       "symbol": "Z3AstVector.push(_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3AstVector.swift",
-      "line": 80,
-      "symbol": "Z3AstVector",
-      "symbol_kind": "source.lang.swift.decl.extension",
       "warning": "undocumented"
     },
     {
@@ -1814,87 +1793,10 @@
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Constructor.swift",
-      "line": 3,
-      "symbol": "Z3Constructor",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3ConstructorList.swift",
-      "line": 3,
-      "symbol": "Z3ConstructorList",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
       "line": 55,
       "symbol": "Z3Context.init(configuration:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Goal.swift",
-      "line": 3,
-      "symbol": "Z3Goal",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Model.swift",
-      "line": 3,
-      "symbol": "Z3Model",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3ParamDescrs.swift",
-      "line": 3,
-      "symbol": "Z3ParamDescrs",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Params.swift",
-      "line": 3,
-      "symbol": "Z3Params",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3ParserContext.swift",
-      "line": 3,
-      "symbol": "Z3ParserContext",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Solver.swift",
-      "line": 3,
-      "symbol": "Z3Solver",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Stats.swift",
-      "line": 3,
-      "symbol": "Z3Stats",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Symbol.swift",
-      "line": 3,
-      "symbol": "Z3Symbol",
-      "symbol_kind": "source.lang.swift.decl.class",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Tactic.swift",
-      "line": 3,
-      "symbol": "Z3Tactic",
-      "symbol_kind": "source.lang.swift.decl.class",
       "warning": "undocumented"
     }
   ],

@@ -23,7 +23,7 @@
         <a class="header-link" href="../index.html">
            Docs
         </a>
-         (80% documented)
+         (81% documented)
       </p>
     
       <div class="header-col--secondary">
@@ -719,135 +719,6 @@ simplifiers, tactics, solvers, etc.</p>
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeParams</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Params.html">Z3Params</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC10makeSolverAA0bE0CyF"></a>
-                    <a name="//apple_ref/swift/Method/makeSolver()" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeSolverAA0bE0CyF">makeSolver()</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a new solver. This solver is a &ldquo;combined solver&rdquo; (see combined_solver
-module) that internally uses a non-incremental (solver1) and an incremental
-solver (solver2). This combined solver changes its behaviour based on how
-it is used and how its parameters are set.</p>
-
-<p>If the solver is used in a non incremental way (i.e. no calls to
-<code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC4pushyyF">Z3Solver.push()</a></code> or <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC3popyys6UInt32VF">Z3Solver.pop(_:)</a></code>, and no calls to <code>Z3Solver.assert()</code>
-or <code>Z3Solver.assertAndTrack</code> after checking satisfiability without an
-intervening <code>Solver.reset()</code>) then solver1 will be used. This solver will
-apply Z3&rsquo;s &ldquo;default&rdquo; tactic.</p>
-
-<p>The &ldquo;default&rdquo; tactic will attempt to probe the logic used by the
-assertions and will apply a specialized tactic if one is supported.
-Otherwise the general <code>(and-then simplify smt)</code> tactic will be used.</p>
-
-<p>If the solver is used in an incremental way then the combined solver
-will switch to using solver2 (which behaves similarly to the general
-&ldquo;smt&rdquo; tactic).</p>
-
-<p>Note however it is possible to set the <code>solver2_timeout</code>,
-<code>solver2_unknown</code>, and <code>ignore_solver1</code> parameters of the combined
-solver to change its behaviour.</p>
-
-<p>The method <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">Z3Solver.getModel()</a></code> retrieves a model if the assertions is
-satisfiable (i.e., the result is <code>Z3LBool.lUndef</code>) and model construction is
-enabled.</p>
-
-<p>The method <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">Z3Solver.getModel()</a></code> can also be used even if the result is
-<code>Z3LBool.lUndef</code>, but the returned model is not guaranteed to satisfy
-quantified assertions.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeSolver</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Solver.html">Z3Solver</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC10makeSolver9forTacticAA0bE0CAA0bG0C_tF"></a>
-                    <a name="//apple_ref/swift/Method/makeSolver(forTactic:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeSolver9forTacticAA0bE0CAA0bG0C_tF">makeSolver(forTactic:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>\brief Create a new solver that is implemented using the given tactic.
-The solver supports the commands <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC4pushyyF">Z3Solver.push()</a></code> and <code>Z3Solver.pop()</code>,
-but it will always solve each <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC5checkAA6StatusOyF">Z3Solver.check()</a></code> from scratch.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeSolver</span><span class="p">(</span><span class="n">forTactic</span> <span class="nv">tactic</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Tactic.html">Z3Tactic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Solver.html">Z3Solver</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B7ContextC16makeSimpleSolverAA0bF0CyF"></a>
-                    <a name="//apple_ref/swift/Method/makeSimpleSolver()" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC16makeSimpleSolverAA0bF0CyF">makeSimpleSolver()</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create a new incremental solver.</p>
-
-<p>This is equivalent to applying the &ldquo;smt&rdquo; tactic.</p>
-
-<p>Unlike <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC10makeSolverAA0bE0CyF">Z3Context.makeSolver()</a></code> this solver
-    - Does not attempt to apply any logic specific tactics.
-    - Does not change its behaviour based on whether it used
-    incrementally/non-incrementally.</p>
-
-<p>Note that these differences can result in very different performance
-compared to <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC10makeSolverAA0bE0CyF">Z3Context.makeSolver()</a></code>.</p>
-
-<p>The function <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">Z3Solver.getModel()</a></code> retrieves a model if the
-assertions is satisfiable (i.e., the result is <code>Z3_L_TRUE</code>) and
-model construction is enabled.
-The function <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">Z3Solver.getModel()</a></code> can also be used even
-if the result is <code>Z3_L_UNDEF</code>, but the returned model
-is not guaranteed to satisfy quantified assertions.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">makeSimpleSolver</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Solver.html">Z3Solver</a></span></code></pre>
 
                         </div>
                       </div>
@@ -9435,9 +9306,9 @@ fit in a machine <code>UInt64</code> int. Returns <code>nil</code> if it fails.<
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B7ContextC18parseSmtlib2String_5sorts5declsAA0B9AstVectorCSS_SayAA0B6SymbolC4name_AA0B4SortCtGSayAjK_AA0B8FuncDeclCtGtF"></a>
+                    <a name="/s:7SwiftZ30B7ContextC18parseSmtlib2String_5sorts5declsAA0B9AstVectorCSS_SayAA0B6SymbolC4name_AA0B4SortCtGSayAjK_AA0B8FuncDeclCtGtKF"></a>
                     <a name="//apple_ref/swift/Method/parseSmtlib2String(_:sorts:decls:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B7ContextC18parseSmtlib2String_5sorts5declsAA0B9AstVectorCSS_SayAA0B6SymbolC4name_AA0B4SortCtGSayAjK_AA0B8FuncDeclCtGtF">parseSmtlib2String(_:<wbr>sorts:<wbr>decls:<wbr>)</a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC18parseSmtlib2String_5sorts5declsAA0B9AstVectorCSS_SayAA0B6SymbolC4name_AA0B4SortCtGSayAjK_AA0B8FuncDeclCtGtKF">parseSmtlib2String(_:<wbr>sorts:<wbr>decls:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -9459,7 +9330,7 @@ scope (up to push/pop) at the end of the string.</p>
     <span class="n">_</span> <span class="nv">str</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
     <span class="nv">sorts</span><span class="p">:</span> <span class="p">[(</span><span class="nv">name</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span><span class="p">,</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span><span class="p">)],</span>
     <span class="nv">decls</span><span class="p">:</span> <span class="p">[(</span><span class="nv">name</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span><span class="p">,</span> <span class="kt"><a href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a></span><span class="p">)]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
+<span class="p">)</span> <span class="k">throws</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
 
                         </div>
                       </div>
@@ -9484,7 +9355,7 @@ scope (up to push/pop) at the end of the string.</p>
 <p>It returns a formula comprising of the conjunction of assertions in the
 scope (up to push/pop) at the end of the file.</p>
 
-<p>Similar to <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC18parseSmtlib2String_5sorts5declsAA0B9AstVectorCSS_SayAA0B6SymbolC4name_AA0B4SortCtGSayAjK_AA0B8FuncDeclCtGtF">parseSmtlib2String(_:sorts:decls:)</a></code>, but reads the benchmark
+<p>Similar to <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC18parseSmtlib2String_5sorts5declsAA0B9AstVectorCSS_SayAA0B6SymbolC4name_AA0B4SortCtGSayAjK_AA0B8FuncDeclCtGtKF">parseSmtlib2String(_:sorts:decls:)</a></code>, but reads the benchmark
 from a file.</p>
 
                       </div>
@@ -12610,6 +12481,228 @@ expression sort with the same basis sort as <code>sequence</code>.
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSetSubsetAny</span><span class="p">(</span><span class="n">_</span> <span class="nv">arg1</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">,</span> <span class="n">_</span> <span class="nv">arg2</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Solvers"></a>
+                <a name="//apple_ref/swift/Section/Solvers" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Solvers"></a>
+                  <h3 class="section-name"><span>Solvers</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC10makeSolverAA0bE0CyF"></a>
+                    <a name="//apple_ref/swift/Method/makeSolver()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeSolverAA0bE0CyF">makeSolver()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a new solver. This solver is a &ldquo;combined solver&rdquo; (see combined_solver
+module) that internally uses a non-incremental (solver1) and an incremental
+solver (solver2). This combined solver changes its behaviour based on how
+it is used and how its parameters are set.</p>
+
+<p>If the solver is used in a non incremental way (i.e. no calls to
+<code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC4pushyyF">Z3Solver.push()</a></code> or <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC3popyys6UInt32VF">Z3Solver.pop(_:)</a></code>, and no calls to <code>Z3Solver.assert()</code>
+or <code>Z3Solver.assertAndTrack</code> after checking satisfiability without an
+intervening <code>Solver.reset()</code>) then solver1 will be used. This solver will
+apply Z3&rsquo;s &ldquo;default&rdquo; tactic.</p>
+
+<p>The &ldquo;default&rdquo; tactic will attempt to probe the logic used by the
+assertions and will apply a specialized tactic if one is supported.
+Otherwise the general <code>(and-then simplify smt)</code> tactic will be used.</p>
+
+<p>If the solver is used in an incremental way then the combined solver
+will switch to using solver2 (which behaves similarly to the general
+&ldquo;smt&rdquo; tactic).</p>
+
+<p>Note however it is possible to set the <code>solver2_timeout</code>,
+<code>solver2_unknown</code>, and <code>ignore_solver1</code> parameters of the combined
+solver to change its behaviour.</p>
+
+<p>The method <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">Z3Solver.getModel()</a></code> retrieves a model if the assertions is
+satisfiable (i.e., the result is <code>Z3LBool.lUndef</code>) and model construction is
+enabled.</p>
+
+<p>The method <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">Z3Solver.getModel()</a></code> can also be used even if the result is
+<code>Z3LBool.lUndef</code>, but the returned model is not guaranteed to satisfy
+quantified assertions.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC16makeSimpleSolverAA0bF0CyF">makeSimpleSolver()</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC18makeSolverForLogicyAA0bE0CAA0B6SymbolCF">makeSolverForLogic(_:)</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC10makeSolver10fromTacticAA0bE0CAA0bG0C_tF">makeSolver(fromTactic:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSolver</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Solver.html">Z3Solver</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC16makeSimpleSolverAA0bF0CyF"></a>
+                    <a name="//apple_ref/swift/Method/makeSimpleSolver()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC16makeSimpleSolverAA0bF0CyF">makeSimpleSolver()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a new incremental solver.</p>
+
+<p>This is equivalent to applying the &ldquo;smt&rdquo; tactic.</p>
+
+<p>Unlike <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC10makeSolverAA0bE0CyF">Z3Context.makeSolver()</a></code> this solver
+    - Does not attempt to apply any logic specific tactics.
+    - Does not change its behaviour based on whether it used
+    incrementally/non-incrementally.</p>
+
+<p>Note that these differences can result in very different performance
+compared to <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC10makeSolverAA0bE0CyF">Z3Context.makeSolver()</a></code>.</p>
+
+<p>The function <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">Z3Solver.getModel()</a></code> retrieves a model if the
+assertions is satisfiable (i.e., the result is <code>Z3_L_TRUE</code>) and
+model construction is enabled.
+The function <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC8getModelAA0bE0CSgyF">Z3Solver.getModel()</a></code> can also be used even
+if the result is <code>Z3_L_UNDEF</code>, but the returned model
+is not guaranteed to satisfy quantified assertions.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC10makeSolverAA0bE0CyF">makeSolver()</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC18makeSolverForLogicyAA0bE0CAA0B6SymbolCF">makeSolverForLogic(_:)</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC10makeSolver10fromTacticAA0bE0CAA0bG0C_tF">makeSolver(fromTactic:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSimpleSolver</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Solver.html">Z3Solver</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC18makeSolverForLogicyAA0bE0CAA0B6SymbolCF"></a>
+                    <a name="//apple_ref/swift/Method/makeSolverForLogic(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC18makeSolverForLogicyAA0bE0CAA0B6SymbolCF">makeSolverForLogic(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a new solver customized for the given logic.
+It behaves like <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC10makeSolverAA0bE0CyF">makeSolver()</a></code> if the logic is unknown or unsupported.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC10makeSolverAA0bE0CyF">makeSolver()</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC16makeSimpleSolverAA0bF0CyF">makeSimpleSolver()</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC10makeSolver10fromTacticAA0bE0CAA0bG0C_tF">makeSolver(fromTactic:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSolverForLogic</span><span class="p">(</span><span class="n">_</span> <span class="nv">symbol</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Solver.html">Z3Solver</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC10makeSolver10fromTacticAA0bE0CAA0bG0C_tF"></a>
+                    <a name="//apple_ref/swift/Method/makeSolver(fromTactic:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC10makeSolver10fromTacticAA0bE0CAA0bG0C_tF">makeSolver(fromTactic:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a new solver that is implemented using the given tactic.
+The solver supports the commands <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC4pushyyF">Z3Solver.push()</a></code> and <code>Z3Solver.pop()</code>,
+but it will always solve each <code><a href="../Classes/Z3Solver.html#/s:7SwiftZ30B6SolverC5checkAA6StatusOyF">Z3Solver.check()</a></code> from scratch.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC10makeSolverAA0bE0CyF">makeSolver()</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC16makeSimpleSolverAA0bF0CyF">makeSimpleSolver()</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3Context.html#/s:7SwiftZ30B7ContextC18makeSolverForLogicyAA0bE0CAA0B6SymbolCF">makeSolverForLogic(_:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeSolver</span><span class="p">(</span><span class="n">fromTactic</span> <span class="nv">tactic</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Tactic.html">Z3Tactic</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Solver.html">Z3Solver</a></span></code></pre>
 
                         </div>
                       </div>

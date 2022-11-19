@@ -1744,6 +1744,13 @@
       "warning": "undocumented"
     },
     {
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3ApplyResult.swift",
+      "line": 6,
+      "symbol": "Z3ApplyResult.context",
+      "symbol_kind": "source.lang.swift.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Ast+Operators.swift",
       "line": 2,
       "symbol": "Z3Ast.==(_:_:)",
@@ -1822,7 +1829,7 @@
     },
     {
       "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3Context.swift",
-      "line": 45,
+      "line": 55,
       "symbol": "Z3Context.init(configuration:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"

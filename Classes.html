@@ -23,7 +23,7 @@
         <a class="header-link" href="index.html">
            Docs
         </a>
-         (80% documented)
+         (81% documented)
       </p>
     
       <div class="header-col--secondary">
@@ -673,7 +673,8 @@ allow for compile-time static type checking of expressions.</p>
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Kind of AST used to represent pattern and multi-patterns used to guide
+quantifier instantiation.</p>
 
                         <a href="Classes/Z3Pattern.html" class="slightly-smaller">See more</a>
                       </div>
@@ -760,7 +761,9 @@ a goal. It contains the subgoals that were produced.</p>
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Base class for <code><a href="Classes/Z3Sort.html">Z3Sort</a></code>, <code><a href="Classes/Z3FuncDecl.html">Z3FuncDecl</a></code>, <code><a href="Classes/Z3Pattern.html">Z3Pattern</a></code>, and <code><a href="Classes/AnyZ3Ast.html">AnyZ3Ast</a></code>.</p>
+                        <p>Abstract syntax tree node. That is, the data-structure used in Z3 to
+represent terms, formulas and types.
+Base class for <code><a href="Classes/Z3Sort.html">Z3Sort</a></code>, <code><a href="Classes/Z3FuncDecl.html">Z3FuncDecl</a></code>, <code><a href="Classes/Z3Pattern.html">Z3Pattern</a></code>, and <code><a href="Classes/AnyZ3Ast.html">AnyZ3Ast</a></code>.</p>
 
                         <a href="Classes/Z3AstBase.html" class="slightly-smaller">See more</a>
                       </div>
@@ -788,7 +791,7 @@ a goal. It contains the subgoals that were produced.</p>
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>vector of <code><a href="Classes/Z3AstBase.html">Z3AstBase</a></code> objects.</p>
 
                         <a href="Classes/Z3AstVector.html" class="slightly-smaller">See more</a>
                       </div>
@@ -873,7 +876,7 @@ global and module configurations. Now, we should use <code><a href="Enums/Z3Glob
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Type constructor for a (recursive) datatype.</p>
 
                         <a href="Classes/Z3Constructor.html" class="slightly-smaller">See more</a>
                       </div>
@@ -901,7 +904,7 @@ global and module configurations. Now, we should use <code><a href="Enums/Z3Glob
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>List of constructors for a (recursive) datatype.</p>
 
                         <a href="Classes/Z3ConstructorList.html" class="slightly-smaller">See more</a>
                       </div>
@@ -957,7 +960,8 @@ global and module configurations. Now, we should use <code><a href="Enums/Z3Glob
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Set of formulas that can be solved and/or transformed using tactics and
+solvers.</p>
 
                         <a href="Classes/Z3Goal.html" class="slightly-smaller">See more</a>
                       </div>
@@ -985,7 +989,7 @@ global and module configurations. Now, we should use <code><a href="Enums/Z3Glob
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Model for the constraints asserted into the logical context.</p>
 
                         <a href="Classes/Z3Model.html" class="slightly-smaller">See more</a>
                       </div>
@@ -1013,7 +1017,7 @@ global and module configurations. Now, we should use <code><a href="Enums/Z3Glob
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Object for managing optimization context</p>
+                        <p>Object for managing optimization context.</p>
 
                         <a href="Classes/Z3Optimize.html" class="slightly-smaller">See more</a>
                       </div>
@@ -1041,7 +1045,9 @@ global and module configurations. Now, we should use <code><a href="Enums/Z3Glob
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Provides a collection of parameter names, their types, default values and
+documentation strings. Solvers, tactics, and other objects accept different
+collection of parameters.</p>
 
                         <a href="Classes/Z3ParamDescrs.html" class="slightly-smaller">See more</a>
                       </div>
@@ -1069,7 +1075,8 @@ global and module configurations. Now, we should use <code><a href="Enums/Z3Glob
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Parameter set used to configure many components such as: simplifiers,
+tactics, solvers, etc.</p>
 
                         <a href="Classes/Z3Params.html" class="slightly-smaller">See more</a>
                       </div>
@@ -1097,7 +1104,8 @@ global and module configurations. Now, we should use <code><a href="Enums/Z3Glob
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Context for incrementally parsing strings. Declarations can be added
+incrementally to the parser state.</p>
 
                         <a href="Classes/Z3ParserContext.html" class="slightly-smaller">See more</a>
                       </div>
@@ -1155,7 +1163,7 @@ may be used to decide which solver and/or preprocessing step will be used.</p>
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Incremental solver, possibly specialized by a particular tactic or logic.</p>
 
                         <a href="Classes/Z3Solver.html" class="slightly-smaller">See more</a>
                       </div>
@@ -1183,7 +1191,7 @@ may be used to decide which solver and/or preprocessing step will be used.</p>
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Provides statistical data for a solver.</p>
 
                         <a href="Classes/Z3Stats.html" class="slightly-smaller">See more</a>
                       </div>
@@ -1211,7 +1219,8 @@ may be used to decide which solver and/or preprocessing step will be used.</p>
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Lisp-like symbol used to name types, constants, and functions.
+A symbol can be created using string or integers.</p>
 
                         <a href="Classes/Z3Symbol.html" class="slightly-smaller">See more</a>
                       </div>
@@ -1239,7 +1248,7 @@ may be used to decide which solver and/or preprocessing step will be used.</p>
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Basic building block for creating custom solvers for specific problem domains.</p>
 
                         <a href="Classes/Z3Tactic.html" class="slightly-smaller">See more</a>
                       </div>

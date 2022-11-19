@@ -23,7 +23,7 @@
         <a class="header-link" href="../index.html">
            Docs
         </a>
-         (80% documented)
+         (81% documented)
       </p>
     
       <div class="header-col--secondary">
@@ -461,7 +461,7 @@
 
                 </div>
               </div>
-            <p>Undocumented</p>
+            <p>Incremental solver, possibly specialized by a particular tactic or logic.</p>
 
           </div>
         </section>
@@ -590,6 +590,42 @@
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getParamDescrs</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3ParamDescrs.html">Z3ParamDescrs</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B6SolverC20importModelConverter4fromyAC_tF"></a>
+                    <a name="//apple_ref/swift/Method/importModelConverter(from:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B6SolverC20importModelConverter4fromyAC_tF">importModelConverter(from:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Ad-hoc method for importing model conversion from solver.</p>
+
+<p>This method is used for scenarios where <code>other</code> has been used to solve a
+set of formulas and was interrupted. The <code>self</code> solver may be a
+strengthening of <code>other</code> obtained from cubing (assigning a subset of
+literals or adding constraints over the assertions available in <code>other</code>).
+If <code>self</code> ends up being satisfiable, the model for <code>self</code> may not
+correspond to a model of the original formula due to inprocessing in <code>other</code>.
+This method is used to take the side-effect of inprocessing into account
+when returning a model for <code>self</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">importModelConverter</span><span class="p">(</span><span class="n">from</span> <span class="nv">other</span><span class="p">:</span> <span class="kt">Z3Solver</span><span class="p">)</span></code></pre>
 
                         </div>
                       </div>

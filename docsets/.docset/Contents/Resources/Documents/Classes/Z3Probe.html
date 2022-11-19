@@ -23,7 +23,7 @@
         <a class="header-link" href="../index.html">
            Docs
         </a>
-         (80% documented)
+         (81% documented)
       </p>
     
       <div class="header-col--secondary">
@@ -522,6 +522,288 @@ for true.</p>
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">apply</span><span class="p">(</span><span class="n">over</span> <span class="nv">goal</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Goal.html">Z3Goal</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Double</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B5ProbeC16tacticForFailureAA0B6TacticCyF"></a>
+                    <a name="//apple_ref/swift/Method/tacticForFailure()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B5ProbeC16tacticForFailureAA0B6TacticCyF">tacticForFailure()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a tactic that fails if this probe evaluates to false.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">tacticForFailure</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Tactic.html">Z3Tactic</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B5ProbeC1loiyA2C_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/&lt;(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B5ProbeC1loiyA2C_ACtFZ"><(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when the value returned by <code>lhs</code>
+is less than the value returned by <code>rhs</code>.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div><div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>lhs</code> and <code>rhs</code> share the same context.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&lt;</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Probe</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B5ProbeC2leoiyA2C_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/&lt;=(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B5ProbeC2leoiyA2C_ACtFZ"><=(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when the value returned by <code>lhs</code>
+is less than or equal to the value returned by <code>rhs</code>.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div><div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>lhs</code> and <code>rhs</code> share the same context.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Probe</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B5ProbeC1goiyA2C_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/&gt;(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B5ProbeC1goiyA2C_ACtFZ">>(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when the value returned by <code>lhs</code>
+is greater than the value returned by <code>rhs</code>.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div><div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>lhs</code> and <code>rhs</code> share the same context.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&gt;</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Probe</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B5ProbeC2geoiyA2C_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/&gt;=(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B5ProbeC2geoiyA2C_ACtFZ">>=(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when the value returned by <code>lhs</code>
+is greater than or equal to the value returned by <code>rhs</code>.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div><div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>lhs</code> and <code>rhs</code> share the same context.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Probe</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B5ProbeC2eeoiyA2C_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/==(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B5ProbeC2eeoiyA2C_ACtFZ">==(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when <code>lhs</code> and <code>rhs</code> evaluate to
+true.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div><div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>lhs</code> and <code>rhs</code> share the same context.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">==</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Probe</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B5ProbeC2oooiyA2C_ACtFZ"></a>
+                    <a name="//apple_ref/swift/Method/||(_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B5ProbeC2oooiyA2C_ACtFZ">||(_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when <code>lhs</code> or <code>rhs</code> evaluate to
+true.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div><div class="aside aside-precondition">
+    <p class="aside-title">Precondition</p>
+    <code>lhs</code> and <code>rhs</code> share the same context.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">||</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Probe</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B5ProbeC1nopyA2CFZ"></a>
+                    <a name="//apple_ref/swift/Method/!(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B5ProbeC1nopyA2CFZ">!(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a probe that evaluates to &ldquo;true&rdquo; when <code>probe</code> does not evaluate
+to true.</p>
+<div class="aside aside-remark">
+    <p class="aside-title">Remark</p>
+    For probes, &ldquo;true&rdquo; is any value different from 0.0.
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="k">prefix</span> <span class="kd">static</span> <span class="kd">func</span> <span class="o">!</span> <span class="p">(</span><span class="nv">probe</span><span class="p">:</span> <span class="kt">Z3Probe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Z3Probe</span></code></pre>
 
                         </div>
                       </div>
