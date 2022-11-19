@@ -55,6 +55,7 @@
 #include "tactic/core/elim_term_ite_tactic.h"
 #include "tactic/core/elim_uncnstr2_tactic.h"
 #include "tactic/core/elim_uncnstr_tactic.h"
+#include "tactic/core/eliminate_predicates_tactic.h"
 #include "tactic/core/euf_completion_tactic.h"
 #include "tactic/core/injectivity_tactic.h"
 #include "tactic/core/nnf_tactic.h"
@@ -154,6 +155,7 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("elim-term-ite", "eliminate term if-then-else by adding fresh auxiliary declarations.", mk_elim_term_ite_tactic(m, p));
   ADD_TACTIC_CMD("elim-uncnstr2", "eliminate unconstrained variables.", mk_elim_uncnstr2_tactic(m, p));
   ADD_TACTIC_CMD("elim-uncnstr", "eliminate application containing unconstrained variables.", mk_elim_uncnstr_tactic(m, p));
+  ADD_TACTIC_CMD("elim-predicates", "eliminate predicates.", mk_eliminate_predicates_tactic(m, p));
   ADD_TACTIC_CMD("euf-completion", "simplify using equalities.", mk_euf_completion_tactic(m, p));
   ADD_TACTIC_CMD("injectivity", "Identifies and applies injectivity axioms.", mk_injectivity_tactic(m, p));
   ADD_TACTIC_CMD("snf", "put goal in skolem normal form.", mk_snf_tactic(m, p));
