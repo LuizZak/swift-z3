@@ -1,6 +1,6 @@
 import CZ3
 
-/// vector of `Z3AstBase` objects.
+/// Vector of `Z3AstBase` objects.
 public class Z3AstVector: Z3RefCountedObject {
     /// The context this `Z3AstVector` belongs
     public let context: Z3Context
@@ -58,8 +58,20 @@ public class Z3AstVector: Z3RefCountedObject {
         Z3_ast_vector_dec_ref(context.context, astVector)
     }
 
+    /// Add the AST `ast` in the end of this AST vector. The size of this vector
+    /// is increased by one.
     public func push(_ ast: Z3AstBase) {
         Z3_ast_vector_push(context.context, astVector, ast.ast)
+    }
+
+    /// Resizes this AST vector.
+    public func resize(newCount: UInt32) {
+        Z3_ast_vector_resize(context.context, astVector, newCount)
+    }
+
+    /// Converts this AST vector to a string.
+    public func toString() -> String {
+        Z3_ast_vector_to_string(context.context, astVector).toString()
     }
     
     /// Translate/Copy the AST vector `self` from its current context to context
@@ -84,10 +96,11 @@ extension Z3AstVector: Sequence {
         var isAtEnd = false
         
         return AnyIterator {
+            if isAtEnd {
+                return nil
+            }
             if index >= self.size {
                 isAtEnd = true
-            }
-            if isAtEnd {
                 return nil
             }
             
