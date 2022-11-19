@@ -198,6 +198,52 @@ public class Z3Context {
         
         return AnyZ3Ast(context: self, ast: ast!)
     }
+
+    /// Select mode for the format used for pretty-printing AST nodes.
+    /// 
+    /// The default mode for pretty printing AST nodes is to produce SMT-LIB style
+    /// output where common subexpressions are printed
+    /// at each occurrence. The mode is called `Z3AstPrintMode.printSmtlibFull`.
+    /// To print shared common subexpressions only once, use the
+    /// `Z3AstPrintMode.printLowLevel` mode.
+    /// To print in way that conforms to SMT-LIB standards and uses let expressions
+    /// to share common sub-expressions use `Z3AstPrintMode.printSmtlib2Compliant`.
+    public func setAstPrintMode(_ mode: Z3AstPrintMode) {
+        Z3_set_ast_print_mode(context, mode)
+    }
+
+    /// Convert the given benchmark into SMT-LIB formatted string.
+    /// 
+    /// - parameters:
+    ///   - name: - name of benchmark. The argument is optional.
+    ///   - logic: - the benchmark logic.
+    ///   - status: - the status string (sat, unsat, or unknown)
+    ///   - attributes: - other attributes, such as source, difficulty or category.
+    ///   - num_assumptions: - number of assumptions.
+    ///   - assumptions: - auxiliary assumptions.
+    ///   - formula: - formula to be checked for consistency in conjunction with assumptions.
+    public func benchmarkToSmtlibString(
+        name: String? = nil,
+        logic: String,
+        status: String,
+        attributes: String,
+        assumptions: [Z3AstBase],
+        formula: Z3AstBase
+    ) -> String {
+
+        preparingArgsAst(assumptions) { (count, asts) in
+            Z3_benchmark_to_smtlib_string(
+                context,
+                name,
+                logic,
+                status,
+                attributes,
+                count,
+                asts,
+                formula.ast
+            ).toString()
+        }
+    }
 }
 
 internal extension Z3Context {

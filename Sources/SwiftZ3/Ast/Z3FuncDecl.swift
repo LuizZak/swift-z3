@@ -50,6 +50,11 @@ public class Z3FuncDecl: Z3AstBase {
         super.init(context: context, ast: funcDecl)
     }
     
+    /// Convert the current AST node into a string.
+    public override func toString() -> String {
+        return String(cString: Z3_func_decl_to_string(context.context, ast))
+    }
+
     /// Translate/Copy the AST `self` from its current context to context `target`
     public override func translate(to newContext: Z3Context) -> Z3FuncDecl {
         if context === newContext {
