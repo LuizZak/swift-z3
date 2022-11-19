@@ -39,6 +39,20 @@ public class Z3Solver {
         return Z3ParamDescrs(context: context, descr: descrs!)
     }
 
+    /// Ad-hoc method for importing model conversion from solver.
+    /// 
+    /// This method is used for scenarios where `other` has been used to solve a
+    /// set of formulas and was interrupted. The `self` solver may be a
+    /// strengthening of `other` obtained from cubing (assigning a subset of
+    /// literals or adding constraints over the assertions available in `other`).
+    /// If `self` ends up being satisfiable, the model for `self` may not
+    /// correspond to a model of the original formula due to inprocessing in `other`.
+    /// This method is used to take the side-effect of inprocessing into account
+    /// when returning a model for `self`.
+    public func importModelConverter(from other: Z3Solver) {
+        Z3_solver_import_model_converter(context.context, other.solver, solver)
+    }
+
     /// Solver local interrupt.
     ///
     /// Normally you should use `Z3Context.interrupt()` to cancel solvers because

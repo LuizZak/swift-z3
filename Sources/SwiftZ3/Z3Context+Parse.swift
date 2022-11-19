@@ -11,14 +11,14 @@ public extension Z3Context {
         _ str: String,
         sorts: [(name: Z3Symbol, Z3Sort)],
         decls: [(name: Z3Symbol, Z3FuncDecl)]
-    ) -> Z3AstVector {
+    ) throws -> Z3AstVector {
         
         let sortsName = sorts.map(\.0).toZ3_symbolPointerArray()
         let sorts = sorts.map(\.1).toZ3_sortPointerArray()
         let declsName = decls.map(\.0).toZ3_symbolPointerArray()
         let decls = decls.map(\.1).toZ3_astPointerArray()
         
-        return Z3AstVector(
+        let result = Z3AstVector(
             context: self,
             astVector: Z3_parse_smtlib2_string(
                 context,
@@ -27,6 +27,10 @@ public extension Z3Context {
                 UInt32(decls.count), declsName, decls
             )
         )
+
+        try rethrowCurrentErrorCodeIfAvailable()
+
+        return result
     }
 
     /// Parse the contents of a given file path using the SMT-LIB2 parser.
@@ -47,7 +51,7 @@ public extension Z3Context {
         let declsName = decls.map(\.0).toZ3_symbolPointerArray()
         let decls = decls.map(\.1).toZ3_astPointerArray()
         
-        return Z3AstVector(
+        let result = Z3AstVector(
             context: self,
             astVector: Z3_parse_smtlib2_file(
                 context,
@@ -56,6 +60,10 @@ public extension Z3Context {
                 UInt32(decls.count), declsName, decls
             )
         )
+
+        try rethrowCurrentErrorCodeIfAvailable()
+
+        return result
     }
 
     /// Parse and evaluate and SMT-LIB2 command sequence. The state from a
