@@ -42,6 +42,16 @@ public class Z3Context {
         return errorCode != .ok
     }
 
+    /// Return the number of builtin probes available in Z3. 
+    public var probeCount: UInt32 {
+        Z3_get_num_probes(context)
+    }
+
+    /// Return the number of builtin tactics available in Z3.
+    public var tacticCount: UInt32 {
+        Z3_get_num_tactics(context)
+    }
+
     public init(configuration: Z3Config? = nil) {
         context = Z3_mk_context(configuration?.config)
         Z3_set_error_handler(context) { (context, code) in

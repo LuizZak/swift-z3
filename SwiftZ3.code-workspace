@@ -198,6 +198,7 @@
             "Skolemize",
             "Sleq",
             "smtlib",
+            "subgoal",
             "swiftpm",
             "Udfl",
             "Ugeq",

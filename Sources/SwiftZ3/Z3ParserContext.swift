@@ -3,7 +3,7 @@ import CZ3
 public class Z3ParserContext {
     /// The context this `Z3ParserContext` belongs
     public let context: Z3Context
-    var parserCtx: Z3_parser_context
+    let parserCtx: Z3_parser_context
     
     init(context: Z3Context, parserCtx: Z3_parser_context) {
         self.context = context
