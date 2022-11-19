@@ -2,7 +2,7 @@ import CZ3
 
 /// Set of formulas that can be solved and/or transformed using tactics and
 /// solvers.
-public class Z3Goal {
+public class Z3Goal: Z3RefCountedObject {
     /// The context this `Z3Goal` belongs
     public let context: Z3Context
     var goal: Z3_goal
@@ -66,11 +66,13 @@ public class Z3Goal {
     init(context: Z3Context, goal: Z3_goal) {
         self.context = context
         self.goal = goal
-        
+    }
+
+    override func incRef() {
         Z3_goal_inc_ref(context.context, goal)
     }
-    
-    deinit {
+
+    override func decRef() {
         Z3_goal_dec_ref(context.context, goal)
     }
 

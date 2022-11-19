@@ -2,7 +2,7 @@ import CZ3
 
 /// Context for incrementally parsing strings. Declarations can be added
 /// incrementally to the parser state.
-public class Z3ParserContext {
+public class Z3ParserContext: Z3RefCountedObject {
     /// The context this `Z3ParserContext` belongs
     public let context: Z3Context
     let parserCtx: Z3_parser_context
@@ -10,11 +10,13 @@ public class Z3ParserContext {
     init(context: Z3Context, parserCtx: Z3_parser_context) {
         self.context = context
         self.parserCtx = parserCtx
-        
-        Z3_parser_context_inc_ref(context.context, parserCtx)
     }
     
-    deinit {
+    override func incRef() {
+        Z3_parser_context_inc_ref(context.context, parserCtx)
+    }
+
+    override func decRef() {
         Z3_parser_context_dec_ref(context.context, parserCtx)
     }
 

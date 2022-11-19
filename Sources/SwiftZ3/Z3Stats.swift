@@ -1,7 +1,7 @@
 import CZ3
 
 /// Provides statistical data for a solver.
-public class Z3Stats {
+public class Z3Stats: Z3RefCountedObject {
     /// The context this `Z3Stats` belongs
     public let context: Z3Context
     var stats: Z3_stats
@@ -14,11 +14,13 @@ public class Z3Stats {
     init(context: Z3Context, stats: Z3_stats) {
         self.context = context
         self.stats = stats
+    }
 
+    override func incRef() {
         Z3_stats_inc_ref(context.context, stats)
     }
 
-    deinit {
+    override func decRef() {
         Z3_stats_dec_ref(context.context, stats)
     }
 

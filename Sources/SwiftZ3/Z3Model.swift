@@ -1,7 +1,7 @@
 import CZ3
 
 /// Model for the constraints asserted into the logical context.
-public class Z3Model {
+public class Z3Model: Z3RefCountedObject {
     /// The context this `Z3Model` belongs
     public let context: Z3Context
     var model: Z3_model
@@ -9,11 +9,13 @@ public class Z3Model {
     init(context: Z3Context, model: Z3_model) {
         self.context = context
         self.model = model
-        
-        Z3_model_inc_ref(context.context, model)
     }
     
-    deinit {
+    override func incRef() {
+        Z3_model_inc_ref(context.context, model)
+    }
+
+    override func decRef() {
         Z3_model_dec_ref(context.context, model)
     }
     

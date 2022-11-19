@@ -3,7 +3,7 @@ import CZ3
 /// Abstract syntax tree node. That is, the data-structure used in Z3 to
 /// represent terms, formulas and types.
 /// Base class for `Z3Sort`, `Z3FuncDecl`, `Z3Pattern`, and `AnyZ3Ast`.
-public class Z3AstBase {
+public class Z3AstBase: Z3RefCountedObject {
     /// The context this `Z3AstBase` belongs
     public let context: Z3Context
     internal let ast: Z3_ast
@@ -93,11 +93,13 @@ public class Z3AstBase {
     init(context: Z3Context, ast: Z3_ast) {
         self.context = context
         self.ast = ast
+    }
 
+    override func incRef() {
         Z3_inc_ref(context.context, ast)
     }
 
-    deinit {
+    override func decRef() {
         Z3_dec_ref(context.context, ast)
     }
 

@@ -2,7 +2,7 @@ import CZ3
 
 /// Z3ApplyResult objects represent the result of an application of a tactic to
 /// a goal. It contains the subgoals that were produced.
-public class Z3ApplyResult {
+public class Z3ApplyResult: Z3RefCountedObject {
     public let context: Z3Context
     let applyResult: Z3_apply_result
 
@@ -15,11 +15,13 @@ public class Z3ApplyResult {
     internal init(context: Z3Context, applyResult: Z3_apply_result) {
         self.context = context
         self.applyResult = applyResult
-
+    }
+    
+    override func incRef() {
         Z3_apply_result_inc_ref(context.context, applyResult)
     }
 
-    deinit {
+    override func decRef() {
         Z3_apply_result_dec_ref(context.context, applyResult)
     }
 

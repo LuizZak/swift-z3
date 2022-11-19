@@ -1,7 +1,7 @@
 import CZ3
 
 /// Incremental solver, possibly specialized by a particular tactic or logic.
-public class Z3Solver {
+public class Z3Solver: Z3RefCountedObject {
     /// The context this `Z3Solver` belongs
     public let context: Z3Context
     var solver: Z3_solver
@@ -9,11 +9,13 @@ public class Z3Solver {
     init(context: Z3Context, solver: Z3_solver) {
         self.context = context
         self.solver = solver
+    }
 
+    override func incRef() {
         Z3_solver_inc_ref(context.context, solver)
     }
 
-    deinit {
+    override func decRef() {
         Z3_solver_dec_ref(context.context, solver)
     }
 

@@ -1,7 +1,7 @@
 import CZ3
 
 /// Basic building block for creating custom solvers for specific problem domains.
-public class Z3Tactic {
+public class Z3Tactic: Z3RefCountedObject {
     /// The context this `Z3Tactic` belongs
     public let context: Z3Context
     var tactic: Z3_tactic
@@ -15,11 +15,13 @@ public class Z3Tactic {
     init(context: Z3Context, tactic: Z3_tactic) {
         self.context = context
         self.tactic = tactic
+    }
 
+    override func incRef() {
         Z3_tactic_inc_ref(context.context, tactic)
     }
 
-    deinit {
+    override func decRef() {
         Z3_tactic_dec_ref(context.context, tactic)
     }
     

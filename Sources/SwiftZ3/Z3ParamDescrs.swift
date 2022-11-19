@@ -3,7 +3,7 @@ import CZ3
 /// Provides a collection of parameter names, their types, default values and
 /// documentation strings. Solvers, tactics, and other objects accept different
 /// collection of parameters.
-public class Z3ParamDescrs {
+public class Z3ParamDescrs: Z3RefCountedObject {
     /// The context this `Z3ParamDescrs` belongs
     public let context: Z3Context
     var descrs: Z3_param_descrs
@@ -11,11 +11,13 @@ public class Z3ParamDescrs {
     init(context: Z3Context, descr: Z3_param_descrs) {
         self.context = context
         self.descrs = descr
-
+    }
+    
+    override func incRef() {
         Z3_param_descrs_inc_ref(context.context, descrs)
     }
 
-    deinit {
+    override func decRef() {
         Z3_param_descrs_dec_ref(context.context, descrs)
     }
     

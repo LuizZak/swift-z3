@@ -2,7 +2,7 @@ import CZ3
 
 /// Parameter set used to configure many components such as: simplifiers,
 /// tactics, solvers, etc.
-public class Z3Params {
+public class Z3Params: Z3RefCountedObject {
     /// The context this `Z3Params` belongs
     public let context: Z3Context
     var params: Z3_params
@@ -10,11 +10,13 @@ public class Z3Params {
     init(context: Z3Context, params: Z3_params) {
         self.context = context
         self.params = params
-        
-        Z3_params_inc_ref(context.context, params)
     }
     
-    deinit {
+    override func incRef() {
+        Z3_params_inc_ref(context.context, params)
+    }
+
+    override func decRef() {
         Z3_params_dec_ref(context.context, params)
     }
     

@@ -1,7 +1,7 @@
 import CZ3
 
 /// Object for managing optimization context.
-public class Z3Optimize {
+public class Z3Optimize: Z3RefCountedObject {
     /// The context this `Z3Optimize` belongs
     public let context: Z3Context
     var optimize: Z3_optimize
@@ -9,11 +9,13 @@ public class Z3Optimize {
     init(context: Z3Context, optimize: Z3_optimize) {
         self.context = context
         self.optimize = optimize
-
+    }
+    
+    override func incRef() {
         Z3_optimize_inc_ref(context.context, optimize)
     }
 
-    deinit {
+    override func decRef() {
         Z3_optimize_dec_ref(context.context, optimize)
     }
 

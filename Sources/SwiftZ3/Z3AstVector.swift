@@ -1,7 +1,7 @@
 import CZ3
 
 /// vector of `Z3AstBase` objects.
-public class Z3AstVector {
+public class Z3AstVector: Z3RefCountedObject {
     /// The context this `Z3AstVector` belongs
     public let context: Z3Context
     var astVector: Z3_ast_vector
@@ -42,19 +42,19 @@ public class Z3AstVector {
 
     init(context: Z3Context) {
         self.context = context
-
         astVector = Z3_mk_ast_vector(context.context)
-        Z3_ast_vector_inc_ref(context.context, astVector)
     }
 
     init(context: Z3Context, astVector: Z3_ast_vector) {
         self.context = context
         self.astVector = astVector
-
+    }
+    
+    override func incRef() {
         Z3_ast_vector_inc_ref(context.context, astVector)
     }
 
-    deinit {
+    override func decRef() {
         Z3_ast_vector_dec_ref(context.context, astVector)
     }
 
