@@ -1,5 +1,6 @@
 import CZ3
 
+/// List of constructors for a (recursive) datatype.
 public class Z3ConstructorList {
     /// The context this `Z3ConstructorList` belongs
     public let context: Z3Context
@@ -11,7 +12,7 @@ public class Z3ConstructorList {
     }
 
     deinit {
-        Z3_del_constructor(context.context, constructorList)
+        Z3_del_constructor_list(context.context, constructorList)
     }
 }
 
