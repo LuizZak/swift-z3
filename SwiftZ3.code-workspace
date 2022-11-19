@@ -200,6 +200,8 @@
             "smtlib",
             "subgoal",
             "subgoals",
+            "subresultants",
+            "subterm",
             "swiftpm",
             "Udfl",
             "Ugeq",
