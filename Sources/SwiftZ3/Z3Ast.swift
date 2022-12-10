@@ -9,9 +9,9 @@ public class Z3Ast<T: SortKind>: AnyZ3Ast {
         assert(
             T.isAssignableFrom(
                 context,
-                context.getSort(Z3AstBase(context: context, ast: ast))
+                context.getSort(self)
             ),
-            "Attempted to initialize \(Self.self) AST with incompatible Z3 sort \(context.getSort(Z3AstBase(context: context, ast: ast)))"
+            "Attempted to initialize \(Self.self) AST with incompatible Z3 sort \(context.getSort(self))"
         )
     }
 

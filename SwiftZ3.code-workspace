@@ -208,7 +208,7 @@
             "Uleq",
             "Uminus",
             "unsat",
-            "xnor"
+            "xnor",
         ],
         "C_Cpp.default.includePath": [
             "${workspaceFolder}/Sources/CZ3/**",
