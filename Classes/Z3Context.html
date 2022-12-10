@@ -101,6 +101,9 @@
                 <a class="nav-group-task-link" href="../Classes/Z3FiniteDomainSort.html">Z3FiniteDomainSort</a>
               </li>
               <li class="nav-group-task">
+                <a class="nav-group-task-link" href="../Classes/Z3FixedPoint.html">Z3FixedPoint</a>
+              </li>
+              <li class="nav-group-task">
                 <a class="nav-group-task-link" href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a>
               </li>
               <li class="nav-group-task">
@@ -5186,6 +5189,46 @@ function in the definition.</p>
             </div>
             <div class="task-group">
               <div class="task-name-container">
+                <a name="/Fixedpoint%20facilities"></a>
+                <a name="//apple_ref/swift/Section/Fixedpoint facilities" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Fixedpoint%20facilities"></a>
+                  <h3 class="section-name"><span>Fixedpoint facilities</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC14makeFixedPointAA0beF0CyF"></a>
+                    <a name="//apple_ref/swift/Method/makeFixedPoint()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC14makeFixedPointAA0beF0CyF">makeFixedPoint()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create a new fixedpoint context.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">makeFixedPoint</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3FixedPoint.html">Z3FixedPoint</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
                 <a name="/Floating-Point%20Arithmetic"></a>
                 <a name="//apple_ref/swift/Section/Floating-Point Arithmetic" class="dashAnchor"></a>
                 <div class="section-name-container">
@@ -10035,6 +10078,57 @@ to the context.</p>
                         <div class="language">
                           <p class="aside-title">Swift</p>
                           <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">createParserContext</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3ParserContext.html">Z3ParserContext</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Polynomials"></a>
+                <a name="//apple_ref/swift/Section/Polynomials" class="dashAnchor"></a>
+                <div class="section-name-container">
+                  <a class="section-name-link" href="#/Polynomials"></a>
+                  <h3 class="section-name"><span>Polynomials</span>
+</h3>
+                </div>
+              </div>
+              <ul class="item-container">
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B7ContextC23polynomialSubresultantsyAA0B9AstVectorCSgAA0bF0CyxG_AIyq_GAA03AnybF0CtAA14ArithmeticSortRzAaNR_r0_lF"></a>
+                    <a name="//apple_ref/swift/Method/polynomialSubresultants(_:_:_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B7ContextC23polynomialSubresultantsyAA0B9AstVectorCSgAA0bF0CyxG_AIyq_GAA03AnybF0CtAA14ArithmeticSortRzAaNR_r0_lF">polynomialSubresultants(_:<wbr>_:<wbr>_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the nonzero subresultants of <code>p</code> and <code>q</code> with respect to the
+&ldquo;variable&rdquo; <code>x</code>.</p>
+
+<p>\pre <code>p</code>, <code>q</code> and <code>x</code> are Z3 expressions where <code>p</code> and <code>q</code> are arithmetic
+terms.
+Note that, any subterm that cannot be viewed as a polynomial is assumed
+to be a variable. Example: <code>f(a)</code> is a considered to be a variable in
+the polynomial <code>f(a)*f(a) + 2*f(a) + 1</code></p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="n">polynomialSubresultants</span><span class="o">&lt;</span><span class="kt">PSort</span><span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span><span class="p">,</span> <span class="kt">QSort</span><span class="p">:</span> <span class="kt"><a href="../Protocols.html#/s:7SwiftZ314ArithmeticSortP">ArithmeticSort</a></span><span class="o">&gt;</span><span class="p">(</span>
+    <span class="n">_</span> <span class="nv">p</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">PSort</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="n">_</span> <span class="nv">q</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Ast.html">Z3Ast</a></span><span class="o">&lt;</span><span class="kt">QSort</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="n">_</span> <span class="nv">x</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span><span class="p">?</span></code></pre>
 
                         </div>
                       </div>
@@ -15574,7 +15668,7 @@ to true.</p>
       </article>
     </div>
     <section class="footer">
-      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-11-19)</p>
+      <p>&copy; 2022 <a class="link" href="" target="_blank" rel="external noopener"></a>. All rights reserved. (Last updated: 2022-12-10)</p>
       <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.3</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
     </section>
   </body>

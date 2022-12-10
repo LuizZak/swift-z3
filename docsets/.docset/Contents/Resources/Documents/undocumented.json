@@ -1765,9 +1765,9 @@
       "warning": "undocumented"
     },
     {
-      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3AstVector.swift",
-      "line": 61,
-      "symbol": "Z3AstVector.push(_:)",
+      "file": "/Users/runner/work/swift-z3/swift-z3/Sources/SwiftZ3/Z3AstMap.swift",
+      "line": 68,
+      "symbol": "Z3AstMap.push(_:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
     },

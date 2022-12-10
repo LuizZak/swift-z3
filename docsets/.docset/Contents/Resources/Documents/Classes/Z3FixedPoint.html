@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Z3BitVector Extension Reference</title>
+    <title>Z3FixedPoint Class Reference</title>
     <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
     <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
     <meta charset="utf-8">
@@ -14,9 +14,9 @@
   </head>
   <body>
 
-    <a name="//apple_ref/swift/Extension/Z3BitVector" class="dashAnchor"></a>
+    <a name="//apple_ref/swift/Class/Z3FixedPoint" class="dashAnchor"></a>
 
-    <a title="Z3BitVector Extension Reference"></a>
+    <a title="Z3FixedPoint Class Reference"></a>
 
     <header class="header">
       <p class="header-col header-col--primary">
@@ -38,7 +38,7 @@
     <p class="breadcrumbs">
       <a class="breadcrumb" href="../index.html"> Reference</a>
       <img class="carat" src="../img/carat.png" alt=""/>
-      Z3BitVector Extension Reference
+      Z3FixedPoint Class Reference
     </p>
 
     <div class="content-wrapper">
@@ -465,15 +465,16 @@
 
         <section class="section">
           <div class="section-content top-matter">
-            <h1>Z3BitVector</h1>
+            <h1>Z3FixedPoint</h1>
               <div class="declaration">
                 <div class="language">
                   
-                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">extension</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span></code></pre>
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Z3FixedPoint</span> <span class="p">:</span> <span class="kt"><a href="../Classes.html#/s:7SwiftZ30B16RefCountedObjectC">Z3RefCountedObject</a></span></code></pre>
 
                 </div>
               </div>
-            
+            <p>Context for the recursive predicate solver.</p>
+
           </div>
         </section>
 
@@ -484,69 +485,9 @@
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE03getF0yAA0bF0CAA0B7ContextCFZ"></a>
-                    <a name="//apple_ref/swift/Method/getSort(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE03getF0yAA0bF0CAA0B7ContextCFZ">getSort(_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Gets the statically-typed Z3Sort associated with <code>T</code> from this
-<code><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector&lt;T&gt;</a></code>.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">getSort</span><span class="p">(</span><span class="n">_</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Sort.html">Z3Sort</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE5toInt8isSignedACyAA0hF0VGSb_tF"></a>
-                    <a name="//apple_ref/swift/Method/toInt(isSigned:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE5toInt8isSignedACyAA0hF0VGSb_tF">toInt(isSigned:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Create an integer from this bit-vector.</p>
-
-<p>If <code>isSigned</code> is false, then this bit-vector is treated as unsigned.
-So the result is non-negative and in the range <code>[0..2^N-1]</code>, where N are
-the number of bits in this bit-vector.
-If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vector.</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">toInt</span><span class="p">(</span><span class="nv">isSigned</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B3Inta">Z3Int</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1aoiyACyxGAF_AFtFZ"></a>
-                    <a name="//apple_ref/swift/Method/&amp;(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1aoiyACyxGAF_AFtFZ">&(_:<wbr>_:<wbr>)</a>
+                    <a name="/s:7SwiftZ30B10FixedPointC7contextAA0B7ContextCvp"></a>
+                    <a name="//apple_ref/swift/Property/context" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC7contextAA0B7ContextCvp">context</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -561,7 +502,7 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&amp;</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="k">let</span> <span class="nv">context</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Context.html">Z3Context</a></span></code></pre>
 
                         </div>
                       </div>
@@ -571,9 +512,9 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1ooiyACyxGAF_AFtFZ"></a>
-                    <a name="//apple_ref/swift/Method/|(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1ooiyACyxGAF_AFtFZ">|(_:<wbr>_:<wbr>)</a>
+                    <a name="/s:7SwiftZ30B10FixedPointC7addRule_4nameyAA0B3AstCySbG_AA0B6SymbolCSgtF"></a>
+                    <a name="//apple_ref/swift/Method/addRule(_:name:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC7addRule_4nameyAA0B3AstCySbG_AA0B6SymbolCSgtF">addRule(_:<wbr>name:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -581,175 +522,11 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">|</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1xoiyACyxGAF_AFtFZ"></a>
-                    <a name="//apple_ref/swift/Method/^(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1xoiyACyxGAF_AFtFZ">^(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">^</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1poiyACyxGAF_AFtFZ"></a>
-                    <a name="//apple_ref/swift/Method/+(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1poiyACyxGAF_AFtFZ">+(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">+</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1soiyACyxGAF_AFtFZ"></a>
-                    <a name="//apple_ref/swift/Method/-(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1soiyACyxGAF_AFtFZ">-(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">-</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1moiyACyxGAF_AFtFZ"></a>
-                    <a name="//apple_ref/swift/Method/*(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1moiyACyxGAF_AFtFZ">*(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">*</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1doiyACyxGAF_AFtFZ"></a>
-                    <a name="//apple_ref/swift/Method//(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1doiyACyxGAF_AFtFZ">/(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">/</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1loiyACySbGACyxG_AGtFZ"></a>
-                    <a name="//apple_ref/swift/Method/&lt;(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1loiyACySbGACyxG_AGtFZ"><(_:<wbr>_:<wbr>)</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Two&rsquo;s complement signed less than.</p>
-
-<p>It abbreviates:</p>
-<pre class="highlight swift"><code><span class="p">(</span><span class="nf">or</span> <span class="p">(</span><span class="nf">and</span> <span class="p">(</span><span class="o">=</span> <span class="p">(</span><span class="n">extract</span><span class="p">[</span><span class="o">|</span><span class="n">m</span><span class="o">-</span><span class="mi">1</span><span class="o">|</span><span class="p">:</span><span class="o">|</span><span class="n">m</span><span class="o">-</span><span class="mi">1</span><span class="o">|</span><span class="p">]</span> <span class="n">t1</span><span class="p">)</span> <span class="n">bit1</span><span class="p">)</span>
-        <span class="p">(</span><span class="o">=</span> <span class="p">(</span><span class="n">extract</span><span class="p">[</span><span class="o">|</span><span class="n">m</span><span class="o">-</span><span class="mi">1</span><span class="o">|</span><span class="p">:</span><span class="o">|</span><span class="n">m</span><span class="o">-</span><span class="mi">1</span><span class="o">|</span><span class="p">]</span> <span class="n">t2</span><span class="p">)</span> <span class="n">bit0</span><span class="p">))</span>
-    <span class="p">(</span><span class="nf">and</span> <span class="p">(</span><span class="o">=</span> <span class="p">(</span><span class="n">extract</span><span class="p">[</span><span class="o">|</span><span class="n">m</span><span class="o">-</span><span class="mi">1</span><span class="o">|</span><span class="p">:</span><span class="o">|</span><span class="n">m</span><span class="o">-</span><span class="mi">1</span><span class="o">|</span><span class="p">]</span> <span class="n">t1</span><span class="p">)</span> <span class="p">(</span><span class="n">extract</span><span class="p">[</span><span class="o">|</span><span class="n">m</span><span class="o">-</span><span class="mi">1</span><span class="o">|</span><span class="p">:</span><span class="o">|</span><span class="n">m</span><span class="o">-</span><span class="mi">1</span><span class="o">|</span><span class="p">]</span> <span class="n">t2</span><span class="p">))</span>
-        <span class="p">(</span><span class="n">bvult</span> <span class="n">t1</span> <span class="n">t2</span><span class="p">)))</span>
+                        <p>Add a universal Horn clause as a named rule.
+The <code>horn_rule</code> should be of the form:</p>
+<pre class="highlight swift"><code><span class="nv">horn_rule</span> <span class="p">::</span><span class="o">=</span> <span class="p">(</span><span class="nf">forall</span> <span class="p">(</span><span class="n">bound</span><span class="o">-</span><span class="n">vars</span><span class="p">)</span> <span class="n">horn_rule</span><span class="p">)</span>
+           <span class="o">|</span>  <span class="p">(</span><span class="o">=&gt;</span> <span class="n">atoms</span> <span class="n">horn_rule</span><span class="p">)</span>
+           <span class="o">|</span>  <span class="n">atom</span>
 </code></pre>
 
                       </div>
@@ -757,7 +534,7 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&lt;</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">addRule</span><span class="p">(</span><span class="n">_</span> <span class="nv">rule</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span><span class="p">,</span> <span class="nv">name</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">)</span></code></pre>
 
                         </div>
                       </div>
@@ -767,9 +544,9 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE2leoiyACySbGACyxG_AGtFZ"></a>
-                    <a name="//apple_ref/swift/Method/&lt;=(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE2leoiyACySbGACyxG_AGtFZ"><=(_:<wbr>_:<wbr>)</a>
+                    <a name="/s:7SwiftZ30B10FixedPointC7addFact_4argsyAA0B8FuncDeclC_Says6UInt32VGtF"></a>
+                    <a name="//apple_ref/swift/Method/addFact(_:args:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC7addFact_4argsyAA0B8FuncDeclC_Says6UInt32VGtF">addFact(_:<wbr>args:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -777,14 +554,83 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Two&rsquo;s complement signed less than or equal to.</p>
+                        <p>Add a Database fact.</p>
+
+<p>The number of arguments in <code>args</code> should be equal to the number of
+sorts in the domain of <code>predicate</code>. Each sort in the domain should be an
+integral (bit-vector, Boolean or or finite domain sort).</p>
+
+<p>The call has the same effect as adding a rule where <code>predicate</code> is
+applied to the arguments.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">addFact</span><span class="p">(</span><span class="n">_</span> <span class="nv">predicate</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a></span><span class="p">,</span> <span class="nv">args</span><span class="p">:</span> <span class="p">[</span><span class="kt">UInt32</span><span class="p">])</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>predicate</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>- relation signature for the row.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>args</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>- array of the row elements.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC6assertyyAA0B3AstCySbGF"></a>
+                    <a name="//apple_ref/swift/Method/assert(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC6assertyyAA0B3AstCySbGF">assert(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Assert a constraint to the fixedpoint context.</p>
+
+<p>The constraints are used as background axioms when the fixedpoint engine
+uses the PDR mode.
+They are ignored for standard Datalog mode.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">assert</span><span class="p">(</span><span class="n">_</span> <span class="nv">axiom</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span><span class="p">)</span></code></pre>
 
                         </div>
                       </div>
@@ -794,9 +640,9 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1goiyACySbGACyxG_AGtFZ"></a>
-                    <a name="//apple_ref/swift/Method/&gt;(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1goiyACySbGACyxG_AGtFZ">>(_:<wbr>_:<wbr>)</a>
+                    <a name="/s:7SwiftZ30B10FixedPointC5queryySo0B6_lboolaAA0B3AstCySbGF"></a>
+                    <a name="//apple_ref/swift/Method/query(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC5queryySo0B6_lboolaAA0B3AstCySbGF">query(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -804,14 +650,101 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Two&rsquo;s complement signed greater than.</p>
+                        <p>Pose a query against the asserted rules.</p>
+<pre class="highlight swift"><code><span class="nv">query</span> <span class="p">::</span><span class="o">=</span> <span class="p">(</span><span class="nf">exists</span> <span class="p">(</span><span class="n">bound</span><span class="o">-</span><span class="n">vars</span><span class="p">)</span> <span class="n">query</span><span class="p">)</span>
+      <span class="o">|</span>  <span class="n">literals</span>
+</code></pre>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&gt;</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">query</span><span class="p">(</span><span class="n">_</span> <span class="nv">query</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B5LBoola">Z3LBool</a></span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p><ul>
+<li><code>Z3LBool.lFalse</code>: if the query is unsatisfiable.</li>
+<li><code>Z3LBool.lTrue</code>: if the query is satisfiable. Obtain the answer by
+calling <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC9getAnswerAA03AnyB3AstCyF">getAnswer()</a></code>.</li>
+<li><code>Z3LBool.lUndef</code>: if the query was interrupted, timed out or otherwise failed.</li>
+</ul></p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC5queryySo0B6_lboolaSayAA0B8FuncDeclCGF"></a>
+                    <a name="//apple_ref/swift/Method/query(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC5queryySo0B6_lboolaSayAA0B8FuncDeclCGF">query(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Pose multiple queries against the asserted rules.</p>
+
+<p>The queries are encoded as relations (function declarations).</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">query</span><span class="p">(</span><span class="n">_</span> <span class="nv">relations</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B5LBoola">Z3LBool</a></span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p><ul>
+<li><code>Z3LBool.lFalse</code>: if the query is unsatisfiable.</li>
+<li><code>Z3LBool.lTrue</code>: if the query is satisfiable. Obtain the answer by
+calling <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC9getAnswerAA03AnyB3AstCyF">getAnswer()</a></code>.</li>
+<li><code>Z3LBool.lUndef</code>: if the query was interrupted, timed out or otherwise failed.</li>
+</ul></p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC9getAnswerAA03AnyB3AstCyF"></a>
+                    <a name="//apple_ref/swift/Method/getAnswer()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC9getAnswerAA03AnyB3AstCyF">getAnswer()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve a formula that encodes satisfying answers to the query.</p>
+
+<p>When used in Datalog mode, the returned answer is a disjunction of conjuncts.
+Each conjunct encodes values of the bound variables of the query that
+are satisfied.
+In PDR mode, the returned answer is a single conjunction.</p>
+
+<p>When used in Datalog mode the previous call to <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC5queryySo0B6_lboolaAA0B3AstCySbGF">query(_:)</a></code> must have
+returned <code>Z3LBool.lTrue</code>.
+When used with the PDR engine, the previous call must have been either
+<code>Z3LBool.lTrue</code> or <code>Z3LBool.lFalse</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getAnswer</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
 
                         </div>
                       </div>
@@ -821,9 +754,9 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE2geoiyACySbGACyxG_AGtFZ"></a>
-                    <a name="//apple_ref/swift/Method/&gt;=(_:_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE2geoiyACySbGACyxG_AGtFZ">>=(_:<wbr>_:<wbr>)</a>
+                    <a name="/s:7SwiftZ30B10FixedPointC16getReasonUnknownSSyF"></a>
+                    <a name="//apple_ref/swift/Method/getReasonUnknown()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC16getReasonUnknownSSyF">getReasonUnknown()</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -831,14 +764,16 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Two&rsquo;s complement signed greater than or equal to.</p>
+                        <p>Retrieve a string that describes the last status returned by <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC5queryySo0B6_lboolaAA0B3AstCySbGF">query(_:)</a></code>.</p>
+
+<p>Use this method when <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC5queryySo0B6_lboolaAA0B3AstCySbGF">query(_:)</a></code> returns <code>Z3LBool.lUndef</code>.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="nv">lhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">,</span> <span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getReasonUnknown</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
 
                         </div>
                       </div>
@@ -848,9 +783,9 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1sopyACyxGAFFZ"></a>
-                    <a name="//apple_ref/swift/Method/-(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1sopyACyxGAFFZ">-(_:<wbr>)</a>
+                    <a name="/s:7SwiftZ30B10FixedPointC10updateRule_4nameyAA0B3AstCySbG_AA0B6SymbolCtF"></a>
+                    <a name="//apple_ref/swift/Method/updateRule(_:name:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC10updateRule_4nameyAA0B3AstCySbG_AA0B6SymbolCtF">updateRule(_:<wbr>name:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -858,14 +793,20 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Update a named rule.
+A rule with the same name must have been previously created.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC7addRule_4nameyAA0B3AstCySbG_AA0B6SymbolCSgtF">addRule(_:name:)</a></code>
+
+</div>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="k">prefix</span> <span class="kd">static</span> <span class="kd">func</span> <span class="o">-</span> <span class="p">(</span><span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">updateRule</span><span class="p">(</span><span class="n">_</span> <span class="nv">rule</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B4Boola">Z3Bool</a></span><span class="p">,</span> <span class="nv">name</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span><span class="p">)</span></code></pre>
 
                         </div>
                       </div>
@@ -875,9 +816,9 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1nopyACyxGAFFZ"></a>
-                    <a name="//apple_ref/swift/Method/!(_:)" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7SwiftZ30B3AstCA2A13BitVectorSortRzrlE1nopyACyxGAFFZ">!(_:<wbr>)</a>
+                    <a name="/s:7SwiftZ30B10FixedPointC12getNumLevelsys6UInt32VAA0B8FuncDeclCF"></a>
+                    <a name="//apple_ref/swift/Method/getNumLevels(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC12getNumLevelsys6UInt32VAA0B8FuncDeclCF">getNumLevels(_:<wbr>)</a>
                     </code>
                   </div>
                   <div class="height-container">
@@ -885,14 +826,332 @@ If <code>isSigned</code> is true, this bit-vector is treated as a signed bit-vec
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>Undocumented</p>
+                        <p>Query the PDR engine for the maximal levels properties are known about predicate.</p>
+
+<p>This call retrieves the maximal number of relevant unfoldings
+of \c pred with respect to the current exploration state.
+Note: this functionality is PDR specific.</p>
 
                       </div>
                       <div class="declaration">
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="k">prefix</span> <span class="kd">static</span> <span class="kd">func</span> <span class="o">!</span> <span class="p">(</span><span class="nv">rhs</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Typealiases.html#/s:7SwiftZ30B9BitVectora">Z3BitVector</a></span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getNumLevels</span><span class="p">(</span><span class="n">_</span> <span class="nv">predicate</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">UInt32</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC13getCoverDelta5level9predicateAA03AnyB3AstCSi_AA0B8FuncDeclCtF"></a>
+                    <a name="//apple_ref/swift/Method/getCoverDelta(level:predicate:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC13getCoverDelta5level9predicateAA03AnyB3AstCSi_AA0B8FuncDeclCtF">getCoverDelta(level:<wbr>predicate:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve the current cover of \c pred up to \c level unfoldings.
+Return just the delta that is known at \c level. To
+obtain the full set of properties of \c pred one should query
+at \c level+1 , \c level+2 etc, and include \c level=-1.</p>
+
+<p>Note: this functionality is PDR specific.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getCoverDelta</span><span class="p">(</span><span class="nv">level</span><span class="p">:</span> <span class="kt">Int</span><span class="p">,</span> <span class="nv">predicate</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC8addCover5level9predicate8propertyySi_AA0B8FuncDeclCAA03AnyB3AstCtF"></a>
+                    <a name="//apple_ref/swift/Method/addCover(level:predicate:property:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC8addCover5level9predicate8propertyySi_AA0B8FuncDeclCAA03AnyB3AstCtF">addCover(level:<wbr>predicate:<wbr>property:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve the current cover of \c pred up to \c level unfoldings.
+Return just the delta that is known at \c level. To
+obtain the full set of properties of \c pred one should query
+at \c level+1 , \c level+2 etc, and include \c level=-1.</p>
+
+<p>Note: this functionality is PDR specific.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">addCover</span><span class="p">(</span><span class="nv">level</span><span class="p">:</span> <span class="kt">Int</span><span class="p">,</span> <span class="nv">predicate</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a></span><span class="p">,</span> <span class="nv">property</span><span class="p">:</span> <span class="kt"><a href="../Classes/AnyZ3Ast.html">AnyZ3Ast</a></span><span class="p">)</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC13getStatisticsAA0B5StatsCyF"></a>
+                    <a name="//apple_ref/swift/Method/getStatistics()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC13getStatisticsAA0B5StatsCyF">getStatistics()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve statistics information from the last call to <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC5queryySo0B6_lboolaAA0B3AstCySbGF">query(_:)</a></code></p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getStatistics</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3Stats.html">Z3Stats</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC16registerRelationyyAA0B8FuncDeclCF"></a>
+                    <a name="//apple_ref/swift/Method/registerRelation(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC16registerRelationyyAA0B8FuncDeclCF">registerRelation(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>\brief Register relation as Fixedpoint defined.
+Fixedpoint defined relations have least-fixedpoint semantics.
+For example, the relation is empty if it does not occur
+in a head or a fact.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">registerRelation</span><span class="p">(</span><span class="n">_</span> <span class="nv">decl</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a></span><span class="p">)</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC26setPredicateRepresentation_5kindsyAA0B8FuncDeclC_SayAA0B6SymbolCGtF"></a>
+                    <a name="//apple_ref/swift/Method/setPredicateRepresentation(_:kinds:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC26setPredicateRepresentation_5kindsyAA0B8FuncDeclC_SayAA0B6SymbolCGtF">setPredicateRepresentation(_:<wbr>kinds:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Configure the predicate representation.</p>
+
+<p>It sets the predicate to use a set of domains given by the list of symbols.
+The domains given by the list of symbols must belong to a set
+of built-in domains.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">setPredicateRepresentation</span><span class="p">(</span><span class="n">_</span> <span class="nv">f</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3FuncDecl.html">Z3FuncDecl</a></span><span class="p">,</span> <span class="nv">kinds</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Classes/Z3Symbol.html">Z3Symbol</a></span><span class="p">])</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC8getRulesAA0B9AstVectorCyF"></a>
+                    <a name="//apple_ref/swift/Method/getRules()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC8getRulesAA0B9AstVectorCyF">getRules()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve set of rules from fixedpoint context.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getRules</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC13getAssertionsAA0B9AstVectorCyF"></a>
+                    <a name="//apple_ref/swift/Method/getAssertions()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC13getAssertionsAA0B9AstVectorCyF">getAssertions()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve set of background assertions from fixedpoint context.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getAssertions</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3AstVector.html">Z3AstVector</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC9setParamsyyAA0bF0CF"></a>
+                    <a name="//apple_ref/swift/Method/setParams(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC9setParamsyyAA0bF0CF">setParams(_:<wbr>)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Set parameters on fixedpoint context.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC7getHelpSSyF">getHelp()</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC14getParamDescrsAA0bfG0CyF">getParamDescrs()</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">setParams</span><span class="p">(</span><span class="n">_</span> <span class="nv">p</span><span class="p">:</span> <span class="kt"><a href="../Classes/Z3Params.html">Z3Params</a></span><span class="p">)</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC7getHelpSSyF"></a>
+                    <a name="//apple_ref/swift/Method/getHelp()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC7getHelpSSyF">getHelp()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return a string describing all fixedpoint available parameters.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC14getParamDescrsAA0bfG0CyF">getParamDescrs()</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC9setParamsyyAA0bF0CF">setParams(_:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getHelp</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7SwiftZ30B10FixedPointC14getParamDescrsAA0bfG0CyF"></a>
+                    <a name="//apple_ref/swift/Method/getParamDescrs()" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7SwiftZ30B10FixedPointC14getParamDescrsAA0bfG0CyF">getParamDescrs()</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Return the parameter description set for the given fixedpoint object.</p>
+<div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC7getHelpSSyF">getHelp()</a></code>
+
+</div><div class="aside aside-seealso">
+    <p class="aside-title">Seealso</p>
+    <code><a href="../Classes/Z3FixedPoint.html#/s:7SwiftZ30B10FixedPointC9setParamsyyAA0bF0CF">setParams(_:)</a></code>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">getParamDescrs</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Classes/Z3ParamDescrs.html">Z3ParamDescrs</a></span></code></pre>
 
                         </div>
                       </div>
