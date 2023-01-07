@@ -160,11 +160,15 @@ def remove_extra_z3_files(target_path: Path):
     ]
     globs = [
         "**/CMakeLists.txt",
+        "**/*.txt",
         "**/*.pyg",
         "**/*.cmake.in",
+        "**/*.h.in",
         "**/*.smt",
+        "**/*.smt2",
         "**/*.disabled",
         "**/README",
+        "**/xor_solver.d",
     ]
 
     for folder in folders:
