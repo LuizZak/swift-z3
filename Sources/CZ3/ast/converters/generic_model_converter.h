@@ -35,14 +35,11 @@ private:
     ast_manager& m;
     std::string  m_orig;
     vector<entry> m_entries;
-    obj_map<func_decl, unsigned> m_first_idx;
 
     expr_ref simplify_def(entry const& e);
 
 public:
     generic_model_converter(ast_manager & m, char const* orig) : m(m), m_orig(orig) {}
-    
-    ~generic_model_converter() override;
     
     void hide(expr* e) { SASSERT(is_app(e) && to_app(e)->get_num_args() == 0); hide(to_app(e)->get_decl()); }
 

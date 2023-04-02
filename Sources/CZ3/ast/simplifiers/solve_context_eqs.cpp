@@ -42,7 +42,7 @@ namespace euf {
 
     bool solve_context_eqs::is_safe_eq(expr* e) {
         m_and_pos.reset(); m_and_neg.reset(); m_or_pos.reset(); m_or_neg.reset();        
-        for (unsigned i = 0; i < m_fmls.size(); ++i)
+        for (unsigned i = 0; i < m_fmls.qtail(); ++i)
             if (!is_safe_eq(m_fmls[i].fml(), e))
                 return false;
         return true;
@@ -147,8 +147,8 @@ namespace euf {
 
     void solve_context_eqs::collect_nested_equalities(dep_eq_vector& eqs) {
         expr_mark visited;
-        unsigned sz = m_fmls.size();
-        for (unsigned i = m_solve_eqs.m_qhead; i < sz; ++i)
+        unsigned sz = m_fmls.qtail();
+        for (unsigned i = m_fmls.qhead(); i < sz; ++i)
             collect_nested_equalities(m_fmls[i], visited, eqs);
 
         if (eqs.empty())
@@ -279,10 +279,10 @@ namespace euf {
             }
             else if (m.is_not(f, f))
                 todo.push_back({ !s, depth, f });
-            else if (!s && 1 == depth % 2) {
+            else if (!s && 1 <= depth) {
                 for (extract_eq* ex : m_solve_eqs.m_extract_plugins) {
                     ex->set_allow_booleans(false);
-                    ex->get_eqs(dependent_expr(m, f, df.dep()), eqs);
+                    ex->get_eqs(dependent_expr(m, f, nullptr, df.dep()), eqs);
                     ex->set_allow_booleans(true);
                 }
             }

@@ -9,7 +9,7 @@ struct sat_params {
      p(_p), g(gparams::get_module("sat")) {}
   static void collect_param_descrs(param_descrs & d) {
     d.insert("max_memory", CPK_UINT, "maximum amount of memory in megabytes", "4294967295","sat");
-    d.insert("phase", CPK_SYMBOL, "phase selection strategy: always_false, always_true, basic_caching, random, caching", "caching","sat");
+    d.insert("phase", CPK_SYMBOL, "phase selection strategy: always_false, always_true, basic_caching, random, caching, local_search", "caching","sat");
     d.insert("phase.sticky", CPK_BOOL, "use sticky phase caching", "true","sat");
     d.insert("search.unsat.conflicts", CPK_UINT, "period for solving for unsat (in number of conflicts)", "400","sat");
     d.insert("search.sat.conflicts", CPK_UINT, "period for solving for sat (in number of conflicts)", "400","sat");
@@ -54,9 +54,8 @@ struct sat_params {
     d.insert("threads", CPK_UINT, "number of parallel threads to use", "1","sat");
     d.insert("dimacs.core", CPK_BOOL, "extract core from DIMACS benchmarks", "false","sat");
     d.insert("drat.disable", CPK_BOOL, "override anything that enables DRAT", "false","sat");
-    d.insert("smt.proof", CPK_SYMBOL, "add SMT proof log to file", "","sat");
-    d.insert("smt.proof.check", CPK_BOOL, "check SMT proof while it is created", "false","sat");
-    d.insert("smt.proof.check_rup", CPK_BOOL, "apply forward RUP proof checking", "true","sat");
+    d.insert("smt", CPK_BOOL, "use the SAT solver based incremental SMT core", "false","sat");
+    d.insert("smt.proof.check", CPK_BOOL, "check proofs on the fly during SMT search", "false","sat");
     d.insert("drat.file", CPK_SYMBOL, "file to dump DRAT proofs", "","sat");
     d.insert("drat.binary", CPK_BOOL, "use Binary DRAT output format", "false","sat");
     d.insert("drat.check_unsat", CPK_BOOL, "build up internal proof and check", "false","sat");
@@ -160,9 +159,8 @@ struct sat_params {
   unsigned threads() const { return p.get_uint("threads", g, 1u); }
   bool dimacs_core() const { return p.get_bool("dimacs.core", g, false); }
   bool drat_disable() const { return p.get_bool("drat.disable", g, false); }
-  symbol smt_proof() const { return p.get_sym("smt.proof", g, symbol("")); }
+  bool smt() const { return p.get_bool("smt", g, false); }
   bool smt_proof_check() const { return p.get_bool("smt.proof.check", g, false); }
-  bool smt_proof_check_rup() const { return p.get_bool("smt.proof.check_rup", g, true); }
   symbol drat_file() const { return p.get_sym("drat.file", g, symbol("")); }
   bool drat_binary() const { return p.get_bool("drat.binary", g, false); }
   bool drat_check_unsat() const { return p.get_bool("drat.check_unsat", g, false); }

@@ -36,6 +36,12 @@ Author:
 
     Nikolaj Bjorner (nbjorner) 2022-11-11.
 
+Notes:
+
+proof production is work in progress.
+reconstruct_term should assign proof objects with nodes by applying
+monotonicity or reflexivity rules. 
+
 --*/
 
 
@@ -46,9 +52,9 @@ Author:
 #include "ast/simplifiers/elim_unconstrained.h"
 
 elim_unconstrained::elim_unconstrained(ast_manager& m, dependent_expr_state& fmls) :
-    dependent_expr_simplifier(m, fmls), m_inverter(m), m_lt(*this), m_heap(1024, m_lt), m_trail(m) {
+    dependent_expr_simplifier(m, fmls), m_inverter(m), m_lt(*this), m_heap(1024, m_lt), m_trail(m), m_args(m) {
     std::function<bool(expr*)> is_var = [&](expr* e) {
-        return is_uninterp_const(e) && !m_frozen.is_marked(e) && get_node(e).m_refcount <= 1;
+        return is_uninterp_const(e) && !m_fmls.frozen(e) && is_node(e) && get_node(e).m_refcount <= 1;
     };
     m_inverter.set_is_var(is_var);
 }
@@ -62,13 +68,12 @@ bool elim_unconstrained::is_var_lt(int v1, int v2) const {
 void elim_unconstrained::eliminate() {
 
     while (!m_heap.empty()) {
-        expr_ref r(m), side_cond(m);
+        expr_ref r(m);
         int v = m_heap.erase_min();
         node& n = get_node(v);
-        IF_VERBOSE(11, verbose_stream() << mk_bounded_pp(n.m_orig, m) << " @ " << n.m_refcount << "\n");
         if (n.m_refcount == 0)
             continue;
-        if (n.m_refcount > 1)
+        if (n.m_refcount > 1) 
             return;
 
         if (n.m_parents.empty()) {
@@ -82,32 +87,47 @@ void elim_unconstrained::eliminate() {
             continue;
         }
         app* t = to_app(e);
-        m_args.reset();
+        unsigned sz = m_args.size();
         for (expr* arg : *to_app(t))
-            m_args.push_back(get_node(arg).m_term);
-        if (!m_inverter(t->get_decl(), m_args.size(), m_args.data(), r, side_cond)) {
+            m_args.push_back(reconstruct_term(get_node(arg)));
+        bool inverted = m_inverter(t->get_decl(), t->get_num_args(), m_args.data() + sz, r);
+        proof_ref pr(m);
+        if (inverted && m_enable_proofs) {
+            expr * s    = m.mk_app(t->get_decl(), t->get_num_args(), m_args.data() + sz);
+            expr * eq   = m.mk_eq(s, r);
+            proof * pr1 = m.mk_def_intro(eq);
+            proof * pr  = m.mk_apply_def(s, r, pr1);
+            m_trail.push_back(pr);
+        }
+        n.m_refcount = 0;
+        m_args.shrink(sz);
+        if (!inverted) {
             IF_VERBOSE(11, verbose_stream() << "not inverted " << mk_bounded_pp(e, m) << "\n");
-            n.m_refcount = 0;
             continue;
         }
+        
+        TRACE("elim_unconstrained", tout << mk_pp(t, m) << " -> " << r << "\n");
         SASSERT(r->get_sort() == t->get_sort());
         m_stats.m_num_eliminated++;
-        n.m_refcount = 0;
         m_trail.push_back(r);
         SASSERT(r);
         gc(e);
-
+        invalidate_parents(e);
+        freeze_rec(r);
+        
         m_root.setx(r->get_id(), e->get_id(), UINT_MAX);
         get_node(e).m_term = r;
+        get_node(e).m_proof = pr;
         get_node(e).m_refcount++;
         IF_VERBOSE(11, verbose_stream() << mk_bounded_pp(e, m) << "\n");
         SASSERT(!m_heap.contains(root(e)));
-        if (is_uninterp_const(r)) 
-            m_heap.insert(root(e));                    
+        if (is_uninterp_const(r))
+            m_heap.insert(root(e));
+        else
+            m_created_compound = true;
 
-        IF_VERBOSE(11, verbose_stream() << mk_bounded_pp(n.m_orig, m) << " " << mk_bounded_pp(t, m) << " -> " << r << " " << get_node(e).m_refcount << "\n";);
+        IF_VERBOSE(11, verbose_stream() << mk_bounded_pp(get_node(v).m_orig, m) << " " << mk_bounded_pp(t, m) << " -> " << r << " " << get_node(e).m_refcount << "\n";);
 
-        SASSERT(!side_cond && "not implemented to add side conditions\n");
     }
 }
 
@@ -117,17 +137,47 @@ expr* elim_unconstrained::get_parent(unsigned n) const {
             return p;
     return nullptr;
 }
+
+void elim_unconstrained::invalidate_parents(expr* e) {
+    ptr_vector<expr> todo;
+    do {
+        node& n = get_node(e);
+        if (!n.m_dirty) {
+            n.m_dirty = true;
+            for (expr* e : n.m_parents)
+                todo.push_back(e);            
+        }
+        e = nullptr;
+        if (!todo.empty()) {
+            e = todo.back();
+            todo.pop_back();
+        }
+    }
+    while (e);    
+}
+
+
 /**
  * initialize node structure
  */
 void elim_unconstrained::init_nodes() {
+
+    m_enable_proofs = false;
+    m_trail.reset();
+    m_fmls.freeze_suffix();
+
     expr_ref_vector terms(m);
-    for (unsigned i = 0; i < m_fmls.size(); ++i)
-        terms.push_back(m_fmls[i].fml());
+    for (unsigned i : indices()) {
+        auto [f, p, d] = m_fmls[i]();
+        terms.push_back(f);
+        if (p)
+            m_enable_proofs = true;
+    }
+
     m_trail.append(terms);
     m_heap.reset();
-    m_frozen.reset();
     m_root.reset();
+    m_nodes.reset();
 
     // initialize nodes for terms in the original goal
     init_terms(terms);
@@ -136,22 +186,8 @@ void elim_unconstrained::init_nodes() {
     for (expr* e : terms)
         inc_ref(e);
 
-    // freeze subterms before the already processed head
-    terms.reset();
-    for (unsigned i = 0; i < m_qhead; ++i)
-        terms.push_back(m_fmls[i].fml());
-    for (expr* e : subterms::all(terms))
-        m_frozen.mark(e, true);    
-
-    // freeze subterms that occur with recursive function definitions
-    recfun::util rec(m);
-    if (rec.has_rec_defs()) {
-        for (func_decl* f : rec.get_rec_funs()) {
-            expr* rhs = rec.get_def(f).get_rhs();
-            for (expr* t : subterms::all(expr_ref(rhs, m)))
-                m_frozen.mark(t);
-        }
-    }
+    m_inverter.set_produce_proofs(m_enable_proofs);
+        
 }
 
 /**
@@ -174,6 +210,7 @@ void elim_unconstrained::init_terms(expr_ref_vector const& terms) {
         n.m_orig = e;
         n.m_term = e;
         n.m_refcount = 0;
+        
         if (is_uninterp_const(e))
             m_heap.insert(root(e));
         if (is_quantifier(e)) {
@@ -187,6 +224,36 @@ void elim_unconstrained::init_terms(expr_ref_vector const& terms) {
                 inc_ref(arg);
             }
         }
+    }
+}
+
+void elim_unconstrained::freeze_rec(expr* r) {
+    expr_ref_vector children(m);
+    if (is_quantifier(r))
+        children.push_back(to_quantifier(r)->get_expr());
+    else if (is_app(r))
+        children.append(to_app(r)->get_num_args(), to_app(r)->get_args());
+    else
+        return;
+    if (children.empty())
+        return;
+    for (expr* t : subterms::all(children))
+        freeze(t);
+}
+
+void elim_unconstrained::freeze(expr* t) {
+    if (!is_uninterp_const(t))
+        return;
+    if (m_nodes.size() <= t->get_id())
+        return;
+    if (m_nodes.size() <= root(t))
+        return;
+    node& n = get_node(t);
+    if (!n.m_term)
+        return;    
+    if (m_heap.contains(root(t))) {
+        n.m_refcount = UINT_MAX / 2;
+        m_heap.increased(root(t));
     }
 }
 
@@ -211,12 +278,54 @@ void elim_unconstrained::gc(expr* t) {
     }
 }
 
+
+expr_ref elim_unconstrained::reconstruct_term(node& n0) {
+    expr* t = n0.m_term;
+    if (!n0.m_dirty)
+        return expr_ref(t, m);
+    ptr_vector<expr> todo;
+    todo.push_back(t);
+    while (!todo.empty()) {
+        t = todo.back();
+        node& n = get_node(t);
+        unsigned sz0 = todo.size();
+        if (is_app(t)) {            
+            for (expr* arg : *to_app(t)) 
+                if (get_node(arg).m_dirty || !get_node(arg).m_term)
+                    todo.push_back(arg);
+            if (todo.size() != sz0)
+                continue;
+
+            unsigned sz = m_args.size();
+            for (expr* arg : *to_app(t)) 
+                m_args.push_back(get_node(arg).m_term);            
+            n.m_term = m.mk_app(to_app(t)->get_decl(), to_app(t)->get_num_args(), m_args.data() + sz);
+
+            m_args.shrink(sz);
+        }
+        else if (is_quantifier(t)) {
+            expr* body = to_quantifier(t)->get_expr();
+            node& n2 = get_node(body);
+            if (n2.m_dirty || !n2.m_term) {
+                todo.push_back(body);
+                continue;
+            }
+            n.m_term = m.update_quantifier(to_quantifier(t), n2.m_term);            
+        }
+        m_trail.push_back(n.m_term);
+        m_root.setx(n.m_term->get_id(), n.m_term->get_id(), UINT_MAX);
+        todo.pop_back();
+        n.m_dirty = false;
+    }
+    return expr_ref(n0.m_term, m);
+}
+
 /**
  * walk nodes starting from lowest depth and reconstruct their normalized forms.
  */
 void elim_unconstrained::reconstruct_terms() {
     expr_ref_vector terms(m);
-    for (unsigned i = m_qhead; i < m_fmls.size(); ++i)
+    for (unsigned i : indices())
         terms.push_back(m_fmls[i].fml());    
 
     for (expr* e : subterms_postorder::all(terms)) {
@@ -247,29 +356,43 @@ void elim_unconstrained::reconstruct_terms() {
     }
 }
 
+
 void elim_unconstrained::assert_normalized(vector<dependent_expr>& old_fmls) {
 
-    unsigned sz = m_fmls.size();
-    for (unsigned i = m_qhead; i < sz; ++i) {
-        auto [f, d] = m_fmls[i]();
+    for (unsigned i : indices()) {
+        auto [f, p, d] = m_fmls[i]();
         node& n = get_node(f);
         expr* g = n.m_term;
         if (f == g)
             continue;
         old_fmls.push_back(m_fmls[i]);
-        m_fmls.update(i, dependent_expr(m, g, d));
         IF_VERBOSE(11, verbose_stream() << mk_bounded_pp(f, m, 3) << " -> " << mk_bounded_pp(g, m, 3) << "\n");
         TRACE("elim_unconstrained", tout << mk_bounded_pp(f, m) << " -> " << mk_bounded_pp(g, m) << "\n");
+        m_fmls.update(i, dependent_expr(m, g, nullptr, d));
     }
 }
 
 void elim_unconstrained::update_model_trail(generic_model_converter& mc, vector<dependent_expr> const& old_fmls) {
     auto& trail = m_fmls.model_trail();
+
+    // fresh declarations are added first since 
+    // model reconstruction proceeds in reverse order of stack.
+    for (auto const& entry : mc.entries()) {
+        switch (entry.m_instruction) {
+        case generic_model_converter::instruction::HIDE:
+            trail.hide(entry.m_f);
+            break;
+        case generic_model_converter::instruction::ADD:
+            // trail.push(entry.m_f, entry.m_def, nullptr, old_fmls);
+            break;
+        }
+    }
     scoped_ptr<expr_replacer> rp = mk_default_expr_replacer(m, false);
     scoped_ptr<expr_substitution> sub = alloc(expr_substitution, m, true, false);
     rp->set_substitution(sub.get());
     expr_ref new_def(m);
-    for (auto const& entry : mc.entries()) {
+    for (unsigned i = mc.entries().size(); i-- > 0; ) {
+        auto const& entry = mc.entries()[i];
         switch (entry.m_instruction) {
         case generic_model_converter::instruction::HIDE:
             break;
@@ -281,26 +404,20 @@ void elim_unconstrained::update_model_trail(generic_model_converter& mc, vector<
         }
     }
     trail.push(sub.detach(), old_fmls);
-
-    for (auto const& entry : mc.entries()) {
-        switch (entry.m_instruction) {
-        case generic_model_converter::instruction::HIDE:
-            trail.push(entry.m_f);
-            break;
-        case generic_model_converter::instruction::ADD:
-            break;
-        }
-    }
 }
 
 void elim_unconstrained::reduce() {
     generic_model_converter_ref mc = alloc(generic_model_converter, m, "elim-unconstrained");
     m_inverter.set_model_converter(mc.get());
-    init_nodes();
-    eliminate();
-    reconstruct_terms();
-    vector<dependent_expr> old_fmls;
-    assert_normalized(old_fmls);
-    update_model_trail(*mc, old_fmls);
-    advance_qhead(m_fmls.size());
+    m_created_compound = true;
+    for (unsigned rounds = 0; m_created_compound && rounds < 3; ++rounds) {
+        m_created_compound = false;
+        init_nodes();
+        eliminate();
+        reconstruct_terms();
+        vector<dependent_expr> old_fmls;
+        assert_normalized(old_fmls);
+        update_model_trail(*mc, old_fmls);
+    }
+
 }

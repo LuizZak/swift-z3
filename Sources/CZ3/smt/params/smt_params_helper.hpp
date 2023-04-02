@@ -24,8 +24,12 @@ struct smt_params_helper {
     d.insert("case_split", CPK_UINT, "0 - case split based on variable activity, 1 - similar to 0, but delay case splits created during the search, 2 - similar to 0, but cache the relevancy, 3 - case split based on relevancy (structural splitting), 4 - case split on relevancy and activity, 5 - case split on relevancy and current goal, 6 - activity-based case split with theory-aware branching activity", "1","smt");
     d.insert("delay_units", CPK_BOOL, "if true then z3 will not restart when a unit clause is learned", "false","smt");
     d.insert("delay_units_threshold", CPK_UINT, "maximum number of learned unit clauses before restarting, ignored if delay_units is false", "32","smt");
-    d.insert("pull_nested_quantifiers", CPK_BOOL, "pull nested quantifiers", "false","smt");
-    d.insert("refine_inj_axioms", CPK_BOOL, "refine injectivity axioms", "true","smt");
+    d.insert("elim_unconstrained", CPK_BOOL, "pre-processing: eliminate unconstrained subterms", "true","smt");
+    d.insert("solve_eqs", CPK_BOOL, "pre-processing: solve equalities", "true","smt");
+    d.insert("propagate_values", CPK_BOOL, "pre-processing: propagate values", "true","smt");
+    d.insert("bound_simplifier", CPK_BOOL, "apply bounds simplification during pre-processing", "true","smt");
+    d.insert("pull_nested_quantifiers", CPK_BOOL, "pre-processing: pull nested quantifiers", "false","smt");
+    d.insert("refine_inj_axioms", CPK_BOOL, "pre-processing: refine injectivity axioms", "true","smt");
     d.insert("candidate_models", CPK_BOOL, "create candidate models even when quantifier or theory reasoning is incomplete", "false","smt");
     d.insert("max_conflicts", CPK_UINT, "maximum number of conflicts before giving up.", "4294967295","smt");
     d.insert("restart.max", CPK_UINT, "maximal number of restarts.", "4294967295","smt");
@@ -56,7 +60,7 @@ struct smt_params_helper {
     d.insert("bv.watch_diseq", CPK_BOOL, "use watch lists instead of eager axioms for bit-vectors", "false","smt");
     d.insert("bv.delay", CPK_BOOL, "delay internalize expensive bit-vector operations", "false","smt");
     d.insert("bv.eq_axioms", CPK_BOOL, "enable redundant equality axioms for bit-vectors", "true","smt");
-    d.insert("bv.size_reduce", CPK_BOOL, "turn assertions that set the upper bits of a bit-vector to constants into a substitution that replaces the bit-vector with constant bits. Useful for minimizing circuits as many input bits to circuits are constant", "false","smt");
+    d.insert("bv.size_reduce", CPK_BOOL, "pre-processing; turn assertions that set the upper bits of a bit-vector to constants into a substitution that replaces the bit-vector with constant bits. Useful for minimizing circuits as many input bits to circuits are constant", "false","smt");
     d.insert("arith.random_initial_value", CPK_BOOL, "use random initial values in the simplex-based procedure for linear arithmetic", "false","smt");
     d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "6","smt");
     d.insert("arith.nl", CPK_BOOL, "(incomplete) nonlinear arithmetic support based on Groebner basis and interval propagation, relevant only if smt.arith.solver=2", "true","smt");
@@ -157,6 +161,10 @@ struct smt_params_helper {
   unsigned case_split() const { return p.get_uint("case_split", g, 1u); }
   bool delay_units() const { return p.get_bool("delay_units", g, false); }
   unsigned delay_units_threshold() const { return p.get_uint("delay_units_threshold", g, 32u); }
+  bool elim_unconstrained() const { return p.get_bool("elim_unconstrained", g, true); }
+  bool solve_eqs() const { return p.get_bool("solve_eqs", g, true); }
+  bool propagate_values() const { return p.get_bool("propagate_values", g, true); }
+  bool bound_simplifier() const { return p.get_bool("bound_simplifier", g, true); }
   bool pull_nested_quantifiers() const { return p.get_bool("pull_nested_quantifiers", g, false); }
   bool refine_inj_axioms() const { return p.get_bool("refine_inj_axioms", g, true); }
   bool candidate_models() const { return p.get_bool("candidate_models", g, false); }

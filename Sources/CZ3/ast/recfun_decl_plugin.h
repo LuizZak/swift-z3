@@ -60,8 +60,8 @@ namespace recfun {
         func_decl_ref       m_pred; //<! predicate used for this case
         expr_ref_vector     m_guards; //<! conjunction that is equivalent to this case
         expr_ref            m_rhs; //<! if guard is true, `f(t1...tn) = rhs` holds
-        def *               m_def; //<! definition this is a part of
-        bool                m_immediate; //<! does `rhs` contain no defined_fun/case_pred?
+        def *               m_def = nullptr;; //<! definition this is a part of
+        bool                m_immediate = false; //<! does `rhs` contain no defined_fun/case_pred?
 
         case_def(ast_manager& m):
             m_pred(m),
@@ -72,7 +72,6 @@ namespace recfun {
         case_def(ast_manager & m,
                  family_id fid,
                  def * d,
-                 std::string & name,
                  unsigned case_index,
                  sort_ref_vector const & arg_sorts,
                  expr_ref_vector const& guards,
@@ -117,13 +116,14 @@ namespace recfun {
         func_decl_ref       m_decl; //!< generic declaration
         expr_ref            m_rhs;  //!< definition
         family_id           m_fid;
+        bool                m_is_macro;
 
         def(ast_manager &m, family_id fid, symbol const & s, unsigned arity, sort *const * domain, sort* range, bool is_generated);
 
         // compute cases for a function, given its RHS (possibly containing `ite`).
         void compute_cases(util& u, replace& subst, is_immediate_pred &, 
                            bool is_macro, unsigned n_vars, var *const * vars, expr* rhs);
-        void add_case(std::string & name, unsigned case_index, expr_ref_vector const& conditions, expr* rhs, bool is_imm = false);
+        void add_case(unsigned case_index, expr_ref_vector const& conditions, expr* rhs, bool is_imm = false);
         bool contains_ite(util& u, expr* e); // expression contains a test over a def?
         bool contains_def(util& u, expr* e); // expression contains a def
     public:
@@ -138,6 +138,7 @@ namespace recfun {
 
         bool is_fun_macro() const { return m_cases.size() == 1; }
         bool is_fun_defined() const { return !is_fun_macro(); }
+        bool is_macro() const { return m_is_macro; }
 
         def* copy(util& dst, ast_translation& tr);
 
@@ -188,6 +189,8 @@ namespace recfun {
         
             func_decl * mk_func_decl(decl_kind k, unsigned num_parameters, parameter const * parameters, 
                                      unsigned arity, sort * const * domain, sort * range) override;
+
+            void get_op_names(svector<builtin_name> & op_names, symbol const & logic) override;
             
             promise_def mk_def(symbol const& name, unsigned n, sort *const * params, sort * range, bool is_generated = false);
 

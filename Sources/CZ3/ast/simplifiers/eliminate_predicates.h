@@ -54,6 +54,11 @@ public:
         {}
 
         std::ostream& display(std::ostream& out) const;
+
+        unsigned size() const { return m_literals.size(); }
+        expr* atom(unsigned i) const { return m_literals[i].first; }
+        bool sign(unsigned i) const { return m_literals[i].second; }
+        bool is_unit() const { return m_literals.size() == 1; }
     };
 private:
     struct stats {
@@ -84,30 +89,35 @@ private:
     };
 
     scoped_ptr_vector<clause>    m_clauses;
-    ast_mark              m_disable_elimination, m_disable_macro, m_predicate_decls, m_is_macro;
+    ast_mark              m_disable_elimination, m_predicate_decls, m_is_macro;
     ptr_vector<func_decl> m_predicates;
     ptr_vector<expr>      m_to_exclude;
+    ast_mark              m_is_injective, m_is_surjective;
     stats                 m_stats;
     use_list              m_use_list;
     der_rewriter          m_der;
     th_rewriter           m_rewriter;
     obj_map<func_decl, macro_def*> m_macros;
-
-    struct macro_expander_cfg;
-    struct macro_expander_rw;
     
     void rewrite(expr_ref& t);
 
     clause* init_clause(unsigned i);
     clause* init_clause(expr* f, expr_dependency* d, unsigned i);
+    void init_injective(clause const& cl);
+    void init_surjective(clause const& cl);
     clause* resolve(func_decl* p, clause& pos, clause& neg);
     void add_use_list(clause& cl);
 
     bool try_find_binary_definition(func_decl* p, app_ref& head, expr_ref& def, expr_dependency_ref& dep);
     void try_resolve_definition(func_decl* p);
-    void insert_macro(app_ref& head, expr_ref& def, expr_dependency_ref& dep);
-    bool has_macro(func_decl* p, app_ref& head, expr_ref& def, expr_dependency_ref& dep);
+    void insert_macro(app* head, expr* def, expr_dependency* dep);
+    void insert_macro(app* head, expr* def, clause& cl);
+    expr_ref bind_free_variables_in_def(clause& cl, app* head, expr* def);
+    bool can_be_macro_head(expr* head, unsigned num_bound);
+    void insert_quasi_macro(app* head, expr* body, clause& cl);
+    bool can_be_quasi_macro_head(expr* head, unsigned num_bound);
     bool is_macro_safe(expr* e);
+    void try_find_macro(clause& cl);
 
     void try_resolve(func_decl* p);
     void update_model(func_decl* p);
@@ -126,6 +136,8 @@ public:
     eliminate_predicates(ast_manager& m, dependent_expr_state& fmls);
 
     ~eliminate_predicates() override { reset(); }
+
+    char const* name() const override { return "elim-predicates"; }
     
     void reduce() override;
 

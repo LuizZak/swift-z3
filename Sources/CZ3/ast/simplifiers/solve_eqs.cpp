@@ -13,6 +13,24 @@ Author:
 
     Nikolaj Bjorner (nbjorner) 2022-11-2.
 
+Notes:
+
+extract_subst is inefficient.
+It traverses the same sub-terms many times.
+
+Outline of a presumably better scheme:
+
+1. maintain map FV: term -> bit-set where bitset reprsents set of free variables. Assume the number of variables is bounded.
+   FV is built from initial terms.
+2. maintain parent: term -> term-list of parent occurrences.
+3. repeat
+   pick x = t, such that x not in FV(t)
+        orient x -> t
+        for p in parent*(x):
+            FV(p) := FV(p) u FV(t)
+        if y = s is processed and x in FV(s) order y < x
+        if y = s is processed and x in FV(t) order x < y
+
 --*/
 
 
@@ -34,7 +52,7 @@ namespace euf {
 
     void solve_eqs::get_eqs(dep_eq_vector& eqs) {
         for (extract_eq* ex : m_extract_plugins)
-            for (unsigned i = m_qhead; i < m_fmls.size(); ++i)
+            for (unsigned i : indices())
                 ex->get_eqs(m_fmls[i], eqs);
     }
 
@@ -98,7 +116,10 @@ namespace euf {
                 for (auto const& eq : m_next[j]) {
                     auto const& [orig, v, t, d] = eq;
                     SASSERT(j == var2id(v));
-                    bool is_safe = true;
+                    if (m_fmls.frozen(v))
+                        continue;
+                    
+                    bool is_safe = true;                    
                     unsigned todo_sz = todo.size();
 
                     // determine if substitution is safe.
@@ -187,19 +208,22 @@ namespace euf {
         scoped_ptr<expr_replacer> rp = mk_default_expr_replacer(m, false);
         rp->set_substitution(m_subst.get());
 
-        for (unsigned i = m_qhead; i < m_fmls.size() && !m_fmls.inconsistent(); ++i) {
-            auto [f, d] = m_fmls[i]();
+        for (unsigned i : indices()) {
+            auto [f, p, d] = m_fmls[i]();
             auto [new_f, new_dep] = rp->replace_with_dep(f);
-            m_rewriter(new_f);
+            proof_ref new_pr(m);
+            m_rewriter(new_f, new_f, new_pr);
             if (new_f == f)
                 continue;
             new_dep = m.mk_join(d, new_dep);
             old_fmls.push_back(m_fmls[i]);
-            m_fmls.update(i, dependent_expr(m, new_f, new_dep));
+            m_fmls.update(i, dependent_expr(m, new_f, mp(p, new_pr), new_dep));
         }
     }
     
     void solve_eqs::reduce() {
+
+        m_fmls.freeze_suffix();
 
         for (extract_eq* ex : m_extract_plugins)
             ex->pre_process(m_fmls);
@@ -236,8 +260,47 @@ namespace euf {
             apply_subst(old_fmls);
             save_subst(old_fmls);
         }
+    }
 
-        advance_qhead(m_fmls.size());
+    void solve_eqs::collect_num_occs(expr * t, expr_fast_mark1 & visited) {
+        ptr_buffer<app, 128> stack;
+        
+        auto visit = [&](expr* arg) {
+            if (is_uninterp_const(arg))                    
+                m_num_occs.insert_if_not_there(arg, 0)++;
+            if (!visited.is_marked(arg) && is_app(arg)) {                          
+                visited.mark(arg, true);                            
+                stack.push_back(to_app(arg));                               
+            }                                                       
+        };
+        
+        visit(t);
+        
+        while (!stack.empty()) {
+            app * t = stack.back();
+            stack.pop_back();
+            for (expr* arg : *t) 
+                visit(arg);
+        }
+    }
+
+    void solve_eqs::collect_num_occs() {
+        if (m_config.m_max_occs == UINT_MAX)
+            return; // no need to compute num occs
+        m_num_occs.reset();
+        expr_fast_mark1 visited;
+        for (unsigned i : indices())
+            collect_num_occs(m_fmls[i].fml(), visited);
+    }
+
+    // Check if the number of occurrences of t is below the specified threshold :solve-eqs-max-occs
+    bool solve_eqs::check_occs(expr * t) const {
+        if (m_config.m_max_occs == UINT_MAX)
+            return true;
+        unsigned num = 0;
+        m_num_occs.find(t, num);
+        TRACE("solve_eqs_check_occs", tout << mk_ismt2_pp(t, m) << " num_occs: " << num << " max: " << m_config.m_max_occs << "\n";);
+        return num <= m_config.m_max_occs;
     }
 
     void solve_eqs::save_subst(vector<dependent_expr> const& old_fmls) {
@@ -268,10 +331,11 @@ namespace euf {
     }
 
     void solve_eqs::collect_param_descrs(param_descrs& r) {
-        r.insert("solve_eqs_max_occs", CPK_UINT, "(default: infty) maximum number of occurrences for considering a variable for gaussian eliminations.");
-        r.insert("theory_solver", CPK_BOOL, "(default: true) use theory solvers.");
-        r.insert("ite_solver", CPK_BOOL, "(default: true) use if-then-else solver.");
-        r.insert("context_solve", CPK_BOOL, "(default: false) solve equalities under disjunctions.");
+        r.insert("solve_eqs_max_occs", CPK_UINT, "(default: infty) maximum number of occurrences for considering a variable for gaussian eliminations.", "4294967295");
+        r.insert("theory_solver", CPK_BOOL, "theory solvers.", "true");
+        r.insert("ite_solver", CPK_BOOL, "use if-then-else solver.", "true");
+        r.insert("context_solve", CPK_BOOL, "solve equalities under disjunctions.", "false");
+        r.insert("eliminate_mod", CPK_BOOL, "eliminate modulus from equations", "true");
     }
 
     void solve_eqs::collect_statistics(statistics& st) const {

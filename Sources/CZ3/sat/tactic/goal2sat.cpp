@@ -99,7 +99,7 @@ struct goal2sat::imp : public sat::sat_internalizer {
         sat_params sp(p);
         m_ite_extra  = p.get_bool("ite_extra", true);
         m_max_memory = megabytes_to_bytes(p.get_uint("max_memory", UINT_MAX));
-        m_euf = sp.euf();
+        m_euf = sp.euf() || sp.smt();
     }
 
     void throw_op_not_handled(std::string const& s) {
@@ -987,7 +987,7 @@ struct goal2sat::imp : public sat::sat_internalizer {
     void update_model(model_ref& mdl) {
         auto* ext = dynamic_cast<euf::solver*>(m_solver.get_extension());
         if (ext)
-            ext->update_model(mdl);
+            ext->update_model(mdl, true);
     }
 
     void user_push() {
@@ -1060,14 +1060,19 @@ void goal2sat::operator()(goal const & g, params_ref const & p, sat::solver_core
     (*m_imp)(g);    
 }
 
-void goal2sat::operator()(ast_manager& m, unsigned n, expr* const* fmls, params_ref const & p, sat::solver_core & t, atom2bool_var & map, dep2asm_map& dep2asm, bool default_external) {
-    init(m, p, t, map, dep2asm, default_external);
+void goal2sat::operator()(unsigned n, expr* const* fmls) {
+    SASSERT(m_imp);
     (*m_imp)(n, fmls);
 }
 
-void goal2sat::assumptions(ast_manager& m, unsigned n, expr* const* fmls, params_ref const & p, sat::solver_core & t, atom2bool_var & map, dep2asm_map& dep2asm, bool default_external) {
-    init(m, p, t, map, dep2asm, default_external);
+void goal2sat::assumptions(unsigned n, expr* const* fmls) {
+    SASSERT(m_imp);
     m_imp->assumptions(n, fmls);
+}
+
+sat::literal goal2sat::internalize(expr* a) {
+    SASSERT(m_imp);
+    return m_imp->internalize(a);
 }
 
 

@@ -335,6 +335,8 @@ void log_Z3_mk_numeral(Z3_context a0, Z3_string a1, Z3_sort a2);
 #define LOG_Z3_mk_numeral(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_numeral(_ARG0, _ARG1, _ARG2); }
 void log_Z3_mk_real(Z3_context a0, int a1, int a2);
 #define LOG_Z3_mk_real(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_real(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_real_int64(Z3_context a0, int64_t a1, int64_t a2);
+#define LOG_Z3_mk_real_int64(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_real_int64(_ARG0, _ARG1, _ARG2); }
 void log_Z3_mk_int(Z3_context a0, int a1, Z3_sort a2);
 #define LOG_Z3_mk_int(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_int(_ARG0, _ARG1, _ARG2); }
 void log_Z3_mk_unsigned_int(Z3_context a0, unsigned a1, Z3_sort a2);
@@ -892,6 +894,28 @@ void log_Z3_tactic_fail_if_not_decided(Z3_context a0);
 #define LOG_Z3_tactic_fail_if_not_decided(_ARG0) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_tactic_fail_if_not_decided(_ARG0); }
 void log_Z3_tactic_using_params(Z3_context a0, Z3_tactic a1, Z3_params a2);
 #define LOG_Z3_tactic_using_params(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_tactic_using_params(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_simplifier(Z3_context a0, Z3_string a1);
+#define LOG_Z3_mk_simplifier(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_simplifier(_ARG0, _ARG1); }
+void log_Z3_simplifier_inc_ref(Z3_context a0, Z3_simplifier a1);
+#define LOG_Z3_simplifier_inc_ref(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_simplifier_inc_ref(_ARG0, _ARG1); }
+void log_Z3_simplifier_dec_ref(Z3_context a0, Z3_simplifier a1);
+#define LOG_Z3_simplifier_dec_ref(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_simplifier_dec_ref(_ARG0, _ARG1); }
+void log_Z3_solver_add_simplifier(Z3_context a0, Z3_solver a1, Z3_simplifier a2);
+#define LOG_Z3_solver_add_simplifier(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_add_simplifier(_ARG0, _ARG1, _ARG2); }
+void log_Z3_simplifier_and_then(Z3_context a0, Z3_simplifier a1, Z3_simplifier a2);
+#define LOG_Z3_simplifier_and_then(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_simplifier_and_then(_ARG0, _ARG1, _ARG2); }
+void log_Z3_simplifier_using_params(Z3_context a0, Z3_simplifier a1, Z3_params a2);
+#define LOG_Z3_simplifier_using_params(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_simplifier_using_params(_ARG0, _ARG1, _ARG2); }
+void log_Z3_get_num_simplifiers(Z3_context a0);
+#define LOG_Z3_get_num_simplifiers(_ARG0) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_num_simplifiers(_ARG0); }
+void log_Z3_get_simplifier_name(Z3_context a0, unsigned a1);
+#define LOG_Z3_get_simplifier_name(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_simplifier_name(_ARG0, _ARG1); }
+void log_Z3_simplifier_get_help(Z3_context a0, Z3_simplifier a1);
+#define LOG_Z3_simplifier_get_help(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_simplifier_get_help(_ARG0, _ARG1); }
+void log_Z3_simplifier_get_param_descrs(Z3_context a0, Z3_simplifier a1);
+#define LOG_Z3_simplifier_get_param_descrs(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_simplifier_get_param_descrs(_ARG0, _ARG1); }
+void log_Z3_simplifier_get_descr(Z3_context a0, Z3_string a1);
+#define LOG_Z3_simplifier_get_descr(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_simplifier_get_descr(_ARG0, _ARG1); }
 void log_Z3_probe_const(Z3_context a0, double a1);
 #define LOG_Z3_probe_const(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_probe_const(_ARG0, _ARG1); }
 void log_Z3_probe_lt(Z3_context a0, Z3_probe a1, Z3_probe a2);
@@ -992,6 +1016,10 @@ void log_Z3_solver_get_non_units(Z3_context a0, Z3_solver a1);
 #define LOG_Z3_solver_get_non_units(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_non_units(_ARG0, _ARG1); }
 void log_Z3_solver_get_levels(Z3_context a0, Z3_solver a1, Z3_ast_vector a2, unsigned a3, unsigned const * a4);
 #define LOG_Z3_solver_get_levels(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_levels(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4); }
+void log_Z3_solver_congruence_root(Z3_context a0, Z3_solver a1, Z3_ast a2);
+#define LOG_Z3_solver_congruence_root(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_congruence_root(_ARG0, _ARG1, _ARG2); }
+void log_Z3_solver_congruence_next(Z3_context a0, Z3_solver a1, Z3_ast a2);
+#define LOG_Z3_solver_congruence_next(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_congruence_next(_ARG0, _ARG1, _ARG2); }
 void log_Z3_solver_register_on_clause(Z3_context a0, Z3_solver a1, void* a2, Z3_on_clause_eh* a3);
 #define LOG_Z3_solver_register_on_clause(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_register_on_clause(_ARG0, _ARG1, _ARG2, _ARG3); }
 void log_Z3_solver_propagate_init(Z3_context a0, Z3_solver a1, void* a2, Z3_push_eh* a3, Z3_pop_eh* a4, Z3_fresh_eh* a5);

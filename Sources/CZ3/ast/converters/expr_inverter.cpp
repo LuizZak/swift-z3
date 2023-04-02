@@ -19,6 +19,7 @@ Author:
 #include "ast/ast_ll_pp.h"
 #include "ast/ast_util.h"
 #include "ast/arith_decl_plugin.h"
+#include "ast/seq_decl_plugin.h"
 #include "ast/converters/expr_inverter.h"
 
 class basic_expr_inverter : public iexpr_inverter {
@@ -81,7 +82,7 @@ public:
      *
      */
 
-    bool operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& r, expr_ref& side_cond) override {
+    bool operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& r) override {
         SASSERT(f->get_family_id() == m.get_basic_family_id());
         switch (f->get_decl_kind()) {
         case OP_ITE:
@@ -233,7 +234,7 @@ public:
     }
 
 
-    bool operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& r, expr_ref& side_cond) override {
+    bool operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& r) override {
         SASSERT(f->get_family_id() == a.get_family_id());
         switch (f->get_decl_kind()) {
         case OP_ADD:
@@ -300,7 +301,7 @@ class bv_expr_inverter : public iexpr_inverter {
             sort* s = args[0]->get_sort();
             mk_fresh_uncnstr_var_for(f, r);
             if (m_mc)
-                add_defs(num, args, r, bv.mk_numeral(rational(1), s));
+                add_defs(num, args, r, bv.mk_one(s));
             return true;
         }
         // c * v (c is odd) case
@@ -335,7 +336,7 @@ class bv_expr_inverter : public iexpr_inverter {
             }
             mk_fresh_uncnstr_var_for(f, r);
             if (sh > 0)
-                r = bv.mk_concat(bv.mk_extract(sz - sh - 1, 0, r), bv.mk_numeral(0, sh));
+                r = bv.mk_concat(bv.mk_extract(sz - sh - 1, 0, r), bv.mk_zero(sh));
 
             if (m_mc) {
                 rational inv_r;
@@ -376,10 +377,10 @@ class bv_expr_inverter : public iexpr_inverter {
         else {
             ptr_buffer<expr> args;
             if (high < bv_size - 1)
-                args.push_back(bv.mk_numeral(rational(0), bv_size - high - 1));
+                args.push_back(bv.mk_zero(bv_size - high - 1));
             args.push_back(r);
             if (low > 0)
-                args.push_back(bv.mk_numeral(rational(0), low));
+                args.push_back(bv.mk_zero(low));
             add_def(arg, bv.mk_concat(args.size(), args.data()));
         }
         return true;
@@ -391,7 +392,7 @@ class bv_expr_inverter : public iexpr_inverter {
             mk_fresh_uncnstr_var_for(f, r);
             if (m_mc) {
                 add_def(arg1, r);
-                add_def(arg2, bv.mk_numeral(rational(1), s));
+                add_def(arg2, bv.mk_one(s));
             }
             return true;
         }
@@ -419,13 +420,22 @@ class bv_expr_inverter : public iexpr_inverter {
     }
 
     bool process_bv_le(func_decl* f, expr* arg1, expr* arg2, bool is_signed, expr_ref& r) {
+        unsigned bv_sz = bv.get_bv_size(arg1);
+        if (uncnstr(arg1) && uncnstr(arg2)) {
+            mk_fresh_uncnstr_var_for(f, r);
+            if (m_mc) {
+                add_def(arg1, m.mk_ite(r, bv.mk_zero(bv_sz), bv.mk_one(bv_sz)));
+                add_def(arg2, bv.mk_zero(bv_sz));
+            }
+            return true;
+        }
         if (uncnstr(arg1)) {
             // v <= t
             expr* v = arg1;
             expr* t = arg2;
             // v <= t --->  (u or t == MAX)   u is fresh
             //     add definition v = ite(u or t == MAX, t, t+1)
-            unsigned bv_sz = bv.get_bv_size(arg1);
+            
             rational MAX;
             if (is_signed)
                 MAX = rational::power_of_two(bv_sz - 1) - rational(1);
@@ -434,7 +444,7 @@ class bv_expr_inverter : public iexpr_inverter {
             mk_fresh_uncnstr_var_for(f, r);
             r = m.mk_or(r, m.mk_eq(t, bv.mk_numeral(MAX, bv_sz)));
             if (m_mc)
-                add_def(v, m.mk_ite(r, t, bv.mk_bv_add(t, bv.mk_numeral(rational(1), bv_sz))));
+                add_def(v, m.mk_ite(r, t, bv.mk_bv_add(t, bv.mk_one(bv_sz))));
             return true;
         }
         if (uncnstr(arg2)) {
@@ -443,7 +453,6 @@ class bv_expr_inverter : public iexpr_inverter {
             expr* t = arg1;
             // v >= t --->  (u ot t == MIN)  u is fresh
             //    add definition v = ite(u or t == MIN, t, t-1)
-            unsigned bv_sz = bv.get_bv_size(arg1);
             rational MIN;
             if (is_signed)
                 MIN = -rational::power_of_two(bv_sz - 1);
@@ -452,7 +461,7 @@ class bv_expr_inverter : public iexpr_inverter {
             mk_fresh_uncnstr_var_for(f, r);
             r = m.mk_or(r, m.mk_eq(t, bv.mk_numeral(MIN, bv_sz)));
             if (m_mc)
-                add_def(v, m.mk_ite(r, t, bv.mk_bv_sub(t, bv.mk_numeral(rational(1), bv_sz))));
+                add_def(v, m.mk_ite(r, t, bv.mk_bv_sub(t, bv.mk_one(bv_sz))));
             return true;
         }
         return false;
@@ -465,6 +474,18 @@ class bv_expr_inverter : public iexpr_inverter {
         if (m_mc)
             add_def(e, bv.mk_bv_not(r));
         return true;
+    }
+
+    bool process_shift(func_decl* f, expr* arg1, expr* arg2, expr_ref& r) {
+        if (uncnstr(arg1) && uncnstr(arg2)) {
+            mk_fresh_uncnstr_var_for(f, r);
+            if (m_mc) {
+                add_def(arg1, r);
+                add_def(arg2, bv.mk_zero(arg2->get_sort()));
+            }
+            return true;
+        }
+        return false;
     }
 
     public:
@@ -511,7 +532,7 @@ class bv_expr_inverter : public iexpr_inverter {
      * y := 0
      *
      */
-    bool operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& r, expr_ref& side_cond) override {
+    bool operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& r) override {
         SASSERT(f->get_family_id() == bv.get_family_id());
         switch (f->get_decl_kind()) {
         case OP_BADD:
@@ -543,10 +564,23 @@ class bv_expr_inverter : public iexpr_inverter {
                 sort* s = args[0]->get_sort();
                 mk_fresh_uncnstr_var_for(f, r);
                 if (m_mc)
-                    add_defs(num, args, r, bv.mk_numeral(rational(0), s));
+                    add_defs(num, args, r, bv.mk_zero(s));
                 return true;
             }
             return false;
+        case OP_BAND:
+            if (num > 0 && uncnstr(num, args)) {
+                sort* s = args[0]->get_sort();
+                mk_fresh_uncnstr_var_for(f, r);
+                if (m_mc)
+                    add_defs(num, args, r, bv.mk_numeral(rational::power_of_two(bv.get_bv_size(s)) - 1, s));
+                return true;
+            }
+            return false;
+        case OP_BSHL:
+        case OP_BASHR:
+        case OP_BLSHR:
+            return process_shift(f, args[0], args[1], r);
         default:
             return false;
         }
@@ -578,7 +612,7 @@ public:
 
     family_id get_fid() const override { return a.get_family_id(); }
 
-    bool operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& r, expr_ref& side_cond) override {
+    bool operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& r) override {
         SASSERT(f->get_family_id() == a.get_family_id());
         switch (f->get_decl_kind()) {
         case OP_SELECT:
@@ -599,6 +633,7 @@ public:
                 }
                 return true;
             }
+            return false;
         default:
             return false;
         }
@@ -645,7 +680,7 @@ public:
      *   head(x) -> fresh
      *   x := cons(fresh, arb)
      */
-    bool operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& r, expr_ref& side_cond) override {
+    bool operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& r) override {
         if (dt.is_accessor(f)) {
             SASSERT(num == 1);
             if (uncnstr(args[0])) {
@@ -708,6 +743,53 @@ public:
 };
 
 
+class seq_expr_inverter : public iexpr_inverter {
+    seq_util seq;
+public:
+    seq_expr_inverter(ast_manager& m) : iexpr_inverter(m), seq(m) {}
+    
+    family_id get_fid() const override { return seq.get_family_id(); }
+
+    bool operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& r) override {
+        switch (f->get_decl_kind()) {
+        case _OP_STRING_CONCAT:
+        case OP_SEQ_CONCAT: {
+            expr* x, *y;
+            
+            if (uncnstr(args[0]) && num == 2 &&
+                seq.str.is_concat(args[1], x, y) &&
+                uncnstr(x)) {
+                mk_fresh_uncnstr_var_for(f, r);
+                if (m_mc) {
+                    add_def(args[0], seq.str.mk_empty(args[0]->get_sort()));
+                    add_def(x, r);
+                }
+                r = seq.str.mk_concat(r, y);
+                return true;                
+            }
+                
+            if (!uncnstr(num, args)) 
+                return false;
+            mk_fresh_uncnstr_var_for(f, r);
+            if (m_mc) {
+                add_def(args[0], r);
+                for (unsigned i = 1; i < num; ++i)
+                    add_def(args[i], seq.str.mk_empty(args[0]->get_sort()));
+            }            
+            return true;
+        }
+        default:
+            return false;                
+            
+        }
+    }
+    
+    bool mk_diff(expr* t, expr_ref& r) override {
+        return false;
+    }
+    
+};
+
 
 expr_inverter::~expr_inverter() {
     for (auto* v : m_inverters)
@@ -762,10 +844,11 @@ expr_inverter::expr_inverter(ast_manager& m): iexpr_inverter(m) {
     add(alloc(array_expr_inverter, m, *this));
     add(alloc(dt_expr_inverter, m));
     add(alloc(basic_expr_inverter, m, *this));
+    add(alloc(seq_expr_inverter, m));
 }
 
 
-bool expr_inverter::operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& new_expr, expr_ref& side_cond) {
+bool expr_inverter::operator()(func_decl* f, unsigned num, expr* const* args, expr_ref& new_expr) {
     if (num == 0)
         return false;
             
@@ -778,7 +861,7 @@ bool expr_inverter::operator()(func_decl* f, unsigned num, expr* const* args, ex
         return false;
 
     auto* p = m_inverters.get(fid, nullptr);
-    return p && (*p)(f, num, args, new_expr, side_cond);       
+    return p && (*p)(f, num, args, new_expr);       
 }
 
 bool expr_inverter::mk_diff(expr* t, expr_ref& r) {
@@ -814,4 +897,11 @@ void expr_inverter::set_model_converter(generic_model_converter* mc) {
     for (auto* p : m_inverters)
         if (p)
             p->set_model_converter(mc);
+}
+
+void expr_inverter::set_produce_proofs(bool pr) {
+    m_produce_proofs = pr;
+    for (auto* p : m_inverters)
+        if (p)
+            p->set_produce_proofs(pr);
 }

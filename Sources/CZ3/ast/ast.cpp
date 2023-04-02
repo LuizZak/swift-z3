@@ -1673,6 +1673,7 @@ bool ast_manager::are_distinct(expr* a, expr* b) const {
 }
 
 void ast_manager::add_lambda_def(func_decl* f, quantifier* q) {
+    TRACE("model", tout << "add lambda def " << mk_pp(q, *this) << "\n");
     m_lambda_defs.insert(f, q);
     f->get_info()->set_lambda(true);
     inc_ref(q);
@@ -3295,7 +3296,7 @@ proof * ast_manager::mk_redundant_del(expr* e) {
     return mk_clause_trail_elem(nullptr, e, PR_REDUNDANT_DEL);
 }
 
-proof * ast_manager::mk_clause_trail(unsigned n, proof* const* ps) {    
+proof * ast_manager::mk_clause_trail(unsigned n, expr* const* ps) {    
     ptr_buffer<expr> args;
     args.append(n, (expr**) ps);
     return mk_app(basic_family_id, PR_CLAUSE_TRAIL, 0, nullptr, args.size(), args.data());

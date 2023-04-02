@@ -31,6 +31,7 @@ Notes:
 #include "ast/rewriter/seq_rewriter.h"
 #include "ast/rewriter/rewriter_def.h"
 #include "ast/rewriter/var_subst.h"
+#include "ast/rewriter/der.h"
 #include "ast/rewriter/expr_safe_replace.h"
 #include "ast/expr_substitution.h"
 #include "ast/ast_smt2_pp.h"
@@ -54,6 +55,7 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
     recfun_rewriter     m_rec_rw;
     arith_util          m_a_util;
     bv_util             m_bv_util;
+    der                 m_der;
     expr_safe_replace   m_rep;
     expr_ref_vector     m_pinned;
       // substitution support
@@ -125,36 +127,6 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
         return num_steps > m_max_steps;
     }
 
-    // Return true if t is of the form
-    //    (= t #b0)
-    //    (= t #b1)
-    //    (= #b0 t)
-    //    (= #b1 t)
-    bool is_eq_bit(expr * t, expr * & x, unsigned & val) {
-        if (!m().is_eq(t))
-            return false;
-        expr * lhs = to_app(t)->get_arg(0);
-        if (!m_bv_rw.is_bv(lhs))
-            return false;
-        if (m_bv_rw.get_bv_size(lhs) != 1)
-            return false;
-        expr * rhs = to_app(t)->get_arg(1);
-        rational v;
-        unsigned sz;
-        if (m_bv_rw.is_numeral(lhs, v, sz)) {
-            x    = rhs;
-            val  = v.get_unsigned();
-            SASSERT(val == 0 || val == 1);
-            return true;
-        }
-        if (m_bv_rw.is_numeral(rhs, v, sz)) {
-            x   = lhs;
-            val  = v.get_unsigned();
-            SASSERT(val == 0 || val == 1);
-            return true;
-        }
-        return false;
-    }
 
     // (iff (= x bit1) A)
     // --->
@@ -162,11 +134,11 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
     br_status apply_tamagotchi(expr * lhs, expr * rhs, expr_ref & result) {
         expr * x;
         unsigned val;
-        if (is_eq_bit(lhs, x, val)) {
+        if (m_bv_rw.is_eq_bit(lhs, x, val)) {
             result = m().mk_eq(x, m().mk_ite(rhs, m_bv_rw.mk_numeral(val, 1), m_bv_rw.mk_numeral(1-val, 1)));
             return BR_REWRITE2;
         }
-        if (is_eq_bit(rhs, x, val)) {
+        if (m_bv_rw.is_eq_bit(rhs, x, val)) {
             result = m().mk_eq(x, m().mk_ite(lhs, m_bv_rw.mk_numeral(val, 1), m_bv_rw.mk_numeral(1-val, 1)));
             return BR_REWRITE2;
         }
@@ -707,7 +679,10 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
 
     expr_ref mk_eq(expr* a, expr* b) {
         expr_ref result(m());
-        if (BR_FAILED == reduce_eq(a, b, result)) 
+        br_status st = reduce_eq(a, b, result);
+        if (BR_FAILED == st)
+            st = m_b_rw.mk_eq_core(a, b, result);
+        if (BR_FAILED == st)
             result = m().mk_eq(a, b);
         return result;
     }
@@ -848,6 +823,26 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
 
         TRACE("reduce_quantifier", tout << "after elim_unused_vars:\n" << result << " " << result_pr << "\n" ;);
 
+        proof_ref p2(m());
+        expr_ref r(m());
+
+        bool der_change = false;
+        if (is_quantifier(result)) {
+            m_der(to_quantifier(result), r, p2);
+            der_change = result.get() != r.get();
+            if (m().proofs_enabled() && der_change)
+                result_pr = m().mk_transitivity(result_pr, p2);            
+            result = r;
+        }
+
+        if (der_change) {
+            th_rewriter rw(m());
+            rw(result, r, p2);
+            if (m().proofs_enabled() && result.get() != r.get()) 
+                result_pr = m().mk_transitivity(result_pr, p2);
+            result = r;
+        }
+
         SASSERT(old_q->get_sort() == result->get_sort());
         return true;
     }
@@ -866,6 +861,7 @@ struct th_rewriter_cfg : public default_rewriter_cfg {
         m_rec_rw(m),
         m_a_util(m),
         m_bv_util(m),
+        m_der(m),
         m_rep(m),
         m_pinned(m),
         m_used_dependencies(m) {
@@ -943,6 +939,10 @@ void th_rewriter::set_flat_and_or(bool f) {
     m_imp->cfg().m_b_rw.set_flat_and_or(f);
 }
 
+void th_rewriter::set_order_eq(bool f) {
+    m_imp->cfg().m_b_rw.set_order_eq(f);
+}
+
 th_rewriter::~th_rewriter() {
     dealloc(m_imp);
 }
@@ -967,17 +967,41 @@ void th_rewriter::reset() {
 }
 
 void th_rewriter::operator()(expr_ref & term) {
-    expr_ref result(term.get_manager());
-    m_imp->operator()(term, result);
-    term = std::move(result);
+    expr_ref result(term.get_manager());    
+    try {
+        m_imp->operator()(term, result);
+        term = std::move(result);
+    }
+    catch (...) {
+        if (!term.get_manager().inc())
+            return;
+        throw;
+    }
 }
 
 void th_rewriter::operator()(expr * t, expr_ref & result) {
-    m_imp->operator()(t, result);
+    try {
+        m_imp->operator()(t, result);
+    }
+    catch (...) {
+        result = t;
+        if (!result.get_manager().inc())
+            return;
+        throw;
+    }
 }
 
 void th_rewriter::operator()(expr * t, expr_ref & result, proof_ref & result_pr) {
-    m_imp->operator()(t, result, result_pr);
+    try {
+        m_imp->operator()(t, result, result_pr);
+    }
+    catch (...) {
+        result = t;
+        result_pr = nullptr;
+        if (!result.get_manager().inc())
+            return;
+        throw;
+    }
 }
 
 expr_ref th_rewriter::operator()(expr * n, unsigned num_bindings, expr * const * bindings) {

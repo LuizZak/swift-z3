@@ -14,7 +14,9 @@ struct solver_params {
     d.insert("lemmas2console", CPK_BOOL, "print lemmas during search", "false","solver");
     d.insert("instantiations2console", CPK_BOOL, "print quantifier instantiations to the console", "false","solver");
     d.insert("axioms2files", CPK_BOOL, "print negated theory axioms to separate files during search", "false","solver");
+    d.insert("proof.log", CPK_SYMBOL, "log clause proof trail into a file", "","solver");
     d.insert("proof.check", CPK_BOOL, "check proof logs", "true","solver");
+    d.insert("proof.check_rup", CPK_BOOL, "check proof RUP inference in proof logs", "true","solver");
     d.insert("proof.save", CPK_BOOL, "save proof log into a proof object that can be extracted using (get-proof)", "false","solver");
     d.insert("proof.trim", CPK_BOOL, "trim and save proof into a proof object that an be extracted using (get-proof)", "false","solver");
   }
@@ -28,7 +30,9 @@ struct solver_params {
   bool lemmas2console() const { return p.get_bool("lemmas2console", g, false); }
   bool instantiations2console() const { return p.get_bool("instantiations2console", g, false); }
   bool axioms2files() const { return p.get_bool("axioms2files", g, false); }
+  symbol proof_log() const { return p.get_sym("proof.log", g, symbol("")); }
   bool proof_check() const { return p.get_bool("proof.check", g, true); }
+  bool proof_check_rup() const { return p.get_bool("proof.check_rup", g, true); }
   bool proof_save() const { return p.get_bool("proof.save", g, false); }
   bool proof_trim() const { return p.get_bool("proof.trim", g, false); }
 };

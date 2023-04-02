@@ -1,14 +1,23 @@
 // Automatically generated file.
 #include "tactic/tactic.h"
 #include "cmd_context/tactic_cmds.h"
+#include "cmd_context/simplifier_cmds.h"
 #include "cmd_context/cmd_context.h"
 #include "ackermannization/ackermannize_bv_tactic.h"
 #include "ackermannization/ackr_bound_probe.h"
+#include "ast/simplifiers/bit2int.h"
+#include "ast/simplifiers/bit_blaster.h"
+#include "ast/simplifiers/elim_bounds.h"
+#include "ast/simplifiers/elim_term_ite.h"
+#include "ast/simplifiers/pull_nested_quantifiers.h"
+#include "ast/simplifiers/push_ite.h"
+#include "ast/simplifiers/refine_inj_axiom.h"
+#include "ast/simplifiers/rewriter_simplifier.h"
 #include "math/subpaving/tactic/subpaving_tactic.h"
 #include "muz/fp/horn_tactic.h"
 #include "nlsat/tactic/nlsat_tactic.h"
 #include "nlsat/tactic/qfnra_nlsat_tactic.h"
-#include "qe/lite/qe_lite.h"
+#include "qe/lite/qe_lite_tactic.h"
 #include "qe/nlqsat.h"
 #include "qe/qe_tactic.h"
 #include "qe/qsat.h"
@@ -49,6 +58,7 @@
 #include "tactic/core/cofactor_term_ite_tactic.h"
 #include "tactic/core/collect_statistics_tactic.h"
 #include "tactic/core/ctx_simplify_tactic.h"
+#include "tactic/core/demodulator_tactic.h"
 #include "tactic/core/der_tactic.h"
 #include "tactic/core/distribute_forall_tactic.h"
 #include "tactic/core/dom_simplify_tactic.h"
@@ -61,6 +71,7 @@
 #include "tactic/core/nnf_tactic.h"
 #include "tactic/core/occf_tactic.h"
 #include "tactic/core/pb_preprocess_tactic.h"
+#include "tactic/core/propagate_values2_tactic.h"
 #include "tactic/core/propagate_values_tactic.h"
 #include "tactic/core/reduce_args_tactic.h"
 #include "tactic/core/simplify_tactic.h"
@@ -98,6 +109,7 @@
 #include "tactic/ufbv/ufbv_tactic.h"
 #define ADD_TACTIC_CMD(NAME, DESCR, CODE) ctx.insert(alloc(tactic_cmd, symbol(NAME), DESCR, [](ast_manager &m, const params_ref &p) { return CODE; }))
 #define ADD_PROBE(NAME, DESCR, PROBE) ctx.insert(alloc(probe_info, symbol(NAME), DESCR, PROBE))
+#define ADD_SIMPLIFIER_CMD(NAME, DESCR, CODE) ctx.insert(alloc(simplifier_cmd, symbol(NAME), DESCR, [](auto& m, auto& p, auto &s) -> dependent_expr_simplifier* { return CODE; }))
 void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("ackermannize_bv", "A tactic for performing full Ackermannization on bv instances.", mk_ackermannize_bv_tactic(m, p));
   ADD_TACTIC_CMD("subpaving", "tactic for testing subpaving module.", mk_subpaving_tactic(m, p));
@@ -138,7 +150,7 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("bv1-blast", "reduce bit-vector expressions into bit-vectors of size 1 (notes: only equality, extract and concat are supported).", mk_bv1_blaster_tactic(m, p));
   ADD_TACTIC_CMD("bv_bound_chk", "attempts to detect inconsistencies of bounds on bv expressions.", mk_bv_bound_chk_tactic(m, p));
   ADD_TACTIC_CMD("propagate-bv-bounds", "propagate bit-vector bounds by simplifying implied or contradictory bounds.", mk_bv_bounds_tactic(m, p));
-  ADD_TACTIC_CMD("propagate-bv-bounds-new", "propagate bit-vector bounds by simplifying implied or contradictory bounds.", mk_dom_bv_bounds_tactic(m, p));
+  ADD_TACTIC_CMD("propagate-bv-bounds2", "propagate bit-vector bounds by simplifying implied or contradictory bounds.", mk_dom_bv_bounds_tactic(m, p));
   ADD_TACTIC_CMD("reduce-bv-size", "try to reduce bit-vector sizes using inequalities.", mk_bv_size_reduction_tactic(m, p));
   ADD_TACTIC_CMD("bv-slice", "simplify using bit-vector slices.", mk_bv_slice_tactic(m, p));
   ADD_TACTIC_CMD("bvarray2uf", "Rewrite bit-vector arrays into bit-vector (uninterpreted) functions.", mk_bvarray2uf_tactic(m, p));
@@ -149,21 +161,24 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("cofactor-term-ite", "eliminate term if-the-else using cofactors.", mk_cofactor_term_ite_tactic(m, p));
   ADD_TACTIC_CMD("collect-statistics", "Collects various statistics.", mk_collect_statistics_tactic(m, p));
   ADD_TACTIC_CMD("ctx-simplify", "apply contextual simplification rules.", mk_ctx_simplify_tactic(m, p));
+  ADD_TACTIC_CMD("demodulator", "extracts equalities from quantifiers and applies them to simplify.", mk_demodulator_tactic(m, p));
   ADD_TACTIC_CMD("der", "destructive equality resolution.", mk_der_tactic(m));
   ADD_TACTIC_CMD("distribute-forall", "distribute forall over conjunctions.", mk_distribute_forall_tactic(m, p));
   ADD_TACTIC_CMD("dom-simplify", "apply dominator simplification rules.", mk_dom_simplify_tactic(m, p));
   ADD_TACTIC_CMD("elim-term-ite", "eliminate term if-then-else by adding fresh auxiliary declarations.", mk_elim_term_ite_tactic(m, p));
   ADD_TACTIC_CMD("elim-uncnstr2", "eliminate unconstrained variables.", mk_elim_uncnstr2_tactic(m, p));
   ADD_TACTIC_CMD("elim-uncnstr", "eliminate application containing unconstrained variables.", mk_elim_uncnstr_tactic(m, p));
-  ADD_TACTIC_CMD("elim-predicates", "eliminate predicates.", mk_eliminate_predicates_tactic(m, p));
+  ADD_TACTIC_CMD("elim-predicates", "eliminate predicates, macros and implicit definitions.", mk_eliminate_predicates_tactic(m, p));
   ADD_TACTIC_CMD("euf-completion", "simplify using equalities.", mk_euf_completion_tactic(m, p));
   ADD_TACTIC_CMD("injectivity", "Identifies and applies injectivity axioms.", mk_injectivity_tactic(m, p));
   ADD_TACTIC_CMD("snf", "put goal in skolem normal form.", mk_snf_tactic(m, p));
   ADD_TACTIC_CMD("nnf", "put goal in negation normal form.", mk_nnf_tactic(m, p));
   ADD_TACTIC_CMD("occf", "put goal in one constraint per clause normal form (notes: fails if proof generation is enabled; only clauses are considered).", mk_occf_tactic(m, p));
   ADD_TACTIC_CMD("pb-preprocess", "pre-process pseudo-Boolean constraints a la Davis Putnam.", mk_pb_preprocess_tactic(m, p));
+  ADD_TACTIC_CMD("propagate-values2", "propagate constants.", mk_propagate_values2_tactic(m, p));
   ADD_TACTIC_CMD("propagate-values", "propagate constants.", mk_propagate_values_tactic(m, p));
   ADD_TACTIC_CMD("reduce-args", "reduce the number of arguments of function applications, when for all occurrences of a function f the i-th is a value.", mk_reduce_args_tactic(m, p));
+  ADD_TACTIC_CMD("reduce-args2", "reduce the number of arguments of function applications, when for all occurrences of a function f the i-th is a value.", mk_reduce_args_tactic2(m, p));
   ADD_TACTIC_CMD("simplify", "apply simplification rules.", mk_simplify_tactic(m, p));
   ADD_TACTIC_CMD("elim-and", "convert (and a b) into (not (or (not a) (not b))).", mk_elim_and_tactic(m, p));
   ADD_TACTIC_CMD("solve-eqs", "solve for variables.", mk_solve_eqs_tactic(m, p));
@@ -253,4 +268,29 @@ void install_tactics(tactic_manager & ctx) {
   ADD_PROBE("is-qfbv", "true if the goal is in QF_BV.", mk_is_qfbv_probe());
   ADD_PROBE("is-qfaufbv", "true if the goal is in QF_AUFBV.", mk_is_qfaufbv_probe());
   ADD_PROBE("is-quasi-pb", "true if the goal is quasi-pb.", mk_is_quasi_pb_probe());
+  ADD_SIMPLIFIER_CMD("bit2int", "simplify bit2int expressions.", alloc(bit2int_simplifier, m, p, s));
+  ADD_SIMPLIFIER_CMD("bit-blast", "reduce bit-vector expressions into SAT.", alloc(bit_blaster_simplifier, m, p, s));
+  ADD_SIMPLIFIER_CMD("cheap-fourier-motzkin", "eliminate variables from quantifiers using partial Fourier-Motzkin elimination.", alloc(elim_bounds_simplifier, m, p, s));
+  ADD_SIMPLIFIER_CMD("elim-term-ite", "eliminate if-then-else term by hoisting them top top-level.", alloc(elim_term_ite_simplifier, m, p, s));
+  ADD_SIMPLIFIER_CMD("pull-nested-quantifiers", "pull nested quantifiers to top-level.", alloc(pull_nested_quantifiers_simplifier, m, p, s));
+  ADD_SIMPLIFIER_CMD("push-app-ite-conservative", "Push functions over if-then else.", alloc(push_ite_simplifier, m, p, s, true));
+  ADD_SIMPLIFIER_CMD("push-app-ite", "Push functions over if-then else.", alloc(push_ite_simplifier, m, p, s, false));
+  ADD_SIMPLIFIER_CMD("ng-push-app-ite-conservative", "Push functions over if-then-else within non-ground terms only.", alloc(ng_push_ite_simplifier, m, p, s, true));
+  ADD_SIMPLIFIER_CMD("ng-push-app-ite", "Push functions over if-then-else within non-ground terms only.", alloc(ng_push_ite_simplifier, m, p, s, false));
+  ADD_SIMPLIFIER_CMD("refine-injectivity", "refine injectivity axioms.", alloc(refine_inj_axiom_simplifier, m, p, s));
+  ADD_SIMPLIFIER_CMD("simplify", "apply simplification rules.", alloc(rewriter_simplifier, m, p, s));
+  ADD_SIMPLIFIER_CMD("qe-light", "apply light-weight quantifier elimination.", mk_qe_lite_simplifier(m, p, s));
+  ADD_SIMPLIFIER_CMD("card2bv", "convert pseudo-boolean constraints to bit-vectors.", alloc(card2bv, m, p, s));
+  ADD_SIMPLIFIER_CMD("propagate-ineqs", "propagate ineqs/bounds, remove subsumed inequalities.", alloc(bound_simplifier, m, p, s));
+  ADD_SIMPLIFIER_CMD("propagate-bv-bounds", "propagate bit-vector bounds by simplifying implied or contradictory bounds.", mk_bv_bounds_simplifier(m, p, s));
+  ADD_SIMPLIFIER_CMD("bv-slice", "simplify using bit-vector slices.", alloc(bv::slice, m, s));
+  ADD_SIMPLIFIER_CMD("demodulator", "extracts equalities from quantifiers and applies them to simplify.", alloc(demodulator_simplifier, m, p, s));
+  ADD_SIMPLIFIER_CMD("distribute-forall", "distribute forall over conjunctions.", alloc(distribute_forall_simplifier, m, p, s));
+  ADD_SIMPLIFIER_CMD("dom-simplify", "apply dominator simplification rules.", alloc(dominator_simplifier, m, s, mk_expr_substitution_simplifier(m), p));
+  ADD_SIMPLIFIER_CMD("elim-unconstrained", "eliminate unconstrained variables.", alloc(elim_unconstrained, m, s));
+  ADD_SIMPLIFIER_CMD("elim-predicates", "eliminate predicates, macros and implicit definitions.", alloc(eliminate_predicates, m, s));
+  ADD_SIMPLIFIER_CMD("euf-completion", "simplify modulo congruence closure.", alloc(euf::completion, m, s));
+  ADD_SIMPLIFIER_CMD("propagate-values", "propagate constants.", alloc(propagate_values, m, p, s));
+  ADD_SIMPLIFIER_CMD("reduce-args", "reduce the number of arguments of function applications, when for all occurrences of a function f the i-th is a value.", mk_reduce_args_simplifier(m, s, p));
+  ADD_SIMPLIFIER_CMD("solve-eqs", "solve for variables.", alloc(euf::solve_eqs, m, s));
 }

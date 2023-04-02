@@ -13,6 +13,7 @@ struct pp_params {
     d.insert("max_width", CPK_UINT, "max. width in pretty printer", "80","pp");
     d.insert("max_ribbon", CPK_UINT, "max. ribbon (width - indentation) in pretty printer", "80","pp");
     d.insert("max_depth", CPK_UINT, "max. term depth (when pretty printing SMT2 terms/formulas)", "5","pp");
+    d.insert("no_lets", CPK_BOOL, "dont print lets in low level SMT printer", "false","pp");
     d.insert("min_alias_size", CPK_UINT, "min. size for creating an alias for a shared term (when pretty printing SMT2 terms/formulas)", "10","pp");
     d.insert("decimal", CPK_BOOL, "pretty print real numbers using decimal notation (the output may be truncated). Z3 adds a ? if the value is not precise", "false","pp");
     d.insert("decimal_precision", CPK_UINT, "maximum number of decimal places to be used when pp.decimal=true", "10","pp");
@@ -35,6 +36,7 @@ struct pp_params {
   unsigned max_width() const { return p.get_uint("max_width", g, 80u); }
   unsigned max_ribbon() const { return p.get_uint("max_ribbon", g, 80u); }
   unsigned max_depth() const { return p.get_uint("max_depth", g, 5u); }
+  bool no_lets() const { return p.get_bool("no_lets", g, false); }
   unsigned min_alias_size() const { return p.get_uint("min_alias_size", g, 10u); }
   bool decimal() const { return p.get_bool("decimal", g, false); }
   unsigned decimal_precision() const { return p.get_uint("decimal_precision", g, 10u); }
