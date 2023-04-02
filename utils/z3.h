@@ -28,4 +28,10 @@
 #define __attribute__(va)
 #define __asm__(x)
 
+/// Darwin/macOS-specific features
+#define _Nullable
+#define _Nonnull
+#define _Null_Unspecified
+#define __asm(x)
+
 #include "../Sources/CZ3/api/z3.h"
