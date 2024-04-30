@@ -49,7 +49,7 @@ sort * array_decl_plugin::mk_sort(decl_kind k, unsigned num_parameters, paramete
             m_manager->raise_exception("invalid array sort definition, invalid number of parameters");
             return nullptr;
         }
-        parameter params[2] = { parameters[0], parameter(m_manager->mk_bool_sort()) };
+        parameter params[2] = { parameter(parameters[0]), parameter(m_manager->mk_bool_sort()) };
         return mk_sort(ARRAY_SORT, 2, params);
     }
     SASSERT(k == ARRAY_SORT);
@@ -315,13 +315,13 @@ func_decl * array_decl_plugin::mk_store(unsigned arity, sort * const * domain) {
 
 func_decl * array_decl_plugin::mk_array_ext(unsigned arity, sort * const * domain, unsigned i) {
     if (arity != 2 || domain[0] != domain[1]) {
-        UNREACHABLE();
+        m_manager->raise_exception("incorrect arguments passed to array-ext");        
         return nullptr;
     }
     sort * s = domain[0];
     unsigned num_parameters = s->get_num_parameters();
     if (num_parameters == 0 || i >= num_parameters - 1) {
-        UNREACHABLE();
+        m_manager->raise_exception("incorrect arguments passed to array-ext");        
         return nullptr;
     }
     sort * r = to_sort(s->get_parameter(i).get_ast());
@@ -631,6 +631,12 @@ bool array_decl_plugin::is_value(app * _e) const {
         }
         return false;
     }
+}
+
+bool array_decl_plugin::is_unique_value(app* _e) const {
+    array_util u(*m_manager);
+    expr* e = _e;
+    return u.is_const(e, e) && m_manager->is_unique_value(e);
 }
 
 

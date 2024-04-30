@@ -115,9 +115,6 @@ public:
     }
 
     solver* translate(ast_manager& dst_m, params_ref const& p) override {
-        if (m_num_scopes > 0) {
-            throw default_exception("Cannot translate sat solver at non-base level");
-        }
         ast_translation tr(m, dst_m);
         m_solver.pop_to_base_level();
         inc_sat_solver* result = alloc(inc_sat_solver, dst_m, p, is_incremental());
@@ -699,6 +696,10 @@ public:
 
     void user_propagate_register_created(user_propagator::created_eh_t& r) override {
         ensure_euf()->user_propagate_register_created(r);
+    }
+
+    void user_propagate_register_decide(user_propagator::decide_eh_t& r) override {
+        ensure_euf()->user_propagate_register_decide(r);
     }
 
 

@@ -492,7 +492,7 @@ namespace recfun {
         def* plugin::mk_def(replace& subst, bool is_macro,
                             symbol const& name, unsigned n, sort ** params, sort * range,
                             unsigned n_vars, var ** vars, expr * rhs) {
-            promise_def d = mk_def(name, n, params, range);
+            promise_def d = mk_def(name, n, params, range, false);
             SASSERT(! m_defs.contains(d.get_def()->get_decl()));
             set_definition(subst, d, is_macro, n_vars, vars, rhs);
             return d.get_def();
@@ -581,7 +581,7 @@ namespace recfun {
                 }
                                 
                 symbol fresh_name("fold-rec-" + std::to_string(m().mk_fresh_id())); 
-                auto pd = mk_def(fresh_name, n, domain.data(), max_expr->get_sort());
+                auto pd = mk_def(fresh_name, n, domain.data(), max_expr->get_sort(), false);
                 func_decl* f = pd.get_def()->get_decl();
                 expr_ref new_body(m().mk_app(f, n, args.data()), m());
                 set_definition(subst, pd, false, n, vars, max_expr);
@@ -601,15 +601,6 @@ namespace recfun {
         m_def = &u.get_def(d);
         m_args.append(n->get_num_args(), n->get_args());
     }
-
-    case_expansion::case_expansion(case_expansion const & from)
-        : m_lhs(from.m_lhs),
-          m_def(from.m_def),
-          m_args(from.m_args) {}
-    case_expansion::case_expansion(case_expansion && from)
-        : m_lhs(from.m_lhs),
-          m_def(from.m_def),
-          m_args(std::move(from.m_args)) {}
 
     std::ostream& case_expansion::display(std::ostream & out) const {
         return out << "case_exp(" << m_lhs << ")";

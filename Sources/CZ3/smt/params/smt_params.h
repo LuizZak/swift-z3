@@ -114,6 +114,7 @@ struct smt_params : public preprocessor_params,
     bool             m_induction = false;
     bool             m_clause_proof = false;
     symbol           m_proof_log;
+    bool             m_sls_enable = false;
 
     // -----------------------------------
     //
@@ -169,6 +170,14 @@ struct smt_params : public preprocessor_params,
     unsigned          m_new_clause_relevancy = 45; //!< Max. number of unassigned literals to be considered relevant.
     unsigned          m_old_clause_relevancy = 6; //!< Max. number of unassigned literals to be considered relevant.
     double            m_inv_clause_decay = 1;     //!< clause activity decay
+
+    // -----------------------------------
+    //
+    // User propagator configuration
+    //
+    // -----------------------------------
+
+    bool             m_up_persist_clauses = false;
 
     // -----------------------------------
     //

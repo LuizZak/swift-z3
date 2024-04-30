@@ -15,6 +15,7 @@ struct rewriter_params {
     d.insert("pull_cheap_ite", CPK_BOOL, "pull if-then-else terms when cheap.", "false","rewriter");
     d.insert("bv_ineq_consistency_test_max", CPK_UINT, "max size of conjunctions on which to perform consistency test based on inequalities on bitvectors.", "0","rewriter");
     d.insert("cache_all", CPK_BOOL, "cache all intermediate results.", "false","rewriter");
+    d.insert("enable_der", CPK_BOOL, "enable destructive equality resolution to quantifiers.", "true","rewriter");
     d.insert("rewrite_patterns", CPK_BOOL, "rewrite patterns.", "false","rewriter");
     d.insert("ignore_patterns_on_ground_qbody", CPK_BOOL, "ignores patterns on quantifiers that don't mention their bound variables.", "true","rewriter");
   }
@@ -29,6 +30,7 @@ struct rewriter_params {
   bool pull_cheap_ite() const { return p.get_bool("pull_cheap_ite", g, false); }
   unsigned bv_ineq_consistency_test_max() const { return p.get_uint("bv_ineq_consistency_test_max", g, 0u); }
   bool cache_all() const { return p.get_bool("cache_all", g, false); }
+  bool enable_der() const { return p.get_bool("enable_der", g, true); }
   bool rewrite_patterns() const { return p.get_bool("rewrite_patterns", g, false); }
   bool ignore_patterns_on_ground_qbody() const { return p.get_bool("ignore_patterns_on_ground_qbody", g, true); }
 };

@@ -68,7 +68,7 @@ static void pp_uninterp_sorts(std::ostream & out, ast_printer_context & ctx, mod
             buffer << " ";
         }
         buffer << "\n-----------";
-        std::string buffer_str = buffer.str();
+        std::string buffer_str = std::move(buffer).str();
         unsigned len = static_cast<unsigned>(buffer_str.length());
         pp_indent(out, indent);
         out << ";; ";
@@ -195,12 +195,10 @@ static void pp_funs(std::ostream & out, ast_printer_context & ctx, model_core co
     ptr_buffer<func_decl> func_decls;
     sort_fun_decls(m, md, func_decls);
     for (func_decl * f : func_decls) {
-        if (recfun_util.is_defined(f) && !recfun_util.is_generated(f)) {
+        if (recfun_util.is_defined(f) && !recfun_util.is_generated(f)) 
             continue;
-        }
-        if (!m.is_considered_uninterpreted(f)) {
+        if (!m.is_considered_uninterpreted(f)) 
             continue;            
-        }
         func_interp * f_i = md.get_func_interp(f);
         SASSERT(f->get_arity() == f_i->get_arity());
         format_ref body(fm(m));
@@ -208,9 +206,7 @@ static void pp_funs(std::ostream & out, ast_printer_context & ctx, model_core co
         if (f_i->is_partial()) {
             body = mk_string(m, "#unspecified");
             for (unsigned j = 0; j < f->get_arity(); j++) {
-                std::stringstream strm;
-                strm << "x!" << (j+1);
-                var_names.push_back(symbol(strm.str()));
+                var_names.push_back(symbol("x!" + std::to_string(j+1)));
             }
         }
         else {

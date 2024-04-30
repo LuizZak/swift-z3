@@ -276,11 +276,16 @@ struct goal2sat::imp : public sat::sat_internalizer {
         m_cache_trail.push_back(t);
     }
 
+    sat::literal get_cached(app* t) const override {
+        sat::literal lit = sat::null_literal;
+        m_app2lit.find(t, lit);
+        return lit;
+    }
+
     bool is_cached(app* t, sat::literal l) const override {
-        if (!m_app2lit.contains(t))
-            return false;
-        SASSERT(m_app2lit[t] == l);
-        return true;
+        sat::literal lit = get_cached(t);
+        SASSERT(lit == sat::null_literal || l == lit);
+        return l == lit;
     }
     
     void convert_atom(expr * t, bool root, bool sign) {       
@@ -890,6 +895,7 @@ struct goal2sat::imp : public sat::sat_internalizer {
         process(n, true);
         CTRACE("goal2sat", !m_result_stack.empty(), tout << m_result_stack << "\n";);
         SASSERT(m_result_stack.empty());
+        add_assertion(n);
     }
 
     void insert_dep(expr* dep0, expr* dep, bool sign) {
@@ -982,6 +988,12 @@ struct goal2sat::imp : public sat::sat_internalizer {
         skip_dep:
             ;
         }
+    }
+
+    void add_assertion(expr* f) {
+        auto* ext = dynamic_cast<euf::solver*>(m_solver.get_extension());
+        if (ext)
+            ext->add_assertion(f);
     }
 
     void update_model(model_ref& mdl) {

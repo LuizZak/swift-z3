@@ -27,8 +27,9 @@ Notes:
 #include "tactic/core/nnf_tactic.h"
 #include "util/stopwatch.h"
 #include "tactic/sls/sls_tactic.h"
-#include "tactic/sls/sls_params.hpp"
-#include "tactic/sls/sls_engine.h"
+#include "params/sls_params.hpp"
+#include "ast/sls/sls_engine.h"
+#include "ast/sls/bv_sls.h"
 
 class sls_tactic : public tactic {    
     ast_manager    & m;
@@ -60,6 +61,38 @@ public:
     void collect_param_descrs(param_descrs & r) override {
         sls_params::collect_param_descrs(r);
     }
+
+    void run(goal_ref const& g, model_converter_ref& mc) {
+        if (g->inconsistent()) {
+            mc = nullptr;
+            return;
+        }        
+        
+        for (unsigned i = 0; i < g->size(); i++)
+            m_engine->assert_expr(g->form(i));    
+        
+        lbool res = m_engine->operator()();
+        auto const& stats = m_engine->get_stats();
+        if (res == l_true) {
+            report_tactic_progress("Number of flips:", stats.m_moves);
+            
+            for (unsigned i = 0; i < g->size(); i++)
+                if (!m_engine->get_mpz_manager().is_one(m_engine->get_value(g->form(i)))) {
+                    verbose_stream() << "Terminated before all assertions were SAT!" << std::endl;
+                    NOT_IMPLEMENTED_YET();
+                }
+
+            if (g->models_enabled()) {
+                model_ref mdl = m_engine->get_model();
+                mc = model2model_converter(mdl.get());
+                TRACE("sls_model", mc->display(tout););
+            }
+            g->reset();
+        }
+        else
+            mc = nullptr;
+        
+    }
     
     void operator()(goal_ref const & g, 
                     goal_ref_buffer & result) override {
@@ -69,7 +102,7 @@ public:
         tactic_report report("sls", *g);
         
         model_converter_ref mc;
-        m_engine->operator()(g, mc);
+        run(g, mc);
         g->add(mc.get());
         g->inc_depth();
         result.push_back(g.get());
@@ -91,19 +124,117 @@ public:
 
 };
 
+class bv_sls_tactic : public tactic {
+    ast_manager& m;
+    params_ref   m_params;
+    bv::sls*     m_sls;
+    statistics   m_st;
+
+public:
+    bv_sls_tactic(ast_manager& _m, params_ref const& p) :
+        m(_m),
+        m_params(p) {
+        m_sls = alloc(bv::sls, m, p);
+    }
+
+    tactic* translate(ast_manager& m) override {
+        return alloc(bv_sls_tactic, m, m_params);
+    }
+
+    ~bv_sls_tactic() override {
+        dealloc(m_sls);
+    }
+
+    char const* name() const override { return "bv-sls"; }
+
+    void updt_params(params_ref const& p) override {
+        m_params.append(p);
+        m_sls->updt_params(m_params);
+    }
+
+    void collect_param_descrs(param_descrs& r) override {
+        sls_params::collect_param_descrs(r);
+    }
+
+    void run(goal_ref const& g, model_converter_ref& mc) {
+        if (g->inconsistent()) {
+            mc = nullptr;
+            return;
+        }
+
+        for (unsigned i = 0; i < g->size(); i++)
+            m_sls->assert_expr(g->form(i));
+
+        m_sls->init();
+        std::function<bool(expr*, unsigned)> false_eval = [&](expr* e, unsigned idx) {
+            return false;
+        };
+        m_sls->init_eval(false_eval);
+
+        lbool res = m_sls->operator()();
+        m_st.reset();
+        m_sls->collect_statistics(m_st);
+        report_tactic_progress("Number of flips:", m_sls->get_num_moves());
+        IF_VERBOSE(10, verbose_stream() << res << "\n");
+        IF_VERBOSE(10, m_sls->display(verbose_stream()));
+
+        if (res == l_true) {            
+            if (g->models_enabled()) {
+                model_ref mdl = m_sls->get_model();
+                mc = model2model_converter(mdl.get());
+                TRACE("sls_model", mc->display(tout););
+            }
+            g->reset();
+        }
+        else
+            mc = nullptr;
+
+    }
+
+    void operator()(goal_ref const& g,
+        goal_ref_buffer& result) override {
+        result.reset();
+
+        TRACE("sls", g->display(tout););
+        tactic_report report("sls", *g);
+
+        model_converter_ref mc;
+        run(g, mc);
+        g->add(mc.get());
+        g->inc_depth();
+        result.push_back(g.get());
+    }
+
+    void cleanup() override {
+
+        auto* d = alloc(bv::sls, m, m_params);
+        std::swap(d, m_sls);
+        dealloc(d);
+    }
+
+    void collect_statistics(statistics& st) const override {
+        st.copy(m_st);
+    }
+
+    void reset_statistics() override {
+        m_sls->reset_statistics();
+        m_st.reset();
+    }
+
+};
+
 static tactic * mk_sls_tactic(ast_manager & m, params_ref const & p) {
     return and_then(fail_if_not(mk_is_qfbv_probe()), // Currently only QF_BV is supported.
                     clean(alloc(sls_tactic, m, p)));
 }
 
+tactic* mk_bv_sls_tactic(ast_manager& m, params_ref const& p) {
+    return and_then(fail_if_not(mk_is_qfbv_probe()), // Currently only QF_BV is supported.
+        clean(alloc(bv_sls_tactic, m, p)));
+}
+
 
 static tactic * mk_preamble(ast_manager & m, params_ref const & p) {
-    params_ref main_p;
-    main_p.set_bool("elim_and", true);
-    // main_p.set_bool("pull_cheap_ite", true);
-    main_p.set_bool("push_ite_bv", true);
-    main_p.set_bool("blast_distinct", true);
-    main_p.set_bool("hi_div0", true);
 
     params_ref simp2_p = p;
     simp2_p.set_bool("som", true);
@@ -112,18 +243,15 @@ static tactic * mk_preamble(ast_manager & m, params_ref const & p) {
     simp2_p.set_bool("local_ctx", true);
     simp2_p.set_uint("local_ctx_limit", 10000000);
 
-    params_ref hoist_p;
+    params_ref hoist_p = p;
     hoist_p.set_bool("hoist_mul", true);
     hoist_p.set_bool("som", false);
 
-    params_ref gaussian_p;
+    params_ref gaussian_p = p;
     // conservative gaussian elimination. 
     gaussian_p.set_uint("gaussian_max_occs", 2); 
 
-    params_ref ctx_p;
-    ctx_p.set_uint("max_depth", 32);
-    ctx_p.set_uint("max_steps", 5000000);
-    return and_then(and_then(mk_simplify_tactic(m),                             
+    return and_then(and_then(mk_simplify_tactic(m, p),                             
                              mk_propagate_values_tactic(m),
                              using_params(mk_solve_eqs_tactic(m), gaussian_p),
                              mk_elim_uncnstr_tactic(m),
@@ -137,5 +265,13 @@ static tactic * mk_preamble(ast_manager & m, params_ref const & p) {
 tactic * mk_qfbv_sls_tactic(ast_manager & m, params_ref const & p) {
     tactic * t = and_then(mk_preamble(m, p), mk_sls_tactic(m, p));
     t->updt_params(p);
+    return t;
+}
+
+tactic* mk_qfbv_new_sls_tactic(ast_manager& m, params_ref const& p) {
+    params_ref q = p;
+    q.set_bool("elim_sign_ext", false);
+    tactic* t = and_then(mk_preamble(m, q), mk_bv_sls_tactic(m, q));
+    t->updt_params(q);
     return t;
 }

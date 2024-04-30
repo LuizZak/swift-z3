@@ -23,11 +23,10 @@ Notes:
 #include "ast/ast_pp.h"
 #include "ast/rewriter/var_subst.h"
 #include "model/model_pp.h"
-#include "tactic/tactic.h"
 #include "util/luby.h"
 
-#include "tactic/sls/sls_params.hpp"
-#include "tactic/sls/sls_engine.h"
+#include "params/sls_params.hpp"
+#include "ast/sls/sls_engine.h"
 
 
 sls_engine::sls_engine(ast_manager & m, params_ref const & p) :
@@ -52,7 +51,6 @@ sls_engine::~sls_engine() {
 
 void sls_engine::updt_params(params_ref const & _p) {
     sls_params p(_p);
-    m_produce_models = _p.get_bool("model", false);
     m_max_restarts = p.max_restarts();
     m_tracker.set_random_seed(p.random_seed());
     m_walksat = p.walksat();
@@ -78,28 +76,13 @@ void sls_engine::updt_params(params_ref const & _p) {
         NOT_IMPLEMENTED_YET();
 }
 
-void sls_engine::collect_statistics(statistics& st) const {
-    double seconds = m_stats.m_stopwatch.get_current_seconds();            
-    st.update("sls restarts", m_stats.m_restarts);
-    st.update("sls full evals", m_stats.m_full_evals);
-    st.update("sls incr evals", m_stats.m_incr_evals);
-    st.update("sls incr evals/sec", m_stats.m_incr_evals / seconds);
-    st.update("sls FLIP moves", m_stats.m_flips);
-    st.update("sls INC moves", m_stats.m_incs);
-    st.update("sls DEC moves", m_stats.m_decs);
-    st.update("sls INV moves", m_stats.m_invs);
-    st.update("sls moves", m_stats.m_moves);
-    st.update("sls moves/sec", m_stats.m_moves / seconds);
-}
 
-void sls_engine::checkpoint() {
-    tactic::checkpoint(m_manager);
-}
 
 bool sls_engine::full_eval(model & mdl) {
     model::scoped_model_completion _scm(mdl, true);
     for (expr* a : m_assertions) {
-        checkpoint();        
+        if (!m_manager.inc())
+            return false;
         if (!mdl.is_true(a)) {
             TRACE("sls", tout << "Evaluation: false\n";);
             return false;
@@ -423,7 +406,8 @@ lbool sls_engine::search() {
     unsigned sz = m_assertions.size();
 
     while (check_restart(m_stats.m_moves)) {
-        checkpoint();
+        if (!m_manager.inc())
+            return l_undef;
         m_stats.m_moves++;
 
         // Andreas: Every base restart interval ...
@@ -437,6 +421,7 @@ lbool sls_engine::search() {
 
         // get candidate variables
         ptr_vector<func_decl> & to_evaluate = m_tracker.get_unsat_constants(m_assertions);
+        
         if (to_evaluate.empty())
         {
             res = l_true;
@@ -523,38 +508,6 @@ bailout:
     return res;
 }
 
-void sls_engine::operator()(goal_ref const & g, model_converter_ref & mc) {
-    if (g->inconsistent()) {
-        mc = nullptr;
-        return;
-    }
-
-    m_produce_models = g->models_enabled();
-
-    for (unsigned i = 0; i < g->size(); i++)
-        assert_expr(g->form(i));    
-
-    lbool res = operator()();
-
-    if (res == l_true) {
-        report_tactic_progress("Number of flips:", m_stats.m_moves);
-        for (unsigned i = 0; i < g->size(); i++)
-            if (!m_mpz_manager.is_one(m_tracker.get_value(g->form(i))))
-            {
-                verbose_stream() << "Terminated before all assertions were SAT!" << std::endl;
-                NOT_IMPLEMENTED_YET();
-            }
-
-        if (m_produce_models) {
-            model_ref mdl = m_tracker.get_model();
-            mc = model2model_converter(mdl.get());
-            TRACE("sls_model", mc->display(tout););
-        }
-        g->reset();
-    }
-    else
-        mc = nullptr;
-}
 
 lbool sls_engine::operator()() {    
     m_tracker.initialize(m_assertions);
@@ -562,12 +515,19 @@ lbool sls_engine::operator()() {
     if (m_restart_init)
         m_tracker.randomize(m_assertions);
 
+    return search_loop();
+}
+
+
+lbool sls_engine::search_loop() {
+
     lbool res = l_undef;
 
     do {
-        checkpoint();
+        if (!m_manager.inc())
+            return l_undef;
 
-        report_tactic_progress("Searching... restarts left:", m_max_restarts - m_stats.m_restarts);
+        // report_tactic_progress("Searching... restarts left:", m_max_restarts - m_stats.m_restarts);
         res = search();
 
         if (res == l_undef)
@@ -580,7 +540,6 @@ lbool sls_engine::operator()() {
     } while (res != l_true && m_stats.m_restarts++ < m_max_restarts);
 
     verbose_stream() << "(restarts: " << m_stats.m_restarts << " flips: " << m_stats.m_moves << " fps: " << (m_stats.m_moves / m_stats.m_stopwatch.get_current_seconds()) << ")" << std::endl;
-    
     return res;
 }
 

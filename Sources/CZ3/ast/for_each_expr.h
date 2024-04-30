@@ -163,10 +163,13 @@ struct for_each_expr_proc : public EscapeProc {
 unsigned get_num_exprs(expr * n);
 unsigned get_num_exprs(expr * n, expr_mark & visited);
 unsigned get_num_exprs(expr * n, expr_fast_mark1 & visited);
+void get_num_internal_exprs(unsigned_vector& counts, ptr_vector<expr>& todo, expr * n);
+unsigned count_internal_nodes(unsigned_vector& counts, ptr_vector<expr>& todo);
 
 bool has_skolem_functions(expr * n);
 
 // pre-order traversal of subterms
+
 class subterms {
     bool            m_include_bound = false;
     expr_ref_vector m_es;
@@ -183,7 +186,7 @@ public:
         expr_mark         m_visited;   
         expr_mark*        m_visitedp = nullptr;
     public:
-        iterator(subterms& f, ptr_vector<expr>* esp, expr_mark* vp, bool start);
+        iterator(subterms const& f, ptr_vector<expr>* esp, expr_mark* vp, bool start);
         expr* operator*();
         iterator operator++(int);
         iterator& operator++();
@@ -195,8 +198,8 @@ public:
     static subterms ground(expr_ref const& e, ptr_vector<expr>* esp = nullptr, expr_mark* vp = nullptr) { return subterms(e, false, esp, vp); }
     static subterms all(expr_ref_vector const& e, ptr_vector<expr>* esp = nullptr, expr_mark* vp = nullptr) { return subterms(e, true, esp, vp); }
     static subterms ground(expr_ref_vector const& e, ptr_vector<expr>* esp = nullptr, expr_mark* vp = nullptr) { return subterms(e, false, esp, vp); }
-    iterator begin();
-    iterator end();
+    iterator begin() const;
+    iterator end() const;
 };
 
 class subterms_postorder {

@@ -10,6 +10,7 @@ struct sls_params {
   static void collect_param_descrs(param_descrs & d) {
     d.insert("max_memory", CPK_UINT, "maximum amount of memory in megabytes", "4294967295","sls");
     d.insert("max_restarts", CPK_UINT, "maximum number of restarts", "4294967295","sls");
+    d.insert("max_repairs", CPK_UINT, "maximum number of repairs before restart", "1000","sls");
     d.insert("walksat", CPK_BOOL, "use walksat assertion selection (instead of gsat)", "true","sls");
     d.insert("walksat_ucb", CPK_BOOL, "use bandit heuristic for walksat assertion selection (instead of random)", "true","sls");
     d.insert("walksat_ucb_constant", CPK_DOUBLE, "the ucb constant c in the term score + c * f(touched)", "20.0","sls");
@@ -37,6 +38,7 @@ struct sls_params {
   */
   unsigned max_memory() const { return p.get_uint("max_memory", g, 4294967295u); }
   unsigned max_restarts() const { return p.get_uint("max_restarts", g, 4294967295u); }
+  unsigned max_repairs() const { return p.get_uint("max_repairs", g, 1000u); }
   bool walksat() const { return p.get_bool("walksat", g, true); }
   bool walksat_ucb() const { return p.get_bool("walksat_ucb", g, true); }
   double walksat_ucb_constant() const { return p.get_double("walksat_ucb_constant", g, 20.0); }

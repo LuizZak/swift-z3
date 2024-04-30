@@ -44,6 +44,49 @@ unsigned get_num_exprs(expr * n) {
     return get_num_exprs(n, visited);
 }
 
+
+void get_num_internal_exprs(unsigned_vector& counts, ptr_vector<expr>& todo, expr * n) {
+    counts.reserve(n->get_id() + 1);
+    unsigned& rc = counts[n->get_id()];
+    if (rc > 0) {
+        --rc;
+        return;
+    }
+    rc = n->get_ref_count() - 1;
+    unsigned i = todo.size();
+    todo.push_back(n);
+    for (; i < todo.size(); ++i) {
+        n = todo[i];
+        if (!is_app(n))
+            continue;
+        for (expr* arg : *to_app(n)) {
+            unsigned id = arg->get_id();
+            counts.reserve(id + 1);
+            unsigned& rc = counts[id];
+            if (rc > 0) {
+                --rc;
+                continue;
+            }
+            rc = arg->get_ref_count() - 1;
+            todo.push_back(arg);
+        }
+    }
+}
+
+unsigned count_internal_nodes(unsigned_vector& counts, ptr_vector<expr>& todo) {
+    unsigned internal_nodes = 0;
+    for (expr* t : todo) {
+        if (counts[t->get_id()] == 0)
+            ++internal_nodes;
+        else
+            counts[t->get_id()] = 0;
+    }
+    todo.reset();
+    return internal_nodes;
+    
+}
+
+
 namespace has_skolem_functions_ns {
     struct found {};
     struct proc {
@@ -66,9 +109,9 @@ bool has_skolem_functions(expr * n) {
 
 subterms::subterms(expr_ref_vector const& es, bool include_bound, ptr_vector<expr>* esp, expr_mark* vp): m_include_bound(include_bound), m_es(es), m_esp(esp), m_vp(vp) {}
 subterms::subterms(expr_ref const& e, bool include_bound, ptr_vector<expr>* esp, expr_mark* vp) : m_include_bound(include_bound), m_es(e.m()), m_esp(esp), m_vp(vp) { if (e) m_es.push_back(e); }
-subterms::iterator subterms::begin() { return iterator(* this, m_esp, m_vp, true); }
-subterms::iterator subterms::end() { return iterator(*this, nullptr, nullptr, false); }
-subterms::iterator::iterator(subterms& f, ptr_vector<expr>* esp, expr_mark* vp, bool start): m_include_bound(f.m_include_bound), m_esp(esp), m_visitedp(vp) {
+subterms::iterator subterms::begin() const { return iterator(* this, m_esp, m_vp, true); }
+subterms::iterator subterms::end() const { return iterator(*this, nullptr, nullptr, false); }
+subterms::iterator::iterator(subterms const& f, ptr_vector<expr>* esp, expr_mark* vp, bool start): m_include_bound(f.m_include_bound), m_esp(esp), m_visitedp(vp) {
     if (!esp)
         m_esp = &m_es;
     else

@@ -35,5 +35,7 @@ public extension Z3SortKind {
     
     static let charSort = Z3_CHAR_SORT
     
+    static let typeVar = Z3_TYPE_VAR
+    
     static let unknownSort = Z3_UNKNOWN_SORT
 }

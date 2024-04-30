@@ -15,7 +15,7 @@ struct parallel_params {
     d.insert("conquer.delay", CPK_UINT, "delay of cubes until applying conquer", "10","parallel");
     d.insert("conquer.backtrack_frequency", CPK_UINT, "frequency to apply core minimization during conquer", "10","parallel");
     d.insert("simplify.exp", CPK_DOUBLE, "restart and inprocess max is multiplied by simplify.exp ^ depth", "1","parallel");
-    d.insert("simplify.max_conflicts", CPK_UINT, "maximal number of conflicts during simplifcation phase", "4294967295","parallel");
+    d.insert("simplify.max_conflicts", CPK_UINT, "maximal number of conflicts during simplification phase", "4294967295","parallel");
     d.insert("simplify.restart.max", CPK_UINT, "maximal number of restarts during simplification phase", "5000","parallel");
     d.insert("simplify.inprocess.max", CPK_UINT, "maximal number of inprocessing steps during simplification", "2","parallel");
   }

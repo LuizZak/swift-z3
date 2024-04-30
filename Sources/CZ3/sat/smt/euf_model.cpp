@@ -18,6 +18,7 @@ Author:
 #include "ast/ast_pp.h"
 #include "ast/ast_ll_pp.h"
 #include "sat/smt/euf_solver.h"
+#include "sat/smt/sls_solver.h"
 #include "model/value_factory.h"
 
 namespace euf {
@@ -65,6 +66,14 @@ namespace euf {
 
     void solver::save_model(model_ref& mdl) {
         m_qmodel = mdl;
+    }
+
+    model_ref solver::get_sls_model() {
+        model_ref mdl;
+        auto s = get_solver(m.mk_family_id("sls"), nullptr);
+        if (s)
+            mdl = dynamic_cast<sls::solver*>(s)->get_model();
+        return mdl;
     }
 
     void solver::update_model(model_ref& mdl, bool validate) {
@@ -282,7 +291,7 @@ namespace euf {
     }
 
     void solver::display_validation_failure(std::ostream& out, model& mdl, enode* n) {
-        out << "Failed to validate " << n->bool_var() << " " << bpp(n) << " " << mdl(n->get_expr()) << "\n";
+        out << "Failed to validate b" << n->bool_var() << " " << bpp(n) << " " << mdl(n->get_expr()) << "\n";
         s().display(out);
         euf::enode_vector nodes;
         nodes.push_back(n);
@@ -302,7 +311,7 @@ namespace euf {
             if (mval != sval) {
                 if (r->bool_var() != sat::null_bool_var)
                     out << "b" << r->bool_var() << " ";
-                out << bpp(r) << " :=\neval:  " << sval << "\nmval:  " << mval << "\n";
+                out << bpp(r) << " :=\nvalue obtained from model:  " << sval << "\nvalue of the root expression:  " << mval << "\n";
                 continue;
             }
             if (!m.is_bool(val))
@@ -310,7 +319,7 @@ namespace euf {
             auto bval = s().value(r->bool_var());
             bool tt = l_true == bval;
             if (tt != m.is_true(sval))
-                out << bpp(r) << " :=\neval:  " << sval << "\nmval:  " << bval << "\n";
+                out << bpp(r) << " :=\nvalue according to model:  " << sval << "\nvalue of Boolean literal:  " << bval << "\n";
         }
         for (euf::enode* r : nodes)
             if (r)
@@ -318,7 +327,7 @@ namespace euf {
         out << mdl << "\n";
     }
 
-    void solver::validate_model(model& mdl) {
+    void solver::validate_model(model& mdl) {       
         if (!m_unhandled_functions.empty())
             return;
         if (get_config().m_arith_ignore_int)
@@ -357,6 +366,7 @@ namespace euf {
             if (!tt && !mdl.is_true(e))
                 continue;
             CTRACE("euf", first, display_validation_failure(tout, mdl, n););
+            CTRACE("euf", first, display(tout));
             IF_VERBOSE(0, display_validation_failure(verbose_stream(), mdl, n););
             (void)first;
             first = false;

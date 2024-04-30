@@ -164,7 +164,7 @@ namespace sat {
         unsigned                m_rephase_inc;
         backoff                 m_rephase;
         backoff                 m_reorder;
-        var_queue               m_case_split_queue;
+        var_queue<unsigned_vector> m_case_split_queue;
         unsigned                m_qhead;
         unsigned                m_scope_lvl;
         unsigned                m_search_lvl;
@@ -177,6 +177,7 @@ namespace sat {
         clause_wrapper_vector   m_clauses_to_reinit;
         std::string             m_reason_unknown;
         bool                    m_trim = false;
+        bool                    m_solver_canceled = false;
 
         visit_helper            m_visited;
 
@@ -287,6 +288,7 @@ namespace sat {
         random_gen& rand() { return m_rand; }
 
         void set_trim() { m_trim = true; }
+        void set_canceled() { m_solver_canceled = true; }
 
     protected:
         void reset_var(bool_var v, bool ext, bool dvar);

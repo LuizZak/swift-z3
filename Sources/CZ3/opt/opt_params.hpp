@@ -10,7 +10,7 @@ struct opt_params {
   static void collect_param_descrs(param_descrs & d) {
     d.insert("optsmt_engine", CPK_SYMBOL, "select optimization engine: 'basic', 'symba'", "basic","opt");
     d.insert("maxsat_engine", CPK_SYMBOL, "select engine for maxsat: 'core_maxsat', 'wmax', 'maxres', 'pd-maxres', 'maxres-bin', 'rc2'", "maxres","opt");
-    d.insert("priority", CPK_SYMBOL, "select how to priortize objectives: 'lex' (lexicographic), 'pareto', 'box'", "lex","opt");
+    d.insert("priority", CPK_SYMBOL, "select how to prioritize objectives: 'lex' (lexicographic), 'pareto', 'box'", "lex","opt");
     d.insert("dump_benchmarks", CPK_BOOL, "dump benchmarks for profiling", "false","opt");
     d.insert("dump_models", CPK_BOOL, "display intermediary models to stdout", "false","opt");
     d.insert("solution_prefix", CPK_SYMBOL, "path prefix to dump intermediary, but non-optimal, solutions", "","opt");
@@ -29,7 +29,7 @@ struct opt_params {
     d.insert("maxlex.enable", CPK_BOOL, "enable maxlex heuristic for lexicographic MaxSAT problems", "true","opt");
     d.insert("rc2.totalizer", CPK_BOOL, "use totalizer for rc2 encoding", "true","opt");
     d.insert("maxres.hill_climb", CPK_BOOL, "give preference for large weight cores", "true","opt");
-    d.insert("maxres.add_upper_bound_block", CPK_BOOL, "restict upper bound with constraint", "false","opt");
+    d.insert("maxres.add_upper_bound_block", CPK_BOOL, "restrict upper bound with constraint", "false","opt");
     d.insert("maxres.max_num_cores", CPK_UINT, "maximal number of cores per round", "200","opt");
     d.insert("maxres.max_core_size", CPK_UINT, "break batch of generated cores if size reaches this number", "3","opt");
     d.insert("maxres.maximize_assignment", CPK_BOOL, "find an MSS/MCS to improve current assignment", "false","opt");

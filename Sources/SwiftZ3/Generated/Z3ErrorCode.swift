@@ -4,8 +4,6 @@
 import CZ3
 
 /// Z3 error codes (See #Z3_get_error_code).
-/// 
-/// - Z3_FILE_ACCESS_ERRROR: A file could not be accessed.
 public typealias Z3ErrorCode = Z3_error_code
 
 extension Z3ErrorCode: Error { }
@@ -35,6 +33,7 @@ public extension Z3ErrorCode {
     /// A memory allocation failure was encountered.
     static let memoutFail = Z3_MEMOUT_FAIL
     
+    /// A file could not be accessed.
     static let fileAccessError = Z3_FILE_ACCESS_ERROR
     
     /// An error internal to Z3 occurred.

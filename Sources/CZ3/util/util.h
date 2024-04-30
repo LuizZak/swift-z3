@@ -142,6 +142,7 @@ static inline unsigned get_num_1bits(uint64_t v) {
     v = (v + (v >> 4)) & 0x0F0F0F0F0F0F0F0F;
     uint64_t r = (v * 0x0101010101010101) >> 56;
     SASSERT(c == r);
+    return static_cast<unsigned>(r);
 #endif
 }
 
@@ -265,7 +266,7 @@ public:
         return *this;
     }
 
-    scoped_ptr& operator=(scoped_ptr&& other) {
+    scoped_ptr& operator=(scoped_ptr&& other) noexcept {
         *this = other.detach();
         return *this;
     };
@@ -276,7 +277,7 @@ public:
         return tmp;
     }
 
-    void swap(scoped_ptr & p) {
+    void swap(scoped_ptr & p) noexcept {
         std::swap(m_ptr, p.m_ptr);
     }
 };
@@ -363,7 +364,7 @@ void set_fatal_error_handler(void (*pfn)(int error_code));
 
 
 template<typename S, typename T>
-bool any_of(S& set, T const& p) {
+bool any_of(S const& set, T const& p) {
     for (auto const& s : set)
         if (p(s))
             return true;
@@ -371,11 +372,19 @@ bool any_of(S& set, T const& p) {
 }
 
 template<typename S, typename T>
-bool all_of(S& set, T const& p) {
+bool all_of(S const& set, T const& p) {
     for (auto const& s : set)
         if (!p(s))
             return false;
     return true;
+}
+
+template<typename S, typename R>
+R find(S const& set, std::function<bool(R)> p) {
+    for (auto const& s : set)
+        if (p(s))
+            return s;
+    throw default_exception("element not found");
 }
 
 /**

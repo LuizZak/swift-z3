@@ -21,48 +21,19 @@ Notes:
 #include "util/stopwatch.h"
 #include "util/lbool.h"
 #include "ast/converters/model_converter.h"
-#include "tactic/goal.h"
 
-#include "tactic/sls/sls_tracker.h"
-#include "tactic/sls/sls_evaluator.h"
-#include "util/statistics.h"
+#include "ast/sls/sls_stats.h"
+#include "ast/sls/sls_tracker.h"
+#include "ast/sls/sls_evaluator.h"
 
 class sls_engine {
-public:
-    class stats {
-    public:
-        unsigned        m_restarts;
-        stopwatch       m_stopwatch;
-        unsigned        m_full_evals;
-        unsigned        m_incr_evals;
-        unsigned        m_moves, m_flips, m_incs, m_decs, m_invs;
-
-        stats() :
-            m_restarts(0),
-            m_full_evals(0),
-            m_incr_evals(0),
-            m_moves(0),
-            m_flips(0),
-            m_incs(0),
-            m_decs(0),
-            m_invs(0) {
-            m_stopwatch.reset();
-            m_stopwatch.start();
-        }
-        void reset() {
-            m_full_evals = m_flips = m_incr_evals = 0;
-            m_stopwatch.reset();
-            m_stopwatch.start();
-        }
-    };
 
 protected:
     ast_manager   & m_manager;
-    stats           m_stats;
+    bv::sls_stats   m_stats;
     unsynch_mpz_manager m_mpz_manager;
     powers          m_powers;
     mpz             m_zero, m_one, m_two;
-    bool            m_produce_models;
     bv_util         m_bv_util;
     sls_tracker     m_tracker;
     sls_evaluator   m_evaluator;
@@ -96,8 +67,8 @@ public:
 
     void assert_expr(expr * e) { m_assertions.push_back(e); }
 
-    // stats const & get_stats(void) { return m_stats; }
-    void collect_statistics(statistics & st) const;
+    bv::sls_stats const & get_stats(void) { return m_stats; }
+    void collect_statistics(statistics & st) const { m_stats.collect_statistics(st); }
     void reset_statistics() { m_stats.reset(); }
 
     bool full_eval(model & mdl);
@@ -108,13 +79,21 @@ public:
     void mk_inv(unsigned bv_sz, const mpz & old_value, mpz & inverted);
     void mk_flip(sort * s, const mpz & old_value, unsigned bit, mpz & flipped);            
 
-    lbool search();
+
+
+    lbool search();  
+
+    lbool search_loop();
 
     lbool operator()();
-    void operator()(goal_ref const & g, model_converter_ref & mc);
+
+    mpz & get_value(expr * n) { return m_tracker.get_value(n); }
+
+    model_ref get_model() { return m_tracker.get_model(); }
+
+    unsynch_mpz_manager& get_mpz_manager() { return m_mpz_manager; }
 
 protected:
-    void checkpoint();
 
     bool what_if(func_decl * fd, const unsigned & fd_inx, const mpz & temp,
                  double & best_score, unsigned & best_const, mpz & best_value);
@@ -135,5 +114,7 @@ protected:
 
     //double get_restart_armin(unsigned cnt_restarts);    
     unsigned check_restart(unsigned curr_value);
+
+
 };
 

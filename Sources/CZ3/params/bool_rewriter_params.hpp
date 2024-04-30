@@ -11,6 +11,7 @@ struct bool_rewriter_params {
     d.insert("ite_extra_rules", CPK_BOOL, "extra ite simplifications, these additional simplifications may reduce size locally but increase globally", "true","rewriter");
     d.insert("flat", CPK_BOOL, "create nary applications for +,*,bvadd,bvmul,bvand,bvor,bvxor", "true","rewriter");
     d.insert("flat_and_or", CPK_BOOL, "create nary applications for and,or", "true","rewriter");
+    d.insert("sort_disjunctions", CPK_BOOL, "sort subterms in disjunctions", "true","rewriter");
     d.insert("elim_and", CPK_BOOL, "conjunctions are rewritten using negation and disjunctions", "false","rewriter");
     d.insert("elim_ite", CPK_BOOL, "eliminate ite in favor of and/or", "true","rewriter");
     d.insert("local_ctx", CPK_BOOL, "perform local (i.e., cheap) context simplifications", "false","rewriter");
@@ -24,6 +25,7 @@ struct bool_rewriter_params {
   bool ite_extra_rules() const { return p.get_bool("ite_extra_rules", g, true); }
   bool flat() const { return p.get_bool("flat", g, true); }
   bool flat_and_or() const { return p.get_bool("flat_and_or", g, true); }
+  bool sort_disjunctions() const { return p.get_bool("sort_disjunctions", g, true); }
   bool elim_and() const { return p.get_bool("elim_and", g, false); }
   bool elim_ite() const { return p.get_bool("elim_ite", g, true); }
   bool local_ctx() const { return p.get_bool("local_ctx", g, false); }

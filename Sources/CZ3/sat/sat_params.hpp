@@ -71,7 +71,7 @@ struct sat_params {
     d.insert("ddfw_search", CPK_BOOL, "use ddfw local search instead of CDCL", "false","sat");
     d.insert("ddfw.init_clause_weight", CPK_UINT, "initial clause weight for DDFW local search", "8","sat");
     d.insert("ddfw.use_reward_pct", CPK_UINT, "percentage to pick highest reward variable when it has reward 0", "15","sat");
-    d.insert("ddfw.restart_base", CPK_UINT, "number of flips used a starting point for hessitant restart backoff", "100000","sat");
+    d.insert("ddfw.restart_base", CPK_UINT, "number of flips used a starting point for hesitant restart backoff", "100000","sat");
     d.insert("ddfw.reinit_base", CPK_UINT, "increment basis for geometric backoff scheme of re-initialization of weights", "10000","sat");
     d.insert("ddfw.threads", CPK_UINT, "number of ddfw threads to run in parallel with sat solver", "0","sat");
     d.insert("prob_search", CPK_BOOL, "use probsat local search instead of CDCL", "false","sat");
@@ -102,7 +102,7 @@ struct sat_params {
     d.insert("lookahead.preselect", CPK_BOOL, "use pre-selection of subset of variables for branching", "false","sat");
     d.insert("lookahead_simplify", CPK_BOOL, "use lookahead solver during simplification", "false","sat");
     d.insert("lookahead_scores", CPK_BOOL, "extract lookahead scores. A utility that can only be used from the DIMACS front-end", "false","sat");
-    d.insert("lookahead.double", CPK_BOOL, "enable doubld lookahead", "true","sat");
+    d.insert("lookahead.double", CPK_BOOL, "enable double lookahead", "true","sat");
     d.insert("lookahead.use_learned", CPK_BOOL, "use learned clauses when selecting lookahead literal", "false","sat");
     d.insert("lookahead_simplify.bca", CPK_BOOL, "add learned binary clauses as part of lookahead simplification", "true","sat");
     d.insert("lookahead.global_autarky", CPK_BOOL, "prefer to branch on variables that occur in clauses that are reduced", "false","sat");

@@ -28,6 +28,7 @@ Notes:
 #include "ast/rewriter/var_subst.h"
 #include "ast/normal_forms/name_exprs.h"
 #include "ast/ast_smt2_pp.h"
+#include "ast/ast_pp.h"
 #include <array>
 
 /**
