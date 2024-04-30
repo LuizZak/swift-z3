@@ -114,6 +114,39 @@
                 "scope": "file",
             },
         },
+        "C_Cpp.default.includePath": [
+            "${workspaceFolder}/Sources/CZ3/**",
+        ],
+        "C_Cpp.default.defines": [
+            "_DEBUG",
+            "UNICODE",
+            "_UNICODE",
+        ],
+        "C_Cpp.default.windowsSdkVersion": "10.0.18362.0",
+        "C_Cpp.default.cStandard": "c11",
+        "C_Cpp.default.cppStandard": "c++17",
+        
+        "files.associations": {
+            "iterator": "cpp",
+            "xutility": "cpp",
+            "cmath": "cpp"
+        },
+
+        "[python]": {
+            "editor.formatOnSave": true,
+        },
+
+        "flake8.args": ["--ignore=E203,E225,E302,E501,W293,W503"],
+        
+        // Hack to disable mypy from looking into every workspace folder by default.
+        // Main workspace folder has a .vscode/settings.json that overrides this.
+        "mypy.targets": [
+            "/dev/null",
+        ],
+
+        "swift.buildArguments": [],
+        "swift.autoGenerateLaunchConfigurations": false,
+
         "cSpell.words": [
             "Agnum",
             "Anum",
@@ -188,6 +221,7 @@
             "Interp",
             "lbool",
             "memout",
+            "mypy",
             "Ovfl",
             "Ponens",
             "prec",
@@ -208,43 +242,8 @@
             "Uleq",
             "Uminus",
             "unsat",
-            "xnor",
+            "xnor"
         ],
-        "C_Cpp.default.includePath": [
-            "${workspaceFolder}/Sources/CZ3/**",
-        ],
-        "C_Cpp.default.defines": [
-            "_DEBUG",
-            "UNICODE",
-            "_UNICODE",
-        ],
-        "C_Cpp.default.windowsSdkVersion": "10.0.18362.0",
-        "C_Cpp.default.cStandard": "c11",
-        "C_Cpp.default.cppStandard": "c++17",
-        
-        "files.associations": {
-            "iterator": "cpp",
-            "xutility": "cpp",
-            "cmath": "cpp"
-        },
-
-        "[python]": {
-            "editor.formatOnSave": true,
-        },
-
-        "python.formatting.provider": "black",
-        "python.linting.enabled": true,
-        "python.linting.flake8Enabled": true,
-        "python.linting.flake8Args": ["--ignore=E203,E225,E302,E501,W293,W503"],
-        
-        // Hack to disable mypy from looking into every workspace folder by default.
-        // Main workspace folder has a .vscode/settings.json that overrides this.
-        "mypy.targets": [
-            "/dev/null",
-        ],
-
-        "swift.buildArguments": [],
-        "swift.autoGenerateLaunchConfigurations": false,
     },
     "extensions": {
         "recommendations": [

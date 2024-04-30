@@ -295,4 +295,27 @@ public class Z3FixedPoint: Z3RefCountedObject {
             )
         )
     }
+
+    /// Print the current rules and background axioms as a string.
+    ///
+    /// - parameter c: Context.
+    /// - parameter f: Fixedpoint context.
+    /// - parameter num_queries: Number of additional queries to print.
+    /// - parameter queries: Additional queries.
+    /// - seealso: `Z3_fixedpoint_from_file`
+    /// - seealso: `Z3_fixedpoint_from_string`
+    public func toString(
+        _ f: Z3FixedPoint,
+        _ queries: [AnyZ3Ast]
+    ) -> String {
+
+        preparingArgsAstMutable(queries) { (count, queries) in
+            return Z3_fixedpoint_to_string(
+                context.context,
+                f.fixedPoint,
+                count,
+                queries
+            ).toString()
+        }
+    }
 }
