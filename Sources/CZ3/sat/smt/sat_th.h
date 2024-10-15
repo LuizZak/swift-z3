@@ -137,6 +137,8 @@ namespace euf {
 
         sat::status status() const { return sat::status::th(false, get_id()); }
 
+        virtual euf::enode_pair get_justification_eq(size_t j);
+
         /**
         * Local search interface
         */
@@ -149,6 +151,8 @@ namespace euf {
         virtual void set_bounds(enode* n) {}
 
         virtual void finalize() {}
+
+        virtual void initialize_value(expr* v, expr* value) { IF_VERBOSE(5, verbose_stream() << "value initialzation is not supported for theory\n"); }
 
     };
 

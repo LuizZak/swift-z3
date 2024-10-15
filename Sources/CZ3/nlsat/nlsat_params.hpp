@@ -9,6 +9,9 @@ struct nlsat_params {
      p(_p), g(gparams::get_module("nlsat")) {}
   static void collect_param_descrs(param_descrs & d) {
     d.insert("max_memory", CPK_UINT, "maximum amount of memory in megabytes", "4294967295","nlsat");
+    d.insert("simple_check", CPK_BOOL, "precheck polynomials using variables sign", "false","nlsat");
+    d.insert("variable_ordering_strategy", CPK_UINT, "Variable Ordering Strategy, 0 for none, 1 for BROWN, 2 for TRIANGULAR, 3 for ONLYPOLY", "0","nlsat");
+    d.insert("cell_sample", CPK_BOOL, "cell sample projection", "true","nlsat");
     d.insert("lazy", CPK_UINT, "how lazy the solver is.", "0","nlsat");
     d.insert("reorder", CPK_BOOL, "reorder variables.", "true","nlsat");
     d.insert("log_lemmas", CPK_BOOL, "display lemmas as self-contained SMT formulas", "false","nlsat");
@@ -27,6 +30,9 @@ struct nlsat_params {
      REG_MODULE_DESCRIPTION('nlsat', 'nonlinear solver')
   */
   unsigned max_memory() const { return p.get_uint("max_memory", g, 4294967295u); }
+  bool simple_check() const { return p.get_bool("simple_check", g, false); }
+  unsigned variable_ordering_strategy() const { return p.get_uint("variable_ordering_strategy", g, 0u); }
+  bool cell_sample() const { return p.get_bool("cell_sample", g, true); }
   unsigned lazy() const { return p.get_uint("lazy", g, 0u); }
   bool reorder() const { return p.get_bool("reorder", g, true); }
   bool log_lemmas() const { return p.get_bool("log_lemmas", g, false); }

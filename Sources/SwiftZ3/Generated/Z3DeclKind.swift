@@ -101,6 +101,8 @@ public extension Z3DeclKind {
     /// Power operator x^y.
     static let opPower = Z3_OP_POWER
     
+    static let opAbs = Z3_OP_ABS
+    
     /// Array store. It satisfies select(store(a,i,v),j) = if i = j then v else select(a,j).
     /// Array store takes at least 3 arguments.
     static let opStore = Z3_OP_STORE
@@ -847,6 +849,14 @@ public extension Z3DeclKind {
     static let opSeqToRe = Z3_OP_SEQ_TO_RE
     
     static let opSeqInRe = Z3_OP_SEQ_IN_RE
+    
+    static let opSeqMap = Z3_OP_SEQ_MAP
+    
+    static let opSeqMapi = Z3_OP_SEQ_MAPI
+    
+    static let opSeqFoldl = Z3_OP_SEQ_FOLDL
+    
+    static let opSeqFoldli = Z3_OP_SEQ_FOLDLI
     
     static let opStrToInt = Z3_OP_STR_TO_INT
     

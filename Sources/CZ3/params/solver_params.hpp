@@ -14,6 +14,7 @@ struct solver_params {
     d.insert("lemmas2console", CPK_BOOL, "print lemmas during search", "false","solver");
     d.insert("instantiations2console", CPK_BOOL, "print quantifier instantiations to the console", "false","solver");
     d.insert("axioms2files", CPK_BOOL, "print negated theory axioms to separate files during search", "false","solver");
+    d.insert("slice", CPK_BOOL, "use slice solver that filters assertions to use symbols occuring in @query formulas", "false","solver");
     d.insert("proof.log", CPK_SYMBOL, "log clause proof trail into a file", "","solver");
     d.insert("proof.check", CPK_BOOL, "check proof logs", "true","solver");
     d.insert("proof.check_rup", CPK_BOOL, "check proof RUP inference in proof logs", "true","solver");
@@ -30,6 +31,7 @@ struct solver_params {
   bool lemmas2console() const { return p.get_bool("lemmas2console", g, false); }
   bool instantiations2console() const { return p.get_bool("instantiations2console", g, false); }
   bool axioms2files() const { return p.get_bool("axioms2files", g, false); }
+  bool slice() const { return p.get_bool("slice", g, false); }
   symbol proof_log() const { return p.get_sym("proof.log", g, symbol("")); }
   bool proof_check() const { return p.get_bool("proof.check", g, true); }
   bool proof_check_rup() const { return p.get_bool("proof.check_rup", g, true); }

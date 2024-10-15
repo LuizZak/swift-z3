@@ -330,4 +330,95 @@ public extension Z3Context {
             ast: Z3_mk_seq_in_re(context, sequence.ast, regex.ast)
         )
     }
+
+    /// Create a map of the function `function` over the sequence `sequence`.
+    func makeSeqMap<Element, Result>(_ sequence: Z3Seq<Element>, function: Z3FuncDecl) -> Z3Seq<Result> {
+        Z3Seq(
+            context: self,
+            ast: Z3_mk_seq_map(context, function.ast, sequence.ast)
+        )
+    }
+
+    /// Create a map of the function `function` over the sequence `sequence`.
+    ///
+    /// Type-erased version.
+    ///
+    /// - precondition: `sequence` is a sequence sort, and `function` is a function
+    /// sort.
+    func makeSeqMapAny(_ sequence: AnyZ3Ast, function: AnyZ3Ast) -> AnyZ3Ast {
+        AnyZ3Ast(
+            context: self,
+            ast: Z3_mk_seq_map(context, function.ast, sequence.ast)
+        )
+    }
+
+    /// Create a map of the function `function` over the sequence `sequence`
+    /// starting at index `i`.
+    func makeSeqMapi<Element, Result>(_ sequence: Z3Seq<Element>, function: Z3FuncDecl, index: Z3Int) -> Z3Seq<Result> {
+        Z3Seq(
+            context: self,
+            ast: Z3_mk_seq_mapi(context, function.ast, index.ast, sequence.ast)
+        )
+    }
+
+    /// Create a map of the function `function` over the sequence `sequence`
+    /// starting at index `i`.
+    ///
+    /// Type-erased version.
+    ///
+    /// - precondition: `sequence` is a sequence sort, `function` is a function
+    /// sort, and `index` is an int sort.
+    func makeSeqMapiAny(_ sequence: AnyZ3Ast, function: AnyZ3Ast, index: AnyZ3Ast) -> AnyZ3Ast {
+        AnyZ3Ast(
+            context: self,
+            ast: Z3_mk_seq_mapi(context, function.ast, index.ast, sequence.ast)
+        )
+    }
+
+    /// Create a fold of the function `function` over the sequence `sequence`
+    /// with accumulator `accumulator`.
+    func makeSeqFoldl<Element>(_ sequence: Z3Seq<Element>, function: Z3FuncDecl, accumulator: Z3Ast<Element>) -> Z3Ast<Element> {
+        Z3Ast(
+            context: self,
+            ast: Z3_mk_seq_foldl(context, sequence.ast, function.ast, accumulator.ast)
+        )
+    }
+
+    /// Create a fold of the function `function` over the sequence `sequence`
+    /// with accumulator `accumulator`.
+    ///
+    /// Type-erased version.
+    ///
+    /// - precondition: `sequence` is a sequence sort, `function` is a function
+    /// sort, and `accumulator` is the same sort as the elements of `sequence`.
+    func makeSeqFoldlAny(_ sequence: AnyZ3Ast, function: AnyZ3Ast, accumulator: AnyZ3Ast) -> AnyZ3Ast {
+        AnyZ3Ast(
+            context: self,
+            ast: Z3_mk_seq_foldl(context, sequence.ast, function.ast, accumulator.ast)
+        )
+    }
+
+    /// Create a fold with index tracking of the function `function` over the
+    /// sequence `sequence` with accumulator `accumulator` starting at index `index`.
+    func makeSeqFoldli<Element>(_ sequence: Z3Seq<Element>, function: Z3FuncDecl, accumulator: Z3Ast<Element>, index: Z3Int) -> Z3Ast<Element> {
+        Z3Ast(
+            context: self,
+            ast: Z3_mk_seq_foldli(context, sequence.ast, function.ast, accumulator.ast, index.ast)
+        )
+    }
+
+    /// Create a fold with index tracking of the function `function` over the
+    /// sequence `sequence` with accumulator `accumulator` starting at index `index`.
+    ///
+    /// Type-erased version.
+    ///
+    /// - precondition: `sequence` is a sequence sort, `function` is a function
+    /// sort, `accumulator` is the same sort as the elements of `sequence`, and
+    /// `index` is an int sort.
+    func makeSeqFoldliAny(_ sequence: AnyZ3Ast, function: AnyZ3Ast, accumulator: AnyZ3Ast, index: AnyZ3Ast) -> AnyZ3Ast {
+        AnyZ3Ast(
+            context: self,
+            ast: Z3_mk_seq_foldli(context, sequence.ast, function.ast, accumulator.ast, index.ast)
+        )
+    }
 }

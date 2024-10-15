@@ -145,7 +145,6 @@ namespace bv {
         SASSERT(m.is_bool(e));
         SASSERT(e->get_family_id() == basic_family_id);
 
-        auto id = e->get_id();
         switch (e->get_decl_kind()) {
         case OP_TRUE:
             return true;
@@ -1049,16 +1048,16 @@ namespace bv {
 
         if (b.is_zero(e)) {
             a.get_variant(m_tmp, m_rand);
-            for (unsigned i = 0; i < b.bw - parity_b; ++i)
-                m_tmp.set(i, false);
+            if (m_rand(10) != 0)
+                for (unsigned i = 0; i < b.bw - parity_b; ++i)
+                    m_tmp.set(i, false);
             return a.set_repair(random_bool(), m_tmp);
         }
 
-        if (b.is_zero()) 
-            return a.set_random(m_rand);          
-        
-        if (m_rand(20) == 0) 
-            return a.set_random(m_rand);
+        if (b.is_zero() || m_rand(20) == 0) {
+            a.get_variant(m_tmp, m_rand);
+            return a.set_repair(random_bool(), m_tmp);            
+        }      
 
 #if 0
         verbose_stream() << "solve for " << e << "\n";
@@ -1342,11 +1341,11 @@ namespace bv {
         return false;
     }
 
-    bool sls_eval::try_repair_ashr(bvect const& e, bvval & a, bvval& b, unsigned i) {       
-            if (i == 0)
-                return try_repair_ashr0(e, a, b);
-            else
-                return try_repair_ashr1(e, a, b);
+    bool sls_eval::try_repair_ashr(bvect const& e, bvval & a, bvval& b, unsigned i) {
+        if (i == 0)
+            return try_repair_ashr0(e, a, b);
+        else
+            return try_repair_ashr1(e, a, b);
     }
 
     bool sls_eval::try_repair_lshr(bvect const& e, bvval& a, bvval& b, unsigned i) {

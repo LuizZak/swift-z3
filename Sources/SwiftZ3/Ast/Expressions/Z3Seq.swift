@@ -94,4 +94,27 @@ public extension Z3Seq {
     func inRegExp(_ re: Z3RegularExp<Element>) -> Z3Bool {
         context.makeSeqInRe(self, regex: re)
     }
+
+    /// Creates a map of the given function onto this sequence.
+    func map<Result>(_ function: Z3FuncDecl) -> Z3Seq<Result> {
+        context.makeSeqMap(self, function: function)
+    }
+
+    /// Creates a map of the given function onto this sequence starting at a given
+    /// index.
+    func map<Result>(_ function: Z3FuncDecl, startIndex: Z3Int) -> Z3Seq<Result> {
+        context.makeSeqMapi(self, function: function, index: startIndex)
+    }
+
+    /// Creates a left fold of this sequence using a given function starting with
+    /// a given accumulator.
+    func foldLeft(_ function: Z3FuncDecl, accumulator: Z3Ast<Element>) -> Z3Ast<Element> {
+        context.makeSeqFoldl(self, function: function, accumulator: accumulator)
+    }
+
+    /// Creates a left fold of this sequence using a given function starting with
+    /// a given accumulator starting at a given index.
+    func foldLeft(_ function: Z3FuncDecl, accumulator: Z3Ast<Element>, startIndex: Z3Int) -> Z3Ast<Element> {
+        context.makeSeqFoldli(self, function: function, accumulator: accumulator, index: startIndex)
+    }
 }

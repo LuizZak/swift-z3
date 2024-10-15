@@ -189,6 +189,8 @@ namespace euf {
         euf::enode* mk_true();
         euf::enode* mk_false();
 
+        vector<std::pair<expr_ref, expr_ref>> m_initial_values;
+
         // replay
         typedef std::tuple<expr_ref, unsigned, sat::bool_var> reinit_t;
         vector<reinit_t>    m_reinit;
@@ -231,12 +233,11 @@ namespace euf {
         void log_antecedents(literal l, literal_vector const& r, th_proof_hint* hint);
         void log_justification(literal l, th_explain const& jst);
         void log_justifications(literal l, unsigned explain_size, bool is_euf);
+        enode_pair get_justification_eq(size_t j);
         void log_rup(literal l, literal_vector const& r);
 
 
         eq_proof_hint* mk_hint(symbol const& th, literal lit);
-
-
 
         void init_proof();
         void on_clause(unsigned n, literal const* lits, sat::status st) override;
@@ -564,6 +565,8 @@ namespace euf {
             check_for_user_propagator();
             m_user_propagator->add_expr(e);
         }
+
+        void user_propagate_initialize_value(expr* var, expr* value);
 
         // solver factory
         ::solver* mk_solver() { return m_mk_solver(); }

@@ -258,7 +258,7 @@ namespace smt {
         expr_ref_vector get_trail(unsigned max_level);
 
         /**
-           \brief (For debubbing purposes) Prints the state of the kernel
+           \brief (For debugging purposes) Prints the state of the kernel
         */
         std::ostream& display(std::ostream & out) const;
 
@@ -321,6 +321,8 @@ namespace smt {
         void user_propagate_register_created(user_propagator::created_eh_t& r);
 
         void user_propagate_register_decide(user_propagator::decide_eh_t& r);
+
+        void user_propagate_initialize_value(expr* var, expr* value);
 
         /**
            \brief Return a reference to smt::context.

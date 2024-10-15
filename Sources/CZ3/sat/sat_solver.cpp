@@ -1012,7 +1012,7 @@ namespace sat {
     }
 
     bool solver::propagate_literal(literal l, bool update) {
-        literal l1, l2;
+        literal l1;
 
         bool keep;
         unsigned curr_level = lvl(l);
@@ -1243,8 +1243,11 @@ namespace sat {
             m_cleaner(true);
             return do_local_search(num_lits, lits);
         }
-        if ((m_config.m_num_threads > 1 || m_config.m_local_search_threads > 0 || 
-             m_config.m_ddfw_threads > 0) && !m_par && !m_ext) {
+        if ((m_config.m_num_threads > 1 || m_config.m_ddfw_threads > 0) && !m_par && !m_ext) {
+            SASSERT(scope_lvl() == 0);
+            return check_par(num_lits, lits);
+        }
+        if (m_config.m_local_search_threads > 0 && !m_par && (!m_ext || m_ext->is_pb())) {
             SASSERT(scope_lvl() == 0);
             return check_par(num_lits, lits);
         }
@@ -1460,15 +1463,17 @@ namespace sat {
         if (!rlimit().inc()) {
             return l_undef;
         }
-        if (m_ext)
+        if (m_ext && !m_ext->is_pb())
             return l_undef;
 
-        scoped_ptr_vector<i_local_search> ls;
-        scoped_ptr_vector<solver> uw;
+
         int num_extra_solvers = m_config.m_num_threads - 1;
         int num_local_search  = static_cast<int>(m_config.m_local_search_threads);
         int num_ddfw      = m_ext ? 0 : static_cast<int>(m_config.m_ddfw_threads);
         int num_threads = num_extra_solvers + 1 + num_local_search + num_ddfw;        
+        vector<reslimit> lims(num_ddfw);
+        scoped_ptr_vector<i_local_search> ls;
+        scoped_ptr_vector<solver> uw;
         for (int i = 0; i < num_local_search; ++i) {
             local_search* l = alloc(local_search);
             l->updt_params(m_params);
@@ -1477,7 +1482,7 @@ namespace sat {
             ls.push_back(l);
         }
 
-        vector<reslimit> lims(num_ddfw);            
+           
         // set up ddfw search
         for (int i = 0; i < num_ddfw; ++i) {
             ddfw* d = alloc(ddfw);
@@ -1593,6 +1598,7 @@ namespace sat {
         if (!canceled) {
             rlimit().reset_cancel();
         }
+        par.reset();
         set_par(nullptr, 0);
         ls.reset();
         uw.reset();
@@ -3712,6 +3718,8 @@ namespace sat {
     }
 
     void solver::user_pop(unsigned num_scopes) {
+        if (m_user_scope_literals.empty())
+            return;
         unsigned old_sz = m_user_scope_literals.size() - num_scopes;
         bool_var max_var = m_user_scope_literals[old_sz].var();        
         m_user_scope_literals.shrink(old_sz);
@@ -4725,7 +4733,7 @@ namespace sat {
                 num_lits += c.size();
             }
         }
-        unsigned total_cls = num_cls + num_ter + num_bin;
+        unsigned total_cls = num_cls + num_ter + num_bin + num_ext;
         double mem = static_cast<double>(memory::get_allocation_size())/static_cast<double>(1024*1024);
         out << "(sat-status\n";
         out << "  :inconsistent    " << (m_inconsistent ? "true" : "false") << "\n";

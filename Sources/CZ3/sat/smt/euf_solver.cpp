@@ -195,6 +195,30 @@ namespace euf {
         m_reason_unknown.clear();
         for (auto* s : m_solvers)
             s->init_search();
+
+        for (auto const& [var, value] : m_initial_values) {
+            if (m.is_bool(var)) {
+                auto lit = expr2literal(var);
+                if (lit == sat::null_literal) {
+                    IF_VERBOSE(5, verbose_stream() << "no literal associated with " << mk_pp(var, m) << " := " << mk_pp(value, m) << "\n");
+                    continue;
+                }
+                if (m.is_true(value))
+                    s().set_phase(lit);
+                else if (m.is_false(value))
+                    s().set_phase(~lit);
+                else
+                    IF_VERBOSE(5, verbose_stream() << "malformed value " << mk_pp(var, m) << " := " << mk_pp(value, m) << "\n");                
+                continue;
+            }
+            auto* th = m_id2solver.get(var->get_sort()->get_family_id(), nullptr);
+            if (!th) {
+                IF_VERBOSE(5, verbose_stream() << "no default initialization associated with " << mk_pp(var, m) << " := " << mk_pp(value, m) << "\n");
+                continue;
+            }
+            th->initialize_value(var, value);
+        }
+
     }
 
     bool solver::is_external(bool_var v) {
@@ -278,9 +302,9 @@ namespace euf {
                 r.push_back(get_literal(e));            
             else {
                 multiple_theories = true;
-                size_t idx = get_justification(e);
+                size_t idx = get_justification(e);                
                 auto* ext = sat::constraint_base::to_extension(idx);
-                SASSERT(ext != this);
+                SASSERT(ext != this);             
                 sat::literal lit = sat::null_literal;
                 ext->get_antecedents(lit, idx, r, probing);
             }
@@ -307,11 +331,11 @@ namespace euf {
     void solver::get_eq_antecedents(enode* a, enode* b, literal_vector& r) {
         m_egraph.begin_explain();
         m_explain.reset();
-	m_egraph.explain_eq<size_t>(m_explain, nullptr, a, b);
-	for (unsigned qhead = 0; qhead < m_explain.size(); ++qhead) {
-	    size_t* e = m_explain[qhead];
-	    if (is_literal(e)) 
-	        r.push_back(get_literal(e));            
+	    m_egraph.explain_eq<size_t>(m_explain, nullptr, a, b);
+	    for (unsigned qhead = 0; qhead < m_explain.size(); ++qhead) {
+	        size_t* e = m_explain[qhead];
+	        if (is_literal(e)) 
+	            r.push_back(get_literal(e));            
             else {
                 size_t idx = get_justification(e);
                 auto* ext = sat::constraint_base::to_extension(idx);
@@ -1255,6 +1279,14 @@ namespace euf {
         m_user_propagator->add(ctx, push_eh, pop_eh, fresh_eh);
         add_solver(m_user_propagator);
     }
+
+    void solver::user_propagate_initialize_value(expr* var, expr* value) {
+
+        m_initial_values.push_back({expr_ref(var, m), expr_ref(value, m)});
+        push(push_back_vector(m_initial_values));
+        
+    }
+
 
     bool solver::watches_fixed(enode* n) const {
         return m_user_propagator && m_user_propagator->has_fixed() && n->get_th_var(m_user_propagator->get_id()) != null_theory_var;
