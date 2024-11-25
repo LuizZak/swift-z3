@@ -33,7 +33,7 @@ Notes:
 #include "model/model_evaluator.h"
 #include "sat/sat_solver.h"
 #include "solver/simplifier_solver.h"
-#include "sat/sat_params.hpp"
+#include "params/sat_params.hpp"
 #include "sat/smt/euf_solver.h"
 #include "sat/tactic/goal2sat.h"
 #include "sat/tactic/sat2goal.h"
@@ -183,9 +183,9 @@ public:
             r = m_solver.check(m_dep.m_literals);
         }
         catch (z3_exception& ex) {
-            IF_VERBOSE(1, verbose_stream() << "exception: " << ex.msg() << "\n";);
+            IF_VERBOSE(1, verbose_stream() << "exception: " << ex.what() << "\n";);
             if (m.inc()) {
-                set_reason_unknown(std::string("(sat.giveup ") + ex.msg() + ')');
+                set_reason_unknown(std::string("(sat.giveup ") + ex.what() + ')');
                 return l_undef;
             }
             r = l_undef;            
@@ -586,8 +586,9 @@ private:
 
     void add_assumption(expr* a) {
         init_goal2sat();
-        m_dep.insert(a, m_goal2sat.internalize(a));
-        get_euf()->add_assertion(a);
+        auto lit = m_goal2sat.internalize(a);
+        m_dep.insert(a, lit);
+        get_euf()->add_clause(1, &lit);
     }
 
     void internalize_assumptions(expr_ref_vector const& asms) {     

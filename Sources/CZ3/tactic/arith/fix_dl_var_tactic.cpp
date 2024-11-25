@@ -32,7 +32,7 @@ Revision History:
 class fix_dl_var_tactic : public tactic {
 
     struct is_target {
-        struct failed {};
+        struct failed : public std::exception {};
         ast_manager &          m;
         arith_util &           m_util;
         expr_fast_mark1 *      m_visited = nullptr;
@@ -317,7 +317,7 @@ public:
             (*m_imp)(in, result);
         }
         catch (rewriter_exception & ex) {
-            throw tactic_exception(ex.msg());
+            throw tactic_exception(ex.what());
         }
     }
     

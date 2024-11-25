@@ -16,13 +16,14 @@ Author:
 Notes:
 
 --*/
+#include "params/sat_params.hpp"
 #include "ast/ast_pp.h"
 #include "model/model_v2_pp.h"
 #include "tactic/tactical.h"
 #include "sat/tactic/goal2sat.h"
 #include "sat/tactic/sat2goal.h"
 #include "sat/sat_solver.h"
-#include "sat/sat_params.hpp"
+
 
 class sat_tactic : public tactic {
 
@@ -242,12 +243,12 @@ public:
         }
         catch (sat::solver_exception & ex) {
             proc.m_solver->collect_statistics(m_stats);
-            throw tactic_exception(ex.msg());
+            throw tactic_exception(ex.what());
         }
         catch (z3_exception& ex) {
             (void)ex;
             proc.m_solver->collect_statistics(m_stats);
-            TRACE("sat", tout << ex.msg() << "\n";);            
+            TRACE("sat", tout << ex.what() << "\n";);            
             throw;
         }
         TRACE("sat_stats", m_stats.display_smt2(tout););

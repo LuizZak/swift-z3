@@ -29,6 +29,7 @@ struct sls_params {
     d.insert("early_prune", CPK_BOOL, "use early pruning for score prediction", "true","sls");
     d.insert("random_offset", CPK_BOOL, "use random offset for candidate evaluation", "true","sls");
     d.insert("rescore", CPK_BOOL, "rescore/normalize top-level score every base restart interval", "true","sls");
+    d.insert("dt_axiomatic", CPK_BOOL, "use axiomatic mode or model reduction for datatype solver", "true","sls");
     d.insert("track_unsat", CPK_BOOL, "keep a list of unsat assertions as done in SAT - currently disabled internally", "false","sls");
     d.insert("random_seed", CPK_UINT, "random seed", "0","sls");
   }
@@ -57,6 +58,7 @@ struct sls_params {
   bool early_prune() const { return p.get_bool("early_prune", g, true); }
   bool random_offset() const { return p.get_bool("random_offset", g, true); }
   bool rescore() const { return p.get_bool("rescore", g, true); }
+  bool dt_axiomatic() const { return p.get_bool("dt_axiomatic", g, true); }
   bool track_unsat() const { return p.get_bool("track_unsat", g, false); }
   unsigned random_seed() const { return p.get_uint("random_seed", g, 0u); }
 };

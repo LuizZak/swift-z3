@@ -143,6 +143,7 @@ struct smt_params_helper {
     d.insert("str.fixed_length_refinement", CPK_BOOL, "use abstraction refinement in fixed-length equation solver (Z3str3 only)", "false","smt");
     d.insert("str.fixed_length_naive_cex", CPK_BOOL, "construct naive counterexamples when fixed-length model construction fails for a given length assignment (Z3str3 only)", "true","smt");
     d.insert("sls.enable", CPK_BOOL, "enable sls co-processor with SMT engine", "false","smt");
+    d.insert("sls.parallel", CPK_BOOL, "use sls co-processor in parallel or sequential with SMT engine", "true","smt");
     d.insert("core.minimize", CPK_BOOL, "minimize unsat core produced by SMT context", "false","smt");
     d.insert("core.extend_patterns", CPK_BOOL, "extend unsat core with literals that trigger (potential) quantifier instances", "false","smt");
     d.insert("core.extend_patterns.max_distance", CPK_UINT, "limits the distance of a pattern-extended unsat core", "4294967295","smt");
@@ -290,6 +291,7 @@ struct smt_params_helper {
   bool str_fixed_length_refinement() const { return p.get_bool("str.fixed_length_refinement", g, false); }
   bool str_fixed_length_naive_cex() const { return p.get_bool("str.fixed_length_naive_cex", g, true); }
   bool sls_enable() const { return p.get_bool("sls.enable", g, false); }
+  bool sls_parallel() const { return p.get_bool("sls.parallel", g, true); }
   bool core_minimize() const { return p.get_bool("core.minimize", g, false); }
   bool core_extend_patterns() const { return p.get_bool("core.extend_patterns", g, false); }
   unsigned core_extend_patterns_max_distance() const { return p.get_uint("core.extend_patterns.max_distance", g, 4294967295u); }

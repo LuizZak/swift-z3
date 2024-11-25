@@ -197,8 +197,7 @@ void install_tactics(tactic_manager & ctx) {
   ADD_TACTIC_CMD("default", "default strategy used when no logic is specified.", mk_default_tactic(m, p));
   ADD_TACTIC_CMD("solver-subsumption", "remove assertions that are subsumed.", mk_solver_subsumption_tactic(m, p));
   ADD_TACTIC_CMD("qfbv-sls", "(try to) solve using stochastic local search for QF_BV.", mk_qfbv_sls_tactic(m, p));
-  ADD_TACTIC_CMD("qfbv-new-sls", "(try to) solve using stochastic local search for QF_BV.", mk_qfbv_new_sls_tactic(m, p));
-  ADD_TACTIC_CMD("qfbv-new-sls-core", "(try to) solve using stochastic local search for QF_BV.", mk_bv_sls_tactic(m, p));
+  ADD_TACTIC_CMD("sls-smt", "(try to) solve SMT formulas using local search.", mk_sls_smt_tactic(m, p));
   ADD_TACTIC_CMD("nra", "builtin strategy for solving NRA problems.", mk_nra_tactic(m, p));
   ADD_TACTIC_CMD("qfaufbv", "builtin strategy for solving QF_AUFBV problems.", mk_qfaufbv_tactic(m, p));
   ADD_TACTIC_CMD("qfauflia", "builtin strategy for solving QF_AUFLIA problems.", mk_qfauflia_tactic(m, p));

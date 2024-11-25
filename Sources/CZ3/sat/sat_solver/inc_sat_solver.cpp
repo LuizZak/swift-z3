@@ -39,7 +39,7 @@ Notes:
 #include "model/model_v2_pp.h"
 #include "model/model_evaluator.h"
 #include "sat/sat_solver.h"
-#include "sat/sat_params.hpp"
+#include "params/sat_params.hpp"
 #include "sat/smt/euf_solver.h"
 #include "sat/tactic/goal2sat.h"
 #include "sat/tactic/sat2goal.h"
@@ -227,10 +227,10 @@ public:
             r = m_solver.check(m_asms.size(), m_asms.data());
         }
         catch (z3_exception& ex) {
-            IF_VERBOSE(1, verbose_stream() << "exception: " << ex.msg() << "\n";);
+            IF_VERBOSE(1, verbose_stream() << "exception: " << ex.what() << "\n";);
             if (m.inc()) {
                 reason_set = true;
-                set_reason_unknown(std::string("(sat.giveup ") + ex.msg() + ')');
+                set_reason_unknown(std::string("(sat.giveup ") + ex.what() + ')');
             }
             r = l_undef;            
         }
@@ -779,9 +779,9 @@ private:
             }
         }
         catch (tactic_exception & ex) {
-            IF_VERBOSE(1, verbose_stream() << "exception in tactic " << ex.msg() << "\n";);
-            set_reason_unknown(ex.msg());
-            TRACE("sat", tout << "exception: " << ex.msg() << "\n";);
+            IF_VERBOSE(1, verbose_stream() << "exception in tactic " << ex.what() << "\n";);
+            set_reason_unknown(ex.what());
+            TRACE("sat", tout << "exception: " << ex.what() << "\n";);
             m_preprocess = nullptr;
             m_bb_rewriter = nullptr;
             return l_undef;

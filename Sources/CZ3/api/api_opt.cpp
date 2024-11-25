@@ -168,7 +168,7 @@ extern "C" {
                 }
                 r = l_undef;
                 if (!mk_c(c)->m().inc()) {
-                    to_optimize_ptr(o)->set_reason_unknown(ex.msg());
+                    to_optimize_ptr(o)->set_reason_unknown(ex.what());
                 }
                 else {
                     mk_c(c)->handle_exception(ex);
@@ -364,15 +364,20 @@ extern "C" {
             }        
         }
         catch (z3_exception& e) {
-            errstrm << e.msg();
+            errstrm << e.what();
             ctx = nullptr;
             SET_ERROR_CODE(Z3_PARSER_ERROR, errstrm.str());
             return;
         }
 
-        for (expr * e : ctx->assertions()) {
-            to_optimize_ptr(opt)->add_hard_constraint(e);
-        }
+        auto o = to_optimize_ptr(opt);
+
+        for (auto const& [asr, an] : ctx->tracked_assertions())
+            if (an)
+                o->add_hard_constraint(asr, an);
+            else
+                o->add_hard_constraint(asr);
+
     }
 
 

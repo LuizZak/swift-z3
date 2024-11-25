@@ -128,6 +128,7 @@ namespace smt {
         class parallel*             m_par = nullptr;
         unsigned                    m_par_index = 0;
         bool                        m_internalizing_assertions = false;
+        lbool                       m_sls_completed = l_undef;
 
 
         // -----------------------------------
@@ -287,6 +288,11 @@ namespace smt {
         void updt_params(params_ref const& p);
 
         bool get_cancel_flag();
+
+        void set_sls_completed() {
+            if (m_sls_completed == l_undef)
+                m_sls_completed = l_true;
+        }
 
         region & get_region() {
             return m_region;
@@ -619,6 +625,9 @@ namespace smt {
         friend class set_var_theory_trail;
         void set_var_theory(bool_var v, theory_id tid);
 
+
+        bool has_sls_model();
+
         // -----------------------------------
         //
         // Backtracking support
@@ -939,6 +948,8 @@ namespace smt {
             mk_th_clause(tid, num_lits, lits, num_params, params, CLS_TH_AXIOM);
         }
 
+        void mk_th_axiom(theory_id tid, literal l1, unsigned num_params = 0, parameter * params = nullptr);
+
         void mk_th_axiom(theory_id tid, literal l1, literal l2, unsigned num_params = 0, parameter * params = nullptr);
 
         void mk_th_axiom(theory_id tid, literal l1, literal l2, literal l3, unsigned num_params = 0, parameter * params = nullptr);
@@ -1182,9 +1193,9 @@ namespace smt {
         void rescale_bool_var_activity();
 
     public:
-        void inc_bvar_activity(bool_var v) {
+        void inc_bvar_activity(bool_var v, double inc = 1.0) {
             double & act = m_activity[v];
-            act += m_bvar_inc;
+            act += m_bvar_inc * inc;
             if (act > ACTIVITY_LIMIT)
                 rescale_bool_var_activity();
             m_case_split_queue->activity_increased_eh(v);

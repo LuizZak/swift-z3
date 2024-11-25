@@ -22,13 +22,13 @@
 #include "params/pattern_inference_params_helper.hpp"
 #include "params/poly_rewriter_params.hpp"
 #include "params/rewriter_params.hpp"
+#include "params/sat_params.hpp"
 #include "params/seq_rewriter_params.hpp"
 #include "params/sls_params.hpp"
 #include "params/solver_params.hpp"
 #include "params/tactic_params.hpp"
 #include "parsers/util/parser_params.hpp"
 #include "sat/sat_asymm_branch_params.hpp"
-#include "sat/sat_params.hpp"
 #include "sat/sat_scc_params.hpp"
 #include "sat/sat_simplifier_params.hpp"
 #include "smt/params/smt_params_helper.hpp"
@@ -60,13 +60,13 @@ void gparams_register_modules() {
 { auto f = []() { auto* d = alloc(param_descrs); pattern_inference_params_helper::collect_param_descrs(*d); return d; }; gparams::register_module("pi", f); }
 { auto f = []() { auto* d = alloc(param_descrs); poly_rewriter_params::collect_param_descrs(*d); return d; }; gparams::register_module("rewriter", f); }
 { auto f = []() { auto* d = alloc(param_descrs); rewriter_params::collect_param_descrs(*d); return d; }; gparams::register_module("rewriter", f); }
+{ auto f = []() { auto* d = alloc(param_descrs); sat_params::collect_param_descrs(*d); return d; }; gparams::register_module("sat", f); }
 { auto f = []() { auto* d = alloc(param_descrs); seq_rewriter_params::collect_param_descrs(*d); return d; }; gparams::register_module("rewriter", f); }
 { auto f = []() { auto* d = alloc(param_descrs); sls_params::collect_param_descrs(*d); return d; }; gparams::register_module("sls", f); }
 { auto f = []() { auto* d = alloc(param_descrs); solver_params::collect_param_descrs(*d); return d; }; gparams::register_module("solver", f); }
 { auto f = []() { auto* d = alloc(param_descrs); tactic_params::collect_param_descrs(*d); return d; }; gparams::register_module("tactic", f); }
 { auto f = []() { auto* d = alloc(param_descrs); parser_params::collect_param_descrs(*d); return d; }; gparams::register_module("parser", f); }
 { auto f = []() { auto* d = alloc(param_descrs); sat_asymm_branch_params::collect_param_descrs(*d); return d; }; gparams::register_module("sat", f); }
-{ auto f = []() { auto* d = alloc(param_descrs); sat_params::collect_param_descrs(*d); return d; }; gparams::register_module("sat", f); }
 { auto f = []() { auto* d = alloc(param_descrs); sat_scc_params::collect_param_descrs(*d); return d; }; gparams::register_module("sat", f); }
 { auto f = []() { auto* d = alloc(param_descrs); sat_simplifier_params::collect_param_descrs(*d); return d; }; gparams::register_module("sat", f); }
 { auto f = []() { auto* d = alloc(param_descrs); smt_params_helper::collect_param_descrs(*d); return d; }; gparams::register_module("smt", f); }
@@ -83,10 +83,10 @@ gparams::register_module_descr("nlsat", "nonlinear solver");
 gparams::register_module_descr("opt", "optimization parameters");
 gparams::register_module_descr("pi", "pattern inference (heuristics) for universal formulas (without annotation)");
 gparams::register_module_descr("rewriter", "new formula simplification module used in the tactic framework, and new solvers");
+gparams::register_module_descr("sat", "propositional SAT solver");
 gparams::register_module_descr("sls", "Experimental Stochastic Local Search Solver (for QFBV only).");
 gparams::register_module_descr("solver", "solver parameters");
 gparams::register_module_descr("tactic", "tactic parameters");
-gparams::register_module_descr("sat", "propositional SAT solver");
 gparams::register_module_descr("smt", "smt solver based on lazy smt");
 gparams::register_module_descr("combined_solver", "combines two solvers: non-incremental (solver1) and incremental (solver2)");
 gparams::register_module_descr("parallel", "parameters for parallel solver");
