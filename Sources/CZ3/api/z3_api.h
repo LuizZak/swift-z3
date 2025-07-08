@@ -119,6 +119,8 @@ typedef enum
    - Z3_PARAMETER_SORT is used for sort parameters.
    - Z3_PARAMETER_AST is used for expression parameters.
    - Z3_PARAMETER_FUNC_DECL is used for function declaration parameters.
+   - Z3_PARAMETER_INTERNAL is used for parameters that are private to Z3. They cannot be accessed.
+   - Z3_PARAMETER_ZSTRING is used for string parameters. 
 */
 typedef enum
 {
@@ -128,7 +130,9 @@ typedef enum
     Z3_PARAMETER_SYMBOL,
     Z3_PARAMETER_SORT,
     Z3_PARAMETER_AST,
-    Z3_PARAMETER_FUNC_DECL
+    Z3_PARAMETER_FUNC_DECL,
+    Z3_PARAMETER_INTERNAL,
+    Z3_PARAMETER_ZSTRING
 } Z3_parameter_kind;
 
 /**
@@ -4993,6 +4997,16 @@ extern "C" {
     bool Z3_API Z3_is_app(Z3_context c, Z3_ast a);
 
     /**
+      def_API('Z3_is_ground', BOOL, (_in(CONTEXT), _in(AST)))
+    */
+    bool Z3_API Z3_is_ground(Z3_context c, Z3_ast a);
+
+    /**
+      def_API('Z3_get_depth', UINT, (_in(CONTEXT), _in(AST)))
+    */
+    unsigned Z3_API Z3_get_depth(Z3_context c, Z3_ast a);
+
+    /**
       def_API('Z3_is_numeral_ast', BOOL, (_in(CONTEXT), _in(AST)))
     */
     bool Z3_API Z3_is_numeral_ast(Z3_context c, Z3_ast a);
@@ -7076,7 +7090,24 @@ extern "C" {
     */
     Z3_ast Z3_API Z3_solver_congruence_next(Z3_context c, Z3_solver s, Z3_ast a);
 
+    /**
+      \brief retrieve explanation for congruence.
+      \pre root(a) = root(b)
 
+      def_API('Z3_solver_congruence_explain', AST, (_in(CONTEXT), _in(SOLVER), _in(AST), _in(AST)))
+    */
+    Z3_ast Z3_API Z3_solver_congruence_explain(Z3_context c, Z3_solver s, Z3_ast a, Z3_ast b);
+
+    /**
+      \brief retrieve a 'solution' for \c variables as defined by equalities in maintained by solvers.
+        At this point, only linear solution are supported.
+        The solution to \c variables may be presented in triangular form, such that
+        variables used in solutions themselves have solutions.
+
+        def_API('Z3_solver_solve_for', VOID, (_in(CONTEXT), _in(SOLVER), _in(AST_VECTOR), _in(AST_VECTOR), _in(AST_VECTOR)))
+    */
+    void Z3_API Z3_solver_solve_for(Z3_context c, Z3_solver s, Z3_ast_vector variables, Z3_ast_vector terms, Z3_ast_vector guards);
+    
     /**
        \brief register a callback to that retrieves assumed, inferred and deleted clauses during search.
        

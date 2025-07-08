@@ -84,7 +84,7 @@ gparams::register_module_descr("opt", "optimization parameters");
 gparams::register_module_descr("pi", "pattern inference (heuristics) for universal formulas (without annotation)");
 gparams::register_module_descr("rewriter", "new formula simplification module used in the tactic framework, and new solvers");
 gparams::register_module_descr("sat", "propositional SAT solver");
-gparams::register_module_descr("sls", "Experimental Stochastic Local Search Solver (for QFBV only).");
+gparams::register_module_descr("sls", "Stochastic Local Search Solver (invoked by sls-qfbv and sls-smt tactics or enabled by smt.sls.enable=true)");
 gparams::register_module_descr("solver", "solver parameters");
 gparams::register_module_descr("tactic", "tactic parameters");
 gparams::register_module_descr("smt", "smt solver based on lazy smt");

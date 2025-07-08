@@ -78,7 +78,8 @@ public:
         try {
             res = m_sls->check();
         }
-        catch (z3_exception&) {
+        catch (z3_exception& ex) {
+            IF_VERBOSE(1, verbose_stream() << "SLS threw an exception: " << ex.what() << "\n");
             m_sls->collect_statistics(m_st);
             throw;
         }
@@ -98,7 +99,6 @@ public:
         }
         else
             mc = nullptr;
-
     }
 
     void operator()(goal_ref const& g,
@@ -131,9 +131,6 @@ public:
     }
 };
 
-tactic* mk_sls_smt_tactic(ast_manager& m, params_ref const& p) {
-    return alloc(sls_smt_tactic, m, p);
-}
 
 class sls_tactic : public tactic {    
     ast_manager    & m;
@@ -213,9 +210,6 @@ public:
     }
 
     void cleanup() override {
-        sls_engine * d = alloc(sls_engine, m, m_params);
-        std::swap(d, m_engine);            
-        dealloc(d);
     }
     
     void collect_statistics(statistics & st) const override {
@@ -233,7 +227,7 @@ static tactic * mk_sls_tactic(ast_manager & m, params_ref const & p) {
                     clean(alloc(sls_tactic, m, p)));
 }
 
-static tactic * mk_preamble(ast_manager & m, params_ref const & p) {
+static tactic * mk_preamble(ast_manager & m, params_ref const & p, bool add_nnf) {
 
     params_ref simp2_p = p;
     simp2_p.set_bool("som", true);
@@ -250,20 +244,28 @@ static tactic * mk_preamble(ast_manager & m, params_ref const & p) {
     // conservative gaussian elimination. 
     gaussian_p.set_uint("gaussian_max_occs", 2); 
 
-    return and_then(and_then(mk_simplify_tactic(m, p),                             
-                             mk_propagate_values_tactic(m),
-                             using_params(mk_solve_eqs_tactic(m), gaussian_p),
-                             mk_elim_uncnstr_tactic(m),
-                             mk_bv_size_reduction_tactic(m),
-                             using_params(mk_simplify_tactic(m), simp2_p)),
-                        using_params(mk_simplify_tactic(m), hoist_p),
-                        mk_max_bv_sharing_tactic(m),
-                        mk_nnf_tactic(m, p));
+    return and_then(
+        and_then(mk_simplify_tactic(m, p),
+            mk_propagate_values_tactic(m),
+            using_params(mk_solve_eqs_tactic(m), gaussian_p),
+            mk_elim_uncnstr_tactic(m),
+            mk_bv_size_reduction_tactic(m),
+            using_params(mk_simplify_tactic(m), simp2_p)),
+        using_params(mk_simplify_tactic(m), hoist_p),
+        mk_max_bv_sharing_tactic(m),
+        add_nnf ? mk_nnf_tactic(m, p) : mk_skip_tactic()
+    );
 }
 
 tactic * mk_qfbv_sls_tactic(ast_manager & m, params_ref const & p) {
-    tactic * t = and_then(mk_preamble(m, p), mk_sls_tactic(m, p));
+    tactic * t = and_then(mk_preamble(m, p, true), mk_sls_tactic(m, p));
     t->updt_params(p);
     return t;
 }
 
+
+tactic* mk_sls_smt_tactic(ast_manager& m, params_ref const& p) {
+    tactic* t = and_then(mk_preamble(m, p, false), alloc(sls_smt_tactic, m, p));
+    t->updt_params(p);
+    return t;
+}

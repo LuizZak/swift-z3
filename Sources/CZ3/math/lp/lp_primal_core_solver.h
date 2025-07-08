@@ -208,10 +208,10 @@ namespace lp {
                         continue;
                 }
                 unsigned not_free = get_num_of_not_free_basic_dependent_vars(j, min_non_free_so_far, bj);
-                unsigned col_sz = this->m_A.m_columns[j].size();
+                unsigned col_sz = static_cast<unsigned>(this->m_A.m_columns[j].size());
                 if (not_free < min_non_free_so_far || (not_free == min_non_free_so_far && col_sz < best_col_sz)) {
                     min_non_free_so_far = not_free;
-                    best_col_sz = this->m_A.m_columns[j].size();
+                    best_col_sz = static_cast<unsigned>(this->m_A.m_columns[j].size());
                     choice = k;
                     nchoices = 1;
                 } 
@@ -640,7 +640,7 @@ namespace lp {
         vector<X> &b,  // the right side vector
         vector<X> &x,  // the number of elements in x needs to be at least as large
                        // as the number of columns in A
-        vector<unsigned> &basis, vector<unsigned> &nbasis, vector<int> &heading,
+        vector<unsigned> &basis, vector<unsigned> &nbasis, std_vector<int> &heading,
         vector<T> &costs, const vector<column_type> &column_type_array,
         const vector<X> &lower_bound_values, const vector<X> &upper_bound_values,
         lp_settings &settings, const column_namer &column_names)

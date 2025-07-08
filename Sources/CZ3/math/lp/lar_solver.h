@@ -311,6 +311,7 @@ public:
 
     inline void restore_x() { m_mpq_lar_core_solver.m_r_x = m_backup_x; }
 
+    std::function<void(lpvar)> m_fixed_var_eh;
     template <typename T>
     void explain_implied_bound(const implied_bound& ib, lp_bound_propagator<T>& bp) {
         u_dependency* dep = ib.explain_implied();
@@ -346,6 +347,20 @@ public:
     void set_value_for_nbasic_column(unsigned j, const impq& new_val);
 
     void remove_fixed_vars_from_base();
+    /**
+     * \brief set j to basic (if not already basic)
+     * return the rest of the row as t comprising of non-fixed variables and coeff as sum of fixed variables.
+     * return false if j has no rows.
+     */
+
+    struct solution {
+        unsigned j;
+        lar_term t;
+    };
+
+    void solve_for(unsigned_vector const& js, vector<solution>& sol);
+    void check_fixed(unsigned j);
+    void solve_for(unsigned j, uint_set& tabu, vector<solution>& sol);
 
     inline unsigned get_base_column_in_row(unsigned row_index) const {
         return m_mpq_lar_core_solver.m_r_solver.get_base_column_in_row(row_index);
@@ -390,6 +405,10 @@ public:
                 }
     }
 
+    
+    public:
+    std::function<void (const lar_term*)> m_add_term_callback;
+    std::function<void (unsigned)> m_update_column_bound_callback;  
     bool external_is_used(unsigned) const;
     void pop(unsigned k);
     unsigned num_scopes() const { return m_trail.get_num_scopes(); }
@@ -495,7 +514,7 @@ public:
     u_dependency_manager& dep_manager() { return m_dependencies; }
 
     inline u_dependency* get_column_upper_bound_witness(unsigned j) const {
-         return m_columns[j].upper_bound_witness();
+        return m_columns[j].upper_bound_witness();
     }
 
     inline const impq& get_upper_bound(lpvar j) const {
@@ -512,6 +531,8 @@ public:
     
     bool has_lower_bound(lpvar var, u_dependency*& ci, mpq& value, bool& is_strict) const;
     bool has_upper_bound(lpvar var, u_dependency*& ci, mpq& value, bool& is_strict) const;
+    bool has_bound_of_type(lpvar var, u_dependency*& ci, mpq& value, bool& is_strict, bool is_upper) const;
+  
     bool has_value(lpvar var, mpq& value) const;
     bool fetch_normalized_term_column(const lar_term& t, std::pair<mpq, lpvar>&) const;
     bool column_is_fixed(unsigned j) const;
@@ -576,6 +597,15 @@ public:
         }
         return dep;
     }
+
+    std::ostream& print_expl(std::ostream& out, const explanation& exp) const {
+        for (auto p : exp)
+            constraints().display(
+                out, [this](lpvar j) { return get_variable_name(j); }, p.ci());
+        return out;
+    }
+
+    void explain_fixed_column(unsigned j, explanation& ex);
     u_dependency* join_deps(u_dependency* a, u_dependency *b) { return m_dependencies.mk_join(a, b); }
     inline constraint_set const& constraints() const { return m_constraints; }
     void push();
@@ -585,21 +615,32 @@ public:
         return m_columns[j].lower_bound_witness();
     }
     inline bool column_has_term(lpvar j) const { return m_columns[j].term() != nullptr; }
-    inline std::ostream& print_column_info(unsigned j, std::ostream& out) const {
-        m_mpq_lar_core_solver.m_r_solver.print_column_info(j, out);
-        if (column_has_term(j)) {
-            print_term_as_indices(get_term(j), out) << "\n";
 
-        } else if (column_has_term(j)) {
-            const lar_term& t = get_term(m_var_register.local_to_external(j));
-            print_term_as_indices(t, out) << "\n";
-        }
+    std::ostream& print_column_info(unsigned j, std::ostream& out) const {
+        m_mpq_lar_core_solver.m_r_solver.print_column_info(j, out);
+        if (column_has_term(j)) 
+            print_term_as_indices(get_term(j), out) << "\n";       
+        display_column_explanation(out, j);
+        return out;
+    }
+
+    std::ostream& display_column_explanation(std::ostream& out, unsigned j) const {
+        const column& ul = m_columns[j];
+        svector<unsigned> vs1, vs2;
+        m_dependencies.linearize(ul.lower_bound_witness(), vs1);
+        m_dependencies.linearize(ul.upper_bound_witness(), vs2);
+        if (!vs1.empty())
+            out << "lo: " << vs1;
+        if (!vs2.empty())
+            out << "hi: " << vs2;
+        if (!vs1.empty() || !vs2.empty())
+            out << "\n";
         return out;
     }
 
     void subst_known_terms(lar_term*);
 
-    inline std::ostream& print_column_bound_info(unsigned j, std::ostream& out) const {
+    std::ostream& print_column_bound_info(unsigned j, std::ostream& out) const {
         return m_mpq_lar_core_solver.m_r_solver.print_column_bound_info(j, out);
     }
 
@@ -618,6 +659,7 @@ public:
     inline int_solver* get_int_solver() { return m_int_solver; }
     inline const int_solver* get_int_solver() const { return m_int_solver; }
     inline const lar_term& get_term(lpvar j) const {
+        SASSERT(column_has_term(j));
         return *m_columns[j].term();
     }
     lp_status find_feasible_solution();
@@ -639,7 +681,7 @@ public:
     bool ax_is_correct() const;
     bool get_equality_and_right_side_for_term_on_current_x(lpvar j, mpq& rs, u_dependency*& ci, bool& upper_bound) const;
     bool var_is_int(lpvar v) const;
-    inline const vector<int>& r_heading() const { return m_mpq_lar_core_solver.m_r_heading; }
+    inline const std_vector<int>& r_heading() const { return m_mpq_lar_core_solver.m_r_heading; }
     inline const vector<unsigned>& r_basis() const { return m_mpq_lar_core_solver.r_basis(); }
     inline const vector<unsigned>& r_nbasis() const { return m_mpq_lar_core_solver.r_nbasis(); }
     inline bool column_is_real(unsigned j) const { return !column_is_int(j); }

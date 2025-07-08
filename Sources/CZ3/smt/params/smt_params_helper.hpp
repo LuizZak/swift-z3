@@ -63,6 +63,10 @@ struct smt_params_helper {
     d.insert("bv.solver", CPK_UINT, "bit-vector solver engine: 0 - bit-blasting, 1 - polysat, 2 - intblast, requires sat.smt=true", "0","smt");
     d.insert("arith.random_initial_value", CPK_BOOL, "use random initial values in the simplex-based procedure for linear arithmetic", "false","smt");
     d.insert("arith.solver", CPK_UINT, "arithmetic solver: 0 - no solver, 1 - bellman-ford based solver (diff. logic only), 2 - simplex based solver, 3 - floyd-warshall based solver (diff. logic only) and no theory combination 4 - utvpi, 5 - infinitary lra, 6 - lra solver", "6","smt");
+    d.insert("arith.lp.dio_eqs", CPK_BOOL, "use Diophantine equalities", "false","smt");
+    d.insert("arith.lp.dio_branching_period", CPK_UINT, "Period of calling branching on undef in Diophantine handler", "100","smt");
+    d.insert("arith.lp.dio_cuts_enable_gomory", CPK_BOOL, "enable Gomory cuts together with Diophantine cuts, only relevant when dioph_eq is true", "false","smt");
+    d.insert("arith.lp.dio_cuts_enable_hnf", CPK_BOOL, "enable hnf cuts together with Diophantine cuts, only relevant when dioph_eq is true", "true","smt");
     d.insert("arith.nl", CPK_BOOL, "(incomplete) nonlinear arithmetic support based on Groebner basis and interval propagation, relevant only if smt.arith.solver=2", "true","smt");
     d.insert("arith.nl.nra", CPK_BOOL, "call nra_solver when incremental linearization does not produce a lemma, this option is ignored when arith.nl=false, relevant only if smt.arith.solver=6", "true","smt");
     d.insert("arith.nl.branching", CPK_BOOL, "branching on integer variables in non linear clusters", "true","smt");
@@ -109,7 +113,7 @@ struct smt_params_helper {
     d.insert("arith.print_ext_var_names", CPK_BOOL, "print external variable names", "false","smt");
     d.insert("pb.conflict_frequency", CPK_UINT, "conflict frequency for Pseudo-Boolean theory", "1000","smt");
     d.insert("pb.learn_complements", CPK_BOOL, "learn complement literals for Pseudo-Boolean theory", "true","smt");
-    d.insert("up.persist_clauses", CPK_BOOL, "replay propagated clauses below the levels they are asserted", "true","smt");
+    d.insert("up.persist_clauses", CPK_BOOL, "replay propagated clauses below the levels they are asserted", "false","smt");
     d.insert("array.weak", CPK_BOOL, "weak array theory", "false","smt");
     d.insert("array.extensional", CPK_BOOL, "extensional array theory", "true","smt");
     d.insert("clause_proof", CPK_BOOL, "record a clausal proof", "false","smt");
@@ -211,6 +215,10 @@ struct smt_params_helper {
   unsigned bv_solver() const { return p.get_uint("bv.solver", g, 0u); }
   bool arith_random_initial_value() const { return p.get_bool("arith.random_initial_value", g, false); }
   unsigned arith_solver() const { return p.get_uint("arith.solver", g, 6u); }
+  bool arith_lp_dio_eqs() const { return p.get_bool("arith.lp.dio_eqs", g, false); }
+  unsigned arith_lp_dio_branching_period() const { return p.get_uint("arith.lp.dio_branching_period", g, 100u); }
+  bool arith_lp_dio_cuts_enable_gomory() const { return p.get_bool("arith.lp.dio_cuts_enable_gomory", g, false); }
+  bool arith_lp_dio_cuts_enable_hnf() const { return p.get_bool("arith.lp.dio_cuts_enable_hnf", g, true); }
   bool arith_nl() const { return p.get_bool("arith.nl", g, true); }
   bool arith_nl_nra() const { return p.get_bool("arith.nl.nra", g, true); }
   bool arith_nl_branching() const { return p.get_bool("arith.nl.branching", g, true); }
@@ -257,7 +265,7 @@ struct smt_params_helper {
   bool arith_print_ext_var_names() const { return p.get_bool("arith.print_ext_var_names", g, false); }
   unsigned pb_conflict_frequency() const { return p.get_uint("pb.conflict_frequency", g, 1000u); }
   bool pb_learn_complements() const { return p.get_bool("pb.learn_complements", g, true); }
-  bool up_persist_clauses() const { return p.get_bool("up.persist_clauses", g, true); }
+  bool up_persist_clauses() const { return p.get_bool("up.persist_clauses", g, false); }
   bool array_weak() const { return p.get_bool("array.weak", g, false); }
   bool array_extensional() const { return p.get_bool("array.extensional", g, true); }
   bool clause_proof() const { return p.get_bool("clause_proof", g, false); }

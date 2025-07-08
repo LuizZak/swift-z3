@@ -1142,10 +1142,13 @@ namespace smt {
         for (unsigned i = 0; i < num_lits; i++) {
             literal curr = lits[i];
             lbool   val  = get_assignment(curr);
-            switch(val) {
+            switch (val) {
             case l_false:
                 TRACE("simplify_aux_clause_literals", display_literal_verbose(tout << get_assign_level(curr) << " " << get_scope_level() << " " << curr << ":", curr); tout << "\n"; );
-                simp_lits.push_back(~curr);
+                if (curr != prev) {
+                    prev = curr;
+                    simp_lits.push_back(~curr);
+                }
                 break; // ignore literal                
                 // fall through
             case l_undef:
@@ -1396,8 +1399,7 @@ namespace smt {
             DEBUG_CODE(for (literal lit : simp_lits) SASSERT(get_assignment(lit) == l_true););
             if (!simp_lits.empty()) {
                 j = mk_justification(unit_resolution_justification(*this, j, simp_lits.size(), simp_lits.data()));
-            }
-              
+            }            
             break;
         }
         case CLS_TH_LEMMA:
@@ -1423,6 +1425,7 @@ namespace smt {
         unsigned activity = 1;
         bool  lemma = is_lemma(k);
         m_stats.m_num_mk_lits += num_lits;
+
         switch (num_lits) {
         case 0:
             if (j && !j->in_region())
@@ -1431,12 +1434,14 @@ namespace smt {
             set_conflict(j == nullptr ? b_justification::mk_axiom() : b_justification(j));
             SASSERT(inconsistent());
             return nullptr;
-        case 1:
+        case 1: {
+            literal unit = lits[0];
             if (j && !j->in_region())
                 m_justifications.push_back(j);
-            assign(lits[0], j);
-            inc_ref(lits[0]);
+            assign(unit, j);
+            inc_ref(unit);
             return nullptr;
+        }
         case 2:
             if (use_binary_clause_opt(lits[0], lits[1], lemma)) {
                 literal l1 = lits[0];

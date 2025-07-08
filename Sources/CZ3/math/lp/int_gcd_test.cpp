@@ -100,14 +100,7 @@ namespace lp {
         }
         return true;
     }
-    
-    static mpq get_denominators_lcm(const row_strip<mpq> & row) {
-        mpq r(1);
-        for (auto & c : row) 
-            r = lcm(r, denominator(c.coeff()));
-        return r;
-    }
-    
+        
     bool int_gcd_test::gcd_test_for_row(const static_matrix<mpq, numeric_pair<mpq>> & A, unsigned i) {
         auto const& row = A.m_rows[i];
         unsigned basic_var = lra.r_basis()[i];
@@ -252,7 +245,7 @@ namespace lp {
     void int_gcd_test::add_to_explanation_from_fixed_or_boxed_column(unsigned j) {
         auto* deps = lra.get_bound_constraint_witnesses_for_column(j);
         for (auto d : lra.flatten(deps))
-            lia.m_ex->push_back(d);
+            lia.expl()->push_back(d);
     }
 
     bool int_gcd_test::accumulate_parity(const row_strip<mpq> & row, unsigned least_idx) {

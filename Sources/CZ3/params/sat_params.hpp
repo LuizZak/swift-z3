@@ -79,7 +79,6 @@ struct sat_params {
     d.insert("local_search_threads", CPK_UINT, "number of local search threads to find satisfiable solution", "0","sat");
     d.insert("local_search_mode", CPK_SYMBOL, "local search algorithm, either default wsat or qsat", "wsat","sat");
     d.insert("local_search_dbg_flips", CPK_BOOL, "write debug information for number of flips", "false","sat");
-    d.insert("binspr", CPK_BOOL, "enable SPR inferences of binary propagation redundant clauses. This inprocessing step eliminates models", "false","sat");
     d.insert("anf", CPK_BOOL, "enable ANF based simplification in-processing", "false","sat");
     d.insert("anf.delay", CPK_UINT, "delay ANF simplification by in-processing round", "2","sat");
     d.insert("anf.exlin", CPK_BOOL, "enable extended linear simplification", "false","sat");
@@ -184,7 +183,6 @@ struct sat_params {
   unsigned local_search_threads() const { return p.get_uint("local_search_threads", g, 0u); }
   symbol local_search_mode() const { return p.get_sym("local_search_mode", g, symbol("wsat")); }
   bool local_search_dbg_flips() const { return p.get_bool("local_search_dbg_flips", g, false); }
-  bool binspr() const { return p.get_bool("binspr", g, false); }
   bool anf() const { return p.get_bool("anf", g, false); }
   unsigned anf_delay() const { return p.get_uint("anf.delay", g, 2u); }
   bool anf_exlin() const { return p.get_bool("anf.exlin", g, false); }

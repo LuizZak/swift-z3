@@ -15,6 +15,8 @@ struct tactic_params {
     d.insert("blast_term_ite.max_inflation", CPK_UINT, "multiplicative factor of initial term size.", "4294967295","tactic");
     d.insert("blast_term_ite.max_steps", CPK_UINT, "maximal number of steps allowed for tactic.", "4294967295","tactic");
     d.insert("propagate_values.max_rounds", CPK_UINT, "maximal number of rounds to propagate values.", "4","tactic");
+    d.insert("lia2card.max_range", CPK_UINT, "maximal range of integers to compilation into Booleans", "100","tactic");
+    d.insert("lia2card.max_ite_nesting", CPK_UINT, "maximal nesting depth for ite expressions to be compiled into PB constraints", "4","tactic");
     d.insert("default_tactic", CPK_SYMBOL, "overwrite default tactic in strategic solver", "","tactic");
   }
   /*
@@ -28,5 +30,7 @@ struct tactic_params {
   unsigned blast_term_ite_max_inflation() const { return p.get_uint("blast_term_ite.max_inflation", g, 4294967295u); }
   unsigned blast_term_ite_max_steps() const { return p.get_uint("blast_term_ite.max_steps", g, 4294967295u); }
   unsigned propagate_values_max_rounds() const { return p.get_uint("propagate_values.max_rounds", g, 4u); }
+  unsigned lia2card_max_range() const { return p.get_uint("lia2card.max_range", g, 100u); }
+  unsigned lia2card_max_ite_nesting() const { return p.get_uint("lia2card.max_ite_nesting", g, 4u); }
   symbol default_tactic() const { return p.get_sym("default_tactic", g, symbol("")); }
 };

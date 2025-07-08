@@ -22,6 +22,16 @@ Revision History:
 #include "util/trace.h"
 
 namespace sat {
+
+    // move to util.h
+    template<typename S, typename P>
+    unsigned num_true(S const& set, P const& p) {
+        unsigned r = 0;
+        for (auto const& e : set)
+            if (p(e))
+                r++;
+        return r;
+    }
     
     integrity_checker::integrity_checker(solver const & _s):
         s(_s) {
@@ -45,6 +55,7 @@ namespace sat {
     }
 
     bool integrity_checker::check_clause(clause const & c) const {
+        CTRACE("sat_bug", c.was_removed(), s.display(tout << "c: " << c.id() << ": " << c << "\n"));
         SASSERT(!c.was_removed());
         for (unsigned i = 0; i < c.size(); i++) {
             VERIFY(c[i].var() <= s.num_vars());
@@ -100,13 +111,7 @@ namespace sat {
     }
 
     bool integrity_checker::check_learned_clauses() const {
-        unsigned num_frozen = 0;
-        clause * const * end = s.end_clauses();
-        for (clause * const * it = s.begin_clauses(); it != end; ++it) {
-            clause & c = *(*it);
-            if (c.frozen())
-                num_frozen++;
-        }
+        unsigned num_frozen = num_true(s.learned(), [&](clause const* c) { return c->frozen(); });
         VERIFY(num_frozen == s.m_num_frozen);
         return check_clauses(s.begin_learned(), s.end_learned());
     }

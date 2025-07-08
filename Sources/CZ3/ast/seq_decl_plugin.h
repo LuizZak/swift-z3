@@ -424,6 +424,7 @@ public:
         MATCH_UNARY(is_unit);
 
         void get_concat(expr* e, expr_ref_vector& es) const;
+        void get_concat(expr* e, ptr_vector<expr>& es) const;
         void get_concat_units(expr* e, expr_ref_vector& es) const;
         expr* get_leftmost_concat(expr* e) const { expr* e1, *e2; while (is_concat(e, e1, e2)) e = e1; return e; }
         expr* get_rightmost_concat(expr* e) const { expr* e1, *e2; while (is_concat(e, e1, e2)) e = e2; return e; }
@@ -593,6 +594,7 @@ public:
         info get_info(expr* r) const;
         std::string to_str(expr* r) const;
         std::string to_strh(expr* r) const;
+        bool is_ground(expr* r) const { return get_info(r).interpreted; }
 
         expr_ref mk_ite_simplify(expr* c, expr* t, expr* e)
         {
@@ -634,6 +636,7 @@ public:
     }
 
     family_id get_family_id() const { return m_fid; }
+    family_id get_char_family_id() const { return ch.get_family_id(); }
 };
 
 inline std::ostream& operator<<(std::ostream& out, seq_util::rex::pp const & p) { return p.display(out); }

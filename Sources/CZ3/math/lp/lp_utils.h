@@ -86,8 +86,22 @@ bool is_non_decreasing(const K& v) {
 
 template <typename T>
 std::ostream& print_linear_combination_customized(const vector<std::pair<T, unsigned>> & coeffs, std::function<std::string (unsigned)> var_str, std::ostream & out) {
+    if (coeffs.size() == 0) {
+        out << "0";
+        return out;
+    }
+    // Copy term to a std_vector and sort by p.j()
+    std_vector<std::pair<T, unsigned>> sorted_coeffs;
+    sorted_coeffs.reserve(coeffs.size());
+    for (const auto& p : coeffs) {
+        sorted_coeffs.emplace_back(p.first, p.second);
+    }
+    std::sort(sorted_coeffs.begin(), sorted_coeffs.end(), 
+             [](const auto& a, const auto& b) { return a.second < b.second; });
+
+    // Print the sorted term
     bool first = true;
-    for (const auto & it : coeffs) {
+    for (const auto & it : sorted_coeffs) {
         T val = it.first;
         if (first) {
             first = false;

@@ -55,8 +55,8 @@ namespace smt {
             unsigned m_num_restart_sls = 0;
         };
         stats m_stats;
-        model_ref m_model;
-        sls::smt_plugin* m_smt_plugin = nullptr;
+        mutable model_ref m_model;
+        mutable sls::smt_plugin* m_smt_plugin = nullptr;
         unsigned m_trail_lim = 0;
         bool m_checking = false;
         bool m_parallel_mode = true;
@@ -65,17 +65,21 @@ namespace smt {
         unsigned m_restart_ls_steps_inc = 10000;
         unsigned m_restart_ls_steps_max = 300000;
         unsigned m_final_check_ls_steps = 30000;
-        unsigned m_final_check_ls_steps_dec = 10000;
+        unsigned m_final_check_ls_steps_delta = 10000;
         unsigned m_final_check_ls_steps_min = 10000;
+        unsigned m_final_check_ls_steps_max = 30000;
         bool     m_has_unassigned_clause_after_resolve = false;
         unsigned m_after_resolve_decide_gap = 4;
         unsigned m_after_resolve_decide_count = 0;
         unsigned m_resolve_count = 0;
         unsigned m_resolve_gap = 0;
-        ::statistics m_st;
+        unsigned m_max_propagation_scope = 0;
+        unsigned m_propagation_scope = 0;
+        mutable bool     m_init_search = false;
+        mutable ::statistics m_st;
         vector<sat::literal_vector> m_shared_clauses;
 
-        void finalize();
+
         void bounded_run(unsigned num_steps);
         void inc_restart_ls_steps() {
             if (m_restart_ls_steps < m_restart_ls_steps_max)
@@ -83,7 +87,7 @@ namespace smt {
         }
         void dec_final_check_ls_steps() {
             if (m_final_check_ls_steps > m_final_check_ls_steps_min)
-                m_final_check_ls_steps -= m_final_check_ls_steps_dec;
+                m_final_check_ls_steps -= m_final_check_ls_steps_delta;
         }
 
         bool shared_clauses_are_true() const;
@@ -91,10 +95,14 @@ namespace smt {
         void propagate_local_search();
 
         void run_guided_sls();
+        void finalize() const;
+
+        void update_propagation_scope();
 
     public:
         theory_sls(context& ctx);
         ~theory_sls() override;
+
         model_ref get_model() { return m_model; }
 
         // smt::theory interface
@@ -125,6 +133,7 @@ namespace smt {
         void inc_activity(sat::bool_var v, double inc) override;
         bool parallel_mode() const override { return m_parallel_mode; }
         bool get_smt_value(expr* v, expr_ref& value) override;
+        void init_search_eh() override;
 
     };
 

@@ -104,7 +104,7 @@ namespace smt {
     */
 
     bool context::get_cancel_flag() {
-        if (l_true == m_sls_completed && !m.limit().suspended()) {
+        if (l_true == m_internal_completed && !m.limit().suspended()) {
             m_last_search_failure = CANCELED;
             return true;
         }
@@ -2321,6 +2321,8 @@ namespace smt {
                         });
                         literal l(v, sign);
                         cls->set_literal(j, l);
+                        if (cls->get_kind() == CLS_TH_LEMMA)
+                            mark_as_relevant(l);
                     }
                     SASSERT(ilvl <= m_scope_lvl);
                     int w1_idx = select_watch_lit(cls, 0);
@@ -2349,6 +2351,10 @@ namespace smt {
                     SASSERT(!cls->reinternalize_atoms());
                     literal l1 = cls->get_literal(0);
                     literal l2 = cls->get_literal(1);
+                    if (cls->get_kind() == CLS_TH_LEMMA) {
+                        mark_as_relevant(l1);
+                        mark_as_relevant(l2);
+                    }
                     if (get_assignment(l1) == l_false && is_empty_clause(cls)) {
                         set_conflict(b_justification(cls));
                         keep = true;
@@ -2381,7 +2387,7 @@ namespace smt {
         unsigned i  = units_to_reassert_lim;
         unsigned sz = m_units_to_reassert.size();
         for (; i < sz; i++) {
-            auto& [unit, sign, is_relevant] = m_units_to_reassert[i];
+            auto [unit, sign, is_relevant] = m_units_to_reassert[i];
             bool gate_ctx = true;
             internalize(unit, gate_ctx);
             bool_var v    = get_bool_var(unit);
@@ -2389,7 +2395,7 @@ namespace smt {
             assign(l, b_justification::mk_axiom());
             if (is_relevant)
                 mark_as_relevant(l);
-            TRACE("reassert_units", tout << "reasserting #" << unit->get_id() << " " << sign << " @ " << m_scope_lvl << "\n";);
+            TRACE("reassert_units", tout << "reasserting #" << unit->get_id() << " " << sign << " @ " << m_scope_lvl << "\n";);            
         }
         if (at_base_level()) 
             m_units_to_reassert.reset();        
@@ -2477,7 +2483,6 @@ namespace smt {
         catch (...) {
             // throwing inside pop is just not cool.
             UNREACHABLE();
-            throw;
         }
 
         // an exception can happen when axioms are reinitialized (because they are rewritten).
@@ -3507,14 +3512,16 @@ namespace smt {
         TRACE("after_search", display(tout << "result: " << r << "\n");
               m_case_split_queue->display(tout << "case splits\n");
               );
+        m_search_finalized = true;
         display_profile(verbose_stream());
         if (r == l_true && get_cancel_flag()) 
             r = l_undef;
-        if (r == l_undef && m_sls_completed == l_true && has_sls_model()) {
+        if (r == l_undef && m_internal_completed == l_true && has_sls_model()) {
             m_last_search_failure = OK;
+            m_conflict = null_b_justification;
             r = l_true;
         }
-        m_sls_completed = l_false;
+        m_internal_completed = l_false;
         if (r == l_true && gparams::get_value("model_validate") == "true") {
             recfun::util u(m);
             if (u.get_rec_funs().empty() && m_proto_model) {
@@ -3632,6 +3639,7 @@ namespace smt {
             return check(0, nullptr, reset_cancel);
         }
         else {
+            search_completion sc(*this);
             TRACE("before_search", display(tout););
             return check_finalize(search());
         }
@@ -3679,6 +3687,7 @@ namespace smt {
         if (!check_preamble(reset_cancel)) return l_undef;
         SASSERT(at_base_level());
         setup_context(false);
+        search_completion sc(*this);
         if (m_fparams.m_threads > 1 && !m.has_trace_stream()) {            
             expr_ref_vector asms(m, num_assumptions, assumptions);
             parallel p(*this);
@@ -3710,6 +3719,7 @@ namespace smt {
         TRACE("before_search", display(tout););
         setup_context(false);
         lbool r = l_undef;
+        search_completion sc(*this);
         do {
             pop_to_base_lvl();
             expr_ref_vector asms(cube);
@@ -3754,7 +3764,7 @@ namespace smt {
         m_phase_default                = false;
         m_case_split_queue             ->init_search_eh();
         m_next_progress_sample         = 0;
-        m_sls_completed                = l_undef;
+        m_internal_completed                = l_undef;
         if (m.has_type_vars() && !m_theories.get_plugin(poly_family_id))
             register_plugin(alloc(theory_polymorphism, *this));
         TRACE("literal_occ", display_literal_num_occs(tout););
@@ -4654,6 +4664,12 @@ namespace smt {
         if (th == nullptr)
             return false;
         return th->get_value(n, value);
+    }   
+
+    void context::solve_for(vector<solution>& sol) {
+        for (auto th : m_theories)
+            if (th)
+                th->solve_for(sol);
     }
 
     bool context::update_model(bool refinalize) {
@@ -4716,11 +4732,13 @@ namespace smt {
     }
 
     void context::get_model(model_ref & mdl) {
-        if (inconsistent()) 
+        if (inconsistent())
             mdl = nullptr;
-        else if (m_model.get()) 
+        else if (m_model.get())
             mdl = m_model.get();
         else if (!m.inc())
+            mdl = nullptr;
+        else if (!m_search_finalized)
             mdl = nullptr;
         else {
             mk_proto_model();
@@ -4776,7 +4794,9 @@ namespace smt {
 
     void context::add_rec_funs_to_model() {
         model_params p;
-        if (m_model && p.user_functions())
+        auto smtlib2_compliant = gparams::get_value("smtlib2_compliant");
+        
+        if (m_model && p.user_functions() && smtlib2_compliant != "true")
             m_model->add_rec_funs();
     }
 

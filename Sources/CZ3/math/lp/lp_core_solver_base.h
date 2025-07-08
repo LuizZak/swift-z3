@@ -79,7 +79,7 @@ public:
     // vector<X> const &           m_b; // the right side
     vector<unsigned> &    m_basis;
     vector<unsigned>&     m_nbasis;
-    vector<int>&          m_basis_heading;
+    std_vector<int>&      m_basis_heading;
     vector<X> &           m_x; // a feasible solution, the first time set in the constructor
     vector<T> &           m_costs;
     lp_settings &         m_settings;
@@ -124,7 +124,7 @@ public:
                         //vector<X> & b, // the right side vector
                         vector<unsigned> & basis,
                         vector<unsigned> & nbasis,
-                        vector<int> & heading,
+                        std_vector<int> & heading,
                         vector<X> & x,
                         vector<T> & costs,
                         lp_settings & settings,
@@ -347,7 +347,7 @@ public:
 
     void init_non_basic_part_of_basis_heading() {
         this->m_nbasis.clear();
-        for (int j = m_basis_heading.size(); j--;){
+        for (unsigned j = static_cast<unsigned>(m_basis_heading.size()); j--;){
             if (m_basis_heading[j] < 0) {
                 m_nbasis.push_back(j);
                 // the index of column j in m_nbasis is (- basis_heading[j] - 1)
@@ -516,8 +516,8 @@ public:
     }
 
     
-    template <typename K>
-    static void swap(vector<K> &v, unsigned i, unsigned j) noexcept {
+    template <typename R>
+    void swap(R &v, unsigned i, unsigned j) noexcept {
         auto t = v[i];
         v[i] = v[j];
         v[j] = t;

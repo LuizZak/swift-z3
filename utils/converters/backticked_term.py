@@ -17,6 +17,7 @@ SWIFT_KEYWORDS = [
     "struct",
     "var",
     "while",
+    "internal",
 ]
 "List of Swift keywords that generators should avoid using without `backticks`"
 

@@ -406,7 +406,7 @@ public:
         unsigned n = static_cast<unsigned>(sorted_vars.size());
 
         while (num_cuts-- && n > 0) {
-            unsigned k = lia.random() % n;
+            unsigned k = lia.settings().random_next() % n;
            
             double k_ratio = k / (double) n;
             k_ratio *= k_ratio*k_ratio;  // square k_ratio to make it smaller
@@ -470,10 +470,10 @@ public:
             if (!p.coeff().is_int()) continue;
             // the explanation for all above have been already added
             if (lia.at_lower(j))
-                ret = lia.lra.dep_manager().mk_join(lia.column_lower_bound_constraint(j), ret);
+                ret = lia.lra.join_deps(lia.column_lower_bound_constraint(j), ret);
             else {
                 SASSERT(lia.at_upper(j));
-                ret = lia.lra.dep_manager().mk_join(lia.column_upper_bound_constraint(j), ret);
+                ret = lia.lra.join_deps(lia.column_upper_bound_constraint(j), ret);
             }
         }
         return ret;
@@ -496,7 +496,7 @@ public:
         auto _check_feasible = [&](void) {
             lra.find_feasible_solution();
             if (!lra.is_feasible() && !lia.settings().get_cancel_flag()) {
-                lra.get_infeasibility_explanation(*lia.m_ex);
+                lra.get_infeasibility_explanation(*(lia.expl()));
                 return false;
             }
             return true;
@@ -507,7 +507,7 @@ public:
             SASSERT(is_gomory_cut_target(j));
             unsigned row_index = lia.row_of_basic_column(j);
             const row_strip<mpq>& row = lra.get_row(row_index);
-            create_cut cc(lia.m_t, lia.m_k, lia.m_ex, j, row, lia);
+            create_cut cc(lia.get_term(), lia.offset(), lia.expl(), j, row, lia);
             auto r = cc.cut();
             if (r != lia_move::cut) {
                 if (r == lia_move::conflict)
@@ -520,7 +520,7 @@ public:
             else if (cc.m_polarity == row_polarity::MIN)
                 lra.update_column_type_and_bound(j, lp::lconstraint_kind::GE, ceil(lra.get_column_value(j).x), add_deps(cc.m_dep, row, j));
             
-            if (!is_small_cut(lia.m_t)) {
+            if (!is_small_cut(lia.get_term())) {
                 big_cuts.push_back({cc.m_t, cc.m_k, cc.m_dep});
                 continue;
             }
@@ -548,7 +548,7 @@ public:
         if (lra.get_status() == lp_status::CANCELLED)
             return lia_move::cancelled;        
         
-        if (!lia.has_inf_int())
+        if (!lra.has_inf_int())
             return lia_move::sat;
 
         if (has_small_cut || big_cuts.size())

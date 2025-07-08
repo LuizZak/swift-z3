@@ -93,6 +93,7 @@ namespace smt {
         bool get_upper(enode* n, expr_ref& r);
         bool get_lower(enode* n, rational& r, bool& is_strict);
         bool get_upper(enode* n, rational& r, bool& is_strict);
+        void solve_for(vector<solution>& s) override;
                 
         void display(std::ostream & out) const override;
         

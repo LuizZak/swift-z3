@@ -15,7 +15,6 @@ Author:
 
 Todo:
 
-- try incremental CC with backtracking for changing assignments
 - try determining plateau moves.
 - try generally a model rotation move.
     
@@ -53,11 +52,9 @@ namespace sls {
     void euf_plugin::register_term(expr* e) {
         if (!is_app(e))
             return;
-        if (!is_uninterp(e))
-            return;
         app* a = to_app(e);
-        if (a->get_num_args() == 0)
-            return;
+        if (!ctx.check_ackerman(a)) 
+            return;               
         auto f = a->get_decl();
         if (!m_app.contains(f))
             m_app.insert(f, ptr_vector<app>());
@@ -91,7 +88,7 @@ namespace sls {
         g.explain<size_t>(explain, nullptr);
         g.end_explain();
         double reward = -1;
-        TRACE("enf",
+        TRACE("euf",
             for (auto p : explain) {
                 sat::literal l = to_literal(p);
                 tout << l << " " << mk_pp(ctx.atom(l.var()), m) << " " << ctx.is_unit(l) << "\n";
@@ -198,8 +195,6 @@ namespace sls {
             g.mk(m.mk_true(), 0, 0, nullptr);
         if (!g.find(m.mk_false()))
             g.mk(m.mk_false(), 0, 0, nullptr);
-
-        // merge all equalities
         // check for conflict with disequalities during propagation
         if (merge_eqs) {
             TRACE("euf", tout << "root literals " << ctx.root_literals() << "\n");
@@ -280,7 +275,7 @@ namespace sls {
     void euf_plugin::validate_model() {
         auto& g = *m_g;
         for (auto lit : ctx.root_literals()) {
-                euf::enode* a, * b;
+                euf::enode* a = nullptr, * b = nullptr;
                 if (!ctx.is_true(lit))
                     continue;
                 auto e = ctx.atom(lit.var());
@@ -344,8 +339,8 @@ namespace sls {
                         verbose_stream() << ctx.get_value(t->get_arg(i)) << " == " << ctx.get_value(u->get_arg(i)) << "\n";
 #endif
                     expr_ref fml(m.mk_or(ors), m);
-                    ctx.add_constraint(fml);
-                    new_constraint = true;
+                    if (ctx.add_constraint(fml))
+                        new_constraint = true;
                     
                 }
                 else
@@ -371,8 +366,8 @@ namespace sls {
                 }
                 // distinct(a, b, c) or a = b or a = c or b = c
                 eqs.push_back(e);
-                ctx.add_constraint(m.mk_or(eqs));
-                new_constraint = true;
+                if (ctx.add_constraint(m.mk_or(eqs)))
+                    new_constraint = true;
             done_distinct:
                 ;
             }

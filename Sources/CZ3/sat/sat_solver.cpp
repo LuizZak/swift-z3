@@ -54,7 +54,6 @@ namespace sat {
         m_asymm_branch(*this, p),
         m_probing(*this, p),
         m_mus(*this),
-        m_binspr(*this),
         m_inconsistent(false),
         m_searching(false),
         m_conflict(justification(0)),
@@ -90,7 +89,7 @@ namespace sat {
 
     solver::~solver() {
         m_ext = nullptr;
-        SASSERT(m_config.m_num_threads > 1 || m_trim || check_invariant());
+        SASSERT(m_config.m_num_threads > 1 || m_trim || rlimit().is_canceled() || check_invariant());
         CTRACE("sat", !m_clauses.empty(), tout << "Delete clauses\n";);
         del_clauses(m_clauses);
         CTRACE("sat", !m_learned.empty(), tout << "Delete learned\n";);
@@ -2099,10 +2098,6 @@ namespace sat {
             m_par->to_solver(*this);
         }
 
-        if (m_config.m_binspr && !inconsistent()) {
-            m_binspr();
-        }
-
         if (m_config.m_anf_simplify && m_simplifications > m_config.m_anf_delay && !inconsistent()) {
             anf_simplifier anf(*this);
             anf_simplifier::config cfg;
@@ -3876,7 +3871,10 @@ namespace sat {
     //
     // -----------------------
     bool solver::check_invariant() const {
-        if (!m_rlimit.inc()) return true;
+        if (!m_rlimit.inc()) 
+            return true;
+        if (m_simplifier.need_cleanup())
+            return true;
         integrity_checker checker(*this);
         VERIFY(checker());
         VERIFY(!m_ext || m_ext->validate());

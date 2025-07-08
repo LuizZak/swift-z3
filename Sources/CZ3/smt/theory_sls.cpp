@@ -58,7 +58,7 @@ namespace smt {
     }
     
     void theory_sls::set_finished() {
-        ctx.set_sls_completed();     
+        ctx.set_internal_completed();     
     }
 
     bool theory_sls::get_smt_value(expr* v, expr_ref& value) {
@@ -76,19 +76,24 @@ namespace smt {
         return ctx.get_num_bool_vars();
     }
 
-    void theory_sls::finalize() {
+    void theory_sls::init_search_eh() {
+        m_init_search = true;
+    }
+
+    void theory_sls::finalize() const {
         if (!m_smt_plugin)
             return;
-
-        m_smt_plugin->collect_statistics(m_st);
-        m_smt_plugin->finalize(m_model);
+        m_smt_plugin->finalize(m_model, m_st);
         m_model = nullptr;
         m_smt_plugin = nullptr;        
+        m_init_search = false;
     }
 
     void theory_sls::propagate() {
-        if (!m_smt_plugin)
+        if (!m_init_search)
             return;
+        if (!m_smt_plugin)
+            m_smt_plugin = alloc(sls::smt_plugin, * this);
         if (!m_checking) {
             expr_ref_vector fmls(m);
             for (unsigned i = 0; i < ctx.get_num_asserted_formulas(); ++i)
@@ -98,13 +103,14 @@ namespace smt {
             m_smt_plugin->check(fmls, clauses);
             m_smt_plugin->get_shared_clauses(m_shared_clauses);
         }
-        else if (!m_parallel_mode) 
-            propagate_local_search();
-        else if (m_smt_plugin->completed()) {
-            m_smt_plugin->collect_statistics(m_st);
-            m_smt_plugin->finalize(m_model);
+        else if (m_parallel_mode && m_smt_plugin->completed()) {
+            m_smt_plugin->finalize(m_model, m_st);
             m_smt_plugin = nullptr;
+            m_init_search = false;
         }
+        else 
+            propagate_local_search();
+        
     }    
 
     void theory_sls::pop_scope_eh(unsigned n) {
@@ -147,27 +153,43 @@ namespace smt {
         }    
     }
 
+    void theory_sls::update_propagation_scope() {
+        if (m_propagation_scope > ctx.get_scope_level() && m_propagation_scope == m_max_propagation_scope) {
+            m_smt_plugin->smt_values_to_sls();
+        }
+        m_propagation_scope = ctx.get_scope_level();
+        m_max_propagation_scope = std::max(m_max_propagation_scope, m_propagation_scope);
+    }
+
     void theory_sls::propagate_local_search() {
         if (!m_has_unassigned_clause_after_resolve)
             return;
-        if (m_parallel_mode || !m_smt_plugin)
+        if (!m_smt_plugin)
             return;
         ++m_after_resolve_decide_count;
-        if (100 + m_after_resolve_decide_gap > m_after_resolve_decide_count)
+        if (100 + m_after_resolve_decide_gap > m_after_resolve_decide_count) {
+            //update_propagation_scope();
             return;
+        }
         m_after_resolve_decide_gap *= 2;
-        if (!shared_clauses_are_true())
+        if (!shared_clauses_are_true()) {
+            update_propagation_scope();
             return;
+        }
         m_resolve_count = 0;
         m_has_unassigned_clause_after_resolve = false;
         run_guided_sls();
     }
 
     void theory_sls::run_guided_sls() {
+        m_smt_plugin->smt_values_to_sls();
+        if (m_parallel_mode) 
+            return;
+        
         ++m_stats.m_num_guided_sls;
         m_smt_plugin->smt_phase_to_sls();
         m_smt_plugin->smt_units_to_sls();
-        m_smt_plugin->smt_values_to_sls();
+
         bounded_run(m_final_check_ls_steps);
         dec_final_check_ls_steps();
         if (m_smt_plugin) {
@@ -183,15 +205,14 @@ namespace smt {
             finalize();
         smt_params p(ctx.get_fparams());
         m_parallel_mode = p.m_sls_parallel;
-        m_smt_plugin = alloc(sls::smt_plugin, *this);    
+        m_smt_plugin = nullptr;
         m_checking = false;
+        m_init_search = false;
     }
 
     void theory_sls::collect_statistics(::statistics& st) const {
-        if (m_smt_plugin)
-            m_smt_plugin->collect_statistics(st);
-        else
-            st.copy(m_st);
+        finalize();
+        st.copy(m_st);
         st.update("sls-num-guided-search", m_stats.m_num_guided_sls);
         st.update("sls-num-restart-search", m_stats.m_num_restart_sls);
     }
@@ -205,6 +226,7 @@ namespace smt {
             m_smt_plugin->smt_units_to_sls();
             ++m_stats.m_num_restart_sls;
             bounded_run(m_restart_ls_steps);
+            inc_restart_ls_steps();
             if (m_smt_plugin)
                 m_smt_plugin->sls_activity_to_smt();
         }
@@ -213,14 +235,14 @@ namespace smt {
     void theory_sls::bounded_run(unsigned num_steps) {       
         m_smt_plugin->bounded_run(num_steps);
         if (m_smt_plugin->result() == l_true) {
-            m_smt_plugin->collect_statistics(m_st);
-            m_smt_plugin->finalize(m_model);
+            m_smt_plugin->finalize(m_model, m_st);
             m_smt_plugin = nullptr;
+            m_init_search = false;
         }
     }
 
     final_check_status theory_sls::final_check_eh() {
-        if (m_parallel_mode || !m_smt_plugin)
+        if (!m_smt_plugin)
             return FC_DONE;
         ++m_after_resolve_decide_count;
         if (m_after_resolve_decide_gap > m_after_resolve_decide_count)
@@ -231,6 +253,13 @@ namespace smt {
     }
 
     bool theory_sls::shared_clauses_are_true() const {
+#if 0
+        for (auto const& cl : m_shared_clauses) {
+            for (auto lit : cl)
+                verbose_stream() << lit << " : " << ctx.get_assignment(lit);
+            verbose_stream() << "\n";
+        }
+#endif
         for (auto const& cl : m_shared_clauses)
             if (all_of(cl, [this](sat::literal lit) { return ctx.get_assignment(lit) != l_true; }))
                 return false;

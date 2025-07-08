@@ -153,6 +153,11 @@ namespace smt {
             if (m_context.get_cancel_flag()) {
                 break;
             }
+            if (m_stats.m_num_instances > m_params.m_qi_max_instances) {
+                m_context.set_reason_unknown("maximum number of quantifier instances was reached");
+                m_context.set_internal_completed();
+                break;
+            }
             fingerprint * f    = curr.m_qb;
             quantifier * qa    = static_cast<quantifier*>(f->get_data());
 
@@ -183,8 +188,7 @@ namespace smt {
 
     void qi_queue::display_instance_profile(fingerprint * f, quantifier * q, unsigned num_bindings, enode * const * bindings, unsigned proof_id, unsigned generation) {
         if (m.has_trace_stream()) {
-            m.trace_stream() << "[instance] ";
-            m.trace_stream() << static_cast<void*>(f);
+            m.trace_stream() << "[instance] " << f->get_data_hash();
             if (m.proofs_enabled())
                 m.trace_stream() << " #" << proof_id;
             m.trace_stream() << " ; " << generation;

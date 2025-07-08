@@ -8,11 +8,11 @@
 #include "util/mutex.h"
 extern atomic<bool> g_z3_log_enabled;
 void ctx_enable_logging();
-class z3_log_ctx { bool m_prev; public: z3_log_ctx() { ATOMIC_EXCHANGE(m_prev, g_z3_log_enabled, false); } ~z3_log_ctx() { if (m_prev) g_z3_log_enabled = true; } bool enabled() const { return m_prev; } };
-void SetR(void * obj);
+class z3_log_ctx { bool m_prev; public: z3_log_ctx() { ATOMIC_EXCHANGE(m_prev, g_z3_log_enabled, false); } ~z3_log_ctx() { if (m_prev) [[unlikely]] g_z3_log_enabled = true; } bool enabled() const { return m_prev; } };
+void SetR(const void * obj);
 void SetO(void * obj, unsigned pos);
 void SetAO(void * obj, unsigned pos, unsigned idx);
-#define RETURN_Z3(Z3RES) do { auto tmp_ret = Z3RES; if (_LOG_CTX.enabled()) { SetR(tmp_ret); } return tmp_ret; } while (0)
+#define RETURN_Z3(Z3RES) do { auto tmp_ret = Z3RES; if (_LOG_CTX.enabled()) [[unlikely]] { SetR(tmp_ret); } return tmp_ret; } while (0)
 void log_Z3_global_param_set(Z3_string a0, Z3_string a1);
 #define LOG_Z3_global_param_set(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_global_param_set(_ARG0, _ARG1); }
 void log_Z3_global_param_reset_all();
@@ -633,6 +633,10 @@ void log_Z3_get_ast_kind(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_get_ast_kind(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_ast_kind(_ARG0, _ARG1); }
 void log_Z3_is_app(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_is_app(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_is_app(_ARG0, _ARG1); }
+void log_Z3_is_ground(Z3_context a0, Z3_ast a1);
+#define LOG_Z3_is_ground(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_is_ground(_ARG0, _ARG1); }
+void log_Z3_get_depth(Z3_context a0, Z3_ast a1);
+#define LOG_Z3_get_depth(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_depth(_ARG0, _ARG1); }
 void log_Z3_is_numeral_ast(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_is_numeral_ast(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_is_numeral_ast(_ARG0, _ARG1); }
 void log_Z3_is_algebraic_number(Z3_context a0, Z3_ast a1);
@@ -1038,6 +1042,10 @@ void log_Z3_solver_congruence_root(Z3_context a0, Z3_solver a1, Z3_ast a2);
 #define LOG_Z3_solver_congruence_root(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_congruence_root(_ARG0, _ARG1, _ARG2); }
 void log_Z3_solver_congruence_next(Z3_context a0, Z3_solver a1, Z3_ast a2);
 #define LOG_Z3_solver_congruence_next(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_congruence_next(_ARG0, _ARG1, _ARG2); }
+void log_Z3_solver_congruence_explain(Z3_context a0, Z3_solver a1, Z3_ast a2, Z3_ast a3);
+#define LOG_Z3_solver_congruence_explain(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_congruence_explain(_ARG0, _ARG1, _ARG2, _ARG3); }
+void log_Z3_solver_solve_for(Z3_context a0, Z3_solver a1, Z3_ast_vector a2, Z3_ast_vector a3, Z3_ast_vector a4);
+#define LOG_Z3_solver_solve_for(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_solve_for(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4); }
 void log_Z3_solver_register_on_clause(Z3_context a0, Z3_solver a1, void* a2, Z3_on_clause_eh* a3);
 #define LOG_Z3_solver_register_on_clause(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_register_on_clause(_ARG0, _ARG1, _ARG2, _ARG3); }
 void log_Z3_solver_propagate_init(Z3_context a0, Z3_solver a1, void* a2, Z3_push_eh* a3, Z3_pop_eh* a4, Z3_fresh_eh* a5);
@@ -1555,6 +1563,8 @@ void log_Z3_qe_model_project(Z3_context a0, Z3_model a1, unsigned a2, Z3_app con
 #define LOG_Z3_qe_model_project(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_qe_model_project(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4); }
 void log_Z3_qe_model_project_skolem(Z3_context a0, Z3_model a1, unsigned a2, Z3_app const * a3, Z3_ast a4, Z3_ast_map a5);
 #define LOG_Z3_qe_model_project_skolem(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_qe_model_project_skolem(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5); }
+void log_Z3_qe_model_project_with_witness(Z3_context a0, Z3_model a1, unsigned a2, Z3_app const * a3, Z3_ast a4, Z3_ast_map a5);
+#define LOG_Z3_qe_model_project_with_witness(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_qe_model_project_with_witness(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5); }
 void log_Z3_model_extrapolate(Z3_context a0, Z3_model a1, Z3_ast a2);
 #define LOG_Z3_model_extrapolate(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_model_extrapolate(_ARG0, _ARG1, _ARG2); }
 void log_Z3_qe_lite(Z3_context a0, Z3_ast_vector a1, Z3_ast a2);

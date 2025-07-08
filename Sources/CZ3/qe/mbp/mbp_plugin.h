@@ -21,6 +21,7 @@ Revision History:
 #pragma once
 
 #include "ast/ast.h"
+#include "ast/ast_pp.h"
 #include "util/params.h"
 #include "model/model.h"
 #include "math/simplex/model_based_opt.h"
@@ -28,15 +29,16 @@ Revision History:
 
 namespace mbp {
 
-    struct cant_project {};
+    struct cant_project : public std::exception {};
 
     struct def {
         expr_ref var, term;
-        def(const expr_ref& v, expr_ref& t): var(v), term(t) {}
     };
 
     class project_plugin {
+    protected:
         ast_manager&     m;
+    private:
         expr_mark        m_visited;
         ptr_vector<expr> m_to_visit;
         expr_mark        m_bool_visited;
@@ -110,3 +112,6 @@ namespace mbp {
     };
 }
 
+inline std::ostream& operator<<(std::ostream& out, mbp::def const& d) {
+    return out << d.var << " -> " << d.term << "\n";
+}

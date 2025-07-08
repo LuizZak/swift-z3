@@ -32,10 +32,17 @@ struct sls_params {
     d.insert("dt_axiomatic", CPK_BOOL, "use axiomatic mode or model reduction for datatype solver", "true","sls");
     d.insert("track_unsat", CPK_BOOL, "keep a list of unsat assertions as done in SAT - currently disabled internally", "false","sls");
     d.insert("random_seed", CPK_UINT, "random seed", "0","sls");
+    d.insert("arith_use_lookahead", CPK_BOOL, "use lookahead solver for NIRA", "true","sls");
+    d.insert("arith_allow_plateau", CPK_BOOL, "allow plateau moves during NIRA solving", "false","sls");
+    d.insert("arith_use_clausal_lookahead", CPK_BOOL, "use clause based lookahead for NIRA", "false","sls");
+    d.insert("bv_use_top_level_assertions", CPK_BOOL, "use top-level assertions for BV lookahead solver", "true","sls");
+    d.insert("bv_use_lookahead", CPK_BOOL, "use lookahead solver for BV", "true","sls");
+    d.insert("bv_allow_rotation", CPK_BOOL, "allow model rotation when repairing literal assignment", "true","sls");
+    d.insert("str_update_strategy", CPK_UINT, "string update candidate selection: 0 - single character based update, 1 - subsequence based update, 2 - combined", "2","sls");
   }
   /*
      REG_MODULE_PARAMS('sls', 'sls_params::collect_param_descrs')
-     REG_MODULE_DESCRIPTION('sls', 'Experimental Stochastic Local Search Solver (for QFBV only).')
+     REG_MODULE_DESCRIPTION('sls', 'Stochastic Local Search Solver (invoked by sls-qfbv and sls-smt tactics or enabled by smt.sls.enable=true)')
   */
   unsigned max_memory() const { return p.get_uint("max_memory", g, 4294967295u); }
   unsigned max_restarts() const { return p.get_uint("max_restarts", g, 4294967295u); }
@@ -61,4 +68,11 @@ struct sls_params {
   bool dt_axiomatic() const { return p.get_bool("dt_axiomatic", g, true); }
   bool track_unsat() const { return p.get_bool("track_unsat", g, false); }
   unsigned random_seed() const { return p.get_uint("random_seed", g, 0u); }
+  bool arith_use_lookahead() const { return p.get_bool("arith_use_lookahead", g, true); }
+  bool arith_allow_plateau() const { return p.get_bool("arith_allow_plateau", g, false); }
+  bool arith_use_clausal_lookahead() const { return p.get_bool("arith_use_clausal_lookahead", g, false); }
+  bool bv_use_top_level_assertions() const { return p.get_bool("bv_use_top_level_assertions", g, true); }
+  bool bv_use_lookahead() const { return p.get_bool("bv_use_lookahead", g, true); }
+  bool bv_allow_rotation() const { return p.get_bool("bv_allow_rotation", g, true); }
+  unsigned str_update_strategy() const { return p.get_uint("str_update_strategy", g, 2u); }
 };

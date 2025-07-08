@@ -27,6 +27,7 @@ class solver;
 class model_converter;
 
 
+
 class solver_factory {
 public:
     virtual ~solver_factory() = default;
@@ -79,6 +80,11 @@ public:
        parameters available in this solver.
     */
     virtual void collect_param_descrs(param_descrs & r);
+
+    /**
+    * \brief display parameters
+    */
+    std::ostream& display_parameters(std::ostream& out);
 
     /**
        \brief Push a parameter state. It is restored upon pop.
@@ -247,6 +253,19 @@ public:
        \brief retrieve congruence closure sibling
     */
     virtual expr* congruence_next(expr* e) = 0;
+
+    /**
+       \brief expose explanation for congruence.
+    */
+    virtual expr_ref congruence_explain(expr* a, expr* b) = 0;
+
+    struct solution {
+        expr* var;
+        expr_ref term;
+        expr_ref guard;
+    };
+
+    virtual void solve_for(vector<solution>& s) {}
 
     /**
        \brief Display the content of this solver.

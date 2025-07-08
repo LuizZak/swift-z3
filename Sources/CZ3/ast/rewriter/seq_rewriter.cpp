@@ -9,7 +9,7 @@ Abstract:
 
     Basic rewriting rules for sequences constraints.
 
-Author:
+Authors:
 
     Nikolaj Bjorner (nbjorner) 2015-12-5
     Murphy Berzish 2017-02-21
@@ -3790,6 +3790,7 @@ expr_ref  seq_rewriter::simplify_path(expr* elem, expr* path) {
 
 
 expr_ref seq_rewriter::mk_der_antimirov_union(expr* r1, expr* r2) {
+    verbose_stream() << "union " << r1->get_id() << " " << r2->get_id() << "\n";
     return mk_der_op(_OP_RE_ANTIMIROV_UNION, r1, r2);
 }
 
@@ -4544,6 +4545,33 @@ br_status seq_rewriter::mk_str_in_regexp(expr* a, expr* b, expr_ref& result) {
         result = m().mk_true();
         return BR_DONE;
     }
+
+    zstring s;
+    if (str().is_string(a, s) && re().is_ground(b)) {
+        // Just check membership and replace by true/false
+        expr_ref r(b, m());
+        for (unsigned i = 0; i < s.length(); i++) {
+            if (re().is_empty(r)) {
+                result = m().mk_false();
+                return BR_DONE;
+            }
+            unsigned ch = s[i];
+            expr_ref new_r = mk_derivative(m_util.mk_char(ch), r);
+            r = new_r;
+        }
+
+        switch (re().get_info(r).nullable) {
+        case l_true:
+            result = m().mk_true();
+            return BR_DONE;
+        case l_false:
+            result = m().mk_false();
+            return BR_DONE;
+        default:
+            break;
+        }
+    }
+
     expr_ref b_s(m());
     if (lift_str_from_to_re(b, b_s)) {
        result = m_br.mk_eq_rw(a, b_s);
@@ -4584,7 +4612,7 @@ br_status seq_rewriter::mk_str_in_regexp(expr* a, expr* b, expr_ref& result) {
         result = mk_in_antimirov(tl, mk_antimirov_deriv(hd, b, m().mk_true()));
         return BR_REWRITE_FULL;
     }
-
+    
     if (get_head_tail_reversed(a, hd, tl)) {
         result = re().mk_reverse(re().mk_derivative(tl, re().mk_reverse(b)));
         result = re().mk_in_re(hd, result);
@@ -6144,3 +6172,150 @@ void seq_rewriter::op_cache::cleanup() {
         STRACE("seq_verbose", tout << "Derivative op cache reset" << std::endl;);
     }
 }
+
+lbool seq_rewriter::some_string_in_re(expr* r, zstring& s) {
+    sort* rs;
+    (void)rs;
+    // SASSERT(re().is_re(r, rs) && m_util.is_string(rs));
+    expr_mark visited;
+    unsigned_vector str;
+
+    auto result = some_string_in_re(visited, r, str);
+    if (result == l_true)
+        s = zstring(str.size(), str.data());
+    return result;
+}
+
+struct re_eval_pos {
+    expr_ref e; // use reference to avoid gc
+    unsigned str_len;
+    buffer<std::pair<unsigned, unsigned>> exclude;
+    bool needs_derivation;
+};
+
+lbool seq_rewriter::some_string_in_re(expr_mark& visited, expr* r, unsigned_vector& str) {
+    SASSERT(str.empty());
+    vector<re_eval_pos> todo;
+    todo.push_back({ expr_ref(r, m()), 0, {}, true });
+    while (!todo.empty()) {
+        re_eval_pos current = todo.back();
+        todo.pop_back();
+        r = current.e;
+        str.resize(current.str_len);
+        if (current.needs_derivation) {
+            SASSERT(current.exclude.empty());
+            // We are looking for the next character => generate derivation
+            if (visited.is_marked(r))
+                continue;
+            if (re().is_empty(r))
+                continue;
+            auto info = re().get_info(r);
+            if (info.nullable == l_true)
+                return l_true;
+            visited.mark(r);
+            if (re().is_union(r)) {
+                for (expr* arg : *to_app(r)) {
+                    todo.push_back({ expr_ref(arg, m()), str.size(), {}, true });
+                }
+                continue;
+            }
+
+            r = mk_derivative(r);
+        }
+        // otw. we are still in the process of deciding case of the derivation to take
+
+        buffer<std::pair<unsigned, unsigned>> exclude = std::move(current.exclude);
+
+        expr* c, * th, * el;
+        if (re().is_empty(r))
+            continue;
+        if (re().is_union(r)) {
+            for (expr* arg : *to_app(r)) {
+                todo.push_back({ expr_ref(arg, m()), str.size(), exclude, false });
+            }
+            continue;
+        }
+        if (m().is_ite(r, c, th, el)) {
+            unsigned low = 0, high = zstring::unicode_max_char();
+            bool has_bounds = get_bounds(c, low, high);
+            if (!re().is_empty(el)) {
+                if (has_bounds)
+                    exclude.push_back({ low, high });
+                todo.push_back({ expr_ref(el, m()), str.size(), std::move(exclude), false });
+            }
+            if (has_bounds) {
+                // I want this case to be processed first => push it last
+                // reason: current string is only pruned
+                SASSERT(low <= high);
+                str.push_back(low);           // ASSERT: low .. high does not intersect with exclude
+                todo.push_back({ expr_ref(th, m()), str.size(), {}, true });
+            }
+            continue;
+        }
+
+        if (is_ground(r)) {
+            // ensure selected character is not in exclude
+            unsigned ch = 'a';
+            bool wrapped = false;
+            bool failed = false;
+            while (true) {
+                bool found = false;
+                for (auto [l, h] : exclude) {
+                    if (l <= ch && ch <= h) {
+                        found = true;
+                        ch = h + 1;
+                    }
+                }
+                if (!found)
+                    break;
+                if (ch != zstring::unicode_max_char() + 1)
+                    continue;
+                if (wrapped) {
+                    failed = true;
+                    break;
+                }
+                ch = 0;
+                wrapped = true;
+            }
+            if (failed)
+                continue;
+            str.push_back(ch);
+            todo.push_back({ expr_ref(r, m()), str.size(), {}, true });
+            continue;
+        }
+
+        return l_undef;
+    }
+    return l_false;
+}
+
+bool seq_rewriter::get_bounds(expr* e, unsigned& low, unsigned& high) {
+    low = 0; 
+    high = zstring::unicode_max_char();
+    ptr_buffer<expr> todo;
+    todo.push_back(e);
+    expr* x, * y;
+    unsigned ch = 0;
+    while (!todo.empty()) {
+        e = todo.back();
+        todo.pop_back();
+        if (m().is_and(e)) 
+            todo.append(to_app(e)->get_num_args(), to_app(e)->get_args());  
+        else if (m_util.is_char_le(e, x, y) && m_util.is_const_char(x, ch) && is_var(y))
+            low = std::max(ch, low);
+        else if (m_util.is_char_le(e, x, y) && m_util.is_const_char(y, ch) && is_var(x))
+            high = std::min(ch, high);
+        else if (m().is_eq(e, x, y) && is_var(x) && m_util.is_const_char(y, ch)) {
+            low = std::max(ch, low);
+            high = std::min(ch, high);
+        }
+        else if (m().is_eq(e, x, y) && is_var(y) && m_util.is_const_char(x, ch)) {
+            low = std::max(ch, low);
+            high = std::min(ch, high);
+        }
+        else
+            return false;
+    }
+    return low <= high;
+}
+

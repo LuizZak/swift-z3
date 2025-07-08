@@ -29,4 +29,10 @@ public extension Z3ParameterKind {
     
     /// is used for function declaration parameters.
     static let funcDecl = Z3_PARAMETER_FUNC_DECL
+    
+    /// is used for parameters that are private to Z3. They cannot be accessed.
+    static let `internal` = Z3_PARAMETER_INTERNAL
+    
+    /// is used for string parameters. 
+    static let zstring = Z3_PARAMETER_ZSTRING
 }

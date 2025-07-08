@@ -66,12 +66,12 @@ enum class lp_status {
     UNBOUNDED,
     TENTATIVE_DUAL_UNBOUNDED,
     DUAL_UNBOUNDED,
-    OPTIMAL,
-    FEASIBLE,
     TIME_EXHAUSTED,
     EMPTY,
     UNSTABLE,
-    CANCELLED
+    CANCELLED,
+    FEASIBLE,
+    OPTIMAL
 };
 
 // when the ratio of the vector length to domain size to is greater than the return value we switch to solve_By_for_T_indexed_only
@@ -128,6 +128,16 @@ struct statistics {
     unsigned m_grobner_conflicts = 0;
     unsigned m_offset_eqs = 0;
     unsigned m_fixed_eqs = 0;
+    unsigned m_dio_calls = 0;
+    unsigned m_dio_normalize_conflicts = 0;
+    unsigned m_dio_tighten_conflicts = 0;
+    unsigned m_dio_branch_iterations= 0;
+    unsigned m_dio_branching_depth = 0;
+    unsigned m_dio_branch_from_proofs = 0;
+    unsigned m_dio_branching_infeasibles = 0;
+    unsigned m_dio_rewrite_conflicts = 0;
+    unsigned m_dio_branching_sats = 0;
+    unsigned m_dio_branching_conflicts = 0;
     ::statistics m_st = {};
 
     void reset() {
@@ -160,6 +170,17 @@ struct statistics {
         st.update("arith-nla-lemmas", m_nla_lemmas);
         st.update("arith-nra-calls", m_nra_calls);   
         st.update("arith-bounds-improvements", m_nla_bounds_improvements);
+        st.update("arith-dio-calls", m_dio_calls);
+        st.update("arith-dio-normalize-conflicts", m_dio_normalize_conflicts);
+        st.update("arith-dio-tighten-conflicts", m_dio_tighten_conflicts);
+        st.update("arith-dio-branch-iterations", m_dio_branch_iterations);
+        st.update("arith-dio-branch-depths", m_dio_branching_depth);
+        st.update("arith-dio-branch-from-proofs", m_dio_branch_from_proofs);
+        st.update("arith-dio-branching-infeasibles", m_dio_branching_infeasibles);
+        st.update("arith-dio-rewrite-conflicts", m_dio_rewrite_conflicts);
+        st.update("arith-dio-branching-sats", m_dio_branching_sats);
+        st.update("arith-dio-branching-depth", m_dio_branching_depth);
+        st.update("arith-dio-branching-conflicts", m_dio_branching_conflicts);
         st.copy(m_st);
     }
 };
@@ -217,6 +238,7 @@ public:
     unsigned         column_number_threshold_for_using_lu_in_lar_solver = 4000;
     unsigned         m_int_gomory_cut_period = 4;
     unsigned         m_int_find_cube_period = 4;
+    unsigned         m_dioph_eq_period = 1;
 private:
     unsigned         m_hnf_cut_period = 4;
     bool             m_int_run_gcd_test = true;
@@ -224,10 +246,15 @@ public:
     unsigned         limit_on_rows_for_hnf_cutter = 75;
     unsigned         limit_on_columns_for_hnf_cutter = 150;
 private:
-    unsigned         m_nlsat_delay;
+    unsigned         m_nlsat_delay = 0;
     bool             m_enable_hnf = true;
     bool             m_print_external_var_name = false;
     bool             m_propagate_eqs = false;
+    bool             m_dio_eqs = false;
+    bool             m_dio_enable_gomory_cuts = false;
+    bool             m_dio_enable_hnf_cuts = true;
+    unsigned         m_dio_branching_period = 100; //  do branching rarere
+
 public:
     bool print_external_var_name() const { return m_print_external_var_name; }
     bool propagate_eqs() const { return m_propagate_eqs;}
@@ -235,9 +262,12 @@ public:
     void set_hnf_cut_period(unsigned period) { m_hnf_cut_period = period;  }
     unsigned random_next() { return m_rand(); }
     unsigned random_next(unsigned u ) { return m_rand(u); }
-    
+    bool dio_eqs() { return m_dio_eqs; }
+    bool dio_enable_gomory_cuts() const { return m_dio_eqs && m_dio_enable_gomory_cuts; }
+    bool dio_enable_hnf_cuts() const { return m_dio_eqs && m_dio_enable_hnf_cuts; }
+    unsigned dio_branching_period() const { return m_dio_branching_period; }
     void set_random_seed(unsigned s) { m_rand.set_seed(s); }
-
+    
     bool bound_progation() const { 
         return m_bound_propagation;
     }
