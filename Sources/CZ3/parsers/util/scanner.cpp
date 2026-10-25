@@ -124,6 +124,7 @@ scanner::token scanner::read_id(char first_char) {
             if (!is_alpha || ch != '-') {
                 goto bail_out;  
             }
+            Z3_fallthrough;
         case 'a':
         case ':':
         case '.':
@@ -264,7 +265,7 @@ scanner::token scanner::read_string(char delimiter, token result) {
 }
 
 scanner::token scanner::read_bv_literal() {
-    TRACE("scanner", tout << "read_bv_literal\n";);
+    TRACE(scanner, tout << "read_bv_literal\n";);
     if (m_bv_token) {
         int ch = read_char();
         if (ch == 'x') {
@@ -287,7 +288,7 @@ scanner::token scanner::read_bv_literal() {
                 else {
                     unread_char();
                     m_state = m_bv_size == 0 ? ERROR_TOKEN : BV_TOKEN;
-                    TRACE("scanner", tout << m_state << ", bv-size: " << m_bv_size << ", INT_TOKEN: " << INT_TOKEN
+                    TRACE(scanner, tout << m_state << ", bv-size: " << m_bv_size << ", INT_TOKEN: " << INT_TOKEN
                           << ", BV_TOKEN: " << BV_TOKEN << "\n";);
                     return m_state;
                 }
@@ -482,7 +483,12 @@ scanner::token scanner::scan() {
         case '#':
             return read_bv_literal();
         case static_cast<char>(-1):
-            m_state = EOF_TOKEN;
+            if (m_stream.bad()) {
+                m_err << "ERROR: I/O failure while reading input stream.\n";
+                m_state = ERROR_TOKEN;
+            } 
+            else 
+                m_state = EOF_TOKEN;            
             break;
         default:
             // TODO: use error reporting 

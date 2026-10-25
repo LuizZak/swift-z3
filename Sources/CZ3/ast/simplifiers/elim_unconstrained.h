@@ -79,6 +79,10 @@ class elim_unconstrained : public dependent_expr_simplifier {
         unsigned m_num_eliminated = 0;
         void reset() { m_num_eliminated = 0; }
     };
+    struct config {
+        bool m_enabled = true;
+        bool m_enable_proofs = false;
+    };
     expr_inverter            m_inverter;
     ptr_vector<node>         m_nodes;
     var_lt                   m_lt;
@@ -86,8 +90,9 @@ class elim_unconstrained : public dependent_expr_simplifier {
     expr_ref_vector          m_trail;
     expr_ref_vector          m_args;
     stats                    m_stats;
+    config                   m_config;
     bool                     m_created_compound = false;
-    bool                     m_enable_proofs = false;
+    expr_mark m_disabled;
 
     bool is_var_lt(int v1, int v2) const;
     node& get_node(unsigned n) const { return *m_nodes[n]; }
@@ -104,6 +109,7 @@ class elim_unconstrained : public dependent_expr_simplifier {
     expr* reconstruct_term(node& n);
     void assert_normalized(vector<dependent_expr>& old_fmls);
     void update_model_trail(generic_model_converter& mc, vector<dependent_expr> const& old_fmls);
+    void disable(expr *e);
 
         
 public:
@@ -119,4 +125,7 @@ public:
     void collect_statistics(statistics& st) const override { st.update("elim-unconstrained", m_stats.m_num_eliminated); }
 
     void reset_statistics() override { m_stats.reset(); }
+
+    void updt_params(params_ref const& p) override;
+    
 };

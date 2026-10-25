@@ -89,7 +89,7 @@ namespace smt {
         unsigned i  = 0;
         unsigned j  = 0;
         unsigned sz = m_entries.size();
-        for (; i < sz; i++) {
+        for (; i < sz; ++i) {
             row_entry & t1 = m_entries[i];
             if (!t1.is_dead()) {
                 if (i != j) {
@@ -147,7 +147,7 @@ namespace smt {
                 result_map[it->m_var] = -1;
             }
         }
-    };
+    }
     
 #ifdef Z3DEBUG
     /**
@@ -182,13 +182,13 @@ namespace smt {
     template<typename Ext>
     typename theory_arith<Ext>::numeral theory_arith<Ext>::row::get_denominators_lcm() const {
         numeral r(1);
-        TRACE("lcm_bug", tout << "starting get_denominators_lcm...\n";);
+        TRACE(lcm_bug, tout << "starting get_denominators_lcm...\n";);
         typename vector<row_entry>::const_iterator it  = m_entries.begin();
         typename vector<row_entry>::const_iterator end = m_entries.end();
         for (; it != end; ++it) {
             if (!it->is_dead()) {
                 r = lcm(r, denominator(it->m_coeff));
-                TRACE("lcm_bug", tout << "it->m_coeff: " << it->m_coeff << ", denominator(it->m_coeff): " << denominator(it->m_coeff) << ", r: " << r << "\n";);
+                TRACE(lcm_bug, tout << "it->m_coeff: " << it->m_coeff << ", denominator(it->m_coeff): " << denominator(it->m_coeff) << ", r: " << r << "\n";);
             }
         }
         return r;
@@ -226,7 +226,7 @@ namespace smt {
         unsigned i  = 0;
         unsigned j  = 0;
         unsigned sz = m_entries.size();
-        for (; i < sz; i++) {
+        for (; i < sz; ++i) {
             col_entry & e1 = m_entries[i];
             if (!e1.is_dead()) {
                 if (i != j) {
@@ -318,10 +318,10 @@ namespace smt {
     void theory_arith<Ext>::antecedents_t::init() {
         if (!m_init && !empty()) {
             m_params.push_back(parameter(symbol("unknown-arith")));
-            for (unsigned i = 0; i < m_lits.size(); i++) {
+            for (unsigned i = 0; i < m_lits.size(); ++i) {
                 m_params.push_back(parameter(m_lit_coeffs[i].to_rational()));
             }
-            for (unsigned i = 0; i < m_eqs.size(); i++) {
+            for (unsigned i = 0; i < m_eqs.size(); ++i) {
                 m_params.push_back(parameter(m_eq_coeffs[i].to_rational()));
             }
             m_init = true;
@@ -521,7 +521,7 @@ namespace smt {
         typename vector<row_entry>::const_iterator end = r.end_entries();
         for (; it != end; ++it) {                                                                       
             if (!it->is_dead() && !it->m_coeff.is_int()) {
-                TRACE("gomory_cut", display_row(tout, r, true););
+                TRACE(gomory_cut, display_row(tout, r, true););
                 return false;
             }
         }
@@ -569,9 +569,9 @@ namespace smt {
     void theory_arith<Ext>::move_unconstrained_to_base() {
         if (lazy_pivoting_lvl() == 0)
             return;
-        TRACE("move_unconstrained_to_base", tout << "before...\n"; display(tout););
+        TRACE(move_unconstrained_to_base, tout << "before...\n"; display(tout););
         int num = get_num_vars();
-        for (theory_var v = 0; v < num; v++) {
+        for (theory_var v = 0; v < num; ++v) {
             if (m_var_occs[v].empty() && is_free(v)) {
                 switch (get_var_kind(v)) {
                 case QUASI_BASE:
@@ -587,7 +587,7 @@ namespace smt {
                 case NON_BASE: {
                     col_entry const * entry = get_row_for_eliminating(v);
                     if (entry) {
-                        TRACE("move_unconstrained_to_base", tout << "moving v" << v << " to the base\n";);
+                        TRACE(move_unconstrained_to_base, tout << "moving v" << v << " to the base\n";);
                         row & r = m_rows[entry->m_row_id];
                         SASSERT(r[entry->m_row_idx].m_var == v);
                         pivot<false>(r.get_base_var(), v, r[entry->m_row_idx].m_coeff, m_eager_gcd);
@@ -599,7 +599,7 @@ namespace smt {
                 } }
             }
         }
-        TRACE("move_unconstrained_to_base", tout << "after...\n"; display(tout););
+        TRACE(move_unconstrained_to_base, tout << "after...\n"; display(tout););
         CASSERT("arith", wf_rows());
         CASSERT("arith", wf_columns());
         CASSERT("arith", valid_row_assignment());
@@ -611,7 +611,7 @@ namespace smt {
     template<typename Ext>
     void theory_arith<Ext>::elim_quasi_base_rows() {
         int num = get_num_vars();
-        for (theory_var v = 0; v < num; v++) {
+        for (theory_var v = 0; v < num; ++v) {
             if (is_quasi_base(v)) {
                 quasi_base_row2base_row(get_var_row(v));
             }
@@ -624,7 +624,7 @@ namespace smt {
     template<typename Ext>
     void theory_arith<Ext>::remove_fixed_vars_from_base() {
         int num = get_num_vars();
-        for (theory_var v = 0; v < num; v++) {
+        for (theory_var v = 0; v < num; ++v) {
             if (is_base(v) && is_fixed(v)) {
                 row const & r = m_rows[get_var_row(v)];
                 typename vector<row_entry>::const_iterator it  = r.begin_entries();
@@ -659,7 +659,7 @@ namespace smt {
     template<typename Ext>
     void theory_arith<Ext>::try_to_minimize_rational_coeffs() {
         int num = get_num_vars();
-        for (theory_var v = 0; v < num; v++) {
+        for (theory_var v = 0; v < num; ++v) {
             if (!is_base(v) || !is_int(v))
                 continue;
             numeral max_den;
@@ -737,7 +737,7 @@ namespace smt {
     template<typename Ext>
     void theory_arith<Ext>::derived_bound::push_justification(antecedents& a, numeral const& coeff, bool proofs_enabled) {
 
-        TRACE("arith", tout << m_lits << " " << m_eqs.size() << "\n";);
+        TRACE(arith, tout << m_lits << " " << m_eqs.size() << "\n";);
         if (proofs_enabled) {
             for (literal l : m_lits)    
                 a.push_lit(l, coeff, proofs_enabled);
@@ -875,7 +875,7 @@ namespace smt {
                 bool use_upper = (kind == B_UPPER);
                 if (!it->m_coeff.is_pos())
                     use_upper = !use_upper;
-                TRACE("derived_bound", tout << "using " << (use_upper ? "upper" : "lower") << " bound of v" << v << "\n";);
+                TRACE(derived_bound, tout << "using " << (use_upper ? "upper" : "lower") << " bound of v" << v << "\n";);
                 bound * b  = get_bound(v, use_upper);
                 SASSERT(b);
                 DEBUG_CODE({
@@ -886,14 +886,14 @@ namespace smt {
                 accumulate_justification(*b, *new_bound, it->m_coeff, m_tmp_lit_set, m_tmp_eq_set);
             }
         }
-        TRACE("derived_bound", 
+        TRACE(derived_bound, 
               tout << "explanation:\n";
               for (literal l : new_bound->m_lits) tout << l << " ";
               tout << " ";
               for (auto const& e : new_bound->m_eqs) 
                   tout << "#" << e.first->get_owner_id() << "=#" << e.second->get_owner_id() << " ";
               tout << "\n";);
-        DEBUG_CODE(CTRACE("derived_bound", k != val, tout << "k: " << k << ", k_norm: " << k_norm << ", val: " << val << "\n";););
+        DEBUG_CODE(CTRACE(derived_bound, k != val, tout << "k: " << k << ", k_norm: " << k_norm << ", val: " << val << "\n";););
         SASSERT(k == val);
     }
 
@@ -981,7 +981,7 @@ namespace smt {
             was_unsafe |= is_unsafe;
             bool inc_s = coeff.is_neg() ? inc : !inc;
             unbounded &= !get_bound(s, inc_s);
-            TRACE("opt", tout << "is v" << x << " safe to leave for v" << s 
+            TRACE(opt, tout << "is v" << x << " safe to leave for v" << s 
                   << "? " << (is_unsafe?"no":"yes") << " " << (has_int?"int":"real") << " " << (unbounded?"unbounded":"bounded") << "\n";
                   display_row(tout, r, true););
             if (was_unsafe && !unbounded) return false;
@@ -1040,7 +1040,7 @@ namespace smt {
     template<typename Ext>
     theory_var theory_arith<Ext>::add_objective(app* term) {
         theory_var v = internalize_term_core(term);
-        TRACE("opt", tout << mk_pp(term, get_manager()) << " |-> v" << v << "\n";);
+        TRACE(opt, tout << mk_pp(term, get_manager()) << " |-> v" << v << "\n";);
         SASSERT(!is_quasi_base(v));
         if (!is_linear(get_manager(), term)) {
             v = null_theory_var;
@@ -1054,19 +1054,17 @@ namespace smt {
     }
 
     template<typename Ext>
-    inf_eps_rational<inf_rational> theory_arith<Ext>::maximize(theory_var v, expr_ref& blocker, bool& has_shared) {
-        TRACE("bound_bug", display_var(tout, v); display(tout););
+    inf_eps_rational<inf_rational> theory_arith<Ext>::maximize(theory_var v, expr_ref& blocker) {
+        TRACE(bound_bug, display_var(tout, v); display(tout););
         if (ctx.get_fparams().m_threads > 1)
             throw default_exception("multi-threaded optimization is not supported");
-        has_shared = false;
         if (!m_nl_monomials.empty()) {
-            has_shared = true;
             blocker = mk_gt(v);
             return inf_eps_rational<inf_rational>(get_value(v));            
         }
-        max_min_t r = max_min(v, true, true, has_shared); 
+        bool ignored_shared = false;
+        max_min_t r = max_min(v, true, true, ignored_shared);
         if (r == UNBOUNDED) {
-            has_shared = false;
             blocker = get_manager().mk_false();
             return inf_eps_rational<inf_rational>::infinity();
         }
@@ -1086,7 +1084,7 @@ namespace smt {
     expr_ref theory_arith<Ext>::mk_gt(theory_var v) {
         ast_manager& m = get_manager();
         inf_numeral const& val = get_value(v);
-        expr* obj = get_enode(v)->get_expr();
+        expr* obj = get_expr(v);
         expr_ref e(m);
         rational r = val.get_rational();
         if (m_util.is_int(obj->get_sort())) {
@@ -1110,7 +1108,7 @@ namespace smt {
                 e = m_util.mk_gt(obj, e);
             }
         }
-        TRACE("opt", tout << e << "\n";);
+        TRACE(opt, tout << e << "\n";);
         return e;
     }
 
@@ -1124,10 +1122,10 @@ namespace smt {
     expr_ref theory_arith<Ext>::mk_ge(generic_model_converter& fm, theory_var v, inf_numeral const& val) {
         ast_manager& m = get_manager();
         std::ostringstream strm;
-        strm << val << " <= " << mk_pp(get_enode(v)->get_expr(), get_manager());
+        strm << val << " <= " << mk_pp(get_expr(v), get_manager());
         app* b = m.mk_const(symbol(strm.str()), m.mk_bool_sort());
         expr_ref result(b, m);
-        TRACE("opt", tout << result << "\n";);
+        TRACE(opt, tout << result << "\n";);
         if (!ctx.b_internalized(b)) {
             fm.hide(b->get_decl());
             bool_var bv = ctx.mk_bool_var(b);
@@ -1139,7 +1137,7 @@ namespace smt {
             m_var_occs[v].push_back(a);
             m_atoms.push_back(a);
             insert_bv2a(bv, a);
-            TRACE("arith", tout << mk_pp(b, m) << "\n";
+            TRACE(arith, tout << mk_pp(b, m) << "\n";
                   display_atom(tout, a, false););            
         }
         return result;
@@ -1349,7 +1347,7 @@ namespace smt {
             }
             has_shared |= ctx.is_shared(get_enode(s));
         }
-        TRACE("opt", 
+        TRACE(opt, 
               tout << (safe_gain(min_gain, max_gain)?"safe":"unsafe") << "\n";
               tout << "min gain: " << min_gain;
               tout << " max gain: " << max_gain << "\n";
@@ -1414,7 +1412,7 @@ namespace smt {
         if (is_int(x)) {
             min_gain = inf_numeral::one();
         }
-        TRACE("opt",
+        TRACE(opt,
               tout << "v" << x << " := " << get_value(x) << " "
               << "min gain: " << min_gain << " " 
               << "max gain: " << max_gain << "\n";);           
@@ -1473,7 +1471,7 @@ namespace smt {
 
         if (!max_inc.is_minus_one()) {
             if (is_int(x_i)) {
-                TRACE("opt",
+                TRACE(opt,
                       tout << "v" << x_i << " a_ij " << a_ij << " "
                       << "min gain: " << min_gain << " " 
                       << "max gain: " << max_gain << "\n";);
@@ -1490,7 +1488,7 @@ namespace smt {
                 is_tighter = true;
             }
         }
-        TRACE("opt",
+        TRACE(opt,
               tout << "v" << x_i << (is_int(x_i)?" int":" real") << " a_ij " << a_ij << " "
               << "min gain: " << min_gain << " " 
               << "max gain: " << max_gain << " tighter: "
@@ -1511,7 +1509,7 @@ namespace smt {
     bool theory_arith<Ext>::has_interface_equality(theory_var x) {
         theory_var num = get_num_vars();
         enode* r = get_enode(x)->get_root();
-        for (theory_var v = 0; v < num; v++) {
+        for (theory_var v = 0; v < num; ++v) {
             if (v == x) continue;
             enode* n = get_enode(v);
             if (ctx.is_shared(n) && n->get_root() == r) {
@@ -1555,7 +1553,7 @@ namespace smt {
             ++round;
 
             (void)round;
-            TRACE("opt", tout << "round: " << round << ", max: " << max << "\n"; display_row(tout, r, true); tout << "state:\n"; display(tout););
+            TRACE(opt, tout << "round: " << round << ", max: " << max << "\n"; display_row(tout, r, true); tout << "state:\n"; display(tout););
             typename vector<row_entry>::const_iterator it  = r.begin_entries();
             typename vector<row_entry>::const_iterator end = r.end_entries();
             for (; it != end; ++it) {  
@@ -1578,12 +1576,12 @@ namespace smt {
 
                 
                 if (!safe_to_leave) {
-                    TRACE("opt", tout << "no variable picked\n";);
+                    TRACE(opt, tout << "no variable picked\n";);
                     has_bound = true;
                     best_efforts++;
                 }
                 else if (curr_x_i == null_theory_var) {
-                    TRACE("opt", tout << "v" << curr_x_j << " is unrestricted by other variables\n";);
+                    TRACE(opt, tout << "v" << curr_x_j << " is unrestricted by other variables\n";);
                     // we can increase/decrease curr_x_j as much as we want.
                     x_i   = null_theory_var; // unbounded
                     x_j   = curr_x_j;
@@ -1613,7 +1611,7 @@ namespace smt {
                 }
             }
 
-            TRACE("opt", tout << "after traversing row:\nx_i: v" << x_i << ", x_j: v" << x_j << ", gain: " << max_gain << "\n";
+            TRACE(opt, tout << "after traversing row:\nx_i: v" << x_i << ", x_j: v" << x_j << ", gain: " << max_gain << "\n";
                   tout << "best efforts: " << best_efforts << " has shared: " << has_shared << "\n";);
 
             
@@ -1625,7 +1623,7 @@ namespace smt {
             }
 
             if (x_j == null_theory_var) {
-                TRACE("opt", tout << "row is " << (max ? "maximized" : "minimized") << "\n";
+                TRACE(opt, tout << "row is " << (max ? "maximized" : "minimized") << "\n";
                       display_row(tout, r, true););
                 SASSERT(!maintain_integrality || valid_assignment());
                 SASSERT(satisfy_bounds());
@@ -1643,7 +1641,7 @@ namespace smt {
                     if (max_gain.is_zero()) return BEST_EFFORT;
                     SASSERT(!unbounded_gain(max_gain));
                     update_value(x_j, max_gain);
-                    TRACE("opt", tout << "moved v" << x_j << " to upper bound\n";);
+                    TRACE(opt, tout << "moved v" << x_j << " to upper bound\n";);
                     SASSERT(!maintain_integrality || valid_assignment());
                     SASSERT(satisfy_bounds());
                     continue;
@@ -1654,7 +1652,7 @@ namespace smt {
                     SASSERT(max_gain.is_pos());
                     max_gain.neg();
                     update_value(x_j, max_gain);
-                    TRACE("opt", tout << "moved v" << x_j << " to lower bound\n";);
+                    TRACE(opt, tout << "moved v" << x_j << " to lower bound\n";);
                     SASSERT(!maintain_integrality || valid_assignment());
                     SASSERT(satisfy_bounds());
                     continue;
@@ -1684,11 +1682,11 @@ namespace smt {
                 (upper_bound(x_j) - lower_bound(x_j) == max_gain)) {
                 // can increase/decrease x_j up to upper/lower bound.
                 if (inc) {
-                    TRACE("opt", tout << "moved v" << x_j << " to upper bound\n";);
+                    TRACE(opt, tout << "moved v" << x_j << " to upper bound\n";);
                 }
                 else {
                     max_gain.neg();
-                    TRACE("opt", tout << "moved v" << x_j << " to lower bound\n";);
+                    TRACE(opt, tout << "moved v" << x_j << " to lower bound\n";);
                 }
                 update_value(x_j, max_gain);
                 SASSERT(!maintain_integrality || valid_assignment());
@@ -1696,7 +1694,7 @@ namespace smt {
                 continue;
             }
             
-            TRACE("opt", tout << "max: " << max << ", x_i: v" << x_i << ", x_j: v" << x_j << ", a_ij: " << a_ij << ", coeff: " << coeff << "\n";
+            TRACE(opt, tout << "max: " << max << ", x_i: v" << x_i << ", x_j: v" << x_j << ", a_ij: " << a_ij << ", coeff: " << coeff << "\n";
                   if (upper(x_i)) tout << "upper x_i: " << upper_bound(x_i) << " ";
                   if (lower(x_i)) tout << "lower x_i: " << lower_bound(x_i) << " ";
                   tout << "value x_i: " << get_value(x_i) << "\n";
@@ -1712,7 +1710,7 @@ namespace smt {
             
             bool inc_xi = inc?a_ij.is_neg():a_ij.is_pos();
             if (!move_to_bound(x_i, inc_xi, best_efforts, has_shared)) {
-                TRACE("opt", tout << "can't move bound fully\n";);
+                TRACE(opt, tout << "can't move bound fully\n";);
                 // break;                // break;
 
             }
@@ -1724,7 +1722,7 @@ namespace smt {
             SASSERT(!maintain_integrality || valid_assignment());
             SASSERT(satisfy_bounds());
         }
-        TRACE("opt_verbose", display(tout););
+        TRACE(opt_verbose, display(tout););
         return (best_efforts>0 || ctx.get_cancel_flag())?BEST_EFFORT:result;
     }
 
@@ -1760,7 +1758,7 @@ namespace smt {
         }
         bool result = false;
         if (safe_gain(min_gain, max_gain)) {
-            TRACE("opt", tout << "Safe delta: " << max_gain << "\n";);
+            TRACE(opt, tout << "Safe delta: " << max_gain << "\n";);
             SASSERT(!unbounded_gain(max_gain));
             if (!inc) {
                 max_gain.neg();
@@ -1799,13 +1797,13 @@ namespace smt {
     */
     template<typename Ext>
    typename theory_arith<Ext>::max_min_t theory_arith<Ext>::max_min(theory_var v, bool max, bool maintain_integrality, bool& has_shared) {
-        expr* e = get_enode(v)->get_expr();
+        expr* e = get_expr(v);
         (void)e;
         SASSERT(!maintain_integrality || valid_assignment());
         SASSERT(satisfy_bounds());
         SASSERT(!is_quasi_base(v));
         if ((max && at_upper(v)) || (!max && at_lower(v))) {
-            TRACE("opt", display_var(tout << "At " << (max?"max: ":"min: ") << mk_pp(e, get_manager()) << " \n", v););
+            TRACE(opt, display_var(tout << "At " << (max?"max: ":"min: ") << mk_pp(e, get_manager()) << " \n", v););
             return AT_BOUND; // nothing to be done...
         }
         m_tmp_row.reset();
@@ -1823,16 +1821,16 @@ namespace smt {
         }
         max_min_t r = max_min(m_tmp_row, max, maintain_integrality, has_shared);
         if (r == OPTIMIZED) {
-            TRACE("opt", tout << mk_pp(e, get_manager()) << " " << (max ? "max" : "min") << " value is: " << get_value(v) << "\n";
+            TRACE(opt, tout << mk_pp(e, get_manager()) << " " << (max ? "max" : "min") << " value is: " << get_value(v) << "\n";
                   display_row(tout, m_tmp_row, true); display_row_info(tout, m_tmp_row););
             
             mk_bound_from_row(v, get_value(v), max ? B_UPPER : B_LOWER, m_tmp_row);            
         }
         else if (r == UNBOUNDED) {
-            TRACE("opt", display_var(tout << "unbounded: " << mk_pp(e, get_manager()) << "\n", v););
+            TRACE(opt, display_var(tout << "unbounded: " << mk_pp(e, get_manager()) << "\n", v););
         }
         else {
-            TRACE("opt", display_var(tout << "not optimized: " << mk_pp(e, get_manager()) << "\n", v););
+            TRACE(opt, display_var(tout << "not optimized: " << mk_pp(e, get_manager()) << "\n", v););
         }
         return r;
     }
@@ -1856,7 +1854,7 @@ namespace smt {
         if (succ) {
             // process new bounds
             bool r = propagate_core();
-            TRACE("opt", tout << "after max/min round:\n"; display(tout););
+            TRACE(opt, tout << "after max/min round:\n"; display(tout););
             return r;
         }
         return true;
@@ -1936,7 +1934,7 @@ namespace smt {
             }
         }
     fi_succeeded:
-        TRACE("freedom_interval",
+        TRACE(freedom_interval,
               tout << "freedom variable for:\n";
               display_var(tout, x_j);
               tout << "[";
@@ -2017,7 +2015,7 @@ namespace smt {
         SASSERT(m_tmp_row.size() > 0);
 
 #if 0
-        TRACE("imply_eq", display_row_info(tout, m_tmp_row););
+        TRACE(imply_eq, display_row_info(tout, m_tmp_row););
         m_tmp_acc_lits.reset();
         m_tmp_acc_eqs.reset();
         m_tmp_lit_set.reset();
@@ -2028,7 +2026,7 @@ namespace smt {
             (OPTIMIZED == max_min(m_tmp_row, false)) &&
             is_zero_row(m_tmp_row, false, m_tmp_acc_lits, m_tmp_acc_eqs, m_tmp_lit_set, m_tmp_eq_set)) {
             // v1 == v2
-            TRACE("imply_eq", tout << "found new implied equality:\n";
+            TRACE(imply_eq, tout << "found new implied equality:\n";
                   display_var(tout, v1); display_var(tout, v2););
             // TODO: assert implied equality
             // return true;
@@ -2120,7 +2118,7 @@ namespace smt {
         m_var_value_table.reset();
         m_tmp_var_set.reset();
         sbuffer<theory_var> candidates;
-        for (theory_var v = 0; v < num_vars; v++) {
+        for (theory_var v = 0; v < num_vars; ++v) {
             enode * n1        = get_enode(v);
             if (!is_relevant_and_shared(n1))
                 continue;
@@ -2138,7 +2136,7 @@ namespace smt {
                 candidates.push_back(other);
             }
         }
-        TRACE("arith_rand", tout << "candidates.size() == " << candidates.size() << "\n";);
+        TRACE(arith_rand, tout << "candidates.size() == " << candidates.size() << "\n";);
 
         if (candidates.empty())
             return;
@@ -2176,11 +2174,11 @@ namespace smt {
         enode * r      = n->get_root();
         enode_vector::const_iterator it  = r->begin_parents();
         enode_vector::const_iterator end = r->end_parents();
-        TRACE("shared", tout << ctx.get_scope_level() << " " <<  v << " " << r->get_num_parents() << "\n";);
+        TRACE(shared, tout << ctx.get_scope_level() << " " <<  v << " " << r->get_num_parents() << "\n";);
         for (; it != end; ++it) {
             enode * parent = *it;
-            app *   o = parent->get_expr();
-            if (o->get_family_id() == get_id()) {
+            app*   o = parent->get_app();
+            if (parent->get_family_id() == get_id()) {
                 switch (o->get_decl_kind()) {
                 case OP_DIV:
                 case OP_IDIV:
@@ -2200,13 +2198,13 @@ namespace smt {
         // See comment in m_liberal_final_check declaration
         if (m_liberal_final_check)
             mutate_assignment();
-        TRACE("assume_eq_int", display(tout););
+        TRACE(assume_eq_int, display(tout););
 
         unsigned old_sz = m_assume_eq_candidates.size();
         m_var_value_table.reset();
         bool result   = false;
         int num       = get_num_vars();
-        for (theory_var v = 0; v < num; v++) {
+        for (theory_var v = 0; v < num; ++v) {
             enode * n        = get_enode(v);
             if (!is_relevant_and_shared(n)) 
                 continue;
@@ -2237,7 +2235,7 @@ namespace smt {
             enode* n1 = get_enode(v1);
             enode* n2 = get_enode(v2);
             m_assume_eq_head++;
-            CTRACE("arith",
+            CTRACE(arith,
                    get_value(v1) == get_value(v2) && n1->get_root() != n2->get_root(),
                    tout << "assuming eq: " << ctx.pp(n1) << " = #" << ctx.pp(n2) << "\n";);
             if (get_value(v1) == get_value(v2) && 
@@ -2295,6 +2293,4 @@ namespace smt {
     }
 #endif
 
-};
-
-
+}

@@ -27,6 +27,8 @@ Revision History:
 #include "ast/ast_pp.h"
 #include "ast/ast_translation.h"
 #include "ast/recurse_expr_def.h"
+#include "ast/recfun_decl_plugin.h"
+#include "ast/occurs.h"
 
 
 macro_manager::macro_manager(ast_manager & m):
@@ -58,7 +60,7 @@ void macro_manager::pop_scope(unsigned num_scopes) {
 
 void macro_manager::restore_decls(unsigned old_sz) {
     unsigned sz         = m_decls.size();
-    for (unsigned i = old_sz; i < sz; i++) {
+    for (unsigned i = old_sz; i < sz; ++i) {
         m_decl2macro.erase(m_decls.get(i));
         m_deps.erase(m_decls.get(i));
         if (m.proofs_enabled())
@@ -74,7 +76,7 @@ void macro_manager::restore_decls(unsigned old_sz) {
 
 void macro_manager::restore_forbidden(unsigned old_sz) {
     unsigned sz         = m_forbidden.size();
-    for (unsigned i = old_sz; i < sz; i++)
+    for (unsigned i = old_sz; i < sz; ++i)
         m_forbidden_set.erase(m_forbidden.get(i));
     m_forbidden.shrink(old_sz);
 }
@@ -114,11 +116,21 @@ void macro_manager::copy_to(macro_manager& dst) {
 }
 
 bool macro_manager::insert(func_decl * f, quantifier * q, proof * pr, expr_dependency* dep) {
-    TRACE("macro_insert", tout << "trying to create macro: " << f->get_name() << "\n" << mk_pp(q, m) << "\n";);
+    TRACE(macro_insert, tout << "trying to create macro: " << f->get_name() << "\n" << mk_pp(q, m) << "\n";);
 
     // if we already have a macro for f then return false;
     if (m_decls.contains(f)) {
-        TRACE("macro_insert", tout << "we already have a macro for: " << f->get_name() << "\n";);
+        TRACE(macro_insert, tout << "we already have a macro for: " << f->get_name() << "\n";);
+        return false;
+    }
+
+    // Macros are expanded in the asserted formulas only. The bodies of recursive
+    // function definitions (define-fun-rec) are not asserted formulas: they are
+    // unfolded lazily by the recfun theory. If f occurs in such a body, eliminating
+    // f from the assertions would leave those occurrences without their defining
+    // axiom, so the resulting problem is weaker than the original (false 'sat').
+    if (occurs_in_recursive_definition(f)) {
+        TRACE(macro_insert, tout << "cannot create macro for: " << f->get_name() << ", it occurs in a recursive function definition\n";);
         return false;
     }
 
@@ -145,11 +157,28 @@ bool macro_manager::insert(func_decl * f, quantifier * q, proof * pr, expr_depen
     m_macro_deps.push_back(dep);
     m_decl2macro_dep.insert(f, dep);
 
-    TRACE("macro_insert", tout << "A macro was successfully created for: " << f->get_name() << "\n";);
+    TRACE(macro_insert, tout << "A macro was successfully created for: " << f->get_name() << "\n";);
 
     // Nothing's forbidden anymore; if something's bad, we detected it earlier.
     // mark_forbidden(m->get_expr());
     return true;
+}
+
+bool macro_manager::occurs_in_recursive_definition(func_decl * f) const {
+    if (!m.has_plugin(symbol("recfun")))
+        return false;
+    recfun::util u(m);
+    if (!u.has_defs())
+        return false;
+    for (func_decl * g : u.get_rec_funs()) {
+        recfun::def & d = u.get_def(g);
+        if (d.is_macro())
+            continue;
+        expr * rhs = d.get_rhs();
+        if (rhs && occurs(f, rhs))
+            return true;
+    }
+    return false;
 }
 
 namespace macro_manager_ns {
@@ -167,7 +196,7 @@ namespace macro_manager_ns {
             }
         }
     };
-};
+}
 
 /**
    \brief Mark all func_decls used in exprs as forbidden.
@@ -176,7 +205,7 @@ namespace macro_manager_ns {
 void macro_manager::mark_forbidden(unsigned n, justified_expr const * exprs) {
     expr_mark visited;
     macro_manager_ns::proc p(m_forbidden_set, m_forbidden);
-    for (unsigned i = 0; i < n; i++)
+    for (unsigned i = 0; i < n; ++i)
         for_each_expr(p, visited, exprs[i].fml());
 }
 
@@ -203,7 +232,7 @@ void macro_manager::get_head_def(quantifier * q, func_decl * d, app * & head, ex
 
 void macro_manager::display(std::ostream & out) {
     unsigned sz = m_decls.size();
-    for (unsigned i = 0; i < sz; i++) {
+    for (unsigned i = 0; i < sz; ++i) {
         func_decl * f  = m_decls.get(i);
         quantifier * q = nullptr;
         m_decl2macro.find(f, q);
@@ -223,7 +252,7 @@ func_decl * macro_manager::get_macro_interpretation(unsigned i, expr_ref & inter
     expr_ref def(m);
     bool r;
     get_head_def(q, f, head, def, r);
-    TRACE("macro_bug",
+    TRACE(macro_bug,
           tout << f->get_name() << "\n" << mk_pp(head, m) << "\n" << mk_pp(q, m) << "\n";);
     m_util.mk_macro_interpretation(head, q->get_num_decls(), def, interp);
     return f;
@@ -267,11 +296,11 @@ struct macro_manager::macro_expander_cfg : public default_rewriter_cfg {
         // So, I'm just erasing them.
 
         bool erase_patterns = false;
-        for (unsigned i = 0; !erase_patterns && i < old_q->get_num_patterns(); i++) {
+        for (unsigned i = 0; !erase_patterns && i < old_q->get_num_patterns(); ++i) {
             if (old_q->get_pattern(i) != new_patterns[i]) 
                 erase_patterns = true;
         }
-        for (unsigned i = 0; !erase_patterns && i < old_q->get_num_no_patterns(); i++) {
+        for (unsigned i = 0; !erase_patterns && i < old_q->get_num_no_patterns(); ++i) {
             if (old_q->get_no_pattern(i) != new_no_patterns[i])
                 erase_patterns = true;
         }
@@ -290,7 +319,7 @@ struct macro_manager::macro_expander_cfg : public default_rewriter_cfg {
         app * n = to_app(_n);
         quantifier * q = nullptr;
         func_decl * d  = n->get_decl(), *d2 = nullptr;
-        TRACE("macro_manager", tout << "trying to expand:\n" << mk_pp(n, m) << "\nd:\n" << d->get_name() << "\n";);
+        TRACE(macro_manager, tout << "trying to expand:\n" << mk_pp(n, m) << "\nd:\n" << d->get_name() << "\n";);
         if (mm.m_decl2macro.find(d, q)) {            
             app * head = nullptr;
             expr_ref def(m);
@@ -298,10 +327,10 @@ struct macro_manager::macro_expander_cfg : public default_rewriter_cfg {
             mm.get_head_def(q, d, head, def, revert);
             unsigned num = n->get_num_args();
             SASSERT(head && def);
-            TRACE("macro_manager", tout << "expanding: " << mk_pp(n, m) << "\n" << mk_pp(head, m) << " " << mk_pp(def, m) << "\n";);
+            TRACE(macro_manager, tout << "expanding: " << mk_pp(n, m) << "\n" << mk_pp(head, m) << " " << mk_pp(def, m) << "\n";);
             ptr_buffer<expr> subst_args;
             subst_args.resize(num, 0);
-            for (unsigned i = 0; i < num; i++) {
+            for (unsigned i = 0; i < num; ++i) {
                 var * v = to_var(head->get_arg(i));
                 if (v->get_idx() >= num)
                     return false;
@@ -377,7 +406,7 @@ void macro_manager::expand_macros(expr * n, proof * pr, expr_dependency * dep, e
             macro_expander_rw proc(m, *this);
             proof_ref n_eq_r_pr(m);
             SASSERT(!old_pr || m.get_fact(old_pr) == old_n);
-            TRACE("macro_manager_bug", tout << "expand_macros:\n" << mk_pp(n, m) << "\n";);
+            TRACE(macro_manager_bug, tout << "expand_macros:\n" << mk_pp(n, m) << "\n";);
             proc(old_n, r, n_eq_r_pr);
             new_pr = m.mk_modus_ponens(old_pr, n_eq_r_pr);
             new_dep = m.mk_join(old_dep, proc.m_cfg.m_used_macro_dependencies); 
@@ -408,4 +437,3 @@ void macro_manager::expand_macros(expr * n, proof * pr, expr_dependency * dep, e
     SASSERT(!new_pr || m.get_fact(new_pr) == r);
     SASSERT(!dep || new_dep);
 }
-

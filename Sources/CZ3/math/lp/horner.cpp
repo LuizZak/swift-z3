@@ -39,9 +39,9 @@ bool horner::row_has_monomial_to_refine(const T& row) const {
 // Returns true if the row has at least two monomials sharing a variable
 template <typename T>
 bool horner::row_is_interesting(const T& row) const {
-    TRACE("nla_solver_details", c().print_row(row, tout););
+    TRACE(nla_solver_details, c().print_row(row, tout););
     if (row.size() > c().params().arith_nl_horner_row_length_limit()) {
-        TRACE("nla_solver_details", tout << "disregard\n";);
+        TRACE(nla_solver_details, tout << "disregard\n";);
         return false;
     }
     SASSERT(row_has_monomial_to_refine(row));
@@ -68,7 +68,7 @@ bool horner::row_is_interesting(const T& row) const {
 }
 
 bool horner::lemmas_on_expr(cross_nested& cn, nex_sum* e) {
-    TRACE("nla_horner", tout << "e = " << *e << "\n";);
+    TRACE(nla_horner, tout << "e = " << *e << "\n";);
     cn.run(e);
     return cn.done();
 }
@@ -81,7 +81,7 @@ bool horner::lemmas_on_row(const T& row) {
     create_sum_from_row(row, m_nex_creator, m_row_sum, dep);
     c().set_active_vars_weights(m_nex_creator); // without this call the comparisons will be incorrect
     nex* e =  m_nex_creator.simplify(m_row_sum.mk());
-    TRACE("nla_horner", tout << "e = " << * e << "\n";);
+    TRACE(nla_horner, tout << "e = " << * e << "\n";);
     if (e->get_degree() < 2)
         return false;
     if (!e->is_sum())
@@ -90,7 +90,9 @@ bool horner::lemmas_on_row(const T& row) {
     cross_nested cn(
         [this, dep](const nex* n) { return c().m_intervals.check_nex(n, dep); },
         [this](unsigned j)   { return c().var_is_fixed(j); },
-        [this]() { return c().random(); }, m_nex_creator);
+        c().reslim(),
+        c().random(),
+        m_nex_creator);
     bool ret = lemmas_on_expr(cn, to_sum(e));
     c().m_intervals.get_dep_intervals().reset(); // clean the memory allocated by the interval bound dependencies
     return ret;
@@ -99,7 +101,11 @@ bool horner::lemmas_on_row(const T& row) {
 
 bool horner::horner_lemmas() {
     if (!c().params().arith_nl_horner()) {
-        TRACE("nla_solver", tout << "not generating horner lemmas\n";);
+        TRACE(nla_solver, tout << "not generating horner lemmas\n";);
+        return false;
+    }
+    if (c().to_refine().empty()) {
+        c().set_nla_satisfied();
         return false;
     }
     c().lp_settings().stats().m_horner_calls++;
@@ -120,7 +126,7 @@ bool horner::horner_lemmas() {
     unsigned r = c().random();
     unsigned sz = rows.size();
     bool conflict = false;
-    for (unsigned i = 0; i < sz && !conflict; i++) {
+    for (unsigned i = 0; i < sz && !conflict; ++i) {
         m_row_index = rows[(i + r) % sz];
         if (lemmas_on_row(matrix.m_rows[m_row_index])) {
             c().lp_settings().stats().m_horner_conflicts++;
@@ -130,4 +136,3 @@ bool horner::horner_lemmas() {
     return conflict;
 }
 }
-

@@ -18,6 +18,7 @@ Revision History:
 --*/
 #pragma once
 
+#include <bit>
 #include<string>
 #include "util/mutex.h"
 #include "util/util.h"
@@ -27,10 +28,8 @@ Revision History:
 #include "util/scoped_numeral_vector.h"
 #include "util/mpn.h"
 
-unsigned u_gcd(unsigned u, unsigned v);
-uint64_t u64_gcd(uint64_t u, uint64_t v);
-unsigned trailing_zeros(uint64_t);
-unsigned trailing_zeros(uint32_t);
+static inline unsigned trailing_zeros(uint64_t x) { return std::countr_zero(x); }
+static inline unsigned trailing_zeros(uint32_t x) { return std::countr_zero(x); }
 
 
 #ifdef _MP_GMP
@@ -98,12 +97,9 @@ protected:
     friend class mpbq_manager;
     friend class mpz_stack;
 public:
-    mpz(int v):m_val(v), m_kind(mpz_small), m_owner(mpz_self), m_ptr(nullptr) {}
-    mpz():m_val(0), m_kind(mpz_small), m_owner(mpz_self), m_ptr(nullptr) {}
-    mpz(mpz_type* ptr): m_val(0), m_kind(mpz_small), m_owner(mpz_ext), m_ptr(ptr) { SASSERT(ptr);}
-    mpz(mpz && other) noexcept : m_val(other.m_val), m_kind(other.m_kind), m_owner(other.m_owner), m_ptr(nullptr) {
-        std::swap(m_ptr, other.m_ptr);
-    }
+    mpz(int v = 0) noexcept : m_val(v), m_kind(mpz_small), m_owner(mpz_self), m_ptr(nullptr) {}
+    mpz(mpz_type* ptr) noexcept : m_val(0), m_kind(mpz_small), m_owner(mpz_ext), m_ptr(ptr) { SASSERT(ptr); }
+    mpz(mpz && other) noexcept : mpz() { swap(other); }
 
     mpz& operator=(mpz const& other) = delete;
     mpz& operator=(mpz &&other) noexcept {
@@ -159,8 +155,9 @@ class mpz_manager {
     mutable mpn_manager             m_mpn_manager;
 
 #ifndef _MP_GMP
-    unsigned                m_init_cell_capacity;
-    mpz                     m_int_min;
+    // 64-bit machine?
+    static const unsigned m_init_cell_capacity = sizeof(digit_t) == sizeof(uint64_t) ? 4 : 6;
+    mpz                   m_int_min;
     
     static unsigned cell_size(unsigned capacity) { 
         return sizeof(mpz_cell) + sizeof(digit_t) * capacity; 
@@ -210,16 +207,12 @@ class mpz_manager {
 
     mpz_t * allocate() {        
         mpz_t * cell;
-#ifdef SINGLE_THREAD
-        cell = reinterpret_cast<mpz_t*>(m_allocator.allocate(sizeof(mpz_t)));        
-#else
         if (SYNCH) {
             cell = reinterpret_cast<mpz_t*>(memory::allocate(sizeof(mpz_t)));
         }
         else {
             cell = reinterpret_cast<mpz_t*>(m_allocator.allocate(sizeof(mpz_t)));        
         }
-#endif
         mpz_init(*cell);
         return cell;
     }
@@ -227,16 +220,12 @@ class mpz_manager {
     void deallocate(bool is_heap, mpz_t * ptr) { 
         mpz_clear(*ptr); 
         if (is_heap) {
-#ifdef SINGLE_THREAD
-            m_allocator.deallocate(sizeof(mpz_t), ptr); 
-#else
             if (SYNCH) {
                 memory::deallocate(ptr);
             }
             else {
                 m_allocator.deallocate(sizeof(mpz_t), ptr); 
             }
-#endif
         }
     }
 
@@ -324,13 +313,14 @@ class mpz_manager {
             else {
                 cell = reserve;
                 cell->m_size = 1;
+                digit_t* cell_digits = reinterpret_cast<digit_t*>(cell + 1);
                 if (a.value() < 0) {
                     sign = -1;
-                    cell->m_digits[0] = -a.value();
+                    cell_digits[0] = -a.value();
                 }
                 else {
                     sign = 1;
-                    cell->m_digits[0] = a.value();
+                    cell_digits[0] = a.value();
                 }
             }
         }
@@ -397,7 +387,7 @@ class mpz_manager {
     int big_compare(mpz const & a, mpz const & b);
 
 public:
-    unsigned size_info(mpz const & a);
+    static unsigned size_info(mpz const & a);
     struct sz_lt;
 
     static bool precise() { return true; }
@@ -415,23 +405,43 @@ public:
     
     void del(mpz & a) { del(this, a); }
 
-    static void del(mpz_manager* m, mpz & a);
+    // small numbers that own no cell need no work, so the common case stays inline
+    static void del(mpz_manager* m, mpz & a) { if (a.m_ptr) del_big(m, a); }
+    static void del_big(mpz_manager* m, mpz & a);
     
-    void add(mpz const & a, mpz const & b, mpz & c);
+    // The small-operand paths are inline: they are the common case in the simplex and the
+    // call into the big-number code is only taken when an operand owns a cell.
+    void add(mpz const & a, mpz const & b, mpz & c) {
+        if (is_small(a) && is_small(b)) set_i64(c, i64(a) + i64(b)); else add_slow(a, b, c);
+    }
+    void add_slow(mpz const & a, mpz const & b, mpz & c);
 
-    void sub(mpz const & a, mpz const & b, mpz & c);
+    void sub(mpz const & a, mpz const & b, mpz & c) {
+        if (is_small(a) && is_small(b)) set_i64(c, i64(a) - i64(b)); else sub_slow(a, b, c);
+    }
+    void sub_slow(mpz const & a, mpz const & b, mpz & c);
     
     void inc(mpz & a) { add(a, mpz(1), a); }
 
     void dec(mpz & a) { add(a, mpz(-1), a); }
 
-    void mul(mpz const & a, mpz const & b, mpz & c);
+    void mul(mpz const & a, mpz const & b, mpz & c) {
+        if (is_small(a) && is_small(b)) set_i64(c, i64(a) * i64(b)); else mul_slow(a, b, c);
+    }
+    void mul_slow(mpz const & a, mpz const & b, mpz & c);
 
     // d <- a + b*c
-    void addmul(mpz const & a, mpz const & b, mpz const & c, mpz & d);
+    void addmul(mpz const & a, mpz const & b, mpz const & c, mpz & d) {
+        // |b*c| < 2^62 and |a| < 2^31, so the sum fits in 64 bits
+        if (is_small(a) && is_small(b) && is_small(c)) set_i64(d, i64(a) + i64(b) * i64(c)); else addmul_slow(a, b, c, d);
+    }
+    void addmul_slow(mpz const & a, mpz const & b, mpz const & c, mpz & d);
 
     // d <- a - b*c
-    void submul(mpz const & a, mpz const & b, mpz const & c, mpz & d);
+    void submul(mpz const & a, mpz const & b, mpz const & c, mpz & d) {
+        if (is_small(a) && is_small(b) && is_small(c)) set_i64(d, i64(a) - i64(b) * i64(c)); else submul_slow(a, b, c, d);
+    }
+    void submul_slow(mpz const & a, mpz const & b, mpz const & c, mpz & d);
 
     void machine_div_rem(mpz const & a, mpz const & b, mpz & q, mpz & r);
 
@@ -444,6 +454,8 @@ public:
     void div(mpz const & a, mpz const & b, mpz & c);
 
     void mod(mpz const & a, mpz const & b, mpz & c);
+
+    mpz mod2k(mpz const & a, unsigned k);
 
     void neg(mpz & a);
 
@@ -710,7 +722,7 @@ public:
        Otherwise return false, and update a with the smallest
        integer r such that r*r > n.
        
-       \remark This method assumes that if n is even, then a is nonegative
+       \remark This method returns false if a is negative and n is even.
     */
     bool root(mpz & a, unsigned n);
     bool root(mpz const & a, unsigned n, mpz & r) { set(r, a); return root(r, n); }
@@ -731,6 +743,8 @@ public:
     bool decompose(mpz const & n, svector<digit_t> & digits);
 
     bool get_bit(mpz const& a, unsigned bit);
+
+    digit_t get_least_significant(mpz const& a);
 
 };
 

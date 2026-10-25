@@ -344,7 +344,7 @@ namespace smt {
                 }
             }
             m_best_penalty = m_penalty;
-            TRACE("opt", display(tout););
+            TRACE(opt, display(tout););
         }
         
         literal flip() {
@@ -496,7 +496,7 @@ namespace smt {
                 }
             }                
 
-            TRACE("opt", tout << "flip: " << l << " num false: " << m_hard_false.num_elems() 
+            TRACE(opt, tout << "flip: " << l << " num false: " << m_hard_false.num_elems() 
                   << " penalty: " << m_penalty << " break count: " << break_count << "\n";);
             return break_count;
         }
@@ -648,7 +648,6 @@ namespace smt {
                 // <=>
                 // a(1-x) + b(1-y) >= -k + a + b + 1
                 sz = to_app(f2)->get_num_args();
-                args = to_app(f2)->get_args();
                 k = pb.get_k(f2);
                 SASSERT(k.is_int());
                 k.neg();

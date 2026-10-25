@@ -52,15 +52,14 @@ namespace sls {
 
         bool is_user_sort(sort* s) { return s->get_family_id() == user_sort_family_id; }
 
-        size_t* to_ptr(sat::literal l) { return reinterpret_cast<size_t*>((size_t)(l.index() << 4)); };
-        sat::literal to_literal(size_t* p) { return sat::to_literal(static_cast<unsigned>(reinterpret_cast<size_t>(p) >> 4)); };
+        size_t* to_ptr(sat::literal l) { return reinterpret_cast<size_t*>((size_t)(l.index() << 4)); }
+        sat::literal to_literal(size_t* p) { return sat::to_literal(static_cast<unsigned>(reinterpret_cast<size_t>(p) >> 4)); }
 
         void validate_model();
         void log_clause(sat::literal_vector const& lits);
 
     public:
         euf_plugin(context& c);
-        ~euf_plugin() override;
         expr_ref get_value(expr* e) override;
         void initialize() override;
         void start_propagation() override;
@@ -72,9 +71,9 @@ namespace sls {
         bool set_value(expr* e, expr* v) override { return false; }
         bool include_func_interp(func_decl* f) const override;
 
-        void repair_up(app* e) override {}
+        void repair_up(app*) override { }
         bool repair_down(app* e) override { return false; }
-        void repair_literal(sat::literal lit) override {}
+        void repair_literal(sat::literal) override { }
 
         void collect_statistics(statistics& st) const override;
         void reset_statistics() override;

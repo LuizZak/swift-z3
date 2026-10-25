@@ -44,7 +44,7 @@ namespace smt {
     }
 
     void qi_queue::setup() {
-        TRACE("qi_cost", tout << "qi_cost: " << m_params.m_qi_cost << "\n";);
+        TRACE(qi_cost, tout << "qi_cost: " << m_params.m_qi_cost << "\n";);
         if (!m_parser.parse_string(m_params.m_qi_cost.c_str(), m_cost_function)) {
             // it is not reasonable to abort here during the creation of smt::context just because an invalid option was provided.
             // throw default_exception("invalid cost function %s", m_params.m_qi_cost.c_str());
@@ -113,7 +113,7 @@ namespace smt {
         m_vals[SCOPE]              = static_cast<float>(m_context.get_scope_level());
         m_vals[NESTED_QUANTIFIERS] = static_cast<float>(stat->get_num_nested_quantifiers());
         m_vals[CS_FACTOR]          = static_cast<float>(stat->get_case_split_factor());
-        TRACE("qi_queue_detail", for (unsigned i = 0; i < m_vals.size(); i++) { tout << m_vals[i] << " "; } tout << "\n";);
+        TRACE(qi_queue_detail, for (unsigned i = 0; i < m_vals.size(); ++i) { tout << m_vals[i] << " "; } tout << "\n";);
         return stat;
     }
 
@@ -133,18 +133,18 @@ namespace smt {
         return std::max(generation + 1, static_cast<unsigned>(r));
     }
 
-    void qi_queue::insert(fingerprint * f, app * pat, unsigned generation, unsigned min_top_generation, unsigned max_top_generation) {
+    void qi_queue::insert(fingerprint * f, app * pat, unsigned generation, unsigned min_top_generation, unsigned max_top_generation, bool mbqi_instance) {
         quantifier * q         = static_cast<quantifier*>(f->get_data());
         float cost             = get_cost(q, pat, generation, min_top_generation, max_top_generation);
-        TRACE("qi_queue_detail",
+        TRACE(qi_queue_detail,
               tout << "new instance of " << q->get_qid() << ", weight " << q->get_weight()
               << ", generation: " << generation << ", scope_level: " << m_context.get_scope_level() << ", cost: " << cost << "\n";
-              for (unsigned i = 0; i < f->get_num_args(); i++) {
-                  tout << "#" << f->get_arg(i)->get_expr_id() << " d:" << f->get_arg(i)->get_expr()->get_depth() << " ";
+              for (unsigned i = 0; i < f->get_num_args(); ++i) {
+                  tout << "#" << f->get_arg(i)->get_expr_id() << " d:" << get_depth(f->get_arg(i)->get_expr()) << " ";
               }
               tout << "\n";);
-        TRACE("new_entries_bug", tout << "[qi:insert]\n";);
-        m_new_entries.push_back(entry(f, cost, generation));
+        TRACE(new_entries_bug, tout << "[qi:insert]\n";);
+        m_new_entries.push_back(entry(f, cost, generation, mbqi_instance));
     }
 
     void qi_queue::instantiate() {
@@ -166,11 +166,11 @@ namespace smt {
             }
             else if (m_params.m_qi_promote_unsat && m_checker.is_unsat(qa->get_expr(), f->get_num_args(), f->get_args())) {
                 // do not delay instances that produce a conflict.
-                TRACE("qi_unsat", tout << "promoting instance that produces a conflict\n" << mk_pp(qa, m) << "\n";);
+                TRACE(qi_unsat, tout << "promoting instance that produces a conflict\n" << mk_pp(qa, m) << "\n";);
                 instantiate(curr);
             }
             else {
-                TRACE("qi_queue", tout << "delaying quantifier instantiation... " << f << "\n" << mk_pp(qa, m) << "\ncost: " << curr.m_cost << "\n";);
+                TRACE(qi_queue, tout << "delaying quantifier instantiation... " << f << "\n" << mk_pp(qa, m) << "\ncost: " << curr.m_cost << "\n";);
                 m_delayed_entries.push_back(curr);
             }
 
@@ -183,7 +183,7 @@ namespace smt {
             }
         }
         m_new_entries.reset();
-        TRACE("new_entries_bug", tout << "[qi:instantiate]\n";);
+        TRACE(new_entries_bug, tout << "[qi:instantiate]\n";);
     }
 
     void qi_queue::display_instance_profile(fingerprint * f, quantifier * q, unsigned num_bindings, enode * const * bindings, unsigned proof_id, unsigned generation) {
@@ -197,6 +197,9 @@ namespace smt {
     }
 
     void qi_queue::instantiate(entry & ent) {
+        if (m_context.inconsistent()) 
+            return;
+        
         // set temporary flag to enable quantifier-specific tracing in within smt_internalizer.
         flet<bool> _coming_from_quant(m_context.m_coming_from_quant, true);
 
@@ -208,22 +211,22 @@ namespace smt {
 
         ent.m_instantiated = true;
                 
-        TRACE("qi_queue_profile", tout << q->get_qid() << ", gen: " << generation << " " << *f << " cost: " << ent.m_cost << "\n";);
+        TRACE(qi_queue_profile, tout << q->get_qid() << ", gen: " << generation << " " << *f << " cost: " << ent.m_cost << "\n";);
 
         q::quantifier_stat * stat = m_qm.get_stat(q);
 
         if (m_checker.is_sat(q->get_expr(), num_bindings, bindings)) {
-            TRACE("checker", tout << "instance already satisfied\n";);
+            TRACE(checker, tout << "instance already satisfied\n";);
             // we log the "dummy" instantiations separately from "instance"
-            STRACE("dummy", tout << "### " << static_cast<void*>(f) <<", " << q->get_qid() << "\n";);
-            STRACE("dummy", tout << "Instance already satisfied (dummy)\n";);
+            STRACE(dummy, tout << "### " << static_cast<void*>(f) <<", " << q->get_qid() << "\n";);
+            STRACE(dummy, tout << "Instance already satisfied (dummy)\n";);
             // a dummy instantiation is still an instantiation.
             // in this way smt.qi.profile=true coincides with the axiom profiler
             stat->inc_num_instances_checker_sat();
             return;
         }
 
-        STRACE("instance", tout << "### " << static_cast<void*>(f) <<", " << q->get_qid()  << "\n";);
+        STRACE(instance, tout << "### " << static_cast<void*>(f) <<", " << q->get_qid()  << "\n";);
 
         auto* ebindings = m_subst(q, num_bindings);
         for (unsigned i = 0; i < num_bindings; ++i)
@@ -231,14 +234,14 @@ namespace smt {
         expr_ref instance = m_subst();
 
 
-        TRACE("qi_queue", tout << "new instance:\n" << mk_pp(instance, m) << "\n";);
+        TRACE(qi_queue, tout << "new instance:\n" << mk_pp(instance, m) << "\n";);
         expr_ref  s_instance(m);
         proof_ref pr(m);
         m_context.get_rewriter()(instance, s_instance, pr);
 
-        TRACE("qi_queue_bug", tout << "new instance after simplification:\n" << s_instance << "\n";);
+        TRACE(qi_queue_bug, tout << "new instance after simplification:\n" << s_instance << "\n";);
         if (m.is_true(s_instance)) {
-            STRACE("instance", tout <<  "Instance reduced to true\n";);
+            STRACE(instance, tout <<  "Instance reduced to true\n";);
             stat -> inc_num_instances_simplify_true();
             if (m.has_trace_stream()) {
                 display_instance_profile(f, q, num_bindings, bindings, pr ? pr->get_id() : 0, generation);
@@ -258,17 +261,22 @@ namespace smt {
         std::cout << instance << "\n";
 #endif
    
-        TRACE("qi_queue", tout << "simplified instance:\n" << s_instance << "\n";);
+        TRACE(qi_queue, tout << "simplified instance:\n" << s_instance << "\n";);
         stat->inc_num_instances();
         if (stat->get_num_instances() % m_params.m_qi_profile_freq == 0) {
             m_qm.display_stats(verbose_stream(), q);
+        }
+
+        if (m_on_binding && !m_on_binding(q, instance)) {
+            IF_VERBOSE(3, verbose_stream() << "qi_queue: on_binding returned false, skipping instance.\n";);
+            return;
         }
         expr_ref lemma(m);
         if (m.is_or(s_instance)) {
             ptr_vector<expr> args;
             args.push_back(m.mk_not(q));
             args.append(to_app(s_instance)->get_num_args(), to_app(s_instance)->get_args());
-            lemma = m.mk_or(args.size(), args.data());
+            lemma = m.mk_or(args);
         }
         else if (m.is_false(s_instance)) {
             lemma = m.mk_not(q);
@@ -280,6 +288,14 @@ namespace smt {
             lemma = m.mk_or(m.mk_not(q), s_instance);
         }
         m_instances.push_back(lemma);
+        // keep model-based instances (they are expensive to rediscover and MBQI may not
+        // reproduce them), and pattern-based ones up to a budget
+        // instances are recorded for re-assertion only when a theory that can request a
+        // re-search is present (strings, recursive functions); other problems are unaffected
+        bool persist = m_params.m_qi_persist_instances && m_context.has_research_theories() &&
+            (ent.m_model_based || m_persistent_instances.size() < m_params.m_qi_max_persistent_instances);
+        if (persist)
+            m_persistent_instances.push_back({ expr_ref(lemma, m), app_ref(m) });
         proof_ref pr1(m);
         unsigned proof_id = 0;
         if (m.proofs_enabled()) {
@@ -306,6 +322,8 @@ namespace smt {
                 pr1                 = m.mk_modus_ponens(qi_pr, tr);
             }
             m_instances.push_back(pr1);
+            if (persist)
+                m_persistent_instances.back().second = pr1;
         }
         else if (m_context.clause_proof_active()) {
             expr_ref_vector bindings_e(m), args(m);
@@ -321,21 +339,18 @@ namespace smt {
             pr1 = m.mk_app(symbol("inst"), args.size(), args.data(), m.mk_proof_sort());
             m_instances.push_back(pr1);            
         }
-        TRACE("qi_queue", tout << mk_pp(lemma, m) << "\n#" << lemma->get_id() << ":=\n" << mk_ll_pp(lemma, m););
+        TRACE(qi_queue, tout << mk_pp(lemma, m) << "\n#" << lemma->get_id() << ":=\n" << mk_ll_pp(lemma, m););
         m_stats.m_num_instances++;
         unsigned gen = get_new_gen(q, generation, ent.m_cost);
         display_instance_profile(f, q, num_bindings, bindings, proof_id, gen);
         m_context.internalize_instance(lemma, pr1, gen);
-        if (f->get_def()) {
-            m_context.internalize(f->get_def(), true);
-        }
         TRACE_CODE({
             static unsigned num_useless = 0;
             if (m.is_or(lemma)) {
                 app * n = to_app(lemma);
                 bool has_unassigned = false;
                 expr * true_child = 0;
-                for (unsigned i = 0; i < n->get_num_args(); i++) {
+                for (unsigned i = 0; i < n->get_num_args(); ++i) {
                     expr * arg = n->get_arg(i);
                     switch(m_context.get_assignment(arg)) {
                     case l_undef: has_unassigned = true; break;
@@ -345,10 +360,10 @@ namespace smt {
                     }
                 }
                 if (true_child && has_unassigned) {
-                    TRACE("qi_queue_profile_detail", tout << "missed:\n" << mk_ll_pp(s_instance, m) << "\n#" << true_child->get_id() << "\n";);
+                    TRACE(qi_queue_profile_detail, tout << "missed:\n" << mk_ll_pp(s_instance, m) << "\n#" << true_child->get_id() << "\n";);
                     num_useless++;
                     if (num_useless % 10 == 0) {
-                        TRACE("qi_queue_profile", tout << "num useless: " << num_useless << "\n";);
+                        TRACE(qi_queue_profile, tout << "num useless: " << num_useless << "\n";);
                     }
                 }
             }
@@ -360,7 +375,7 @@ namespace smt {
     }
 
     void qi_queue::push_scope() {
-        TRACE("new_entries_bug", tout << "[qi:push-scope]\n";);
+        TRACE(new_entries_bug, tout << "[qi:push-scope]\n";);
         m_scopes.push_back(scope());
         SASSERT(m_context.inconsistent() || m_new_entries.empty());
         scope & s = m_scopes.back();
@@ -374,20 +389,21 @@ namespace smt {
         scope & s           = m_scopes[new_lvl];
         unsigned old_sz     = s.m_instantiated_trail_lim;
         unsigned sz         = m_instantiated_trail.size();
-        for (unsigned i = old_sz; i < sz; i++)
+        for (unsigned i = old_sz; i < sz; ++i)
             m_delayed_entries[m_instantiated_trail[i]].m_instantiated = false;
         m_instantiated_trail.shrink(old_sz);
         m_delayed_entries.shrink(s.m_delayed_entries_lim);
         m_instances.shrink(s.m_instances_lim);
         m_new_entries.reset();
         m_scopes.shrink(new_lvl);
-        TRACE("new_entries_bug", tout << "[qi:pop-scope]\n";);
+        TRACE(new_entries_bug, tout << "[qi:pop-scope]\n";);
     }
 
     void qi_queue::reset() {
         m_new_entries.reset();
         m_delayed_entries.reset();
         m_instances.reset();
+        m_persistent_instances.reset();
         m_scopes.reset();
     }
 
@@ -397,28 +413,28 @@ namespace smt {
     }
 
     bool qi_queue::final_check_eh() {
-        TRACE("qi_queue", display_delayed_instances_stats(tout); tout << "lazy threshold: " << m_params.m_qi_lazy_threshold
+        TRACE(qi_queue, display_delayed_instances_stats(tout); tout << "lazy threshold: " << m_params.m_qi_lazy_threshold
               << ", scope_level: " << m_context.get_scope_level() << "\n";);
 
         if (m_params.m_qi_conservative_final_check) {
             bool  init = false;
             float min_cost = 0.0;
             unsigned sz = m_delayed_entries.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 entry & e       = m_delayed_entries[i];
-                TRACE("qi_queue", tout << e.m_qb << ", cost: " << e.m_cost << ", instantiated: " << e.m_instantiated << "\n";);
+                TRACE(qi_queue, tout << e.m_qb << ", cost: " << e.m_cost << ", instantiated: " << e.m_instantiated << "\n";);
                 if (!e.m_instantiated && e.m_cost <= m_params.m_qi_lazy_threshold && (!init || e.m_cost < min_cost)) {
                     init = true;
                     min_cost = e.m_cost;
                 }
             }
-            TRACE("qi_queue_min_cost", tout << "min_cost: " << min_cost << ", scope_level: " << m_context.get_scope_level() << "\n";);
+            TRACE(qi_queue_min_cost, tout << "min_cost: " << min_cost << ", scope_level: " << m_context.get_scope_level() << "\n";);
             bool result = true;
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 entry & e       = m_delayed_entries[i];
-                TRACE("qi_queue", tout << e.m_qb << ", cost: " << e.m_cost << " min-cost: " << min_cost << ", instantiated: " << e.m_instantiated << "\n";);
+                TRACE(qi_queue, tout << e.m_qb << ", cost: " << e.m_cost << " min-cost: " << min_cost << ", instantiated: " << e.m_instantiated << "\n";);
                 if (!e.m_instantiated && e.m_cost <= min_cost) {
-                    TRACE("qi_queue",
+                    TRACE(qi_queue,
                           tout << "lazy quantifier instantiation...\n" << mk_pp(static_cast<quantifier*>(e.m_qb->get_data()), m) << "\ncost: " << e.m_cost << "\n";);
                     result             = false;
                     m_instantiated_trail.push_back(i);
@@ -430,11 +446,11 @@ namespace smt {
         }
 
         bool result = true;
-        for (unsigned i = 0; i < m_delayed_entries.size(); i++) {
+        for (unsigned i = 0; i < m_delayed_entries.size(); ++i) {
             entry & e       = m_delayed_entries[i];
-            TRACE("qi_queue", tout << e.m_qb << ", cost: " << e.m_cost << ", instantiated: " << e.m_instantiated << "\n";);
+            TRACE(qi_queue, tout << e.m_qb << ", cost: " << e.m_cost << ", instantiated: " << e.m_instantiated << "\n";);
             if (!e.m_instantiated && e.m_cost <= m_params.m_qi_lazy_threshold)  {
-                TRACE("qi_queue",
+                TRACE(qi_queue,
                       tout << "lazy quantifier instantiation...\n" << mk_pp(static_cast<quantifier*>(e.m_qb->get_data()), m) << "\ncost: " << e.m_cost << "\n";);
                 result             = false;
                 m_instantiated_trail.push_back(i);
@@ -484,7 +500,7 @@ namespace smt {
         min = 0.0f;
         max = 0.0f;
         bool found = false;
-        for (unsigned i = 0; i < m_delayed_entries.size(); i++) {
+        for (unsigned i = 0; i < m_delayed_entries.size(); ++i) {
             if (!m_delayed_entries[i].m_instantiated) {
                 float c = m_delayed_entries[i].m_cost;
                 if (found) {
@@ -516,5 +532,5 @@ namespace smt {
 #endif
     }
 
-};
+}
 

@@ -49,6 +49,13 @@ sat::bool_var atom2bool_var::to_bool_var(expr * n) const {
         return m_mapping[idx].m_value;
 }
 
+expr* atom2bool_var::bool_var2expr(sat::bool_var v) const {
+    for (auto const& kv : m_mapping)
+        if (kv.m_value == v)
+            return kv.m_key;
+    return nullptr;
+}
+
 struct collect_boolean_interface_proc {
     struct visitor {
         obj_hashtable<expr> & m_r;
@@ -83,7 +90,7 @@ struct collect_boolean_interface_proc {
                 decl_kind k = to_app(t)->get_decl_kind();
                 if (k == OP_OR || k == OP_NOT || ((k == OP_EQ || k == OP_ITE) && m.is_bool(to_app(t)->get_arg(1)))) {
                     unsigned num = to_app(t)->get_num_args();
-                    for (unsigned i = 0; i < num; i++) {
+                    for (unsigned i = 0; i < num; ++i) {
                         expr * arg = to_app(t)->get_arg(i);
                         if (fvisited.is_marked(arg))
                             continue;
@@ -102,7 +109,7 @@ struct collect_boolean_interface_proc {
     void operator()(T const & g) {
         unsigned sz = g.size();
         ptr_vector<expr> deps, all_deps;
-        for (unsigned i = 0; i < sz; i++) {
+        for (unsigned i = 0; i < sz; ++i) {
             if (g.dep(i)) {
                 deps.reset();
                 m.linearize(g.dep(i), deps);
@@ -110,17 +117,17 @@ struct collect_boolean_interface_proc {
             }
         }
 
-        for (unsigned i = 0; i < all_deps.size(); i++) {
+        for (unsigned i = 0; i < all_deps.size(); ++i) {
             quick_for_each_expr(proc, tvisited, all_deps[i]);
         }
-        for (unsigned i = 0; i < sz; i++) {
+        for (unsigned i = 0; i < sz; ++i) {
             process(g.form(i));
         }
 
     }
     
     void operator()(unsigned sz, expr * const * fs) {
-        for (unsigned i = 0; i < sz; i++)
+        for (unsigned i = 0; i < sz; ++i)
             process(fs[i]);
     }
 };

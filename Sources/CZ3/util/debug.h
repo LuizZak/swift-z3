@@ -20,6 +20,7 @@ Revision History:
 
 #include <stdlib.h>
 #include <iostream>
+#include "util/memory_manager.h"
 
 void enable_assertions(bool f);
 bool assertions_enabled();
@@ -30,7 +31,8 @@ enum class debug_action {
     abort,
     stop,
     throw_exception,
-    invoke_debugger,
+    invoke_gdb,
+    invoke_lldb
 };
 debug_action get_default_debug_action();
 void set_default_debug_action(debug_action a);
@@ -41,7 +43,7 @@ enum class exit_action {
 };
 exit_action get_default_exit_action();
 void set_default_exit_action(exit_action a);
-void invoke_exit_action(unsigned int code);
+[[noreturn]] void invoke_exit_action(unsigned int code);
 
 #include "util/error_codes.h"
 #include "util/warning.h"
@@ -69,8 +71,8 @@ void invoke_exit_action(unsigned int code);
 #ifdef _WINDOWS
 #define INVOKE_DEBUGGER() __debugbreak()
 #else
-void invoke_gdb();
-#define INVOKE_DEBUGGER() invoke_gdb()
+void invoke_debugger();
+#define INVOKE_DEBUGGER() invoke_debugger()
 #endif
 #endif
 
@@ -119,6 +121,4 @@ bool is_debug_enabled(const char * tag);
 
 
 void finalize_debug();
-/*
-  ADD_FINALIZER('finalize_debug();')
-*/
+Z3_ADD_FINALIZER(debug, finalize_debug);

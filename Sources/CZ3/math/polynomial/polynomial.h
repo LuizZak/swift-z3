@@ -26,6 +26,7 @@ Notes:
 #include "util/scoped_numeral.h"
 #include "util/scoped_numeral_vector.h"
 #include "util/params.h"
+#include "util/gparams.h"
 #include "util/mpbqi.h"
 #include "util/rlimit.h"
 #include "util/lbool.h"
@@ -36,9 +37,11 @@ class small_object_allocator;
 namespace algebraic_numbers {
     class anum;
     class manager;
-};
+}
 
 namespace polynomial {
+    constexpr unsigned default_factor_num_primes = 4;
+
     typedef unsigned var;
     const var null_var = UINT_MAX;
     typedef svector<var> var_vector;
@@ -93,11 +96,10 @@ namespace polynomial {
         factor_params();
         factor_params(unsigned max_p, unsigned p_trials, unsigned max_search_size);
         void updt_params(params_ref const & p);
-        /*
-          REG_MODULE_PARAMS('factor', polynomial::factor_params::get_param_descrs')
-        */
         static void get_param_descrs(param_descrs & r);
     };
+
+    Z3_REGISTER_MODULE_PARAMS(factor, "factor", factor_params::get_param_descrs, nullptr);
 
     struct display_var_proc {
         virtual std::ostream& operator()(std::ostream & out, var x) const { return out << "x" << x; }
@@ -1065,7 +1067,7 @@ namespace polynomial {
         scoped_set_zp(manager & _m, uint64_t p):m(_m), m_modular(m.modular()), m_p(m.m()) {  m_p = m.p(); m.set_zp(p); }
         ~scoped_set_zp() {  if (m_modular) m.set_zp(m_p); else m.set_z(); }
     };
-};
+}
 
 typedef polynomial::polynomial_ref           polynomial_ref;
 typedef polynomial::polynomial_ref_vector    polynomial_ref_vector;
@@ -1426,4 +1428,3 @@ inline void factor(polynomial_ref const & p, polynomial::factors & r, polynomial
 }
 
 std::ostream & operator<<(std::ostream & out, polynomial_ref_vector const & seq);
-

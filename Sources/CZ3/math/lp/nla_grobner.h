@@ -12,6 +12,7 @@
 #include "math/lp/nla_intervals.h"
 #include "math/lp/nex.h"
 #include "math/lp/cross_nested.h"
+#include "util/params.h"
 #include "util/uint_set.h"
 #include "math/grobner/pdd_solver.h"
 
@@ -19,6 +20,17 @@ namespace nla {
     class core;
 
     class grobner : common {
+        struct config {
+            bool m_propagate_quotients = false;
+            bool m_gcd_test = false;
+            bool m_expand_terms = false;
+            // Adaptive growth (gated by arith.nl.grobner_adaptive). m_growth_boost
+            // is in fixed-point units of 1/m_adaptive_unit (m_adaptive_unit == 1.0x).
+            unsigned m_adaptive_unit       = 16;
+            unsigned m_adaptive_max        = 4 * 16;
+            unsigned m_adaptive_bump_after = 2;
+        };
+        config                   m_config;
         dd::pdd_manager          m_pdd_manager;
         dd::solver               m_solver;
         lp::lar_solver&          lra;
@@ -26,6 +38,8 @@ namespace nla {
         unsigned                 m_quota = 0;
         unsigned                 m_delay_base = 0;
         unsigned                 m_delay = 0;
+        unsigned                 m_growth_boost = m_config.m_adaptive_unit;
+        unsigned                 m_hit_streak = 0;
         bool                     m_add_all_eqs = false;
         std::unordered_map<unsigned_vector, lpvar, hash_svector> m_mon2var;
 
@@ -43,8 +57,17 @@ namespace nla {
 
         bool propagate_linear_equations();
         bool propagate_linear_equations(dd::solver::equation const& eq);
+
+        bool propagate_quotients();
+        bool propagate_quotients(dd::solver::equation const& eq);
+
+        svector<std::pair<unsigned, unsigned>> m_powers;
+        bool propagate_gcd_test();
+        bool propagate_gcd_test(dd::solver::equation const& eq);
+
+        std::pair<lp::lar_term, rational> linear_to_term(dd::pdd q);
         
-        void add_dependencies(new_lemma& lemma, dd::solver::equation const& eq);
+        void add_dependencies(lemma_builder& lemma, dd::solver::equation const& eq);
         void explain(dd::solver::equation const& eq, lp::explanation& exp);
 
         bool add_horner_conflict(dd::solver::equation const& eq);
@@ -52,7 +75,16 @@ namespace nla {
         bool add_nla_conflict(dd::solver::equation const& eq);
         void check_missing_propagation(dd::solver::equation const& eq);
 
+        // perfect-square conflict detection (arith.nl.grobner_perfect_squares),
+        // a port of theory_arith_nl's is_inconsistent2.
+        bool add_perfect_square_conflict(dd::solver::equation const& eq);
+        template <dep_intervals::with_deps_t wd>
+        void monomial_interval(rational const& coeff, unsigned_vector const& vars, scoped_dep_interval& r);
+
         bool equation_is_true(dd::solver::equation const& eq);
+
+        // adaptive growth (gated by arith.nl.grobner_adaptive)
+        void update_growth_boost(bool productive);
 
         // setup
         bool configure();
@@ -64,8 +96,10 @@ namespace nla {
         void add_fixed_monic(unsigned j);
         bool is_solved(dd::pdd const& p, unsigned& v, dd::pdd& r);
         void add_eq(dd::pdd& p, u_dependency* dep);        
+        bool is_pseudo_linear(monic const& m) const;
         const rational& val_of_fixed_var_with_deps(lpvar j, u_dependency*& dep);
-        dd::pdd pdd_expr(const rational& c, lpvar j, u_dependency*& dep);                
+        dd::pdd pdd_expr(const rational& c, lpvar j, u_dependency*& dep);  
+        dd::pdd pdd_expr(lp::lar_term const& t, u_dependency*& dep);
 
         void display_matrix_of_m_rows(std::ostream& out) const;
         std::ostream& diagnose_pdd_miss(std::ostream& out);
@@ -73,6 +107,6 @@ namespace nla {
     public:
         grobner(core *core);        
         void operator()();
-        dd::solver::equation_vector const& core_equations(bool all_eqs);
+        void updt_params(params_ref const& p);
     }; 
 }

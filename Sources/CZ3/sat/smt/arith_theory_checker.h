@@ -47,9 +47,11 @@ namespace arith {
         struct row {
             obj_map<expr, rational> m_coeffs;
             rational m_coeff;
+            bool m_strict = false;
             void reset() {
                 m_coeffs.reset();
                 m_coeff = 0;
+                m_strict = false;
             }
             bool is_zero() const {
                 return m_coeffs.empty() && m_coeff == 0;
@@ -58,8 +60,7 @@ namespace arith {
        
         ast_manager& m;
         arith_util   a;
-        vector<std::pair<rational, expr*>> m_todo;
-        bool         m_strict = false;
+        vector<std::pair<rational, expr *>> m_todo;
         row          m_ineq;
         row          m_conseq;
         vector<row>  m_eqs, m_ineqs;
@@ -99,6 +100,7 @@ namespace arith {
         void mul(row& r, rational const& coeff) {
             if (coeff == 1)
                 return;
+            r.m_strict &= !coeff.is_zero();
             for (auto & [v, c] : r.m_coeffs)
                 c *= coeff;
             r.m_coeff *= coeff;
@@ -106,6 +108,7 @@ namespace arith {
         
         // dst <- dst + mul*src
         void add(row& dst, row const& src, rational const& mul) {
+            dst.m_strict |= src.m_strict && !mul.is_zero();
             for (auto const& [v, c] : src.m_coeffs)
                 add(dst, v, c*mul);
             dst.m_coeff += mul*src.m_coeff;
@@ -173,10 +176,8 @@ namespace arith {
             expr* e1, *e2;
             for (unsigned i = 0; i < m_todo.size(); ++i) {
                 auto [coeff, e] = m_todo[i];
-                if (a.is_mul(e, e1, e2) && is_numeral(e1, coeff1))
-                    m_todo.push_back({coeff*coeff1, e2});
-                else if (a.is_mul(e, e1, e2) && is_numeral(e2, coeff1))
-                    m_todo.push_back({ coeff * coeff1, e1 });
+                if (a.is_mul(e))
+                    linearize_mul(r, coeff, to_app(e));
                 else if (a.is_add(e))
                     for (expr* arg : *to_app(e))
                         m_todo.push_back({coeff, arg});
@@ -194,18 +195,37 @@ namespace arith {
             m_todo.reset();
         }
 
-        bool is_numeral(expr* e, rational& n) {
-            if (a.is_numeral(e, n))
-                return true;
-            if (a.is_uminus(e, e) && a.is_numeral(e, n))
-                return n.neg(), true;
-            return false;
+        /**
+         * \brief add mul * (* t1 .. tn) to r, folding the numeral factors into the coefficient.
+         * A product with two or more non-numeral factors is nonlinear and is kept as one opaque term.
+         */
+        void linearize_mul(row& r, rational const& mul, app* e) {
+            rational coeff(mul), coeff1;
+            expr* x = nullptr;
+            for (expr* arg : *e) {
+                if (is_numeral(arg, coeff1))
+                    coeff *= coeff1;
+                else if (!x)
+                    x = arg;
+                else {
+                    add(r, e, mul);
+                    return;
+                }
+            }
+            if (x)
+                m_todo.push_back({coeff, x});
+            else
+                r.m_coeff += coeff;
+        }
+
+        bool is_numeral(expr* e, rational& n) const {
+            return a.is_extended_numeral(e, n);
         }
         
         bool check_ineq(row& r) {
             if (r.m_coeffs.empty() && r.m_coeff > 0)
                 return true;
-            if (r.m_coeffs.empty() && m_strict && r.m_coeff == 0)
+            if (r.m_coeffs.empty() && r.m_strict && r.m_coeff == 0)
                 return true;
             return false;
         }
@@ -247,7 +267,7 @@ namespace arith {
                 if (a.is_int(e1))
                     r.m_coeff += coeff;
                 else
-                    m_strict = true;
+                    r.m_strict |= !coeff.is_zero();
             }
             else if ((a.is_lt(e, e1, e2) || a.is_gt(e, e2, e1)) && !sign) {
                 linearize(r, coeff, e1);
@@ -255,7 +275,7 @@ namespace arith {
                 if (a.is_int(e1))
                     r.m_coeff += coeff;
                 else
-                    m_strict = true;
+                    r.m_strict |= !coeff.is_zero();
             }
             else
                 return false;
@@ -282,7 +302,7 @@ namespace arith {
         bool check_bound() {
             if (!reduce_eq())
                 return true;
-            if (check_ineq(m_conseq))
+            if (check_ineq(m_ineq) || check_ineq(m_conseq))
                 return true;
             if (m_ineq.m_coeffs.empty() ||
                 m_conseq.m_coeffs.empty())
@@ -330,8 +350,11 @@ namespace arith {
             m_deps.reserve(orig_size);
             for (unsigned i = 0; i < m_ineqs.size(); ++i) {
                 row& r = m_ineqs[i];
-                if (r.is_zero()) {
-                    m_tight_inequalities.push_back(i);                    
+                if (r.m_coeffs.empty()) {
+                    if (check_ineq(r))
+                        return true;
+                    if (r.is_zero())
+                        m_tight_inequalities.push_back(i);
                     continue;
                 }
                 auto const& [v, coeff] = *r.m_coeffs.begin();
@@ -358,7 +381,7 @@ namespace arith {
                     continue;                
                 m_ineqs_that_are_eqs.insert(j);
                 if (j < orig_size) {
-                    m_eqs.push_back(m_ineqs[j]);
+                    m_eqs.push_back(std::move(m_ineqs[j]));
                 }
                 else {
                     auto [a, b] = m_deps[j];
@@ -396,7 +419,7 @@ namespace arith {
 
         void display_ineq(std::ostream& out, row const& r) {
             display_row(out, r);
-            if (m_strict)
+            if (r.m_strict)
                 out << " < 0\n";
             else 
                 out << " <= 0\n";
@@ -417,7 +440,7 @@ namespace arith {
             m_conseq.reset();
             m_eqs.reset();
             m_ineqs.reset();
-            m_strict = false;
+            m_tight_inequalities.reset();
         }
         
         bool add_ineq(rule_type_t rt, rational const& coeff, expr* e, bool sign) {
@@ -475,7 +498,7 @@ namespace arith {
             expr* arg1 = jst->get_arg(n - 2);
             expr* arg2 = jst->get_arg(n - 1);
             rational coeff;
-            if (!a.is_numeral(arg1, coeff))
+            if (!is_numeral(arg1, coeff) || coeff.is_zero())
                 return false;
             if (!m.is_not(arg2, arg2))
                 return false;
@@ -510,7 +533,7 @@ namespace arith {
             for (expr* arg : *jst) {
                 
                 if (even) {
-                    if (!a.is_numeral(arg, coeff)) {
+                    if (!is_numeral(arg, coeff)) {
                         IF_VERBOSE(0, verbose_stream() << "not numeral " << mk_pp(jst, m) << "\n");
                         return false;
                     }
@@ -543,7 +566,8 @@ namespace arith {
                 even = !even;
                 ++j;
             }
-            return check(rt);
+            // Only the final disequality above may discharge an implied-eq hint.
+            return rt != implied_eq_t && check(rt);
         }
 
         void register_plugins(euf::theory_checker& pc) override {

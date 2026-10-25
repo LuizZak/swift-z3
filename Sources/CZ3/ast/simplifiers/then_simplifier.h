@@ -68,7 +68,7 @@ public:
     }
         
     void reduce() override {
-        TRACE("simplifier", tout << m_fmls);
+        TRACE(simplifier, tout << m_fmls);
         for (auto* s : m_simplifiers) {
             if (m_fmls.inconsistent())
                 break;
@@ -84,7 +84,7 @@ public:
             catch (rewriter_exception &) {
                 break;
             }
-            TRACE("simplifier", tout << s->name() << "\n" << m_fmls);
+            TRACE(simplifier, tout << s->name() << "\n" << m_fmls);
             if (m_bail_on_no_change && !m_fmls.updated())
                 break;
         }      
@@ -118,6 +118,14 @@ public:
     void pop(unsigned n) override {
         for (auto* s : m_simplifiers)
             s->pop(n);     
+    }
+
+    void translate(dependent_expr_simplifier const& src, ast_translation& tr) override {
+        auto const& source = dynamic_cast<then_simplifier const&>(src);
+        if (m_simplifiers.size() != source.m_simplifiers.size())
+            throw default_exception("cannot translate mismatched simplifier pipelines");
+        for (unsigned i = 0; i < m_simplifiers.size(); ++i)
+            m_simplifiers[i]->translate(*source.m_simplifiers[i], tr);
     }
 };
 

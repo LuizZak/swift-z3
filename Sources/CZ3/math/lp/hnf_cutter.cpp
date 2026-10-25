@@ -67,15 +67,15 @@ namespace lp  {
 
     void hnf_cutter::init_matrix_A() {
         m_A = general_matrix(terms_count(), vars().size());
-        for (unsigned i = 0; i < terms_count(); i++)
+        for (unsigned i = 0; i < terms_count(); ++i)
             initialize_row(i);
     }
 
     // todo: as we need only one row i with non integral b[i] need to optimize later
     void hnf_cutter::find_h_minus_1_b(const general_matrix& H, vector<mpq> & b) {
         // the solution will be put into b
-        for (unsigned i = 0; i < H.row_count() ;i++) {
-            for (unsigned j = 0; j < i; j++) {
+        for (unsigned i = 0; i < H.row_count() ;++i) {
+            for (unsigned j = 0; j < i; ++j) {
                 b[i] -= H[i][j]*b[j];
             }
             b[i] /= H[i][i];
@@ -95,11 +95,11 @@ namespace lp  {
     int hnf_cutter::find_cut_row_index(const vector<mpq> & b) {
         int ret = -1;
         int n = 0;
-        for (int i = 0; i < static_cast<int>(b.size()); i++) {
+        for (int i = 0; i < static_cast<int>(b.size()); ++i) {
             if (is_integer(b[i]))
                 continue;
             if (n == 0) {
-                lp_assert(ret == -1);
+                SASSERT(ret == -1);
                 n = 1;
                 ret = i;
             }
@@ -114,13 +114,13 @@ namespace lp  {
         // we solve x = ei * H_min_1
         // or x * H = ei
         unsigned m = H.row_count();
-        for (unsigned k = i + 1; k < m; k++) {
+        for (unsigned k = i + 1; k < m; ++k) {
             row[k] = zero_of_type<mpq>();
         }
         row[i] = one_of_type<mpq>() / H[i][i];
         for(int k = i - 1; k >= 0; k--) {
             mpq t = zero_of_type<mpq>();
-            for (unsigned l = k + 1; l <= i; l++) {
+            for (unsigned l = k + 1; l <= i; ++l) {
                 t += H[l][k]*row[l];
             }
             row[k] = -t / H[k][k]; 
@@ -128,7 +128,7 @@ namespace lp  {
     }
 
     void hnf_cutter::fill_term(const vector<mpq> & row, lar_term& t) {
-        for (unsigned j = 0; j < row.size(); j++) {
+        for (unsigned j = 0; j < row.size(); ++j) {
             if (!is_zero(row[j]))
                 t.add_monomial(row[j], m_var_register.local_to_external(j));
         }
@@ -136,7 +136,7 @@ namespace lp  {
 #ifdef Z3DEBUG
     vector<mpq> hnf_cutter::transform_to_local_columns(const vector<impq> & x) const {
         vector<mpq> ret;
-        for (unsigned j = 0; j < vars().size(); j++) {
+        for (unsigned j = 0; j < vars().size(); ++j) {
              ret.push_back(x[m_var_register.local_to_external(j)].x);
         }
         return ret;
@@ -199,10 +199,12 @@ branch y_i >= ceil(y0_i) is impossible.
             shrink_explanation(basis_rows);
         }
         
-        hnf<general_matrix> h(m_A, d);        
+        hnf<general_matrix> h(m_A, d, [this]() { return m_settings.get_cancel_flag(); });
+        if (h.is_cancelled())
+            return lia_move::undef;
         vector<mpq> b = create_b(basis_rows);
 #ifdef Z3DEBUG
-        lp_assert(m_A * x0 == b);
+        SASSERT(m_A * x0 == b);
 #endif
 
         find_h_minus_1_b(h.W(), b);
@@ -221,6 +223,31 @@ branch y_i >= ceil(y0_i) is impossible.
         fill_term(f, t);
         k = floor(b[cut_row]);
         upper = true;
+        if (lra.dep_manager().proofs_enabled()) {
+            u_dependency* support = nullptr;
+            for (auto* dep : m_constraints_for_explanation)
+                support = lra.join_deps(support, dep);
+            auto* linear = lra.dep_manager().derive(support, [&] {
+                evidence_manager::recipe r;
+                r.kind = evidence_manager::rule::linear;
+                r.conclusion.lhs = t.coeffs_as_vector();
+                r.conclusion.kind = LE;
+                r.conclusion.rhs = impq(b[cut_row]);
+                for (unsigned i = 0; i < m_constraints_for_explanation.size(); ++i)
+                    r.premises.push_back({m_constraints_for_explanation[i], row[i]});
+                return r;
+            });
+            auto* rounded = lra.dep_manager().derive(linear, [&] {
+                evidence_manager::recipe r;
+                r.kind = evidence_manager::rule::integer_tighten;
+                r.conclusion.lhs = t.coeffs_as_vector();
+                r.conclusion.kind = LE;
+                r.conclusion.rhs = impq(k);
+                r.premises.push_back({linear, mpq(1)});
+                return r;
+            });
+            ex->set_evidence(rounded);
+        }
         return lia_move::cut;
     }
 
@@ -251,7 +278,7 @@ branch y_i >= ceil(y0_i) is impossible.
         if (!init_terms_for_hnf_cut()) 
             return lia_move::undef;
         lia.settings().stats().m_hnf_cutter_calls++;
-        TRACE("hnf_cut", tout << "settings().stats().m_hnf_cutter_calls = " << lia.settings().stats().m_hnf_cutter_calls << "\n";
+        TRACE(hnf_cut, tout << "settings().stats().m_hnf_cutter_calls = " << lia.settings().stats().m_hnf_cutter_calls << "\n";
               for (u_dependency* d : constraints_for_explanation()) 
                   for (auto ci : lra.flatten(d))
                       lra.constraints().display(tout, ci);
@@ -267,19 +294,21 @@ branch y_i >= ceil(y0_i) is impossible.
                                  );
         
         if (r == lia_move::cut) {      
-            TRACE("hnf_cut",
+            TRACE(hnf_cut,
                   lra.print_term(lia.get_term(), tout << "cut:"); 
                   tout << " <= " << lia.offset() << std::endl;
                   for (auto* dep : constraints_for_explanation()) 
                       for (auto ci : lra.flatten(dep))
                           lra.constraints().display(tout, ci);                  
                   );
-            lp_assert(lia.current_solution_is_inf_on_cut());
+            SASSERT(lia.current_solution_is_inf_on_cut());
             lia.settings().stats().m_hnf_cuts++;
+            auto* evidence = lia.expl()->evidence();
             lia.expl()->clear();        
             for (u_dependency* dep : constraints_for_explanation()) 
                 for (auto ci : lia.lra.flatten(dep))
-                    lia.expl()->push_back(ci);            
+                    lia.expl()->push_back(ci);
+            lia.expl()->set_evidence(evidence);
         } 
         return r;
     }

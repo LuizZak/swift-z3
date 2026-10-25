@@ -40,8 +40,12 @@ namespace arith {
         }
         else {
             expr_ref to_r(a.mk_to_real(n), m);
-            expr_ref lo(a.mk_le(a.mk_sub(to_r, x), a.mk_real(0)), m);
-            expr_ref hi(a.mk_ge(a.mk_sub(x, to_r), a.mk_real(1)), m);
+            expr_ref lhs(a.mk_sub(to_r, x), m);
+            expr_ref rhs(a.mk_real(0), m);
+            expr_ref lo(a.mk_le(lhs, rhs), m);
+            expr_ref lhs1(a.mk_sub(x, to_r), m);
+            expr_ref rhs1(a.mk_real(1), m);
+            expr_ref hi(a.mk_ge(lhs1, rhs1), m);
             literal llo = mk_literal(lo);
             literal lhi = mk_literal(hi);
             add_clause(llo);
@@ -65,6 +69,31 @@ namespace arith {
         add_clause(eq, eq_internalize(t, a.mk_numeral(rational(1), a.is_int(t))));
     }
 
+    // t = n^p
+    void solver::mk_power_axiom(expr* p, expr* x, expr* y) {
+        if (a.is_zero(y)) {
+            mk_power0_axioms(to_app(p), to_app(x));
+            return;
+        }
+        rational r;
+        // r > 0 => r^y > 0
+        if (a.is_extended_numeral(x, r) && r > 0) {
+            expr_ref zero(a.mk_real(0), m);
+            add_clause(~mk_literal(a.mk_le(p, zero)));
+        }
+        if (a.is_extended_numeral(y, r) && r > 0) {
+            // r is m/n then x >= 0 => x^m = p^n
+            if (denominator(r) > 1) {
+                expr_ref x_ge_0(a.mk_ge(x, a.mk_real(0)), m);
+                expr_ref xn(x, m);
+                if (numerator(r) > 1)
+                    xn = a.mk_power(x, a.mk_real(numerator(r)));
+                expr_ref x_eq_pn(a.mk_eq(xn, a.mk_power(p, a.mk_real(denominator(r)))), m);
+                add_clause(~mk_literal(x_ge_0), mk_literal(x_eq_pn));
+            }
+        }
+    }
+
     // is_int(x) <=> to_real(to_int(x)) = x
     void solver::mk_is_int_axiom(expr* n) {
         expr* x = nullptr;
@@ -79,7 +108,7 @@ namespace arith {
         if (a.is_zero(q)) {
             return;
         }
-        TRACE("arith", tout << expr_ref(p, m) << " " << expr_ref(q, m) << "\n";);
+        TRACE(arith, tout << expr_ref(p, m) << " " << expr_ref(q, m) << "\n";);
         // if q is zero, then idiv and mod are uninterpreted functions.
         expr_ref div(a.mk_idiv(p, q), m);
         expr_ref mod(a.mk_mod(p, q), m);
@@ -130,7 +159,9 @@ namespace arith {
 
 
             expr_ref mone(a.mk_int(-1), m);
-            expr_ref abs_q(m.mk_ite(a.mk_ge(q, zero), q, a.mk_uminus(q)), m);
+            expr_ref non_negative(a.mk_ge(q, zero), m);
+            expr_ref neg_q(a.mk_uminus(q), m);
+            expr_ref abs_q(m.mk_ite(non_negative, q, neg_q), m);
             literal eqz = mk_literal(m.mk_eq(q, zero));
             literal mod_ge_0 = mk_literal(a.mk_ge(mod, zero));
             literal mod_lt_q = mk_literal(a.mk_le(a.mk_sub(mod, abs_q), mone));
@@ -142,6 +173,9 @@ namespace arith {
             add_clause(eqz, eq);
             add_clause(eqz, mod_ge_0);
             add_clause(eqz, mod_lt_q);
+
+            if (!a.is_uminus(q))
+                add_clause(mk_literal(m.mk_eq(mod, a.mk_mod(p, a.mk_uminus(q)))));
 
 #if 0
             /*literal div_ge_0   = */ mk_literal(a.mk_ge(div, zero));
@@ -234,7 +268,8 @@ namespace arith {
         // x mod 2^{i + 1} >= 2^i means the i'th bit is 1.
         auto bitof = [&](expr* x, unsigned i) { 
             expr_ref r(m);
-            r = a.mk_ge(a.mk_mod(x, a.mk_int(rational::power_of_two(i+1))), a.mk_int(rational::power_of_two(i)));
+            expr_ref low_bits(a.mk_mod(x, a.mk_int(rational::power_of_two(i+1))), m);
+            r = a.mk_ge(low_bits, a.mk_int(rational::power_of_two(i)));
             return mk_literal(r);
         };
 
@@ -244,12 +279,22 @@ namespace arith {
                 bool xb = valx.get_bit(i);
                 bool yb = valy.get_bit(i);
                 bool nb = valn.get_bit(i);
-                if (xb && yb && !nb)
-                    add_clause(~bitof(x, i), ~bitof(y, i), bitof(n, i));
-                else if (nb && !xb)
-                    add_clause(~bitof(n, i), bitof(x, i));
-                else if (nb && !yb)
-                    add_clause(~bitof(n, i), bitof(y, i));
+                if (xb && yb && !nb) {
+                    literal xbit = bitof(x, i);
+                    literal ybit = bitof(y, i);
+                    literal nbit = bitof(n, i);
+                    add_clause(~xbit, ~ybit, nbit);
+                }
+                else if (nb && !xb) {
+                    literal nbit = bitof(n, i);
+                    literal xbit = bitof(x, i);
+                    add_clause(~nbit, xbit);
+                }
+                else if (nb && !yb) {
+                    literal nbit = bitof(n, i);
+                    literal ybit = bitof(y, i);
+                    add_clause(~nbit, ybit);
+                }
                 else
                     continue;
                 return false;
@@ -260,7 +305,9 @@ namespace arith {
             if (valy >= sz || valy == 0)
                 return true;
             unsigned k = valy.get_unsigned();
-            sat::literal eq = eq_internalize(n, a.mk_mod(a.mk_mul(_x, a.mk_int(rational::power_of_two(k))), a.mk_int(N)));
+            expr_ref lhs(a.mk_mul(_x, a.mk_int(rational::power_of_two(k))), m);
+            expr_ref rhs(a.mk_int(N), m);
+            sat::literal eq = eq_internalize(n, a.mk_mod(lhs, rhs));
             if (s().value(eq) == l_true)
                 return true;            
             add_clause(~eq_internalize(y, a.mk_int(k)), eq);
@@ -291,7 +338,11 @@ namespace arith {
             case l_true:
                 // x < 0 & y = k -> n = (x div 2^k - 2^{N-k}) mod 2^N
                 xdiv2k = a.mk_idiv(x, a.mk_int(rational::power_of_two(k)));
-                eq = eq_internalize(n, a.mk_mod(a.mk_add(xdiv2k, a.mk_int(-rational::power_of_two(sz - k))), a.mk_int(N)));
+                {
+                    expr_ref lhs(a.mk_add(xdiv2k, a.mk_int(-rational::power_of_two(sz - k))), m);
+                    expr_ref rhs(a.mk_int(N), m);
+                    eq = eq_internalize(n, a.mk_mod(lhs, rhs));
+                }
                 if (s().value(eq) == l_true)
                     return true;
                 break;
@@ -348,23 +399,47 @@ namespace arith {
         else if (a.is_shl(n)) {
             // y >= sz => n = 0
             // y = 0 => n = x
-            add_clause(~mk_literal(a.mk_ge(y, a.mk_int(sz))), mk_literal(m.mk_eq(n, a.mk_int(0))));
-            add_clause(~mk_literal(a.mk_eq(y, a.mk_int(0))), mk_literal(m.mk_eq(n, x)));
+            literal large_shift = mk_literal(a.mk_ge(y, a.mk_int(sz)));
+            literal result_zero = mk_literal(m.mk_eq(n, a.mk_int(0)));
+            add_clause(~large_shift, result_zero);
+            literal zero_shift = mk_literal(a.mk_eq(y, a.mk_int(0)));
+            literal unchanged = mk_literal(m.mk_eq(n, x));
+            add_clause(~zero_shift, unchanged);
         }
         else if (a.is_lshr(n)) {
             // y >= sz => n = 0
             // y = 0 => n = x
-            add_clause(~mk_literal(a.mk_ge(y, a.mk_int(sz))), mk_literal(m.mk_eq(n, a.mk_int(0))));
-            add_clause(~mk_literal(a.mk_eq(y, a.mk_int(0))), mk_literal(m.mk_eq(n, x)));
+            literal large_shift = mk_literal(a.mk_ge(y, a.mk_int(sz)));
+            literal result_zero = mk_literal(m.mk_eq(n, a.mk_int(0)));
+            add_clause(~large_shift, result_zero);
+            literal zero_shift = mk_literal(a.mk_eq(y, a.mk_int(0)));
+            literal unchanged = mk_literal(m.mk_eq(n, x));
+            add_clause(~zero_shift, unchanged);
         }
         else if (a.is_ashr(n)) {
             // y >= sz & x < 2^{sz-1} => n = 0
             // y >= sz & x >= 2^{sz-1} => n = -1
             // y = 0 => n = x
             auto signx = mk_literal(a.mk_ge(x, a.mk_int(N/2)));
-            add_clause(~mk_literal(a.mk_ge(a.mk_mod(y, a.mk_int(N)), a.mk_int(sz))), signx, mk_literal(m.mk_eq(n, a.mk_int(0))));
-            add_clause(~mk_literal(a.mk_ge(a.mk_mod(y, a.mk_int(N)), a.mk_int(sz))), ~signx, mk_literal(m.mk_eq(n, a.mk_int(N-1))));
-            add_clause(~mk_literal(a.mk_eq(a.mk_mod(y, a.mk_int(N)), a.mk_int(0))), mk_literal(m.mk_eq(n, x)));            
+            literal large_shift;
+            {
+                expr_ref amount(a.mk_mod(y, a.mk_int(N)), m);
+                large_shift = mk_literal(a.mk_ge(amount, a.mk_int(sz)));
+            }
+            literal result_zero = mk_literal(m.mk_eq(n, a.mk_int(0)));
+            add_clause(~large_shift, signx, result_zero);
+            {
+                expr_ref lhs(a.mk_mod(y, a.mk_int(N)), m);
+                expr_ref rhs(a.mk_int(sz), m);
+                literal large_shift = mk_literal(a.mk_ge(lhs, rhs));
+                literal result_minus_one = mk_literal(m.mk_eq(n, a.mk_int(N - 1)));
+                add_clause(~large_shift, ~signx, result_minus_one);
+            }
+            expr_ref lhs(a.mk_mod(y, a.mk_int(N)), m);
+            expr_ref rhs(a.mk_int(0), m);
+            literal zero_shift = mk_literal(a.mk_eq(lhs, rhs));
+            literal unchanged = mk_literal(m.mk_eq(n, x));
+            add_clause(~zero_shift, unchanged);
         }
         else
             UNREACHABLE();
@@ -521,12 +596,12 @@ namespace arith {
     void solver::new_eq_eh(euf::th_eq const& e) {
         theory_var v1 = e.v1();
         theory_var v2 = e.v2();
-        if (is_bool(v1))
+        if (is_bool(v1) || a.is_complex(var2expr(v1)))
             return;
         force_push();
         expr* e1 = var2expr(v1);
         expr* e2 = var2expr(v2);
-        TRACE("arith", tout << "new eq: v" << v1 << " v" << v2 << "\n";);
+        TRACE(arith, tout << "new eq: v" << v1 << " v" << v2 << "\n";);
         if (e1->get_id() > e2->get_id())
             std::swap(e1, e2);
             
@@ -547,7 +622,9 @@ namespace arith {
     }
 
     void solver::new_diseq_eh(euf::th_eq const& e) {
-        TRACE("artih", tout << mk_bounded_pp(e.eq(), m) << "\n");
+        if (a.is_complex(var2expr(e.v1())))
+            return;
+        TRACE(artih, tout << mk_bounded_pp(e.eq()->get_expr(), m) << "\n");
         ensure_column(e.v1());
         ensure_column(e.v2());
         m_delayed_eqs.push_back(std::make_pair(e, false));
@@ -612,7 +689,7 @@ namespace arith {
         add_def_constraint_and_equality(vi, lp::GE, rational::zero());
         add_def_constraint_and_equality(vi, lp::LT, abs(r));
         SASSERT(!is_infeasible());
-        TRACE("arith", tout << term << "\n" << lp().constraints(););
+        TRACE(arith, tout << term << "\n" << lp().constraints(););
     }
 
     /**
@@ -651,14 +728,14 @@ namespace arith {
 
             if (a.is_numeral(q, r2) && r2.is_pos()) {
                 if (!a.is_bounded(n)) {
-                    TRACE("arith", tout << "unbounded " << expr_ref(n, m) << "\n";);
+                    TRACE(arith, tout << "unbounded " << expr_ref(n, m) << "\n";);
                     continue;
                 }
                 theory_var v = internalize_def(n);
                 lp::impq val_v = get_ivalue(v);
                 if (val_v.y.is_zero() && val_v.x == div(r1.x, r2)) continue;
 
-                TRACE("arith", tout << get_value(v) << " != " << r1 << " div " << r2 << "\n";);
+                TRACE(arith, tout << get_value(v) << " != " << r1 << " div " << r2 << "\n";);
                 rational div_r = div(r1.x, r2);
                 // p <= q * div(r1, q) + q - 1 => div(p, q) <= div(r1, r2)
                 // p >= q * div(r1, q) => div(r1, q) <= div(p, q)
@@ -684,7 +761,7 @@ namespace arith {
 
                 all_divs_valid = false;
 
-                TRACE("arith", tout << r1 << " div " << r2 << "\n";);
+                TRACE(arith, tout << r1 << " div " << r2 << "\n";);
                 continue;
             }
         }

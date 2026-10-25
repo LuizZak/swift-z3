@@ -53,7 +53,7 @@ bool simplify_inj_axiom(ast_manager & m, quantifier * q, expr_ref & result) {
                 unsigned num      = f1->get_num_args();
                 unsigned idx      = UINT_MAX;
                 unsigned num_vars = 1;
-                for (unsigned i = 0; i < num; i++) {
+                for (unsigned i = 0; i < num; ++i) {
                     expr  * c1 = f1->get_arg(i);
                     expr  * c2 = f2->get_arg(i);
                     if (!is_var(c1) && !is_uninterp_const(c1))
@@ -75,7 +75,7 @@ bool simplify_inj_axiom(ast_manager & m, quantifier * q, expr_ref & result) {
                 }
                 if (found_vars && !has_free_vars(q)) {
                     (void)num_vars;
-                    TRACE("inj_axiom", 
+                    TRACE(inj_axiom, 
                           tout << "Cadidate for simplification:\n" << mk_ll_pp(q, m) << mk_pp(app1, m) << "\n" << mk_pp(app2, m) << "\n" <<
                           mk_pp(var1, m) << "\n" << mk_pp(var2, m) << "\nnum_vars: " << num_vars << "\n";);
                     // Building new (optimized) axiom
@@ -86,7 +86,7 @@ bool simplify_inj_axiom(ast_manager & m, quantifier * q, expr_ref & result) {
                     buffer<symbol>   names;
                     
                     expr * var            = nullptr;
-                    for (unsigned i = 0; i < num; i++) {
+                    for (unsigned i = 0; i < num; ++i) {
                         expr * c = f1->get_arg(i);
                         if (is_var(c)) {
                             names.push_back(symbol(i));
@@ -128,7 +128,7 @@ bool simplify_inj_axiom(ast_manager & m, quantifier * q, expr_ref & result) {
                     
                     result = m.mk_forall(decls.size(), decls.data(), names.data(), eq,
                                          0, symbol(), symbol(), 1, &p);
-                    TRACE("inj_axiom", tout << "new axiom:\n" << mk_pp(result, m) << "\n";);
+                    TRACE(inj_axiom, tout << "new axiom:\n" << mk_pp(result, m) << "\n";);
                     SASSERT(is_well_sorted(m, result));
                     return true;
                 }

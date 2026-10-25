@@ -84,7 +84,7 @@ bool sls_engine::full_eval(model & mdl) {
         if (!m_manager.inc())
             return false;
         if (!mdl.is_true(a)) {
-            TRACE("sls", tout << "Evaluation: false\n";);
+            TRACE(sls, tout << "Evaluation: false\n";);
             return false;
         }
     }    
@@ -96,7 +96,7 @@ double sls_engine::top_score() {
     for (expr* e : m_assertions) {
         top_sum += m_tracker.get_score(e);
     }
-    TRACE("sls_top", tout << "Score distribution:";
+    TRACE(sls_top, tout << "Score distribution:";
           for (expr* e : m_assertions) 
               tout << " " << m_tracker.get_score(e);
           tout << " AVG: " << top_sum / (double)m_assertions.size() << std::endl;);
@@ -152,7 +152,7 @@ bool sls_engine::what_if(
     else
         r = incremental_score(fd, temp);
 #ifdef Z3DEBUG
-    TRACE("sls_whatif", tout << "WHAT IF " << fd->get_name() << " WERE " << m_mpz_manager.to_string(temp) <<
+    TRACE(sls_whatif, tout << "WHAT IF " << fd->get_name() << " WERE " << m_mpz_manager.to_string(temp) <<
             " --> " << r << std::endl;);
 
     m_mpz_manager.del(old_value);
@@ -264,12 +264,10 @@ void sls_engine::mk_random_move(ptr_vector<func_decl> & unsat_constants)
         case MV_INV:
             mk_inv(m_bv_util.get_bv_size(fd->get_range()), m_tracker.get_value(fd), new_value);
             break;
-        default:
-            NOT_IMPLEMENTED_YET();
         }
 
-        TRACE("sls", tout << "Randomization candidates: ";
-        for (unsigned i = 0; i < unsat_constants.size(); i++)
+        TRACE(sls, tout << "Randomization candidates: ";
+        for (unsigned i = 0; i < unsat_constants.size(); ++i)
             tout << unsat_constants[i]->get_name() << ", ";
         tout << std::endl;
         tout << "Random move: ";
@@ -302,17 +300,17 @@ double sls_engine::find_best_move(
     // Andreas: Introducting a bit of randomization by using a random offset and a random direction to go through the candidate list.
     unsigned sz = to_evaluate.size();
     unsigned offset = (m_random_offset) ? m_tracker.get_random_uint(16) % sz : 0;
-    for (unsigned j = 0; j < sz; j++) {
+    for (unsigned j = 0; j < sz; ++j) {
         unsigned i = j + offset;
         if (i >= sz) i -= sz;
-    //for (unsigned i = 0; i < to_evaluate.size(); i++) {
+    //for (unsigned i = 0; i < to_evaluate.size(); ++i) {
         func_decl * fd = to_evaluate[i];
         sort * srt = fd->get_range();
         bv_sz = (m_manager.is_bool(srt)) ? 1 : m_bv_util.get_bv_size(srt);
         m_mpz_manager.set(old_value, m_tracker.get_value(fd));
 
         // first try to flip every bit
-        for (unsigned j = 0; j < bv_sz; j++) {
+        for (unsigned j = 0; j < bv_sz; ++j) {
             // What would happen if we flipped bit #i ?                
             mk_flip(srt, old_value, j, temp);
 
@@ -360,19 +358,19 @@ double sls_engine::find_best_move_mc(ptr_vector<func_decl> & to_evaluate, double
     // Andreas: Introducting a bit of randomization by using a random offset and a random direction to go through the candidate list.
     unsigned sz = to_evaluate.size();
     unsigned offset = (m_random_offset) ? m_tracker.get_random_uint(16) % sz : 0;
-    for (unsigned j = 0; j < sz; j++) {
+    for (unsigned j = 0; j < sz; ++j) {
         unsigned i = j + offset;
         if (i >= sz) i -= sz;
-    //for (unsigned i = 0; i < to_evaluate.size(); i++) {
+    //for (unsigned i = 0; i < to_evaluate.size(); ++i) {
         func_decl * fd = to_evaluate[i];
         sort * srt = fd->get_range();
         bv_sz = (m_manager.is_bool(srt)) ? 1 : m_bv_util.get_bv_size(srt);
         m_mpz_manager.set(old_value, m_tracker.get_value(fd));
 
         if (m_bv_util.is_bv_sort(srt) && bv_sz > 2) {
-            for (unsigned j = 0; j < bv_sz; j++) {
+            for (unsigned j = 0; j < bv_sz; ++j) {
                 mk_flip(srt, old_value, j, temp);
-                for (unsigned l = 0; l < m_vns_mc && l < bv_sz / 2; l++)
+                for (unsigned l = 0; l < m_vns_mc && l < bv_sz / 2; ++l)
                 {
                     unsigned k = m_tracker.get_random_uint(16) % bv_sz;
                     while (k == j)
@@ -451,7 +449,7 @@ lbool sls_engine::search() {
             if (q)
             {
                 ptr_vector<func_decl> & to_evaluate2 = m_tracker.get_unsat_constants_walksat(q);
-                score = find_best_move(to_evaluate2, score, new_const, new_value, new_bit, move);
+                find_best_move(to_evaluate2, score, new_const, new_value, new_bit, move);
 
                 if (new_const != static_cast<unsigned>(-1)) {
                     func_decl * fd = to_evaluate2[new_const];

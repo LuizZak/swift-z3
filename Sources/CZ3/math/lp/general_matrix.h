@@ -75,8 +75,8 @@ public:
         unsigned m = row_count();
         unsigned n = column_count();
         general_matrix g(m, n);
-        for (unsigned i = 0; i < m; i++)
-            for (unsigned j = 0; j < n; j++)
+        for (unsigned i = 0; i < m; ++i)
+            for (unsigned j = 0; j < n; ++j)
                 g[i][j] = (*this)[i][j];
         print_matrix<mpq>(g.m_data, out, blanks);
     }
@@ -88,8 +88,8 @@ public:
 
     void print_submatrix(std::ostream & out, unsigned k, unsigned blanks = 0) const {
         general_matrix m(row_count() - k, column_count() - k);
-        for (unsigned i = k; i < row_count(); i++) {
-            for (unsigned j = k; j < column_count(); j++)
+        for (unsigned i = k; i < row_count(); ++i) {
+            for (unsigned j = k; j < column_count(); ++j)
                 m[i-k][j-k] = (*this)[i][j];
         }
         print_matrix<mpq>(m.m_data, out, blanks);
@@ -98,16 +98,16 @@ public:
     void clear() { m_data.clear(); }
 
     bool row_is_initialized_correctly(const vector<mpq>& row) {
-        lp_assert(row.size() == column_count());
+        SASSERT(row.size() == column_count());
         for (unsigned j = 0; j < row.size(); j ++)
-            lp_assert(is_zero(row[j]));
+            SASSERT(is_zero(row[j]));
         return true;
     }
     
     template <typename T>
     void init_row_from_container(int i, const T & c, std::function<unsigned (unsigned)> column_fix, const mpq& sign) {
         auto & row = m_data[adjust_row(i)];
-        lp_assert(row_is_initialized_correctly(row));
+        SASSERT(row_is_initialized_correctly(row));
         for (lp::lar_term::ival p : c) {
             unsigned j = adjust_column(column_fix(p.j()));
             row[j] = sign * p.coeff();
@@ -115,12 +115,12 @@ public:
     }
     
     general_matrix operator*(const general_matrix & m) const {
-        lp_assert(m.row_count() == column_count());
+        SASSERT(m.row_count() == column_count());
         general_matrix ret(row_count(), m.column_count());
         for (unsigned i = 0; i < row_count(); i ++) {
-             for (unsigned j = 0; j < m.column_count(); j++) {
+             for (unsigned j = 0; j < m.column_count(); ++j) {
                 mpq a(0);
-                for (unsigned k = 0; k < column_count(); k++)
+                for (unsigned k = 0; k < column_count(); ++k)
                     a += ((*this)[i][k])*m[k][j];
                 ret[i][j] = a;
             }
@@ -129,16 +129,16 @@ public:
     }
 
     bool elements_are_equal(const general_matrix& m) const {
-        for (unsigned i = 0; i < row_count(); i++)
-            for (unsigned j = 0; j < column_count(); j++)
+        for (unsigned i = 0; i < row_count(); ++i)
+            for (unsigned j = 0; j < column_count(); ++j)
                 if ( (*this)[i][j] != m[i][j])
                     return false;
         return true;
     }
 
     bool elements_are_equal_modulo(const general_matrix& m, const mpq & d) const {
-        for (unsigned i = 0; i < row_count(); i++)
-            for (unsigned j = 0; j < column_count(); j++)
+        for (unsigned i = 0; i < row_count(); ++i)
+            for (unsigned j = 0; j < column_count(); ++j)
                 if (!is_zero(((*this)[i][j] - m[i][j]) % d)) 
                     return false;
         return true;
@@ -158,10 +158,10 @@ public:
     
     vector<mpq> operator*(const vector<mpq> & x) const {
         vector<mpq> r;
-        lp_assert(x.size() == column_count());
-        for (unsigned i = 0; i < row_count(); i++) {
+        SASSERT(x.size() == column_count());
+        for (unsigned i = 0; i < row_count(); ++i) {
             mpq v(0);
-            for (unsigned j = 0; j < column_count(); j++) {
+            for (unsigned j = 0; j < column_count(); ++j) {
                 v += (*this)[i][j] * x[j];
             }
             r.push_back(v);
@@ -171,12 +171,12 @@ public:
 
     
     void transpose_rows(unsigned i, unsigned l) {
-        lp_assert(i != l);
+        SASSERT(i != l);
         m_row_permutation.transpose_from_right(i, l);
     }
     
     void transpose_columns(unsigned j, unsigned k) {
-        lp_assert(j != k);
+        SASSERT(j != k);
         m_column_permutation.transpose_from_left(j, k);
     }
     
@@ -210,12 +210,12 @@ public:
 
     // used for debug only
     general_matrix take_first_n_columns(unsigned n) const {
-        lp_assert(n <= column_count());
+        SASSERT(n <= column_count());
         if (n == column_count())
             return *this;
         general_matrix ret(row_count(), n);
-        for (unsigned i = 0; i < row_count(); i++)
-            for (unsigned j = 0; j < n; j++)
+        for (unsigned i = 0; i < row_count(); ++i)
+            for (unsigned j = 0; j < n; ++j)
                 ret[i][j] = (*this)[i][j];
         return ret;
     }
@@ -224,7 +224,7 @@ public:
         vector<mpq> r(a.column_count());
         for (unsigned j = 0; j < a.column_count(); j ++) {
             mpq t = zero_of_type<mpq>();
-            for (unsigned i = 0; i < a.row_count(); i++) {
+            for (unsigned i = 0; i < a.row_count(); ++i) {
                 t += f[i] * a[i][j];
             }
             r[j] = t;

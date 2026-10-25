@@ -53,12 +53,12 @@ namespace datalog {
     */
     bool mk_filter_rules::is_candidate(app * pred) {
         if (!m_context.is_predicate(pred)) {
-            TRACE("mk_filter_rules", tout << mk_pp(pred, m) << "\nis not a candidate because it is interpreted.\n";);
+            TRACE(mk_filter_rules, tout << mk_pp(pred, m) << "\nis not a candidate because it is interpreted.\n";);
             return false;
         }
         var_idx_set used_vars;
         unsigned n  = pred->get_num_args();
-        for (unsigned i = 0; i < n; i++) {
+        for (unsigned i = 0; i < n; ++i) {
             expr * arg = pred->get_arg(i);
             if (m.is_value(arg))
                 return true;
@@ -108,16 +108,16 @@ namespace datalog {
         bool_vector  new_is_negated;
         unsigned sz = r->get_tail_size();
         bool rule_modified = false;
-        for (unsigned i = 0; i < sz; i++) {
+        for (unsigned i = 0; i < sz; ++i) {
             app * tail = r->get_tail(i);
             if (is_candidate(tail) && !r->is_neg_tail(i)) {
-                TRACE("mk_filter_rules", tout << "is_candidate: " << mk_pp(tail, m) << "\n";);
+                TRACE(mk_filter_rules, tout << "is_candidate: " << mk_pp(tail, m) << "\n";);
                 var_idx_set non_local_vars = rm.collect_rule_vars_ex(r, tail);
                 func_decl * filter_decl = mk_filter_decl(tail, non_local_vars);
                 ptr_buffer<expr> new_args;
                 var_idx_set used_vars;
                 unsigned num_args = tail->get_num_args(); 
-                for (unsigned i = 0; i < num_args; i++) {
+                for (unsigned i = 0; i < num_args; ++i) {
                     expr * arg = tail->get_arg(i);
                     if (is_var(arg)) {
                         unsigned vidx = to_var(arg)->get_idx();
@@ -155,7 +155,7 @@ namespace datalog {
         m_result           = alloc(rule_set, m_context);
         m_modified         = false;
         unsigned num_rules = source.get_num_rules();
-        for (unsigned i = 0; i < num_rules; i++) {
+        for (unsigned i = 0; i < num_rules; ++i) {
             process(source.get_rule(i));
         }
         if(!m_modified) {
@@ -166,4 +166,4 @@ namespace datalog {
         return m_result;
     }
 
-};
+}

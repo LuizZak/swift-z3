@@ -46,7 +46,7 @@ class fpa2bv_tactic : public tactic {
             tactic_report report("fpa2bv", *g);
             m_rw.reset();
 
-            TRACE("fpa2bv", g->display(tout << "BEFORE: " << std::endl););
+            TRACE(fpa2bv, g->display(tout << "BEFORE: " << std::endl););
 
             if (g->inconsistent()) {
                 result.push_back(g.get());
@@ -57,7 +57,7 @@ class fpa2bv_tactic : public tactic {
             expr_ref   new_curr(m);
             proof_ref  new_pr(m);
             unsigned size = g->size();
-            for (unsigned idx = 0; idx < size; idx++) {
+            for (unsigned idx = 0; idx < size; ++idx) {
                 if (g->inconsistent())
                     break;
                 expr * curr = g->form(idx);
@@ -98,7 +98,7 @@ class fpa2bv_tactic : public tactic {
                 result.back()->assert_expr(e, pr);
             }                
 
-            TRACE("fpa2bv", g->display(tout << "AFTER:\n");
+            TRACE(fpa2bv, g->display(tout << "AFTER:\n");
             if (g->mc()) g->mc()->display(tout); tout << std::endl; );
         }
     };

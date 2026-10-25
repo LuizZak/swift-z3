@@ -25,7 +25,7 @@ Revision History:
 template<typename T>
 bool for_each_ast_args(ptr_vector<ast> & stack, ast_mark & visited, unsigned num_args, T * const * args) {
     bool result = true;
-    for (unsigned i = 0; i < num_args; i++) {
+    for (unsigned i = 0; i < num_args; ++i) {
         T * arg = args[i];
         if (!visited.is_marked(arg)) {
             stack.push_back(arg);
@@ -46,7 +46,7 @@ void for_each_ast(ForEachProc & proc, ast_mark & visited, ast * n, bool visit_pa
 
     while (!stack.empty()) {
         curr = stack.back();
-        TRACE("for_each_ast", tout << "visiting node: " << curr->get_id() << ", kind: " << get_ast_kind_name(curr->get_kind())
+        TRACE(for_each_ast, tout << "visiting node: " << curr->get_id() << ", kind: " << get_ast_kind_name(curr->get_kind())
               << ", stack size: " << stack.size() << "\n";);
 
         if (visited.is_marked(curr)) {
@@ -239,10 +239,6 @@ public:
                 }
                 break;
             }
-                
-            default:
-                UNREACHABLE();
-                break;
             }
         }        
         
@@ -268,5 +264,3 @@ private:
         }
     }        
 };
-
-

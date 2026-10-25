@@ -1,36 +1,33 @@
-// Automatically generated file
+/*++
+Copyright (c) 2024 Microsoft Corporation
+
+Module Name:
+
+    rewriter_params.hpp
+
+Abstract:
+
+    Parameters for the 'rewriter' module.
+
+--*/
 #pragma once
+
 #include "util/params.h"
 #include "util/gparams.h"
-struct rewriter_params {
-  params_ref const & p;
-  params_ref g;
-  rewriter_params(params_ref const & _p = params_ref::get_empty()):
-     p(_p), g(gparams::get_module("rewriter")) {}
-  static void collect_param_descrs(param_descrs & d) {
-    d.insert("max_memory", CPK_UINT, "maximum amount of memory in megabytes", "4294967295","rewriter");
-    d.insert("max_steps", CPK_UINT, "maximum number of steps", "4294967295","rewriter");
-    d.insert("push_ite_arith", CPK_BOOL, "push if-then-else over arithmetic terms.", "false","rewriter");
-    d.insert("push_ite_bv", CPK_BOOL, "push if-then-else over bit-vector terms.", "false","rewriter");
-    d.insert("pull_cheap_ite", CPK_BOOL, "pull if-then-else terms when cheap.", "false","rewriter");
-    d.insert("bv_ineq_consistency_test_max", CPK_UINT, "max size of conjunctions on which to perform consistency test based on inequalities on bitvectors.", "0","rewriter");
-    d.insert("cache_all", CPK_BOOL, "cache all intermediate results.", "false","rewriter");
-    d.insert("enable_der", CPK_BOOL, "enable destructive equality resolution to quantifiers.", "true","rewriter");
-    d.insert("rewrite_patterns", CPK_BOOL, "rewrite patterns.", "false","rewriter");
-    d.insert("ignore_patterns_on_ground_qbody", CPK_BOOL, "ignores patterns on quantifiers that don't mention their bound variables.", "true","rewriter");
-  }
-  /*
-     REG_MODULE_PARAMS('rewriter', 'rewriter_params::collect_param_descrs')
-     REG_MODULE_DESCRIPTION('rewriter', 'new formula simplification module used in the tactic framework, and new solvers')
-  */
-  unsigned max_memory() const { return p.get_uint("max_memory", g, 4294967295u); }
-  unsigned max_steps() const { return p.get_uint("max_steps", g, 4294967295u); }
-  bool push_ite_arith() const { return p.get_bool("push_ite_arith", g, false); }
-  bool push_ite_bv() const { return p.get_bool("push_ite_bv", g, false); }
-  bool pull_cheap_ite() const { return p.get_bool("pull_cheap_ite", g, false); }
-  unsigned bv_ineq_consistency_test_max() const { return p.get_uint("bv_ineq_consistency_test_max", g, 0u); }
-  bool cache_all() const { return p.get_bool("cache_all", g, false); }
-  bool enable_der() const { return p.get_bool("enable_der", g, true); }
-  bool rewrite_patterns() const { return p.get_bool("rewrite_patterns", g, false); }
-  bool ignore_patterns_on_ground_qbody() const { return p.get_bool("ignore_patterns_on_ground_qbody", g, true); }
-};
+
+#define REWRITER_PARAMS_LIST(UINT_, BOOL_, DOUBLE_, STRING_, SYMBOL_) \
+  UINT_(max_memory,                       "max_memory",                       UINT_MAX,  "maximum amount of memory in megabytes") \
+  UINT_(max_steps,                        "max_steps",                        UINT_MAX,  "maximum number of steps") \
+  BOOL_(push_ite_arith,                   "push_ite_arith",                   false,     "push if-then-else over arithmetic terms.") \
+  BOOL_(push_ite_bv,                      "push_ite_bv",                      false,     "push if-then-else over bit-vector terms.") \
+  BOOL_(pull_cheap_ite,                   "pull_cheap_ite",                   false,     "pull if-then-else terms when cheap.") \
+  UINT_(bv_ineq_consistency_test_max,     "bv_ineq_consistency_test_max",     0,         "max size of conjunctions on which to perform consistency test based on inequalities on bitvectors.") \
+  BOOL_(unfold_recursive_functions,       "unfold_recursive_functions",       false,     "apply simplification recursively on recursive functions.") \
+  BOOL_(cache_all,                        "cache_all",                        false,     "cache all intermediate results.") \
+  BOOL_(enable_der,                       "enable_der",                       true,      "enable destructive equality resolution to quantifiers.") \
+  BOOL_(rewrite_patterns,                 "rewrite_patterns",                 false,     "rewrite patterns.") \
+  BOOL_(ignore_patterns_on_ground_qbody,  "ignore_patterns_on_ground_qbody",  true,      "ignores patterns on quantifiers that don't mention their bound variables.")
+
+Z3_DEFINE_MODULE_PARAMS(rewriter_params, "rewriter", REWRITER_PARAMS_LIST, "new formula simplification module used in the tactic framework, and new solvers");
+
+#undef REWRITER_PARAMS_LIST

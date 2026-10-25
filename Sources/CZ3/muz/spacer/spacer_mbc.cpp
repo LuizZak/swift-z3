@@ -66,7 +66,7 @@ public:
     }
 
 
-    void reset() {reset_partition();};
+    void reset() {reset_partition();}
     void reset_partition() {m_current_part = UINT_MAX;}
     unsigned partition() {return m_current_part;}
     bool found_partition() {return m_current_part < UINT_MAX;}
@@ -94,7 +94,7 @@ void mbc::operator()(const partition_map &pmap, expr_ref_vector &lits,
         }
     }
 
-    TRACE("mbc", tout << "Input: " << lits << "\n"
+    TRACE(mbc, tout << "Input: " << lits << "\n"
           << "Output: \n";
           for (auto &vec : res) tout << vec << "\n==================\n";);
 }

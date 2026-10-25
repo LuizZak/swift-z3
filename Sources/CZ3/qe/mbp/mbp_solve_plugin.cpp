@@ -100,7 +100,7 @@ namespace mbp {
                     v = e;
                     a_val = rational(1)/a_val;
                     t = mk_term(is_int, a_val, sign, done);
-                    TRACE("qe", tout << mk_pp(e, m) << " := " << t << "\n";);
+                    TRACE(qe, tout << mk_pp(e, m) << " := " << t << "\n";);
                     return true;
                 }
                 else {
@@ -287,8 +287,11 @@ namespace mbp {
             };
 
             // `first` is a value, different from 0
-            res = m.mk_and(m.mk_eq(second, a.mk_idiv(lhs, first)),
-                           m.mk_eq(a.mk_int(0), a.mk_mod(lhs, first)));
+            expr_ref quotient_eq(m.mk_eq(second, a.mk_idiv(lhs, first)), m);
+            expr_ref zero(a.mk_int(0), m);
+            expr_ref remainder(a.mk_mod(lhs, first), m);
+            expr_ref remainder_eq(m.mk_eq(zero, remainder), m);
+            res = m.mk_and(quotient_eq, remainder_eq);
 
             return true;
         }
@@ -418,16 +421,13 @@ namespace mbp {
                 lhs = e;
                 unsigned sz = m_bv.get_bv_size(e);
                 if (lo > 0 && hi + 1 < sz) {
-                    expr* args[3] = { m_bv.mk_extract(sz-1, hi + 1, e), rhs, m_bv.mk_extract(lo - 1, 0, e)};
-                    rhs = m_bv.mk_concat(3, args);
+                    rhs = m_bv.mk_concat({m_bv.mk_extract(sz-1, hi + 1, e), rhs, m_bv.mk_extract(lo - 1, 0, e)});
                 }
                 else if (lo == 0 && hi + 1 < sz) {
-                    expr* args[2] = { m_bv.mk_extract(sz-1, hi + 1, e), rhs };
-                    rhs = m_bv.mk_concat(2, args);
+                    rhs = m_bv.mk_concat({m_bv.mk_extract(sz-1, hi + 1, e), rhs});
                 }
                 else if (lo > 0 && hi + 1 == sz) {
-                    expr* args[2] = { rhs, m_bv.mk_extract(lo - 1, 0, e) };
-                    rhs = m_bv.mk_concat(2, args);                    
+                    rhs = m_bv.mk_concat({rhs, m_bv.mk_extract(lo - 1, 0, e)});                    
                 }
                 else {
                     return false;

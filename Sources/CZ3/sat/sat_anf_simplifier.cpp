@@ -47,9 +47,9 @@ namespace sat {
         report _report(*this);
         configure_solver(solver);
         clauses2anf(solver);
-        TRACE("anf_simplifier", solver.display(tout); s.display(tout););
+        TRACE(anf_simplifier, solver.display(tout); s.display(tout););
         solver.simplify();
-        TRACE("anf_simplifier", solver.display(tout););
+        TRACE(anf_simplifier, solver.display(tout););
         anf2clauses(solver);
         anf2phase(solver);
         save_statistics(solver);
@@ -85,7 +85,7 @@ namespace sat {
                 literal lit(p.var(), p.lo().is_zero());
                 s.assign_unit(lit);
                 ++m_stats.m_num_units;
-                TRACE("anf_simplifier", tout << "unit " << p << " : " << lit << "\n";);
+                TRACE(anf_simplifier, tout << "unit " << p << " : " << lit << "\n";);
             }
             else if (p.is_binary()) {
                 // equivalence
@@ -95,7 +95,7 @@ namespace sat {
                 literal y(p.lo().var(), p.lo().lo().is_one());
                 add_eq(x, y);
                 ++m_stats.m_num_eqs;
-                TRACE("anf_simplifier", tout << "equivalence " << p << " : " << x << " == " << y << "\n";);
+                TRACE(anf_simplifier, tout << "equivalence " << p << " : " << x << " == " << y << "\n";);
             }
         }
 
@@ -248,18 +248,19 @@ namespace sat {
             oclauses.shrink(j);
         }
 
-        TRACE("anf_simplifier", 
+        TRACE(anf_simplifier, 
               tout << "kept:\n";
               for (clause* cp : clauses) tout << *cp << "\n";
-              for (auto b : bins) tout << b.first << " " << b.second << "\n";
+              for (auto [l1, l2] : bins) tout << l1 << " " << l2 << "\n";
               tout << "removed:\n";
               for (clause* cp : oclauses) tout << *cp << "\n";
-              for (auto b : obins) tout << b.first << " " << b.second << "\n";);
+              for (auto [l1, l2] : obins) tout << l1 << " " << l2 << "\n";);
     }
 
     void anf_simplifier::set_relevant(solver::bin_clause const& b) {
-        set_relevant(b.first); 
-        set_relevant(b.second);
+        auto [l1, l2] = b;
+        set_relevant(l1); 
+        set_relevant(l2);
     }
 
     void anf_simplifier::set_relevant(clause const& c) {
@@ -272,7 +273,8 @@ namespace sat {
     }
 
     bool anf_simplifier::is_pre_satisfied(solver::bin_clause const& b) {
-        return phase_is_true(b.first) || phase_is_true(b.second);
+        auto [l1, l2] = b;
+        return phase_is_true(l1) || phase_is_true(l2);
     }
     
     bool anf_simplifier::phase_is_true(literal l) {
@@ -286,7 +288,8 @@ namespace sat {
     }
 
     bool anf_simplifier::has_relevant_var(solver::bin_clause const& b) {
-        return is_relevant(b.first) || is_relevant(b.second);
+        auto [l1, l2] = b;
+        return is_relevant(l1) || is_relevant(l2);
     }
 
     /**
@@ -310,8 +313,9 @@ namespace sat {
     }
 
     static solver::bin_clause normalize(solver::bin_clause const& b) {
-        if (b.first.index() > b.second.index()) {
-            return solver::bin_clause(b.second, b.first);
+        auto [l1, l2] = b;
+        if (l1.index() > l2.index()) {
+            return solver::bin_clause(l2, l1);
         }
         else {
             return b;
@@ -368,7 +372,10 @@ namespace sat {
         for (unsigned i = 0; i < nv; ++i) id2var[var2id[i]] = i;
         for (unsigned i = 0; i < nv; ++i) vl[i] = std::make_pair(i, var2id[i]);
         std::sort(vl.begin(), vl.end());
-        for (unsigned i = 0; i < nv; ++i) l2v[i] = id2var[vl[i].second];
+        for (unsigned i = 0; i < nv; ++i) {
+            auto [level, varid] = vl[i];
+            l2v[i] = id2var[varid];
+        }
 
         ps.get_manager().reset(l2v);
 
@@ -387,10 +394,11 @@ namespace sat {
 #define lit2pdd(_l_) (_l_.sign() ? ~m.mk_var(_l_.var()) : m.mk_var(_l_.var()))
 
     void anf_simplifier::add_bin(solver::bin_clause const& b, pdd_solver& ps) {
+        auto [l1, l2] = b;
         auto& m = ps.get_manager();
-        dd::pdd p = (lit2pdd(b.first) | lit2pdd(b.second)) ^ true;
+        dd::pdd p = (lit2pdd(l1) | lit2pdd(l2)) ^ true;
         ps.add(p);
-        TRACE("anf_simplifier", tout << "bin: " << b.first << " " << b.second << " : " << p << "\n";);
+        TRACE(anf_simplifier, tout << "bin: " << l1 << " " << l2 << " : " << p << "\n";);
     }
 
     void anf_simplifier::add_clause(clause const& c, pdd_solver& ps) {
@@ -400,7 +408,7 @@ namespace sat {
         for (literal l : c) p |= lit2pdd(l);
         p = p ^ true;
         ps.add(p);
-        TRACE("anf_simplifier", tout << "clause: " << c << " : " << p << "\n";);
+        TRACE(anf_simplifier, tout << "clause: " << c << " : " << p << "\n";);
     }
 
     void anf_simplifier::add_xor(literal_vector const& x, pdd_solver& ps) {
@@ -408,7 +416,7 @@ namespace sat {
         dd::pdd p = m.one();
         for (literal l : x) p ^= lit2pdd(l);
         ps.add(p);
-        TRACE("anf_simplifier", tout << "xor: " << x << " : " << p << "\n";);
+        TRACE(anf_simplifier, tout << "xor: " << x << " : " << p << "\n";);
     }
 
     void anf_simplifier::add_aig(literal head, literal_vector const& ands, pdd_solver& ps) {
@@ -417,7 +425,7 @@ namespace sat {
         for (literal l : ands) q &= lit2pdd(l);
         dd::pdd p = lit2pdd(head) ^ q;
         ps.add(p);
-        TRACE("anf_simplifier", tout << "aig: " << head << " == " << ands << " poly : " << p << "\n";);
+        TRACE(anf_simplifier, tout << "aig: " << head << " == " << ands << " poly : " << p << "\n";);
     }
 
     void anf_simplifier::add_if(literal head, literal c, literal th, literal el, pdd_solver& ps) {
@@ -425,7 +433,7 @@ namespace sat {
         dd::pdd cond = lit2pdd(c);
         dd::pdd p = lit2pdd(head) ^ (cond & lit2pdd(th)) ^ (~cond & lit2pdd(el));        
         ps.add(p);
-        TRACE("anf_simplifier", tout << "ite: " << head << " == " << c << "?" << th << ":" << el << " poly : " << p << "\n";);
+        TRACE(anf_simplifier, tout << "ite: " << head << " == " << c << "?" << th << ":" << el << " poly : " << p << "\n";);
     }
 
     void anf_simplifier::save_statistics(pdd_solver& solver) {

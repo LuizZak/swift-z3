@@ -37,12 +37,15 @@ namespace smt {
         ast2ast_trailmap<sort, app> m_sort2epsilon;
         ast2ast_trailmap<sort, func_decl> m_sort2diag;
         obj_pair_map<expr, expr, bool> m_eqs;
+        enode_vector m_choice_terms;
+        unsigned m_choice_qhead = 0;
         
         static unsigned const m_default_map_fingerprint = UINT_MAX - 112;
         static unsigned const m_default_store_fingerprint = UINT_MAX - 113;
         static unsigned const m_default_const_fingerprint = UINT_MAX - 115;
         static unsigned const m_default_as_array_fingerprint = UINT_MAX - 116;
         static unsigned const m_default_lambda_fingerprint = UINT_MAX - 117;
+        static unsigned const m_choice_fingerprint = UINT_MAX - 118;
 
     protected:
 
@@ -59,7 +62,7 @@ namespace smt {
         bool internalize_atom(app * atom, bool gate_ctx) override;
         void pop_scope_eh(unsigned num_scopes) override;
         theory_var mk_var(enode * n) override;
-        void relevant_eh(app * n) override;
+        void relevant_eh(expr * n) override;
 
         bool should_research(expr_ref_vector & unsat_core) override;
         void add_theory_assumptions(expr_ref_vector & assumptions) override;
@@ -80,24 +83,28 @@ namespace smt {
         bool instantiate_default_map_axiom(enode* map);
         bool instantiate_default_as_array_axiom(enode* arr);
         bool instantiate_default_lambda_def_axiom(enode* arr);
+
+        bool instantiate_choice_axiom(enode* ch);
         bool instantiate_parent_stores_default(theory_var v);
 
-        bool has_large_domain(app* array_term);
-        bool has_unitary_domain(app* array_term);
+
         std::pair<app*,func_decl*> mk_epsilon(sort* s);
         enode_vector m_as_array;
         enode_vector m_lambdas;
+        bool assert_lambda_congruence();
         bool has_non_beta_as_array();
+        bool is_supported_array_eq(enode* p);
 
         bool instantiate_select_const_axiom(enode* select, enode* cnst);
         bool instantiate_select_as_array_axiom(enode* select, enode* arr);
         bool instantiate_select_map_axiom(enode* select, enode* map);
-
         bool instantiate_axiom_map_for(theory_var v);
 
 
         bool try_assign_eq(expr* n1, expr* n2);
         void assign_eqs();
+
+        lbool check_const_arrays();
 
         
     public:
@@ -109,8 +116,8 @@ namespace smt {
         void merge_eh(theory_var v1, theory_var v2, theory_var, theory_var) override;
         void display_var(std::ostream & out, theory_var v) const override;
         void collect_statistics(::statistics & st) const override;
+        bool can_propagate() override { return theory_array::can_propagate() || m_choice_qhead < m_choice_terms.size(); }
+        void propagate() override;
     };
 
-};
-
-
+}

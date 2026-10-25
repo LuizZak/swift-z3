@@ -52,5 +52,5 @@ let package = Package(
             dependencies: ["SwiftZ3", "CZ3"]
         ),
     ],
-    cxxLanguageStandard: .cxx17
+    cxxLanguageStandard: .cxx20
 )

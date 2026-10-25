@@ -38,13 +38,13 @@ void lp_primal_core_solver<T, X>::sort_non_basis() {
                 unsigned cb = this->m_A.number_of_non_zeroes_in_column(b);
                 if (ca == 0 && cb != 0) return false;
                 if (ca != 0 && cb == 0) return true;
-                return ca < cb;
+                return ca != cb ? ca < cb : a < b;
             });
     m_non_basis_list.resize(this->m_nbasis.size());
     // initialize m_non_basis_list from m_nbasis by using an iterator on m_non_basis_list
     auto it = m_non_basis_list.begin();
     unsigned j = 0;
-    for (; j < this->m_nbasis.size(); j++, ++it) {
+    for (; j < this->m_nbasis.size(); ++j, ++it) {
         unsigned col = *it = this->m_nbasis[j];
         this->m_basis_heading[col] = -static_cast<int>(j) - 1;
     }
@@ -63,10 +63,9 @@ bool lp_primal_core_solver<T, X>::correctly_moved_to_bounds(unsigned j) const {
         return this->m_x[j] == this->m_upper_bounds[j];
     case column_type::free_column:
         return true;
-    default:
-        UNREACHABLE();
-        return false;
     }
+    UNREACHABLE();
+    return false;
 }
 
 
@@ -74,7 +73,7 @@ template <typename T, typename X>
 bool lp_primal_core_solver<T, X>::column_is_benefitial_for_entering_basis(unsigned j) const {
     const T& dj = this->m_d[j];
     if (dj.is_zero()) return false;
-    TRACE("lar_solver", tout << "d[" << j <<"] = " << dj << "\n";); 
+    TRACE(lar_solver, tout << "d[" << j <<"] = " << dj << "\n";); 
     SASSERT(correctly_moved_to_bounds(j));
     switch (this->m_column_types[j]) {
     case column_type::fixed:  break;
@@ -91,9 +90,6 @@ bool lp_primal_core_solver<T, X>::column_is_benefitial_for_entering_basis(unsign
             return true;
         if (dj < zero_of_type<T>() && this->m_x[j] == this->m_upper_bounds[j])
             return true;
-        break;
-    default:
-        UNREACHABLE();
         break;
     }
     return false;
@@ -179,18 +175,18 @@ lp_primal_core_solver<T, X>::get_bound_on_variable_and_update_leaving_precisely(
 template <typename T, typename X>   void lp_primal_core_solver<T, X>::check_Ax_equal_b() {
     dense_matrix<T, X> d(this->m_A);
     T * ls = d.apply_from_left_with_different_dims(this->m_x);
-    lp_assert(vectors_are_equal<T>(ls, this->m_b, this->m_m()));
+    SASSERT(vectors_are_equal<T>(ls, this->m_b, this->m_m()));
     delete [] ls;
 }
 template <typename T, typename X>    void lp_primal_core_solver<T, X>::check_the_bounds() {
-    for (unsigned i = 0; i < this->m_n(); i++) {
+    for (unsigned i = 0; i < this->m_n(); ++i) {
         check_bound(i);
     }
 }
 
 template <typename T, typename X>    void lp_primal_core_solver<T, X>::check_bound(unsigned i) {
-    lp_assert (!(this->column_has_lower_bound(i) && (numeric_traits<T>::zero() > this->m_x[i])));
-    lp_assert (!(this->column_has_upper_bound(i) && (this->m_upper_bounds[i] < this->m_x[i])));
+    SASSERT (!(this->column_has_lower_bound(i) && (numeric_traits<T>::zero() > this->m_x[i])));
+    SASSERT (!(this->column_has_upper_bound(i) && (this->m_upper_bounds[i] < this->m_x[i])));
 }
 
 template <typename T, typename X>    void lp_primal_core_solver<T, X>::check_correctness() {
@@ -231,7 +227,7 @@ template <typename T, typename X>  unsigned lp_primal_core_solver<T, X>::get_num
 // calling it stage1 is too cryptic
 template <typename T, typename X>    void lp_primal_core_solver<T, X>::find_feasible_solution() {
     this->m_look_for_feasible_solution_only = true;
-    lp_assert(this->non_basic_columns_are_set_correctly());
+    SASSERT(this->non_basic_columns_are_set_correctly());
     this->set_status(lp_status::UNKNOWN);
     solve();
 }

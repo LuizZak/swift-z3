@@ -22,8 +22,8 @@ Revision History:
 #include "ast/seq_decl_plugin.h"
 #include "ast/arith_decl_plugin.h"
 #include "ast/rewriter/th_rewriter.h"
-#include "ast/rewriter/seq_skolem.h"
-#include "ast/rewriter/seq_axioms.h"
+#include "ast/seq/seq_skolem.h"
+#include "ast/seq/seq_axioms.h"
 #include "smt/smt_theory.h"
 
 namespace smt {
@@ -90,6 +90,8 @@ namespace smt {
         void add_str_to_code_axiom(expr* n) { m_ax.str_to_code_axiom(n); }
         void add_str_from_code_axiom(expr* n) { m_ax.str_from_code_axiom(n); }
         void add_unit_axiom(expr* n) { m_ax.unit_axiom(n); }
+        void add_power_axiom(expr* n) { m_ax.power_axiom(n); }
+        void add_power_unfold_axiom(expr* n, unsigned k) { m_ax.power_unfold_axiom(n, k); }
         void add_length_axiom(expr* n) { m_ax.length_axiom(n); }
         void unroll_not_contains(expr* n) { m_ax.unroll_not_contains(n); }
 
@@ -105,5 +107,4 @@ namespace smt {
 
     };
 
-};
-
+}

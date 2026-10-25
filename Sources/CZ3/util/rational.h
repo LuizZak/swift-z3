@@ -19,6 +19,7 @@ Revision History:
 #pragma once
 
 #include "util/mpq.h"
+#include "util/memory_manager.h"
 
 class rational {
     mpq   m_val;
@@ -37,24 +38,21 @@ class rational {
 public:
     static void initialize();
     static void finalize();
-    /*
-      ADD_INITIALIZER('rational::initialize();')
-      ADD_FINALIZER('rational::finalize();')
-    */
     rational() = default;
 
     rational(rational const & r) { m().set(m_val, r.m_val); }
     rational(rational&&) = default;
 
     explicit rational(int n) { m().set(m_val, n); }
-
     explicit rational(unsigned n) { m().set(m_val, n); }
-      
+    explicit rational(int64_t n) { m().set(m_val, n); }
+    explicit rational(uint64_t n) { m().set(m_val, n); }
+
     rational(int n, int d) { m().set(m_val, n, d); }
-
     rational(mpq const & q) { m().set(m_val, q); }
-
+    rational(mpq && q) noexcept : m_val(std::move(q)) {}
     rational(mpz const & z) { m().set(m_val, z); }
+    rational(mpz && z) noexcept : m_val(std::move(z)) {}
 
     explicit rational(double  z) { UNREACHABLE(); }
     
@@ -172,7 +170,8 @@ public:
     rational & operator=(bool) = delete;
     rational operator*(bool  r1) const = delete;
 
-    rational & operator=(int v) {
+    rational & operator=(int v) { return *this = (int64_t)v; }
+    rational & operator=(int64_t v) {
         m().set(m_val, v);
         return *this;
     }
@@ -274,8 +273,8 @@ public:
     }
 
     friend inline rational mod2k(rational const & a, unsigned k) {
-        if (a.is_nonneg() && a.is_int() && a.bitsize() <= k) 
-            return a;
+        if (a.is_int())
+            return rational::m().mod2k(a.m_val.numerator(), k);
         return mod(a, power_of_two(k));
     }
 
@@ -403,33 +402,19 @@ public:
         return m_minus_one;
     }
 
+    // Perform:  this += c * k
     void addmul(rational const & c, rational const & k) {
-        if (c.is_one())
-            operator+=(k);
-        else if (c.is_minus_one())
-            operator-=(k);
-        else if (k.is_one())
-            operator+=(c);
-        else if (k.is_minus_one())
-            operator-=(c);
-        else {
-            rational tmp(k);
-            tmp *= c;
-            operator+=(tmp);
-        }
+        m().addmul(m_val, c.m_val, k.m_val, m_val);
     }
 
     // Perform:  this -= c * k
     void submul(const rational & c, const rational & k) {
-        if (c.is_one())
-            operator-=(k);
-        else if (c.is_minus_one())
-            operator+=(k);
-        else {
-            rational tmp(k);
-            tmp *= c;
-            operator-=(tmp);
-        }
+        m().submul(m_val, c.m_val, k.m_val, m_val);
+    }
+
+    // r = a * b, without a temporary
+    static void mul(rational const & a, rational const & b, rational & r) {
+        m().mul(a.m_val, b.m_val, r.m_val);
     }
 
     bool is_int_perfect_square(rational & root) const {
@@ -553,7 +538,10 @@ public:
     static bool limit_denominator(rational &num, rational const& limit);
 };
 
-inline bool operator!=(rational const & r1, rational const & r2) { 
+Z3_ADD_INITIALIZER(rational, rational::initialize, 0);
+Z3_ADD_FINALIZER(rational, rational::finalize);
+
+inline bool operator!=(rational const & r1, rational const & r2) {
     return !operator==(r1, r2); 
 }
 

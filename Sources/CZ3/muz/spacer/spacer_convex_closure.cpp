@@ -25,15 +25,15 @@ namespace {
 
 #ifdef Z3DEBUG
 bool is_int_matrix(const spacer::spacer_matrix &matrix) {
-    for (unsigned i = 0, rows = matrix.num_rows(); i < rows; i++) 
-        for (unsigned j = 0, cols = matrix.num_cols(); j < cols; j++)
+    for (unsigned i = 0, rows = matrix.num_rows(); i < rows; ++i) 
+        for (unsigned j = 0, cols = matrix.num_cols(); j < cols; ++j)
             if (!matrix.get(i, j).is_int()) 
                 return false;
     return true;
 }
 
 bool is_sorted(const vector<rational> &data) {
-    for (unsigned i = 0; i < data.size() - 1; i++) 
+    for (unsigned i = 0; i < data.size() - 1; ++i) 
         if (!(data[i] >= data[i + 1])) 
             return false;
     return true;
@@ -97,7 +97,7 @@ unsigned convex_closure::reduce() {
 
     bool has_kernel = m_kernel.compute_kernel();
     if (!has_kernel) {
-        TRACE("cvx_dbg",
+        TRACE(cvx_dbg,
               tout << "No linear dependencies between pattern vars\n";);
         return m_dim;
     }
@@ -164,7 +164,7 @@ void convex_closure::kernel2fmls(expr_ref_vector &out) {
     const spacer_matrix &kern = m_kernel.get_kernel();
     SASSERT(kern.num_rows() > 0);
 
-    TRACE("cvx_dbg", kern.display(tout););
+    TRACE(cvx_dbg, kern.display(tout););
     expr_ref eq(m);
     for (unsigned i = kern.num_rows(); i > 0; i--) {
         auto &row = kern.get_row(i - 1);
@@ -201,7 +201,7 @@ void convex_closure::cc_col2eq(unsigned col, expr_ref_vector &out) {
     SASSERT(!has_bv());
 
     expr_ref_buffer sum(m);
-    for (unsigned row = 0, sz = m_data.num_rows(); row < sz; row++) {
+    for (unsigned row = 0, sz = m_data.num_rows(); row < sz; ++row) {
         expr_ref alpha(m);
         auto n = m_data.get(row, col);
         if (n.is_zero()) {
@@ -229,7 +229,7 @@ void convex_closure::cc2fmls(expr_ref_vector &out) {
     sort_ref real_sort(m_arith.mk_real(), m);
     expr_ref zero(m_arith.mk_real(rational::zero()), m);
 
-    for (unsigned row = 0, sz = m_data.num_rows(); row < sz; row++) {
+    for (unsigned row = 0, sz = m_data.num_rows(); row < sz; ++row) {
         if (row >= m_alphas.size()) {
             m_alphas.push_back(m.mk_fresh_const("a!cc", real_sort));
         }
@@ -238,15 +238,14 @@ void convex_closure::cc2fmls(expr_ref_vector &out) {
         out.push_back(m_arith.mk_ge(m_alphas.get(row), zero));
     }
 
-    for (unsigned k = 0, sz = m_col_vars.size(); k < sz; k++) {
+    for (unsigned k = 0, sz = m_col_vars.size(); k < sz; ++k) {
         if (m_col_vars.get(k) && !m_dead_cols[k]) cc_col2eq(k, out);
     }
 
     //(\Sum j . m_new_vars[j]) = 1
-    out.push_back(m.mk_eq(
-        m_arith.mk_add(m_data.num_rows(),
-                       reinterpret_cast<expr *const *>(m_alphas.data())),
-        m_arith.mk_real(rational::one())));
+    expr_ref sum(m_arith.mk_add(m_data.num_rows(),
+                               reinterpret_cast<expr *const *>(m_alphas.data())), m);
+    out.push_back(m.mk_eq(sum, m_arith.mk_real(rational::one())));
 }
 
 #define MAX_DIV_BOUND 101
@@ -256,7 +255,7 @@ void convex_closure::cc2fmls(expr_ref_vector &out) {
 // TODO: improve efficiency
 bool convex_closure::infer_div_pred(const vector<rational> &data, rational &m,
                                     rational &d) {
-    TRACE("cvx_dbg_verb", {
+    TRACE(cvx_dbg_verb, {
         tout << "computing div constraints for ";
         for (rational r : data) tout << r << " ";
         tout << "\n";
@@ -276,7 +275,7 @@ bool convex_closure::infer_div_pred(const vector<rational> &data, rational &m,
     rational bnd(MAX_DIV_BOUND);
     rational big = data.back();
     // AG: why (m < big)?  Note that 'big' is the smallest element of data
-    for (; m < big && m < bnd; m++) {
+    for (; m < big && m < bnd; ++m) {
         if (is_congruent_mod(data, m)) break;
     }
     if (m >= big) return false;
@@ -285,7 +284,7 @@ bool convex_closure::infer_div_pred(const vector<rational> &data, rational &m,
     mod(data[0], m, d);
     SASSERT(d >= rational::zero());
 
-    TRACE("cvx_dbg_verb", tout << "div constraint generated. cf " << m
+    TRACE(cvx_dbg_verb, tout << "div constraint generated. cf " << m
                                << " and off " << d << "\n";);
     return true;
 }
@@ -300,7 +299,7 @@ bool convex_closure::compute() {
     if (rank < dims()) {
         m_st.m_num_reductions++;
         kernel2fmls(m_explicit_cc);
-        TRACE("cvx_dbg", tout << "Linear equalities true of the matrix "
+        TRACE(cvx_dbg, tout << "Linear equalities true of the matrix "
                               << mk_and(m_explicit_cc) << "\n";);
     }
 
@@ -311,7 +310,7 @@ bool convex_closure::compute() {
         return false;
     } else if (rank > 1) {
         if (m_enable_implicit) {
-            TRACE("subsume", tout << "Computing syntactic convex closure\n";);
+            TRACE(subsume, tout << "Computing syntactic convex closure\n";);
             cc2fmls(m_implicit_cc);
         } else {
             return false;
@@ -362,7 +361,7 @@ void convex_closure::cc_1dim(const expr_ref &var, expr_ref_vector &out) {
     // -- compute divisibility constraints
     rational cr, off;
     // add div constraints for all variables.
-    for (unsigned j = 0; j < m_data.num_cols(); j++) {
+    for (unsigned j = 0; j < m_data.num_cols(); ++j) {
         auto *v = m_col_vars.get(j);
         if (v && (m_arith.is_int(v) || m_bv.is_bv(v))) {
             data.reset();
@@ -378,10 +377,11 @@ void convex_closure::cc_1dim(const expr_ref &var, expr_ref_vector &out) {
 expr *convex_closure::mk_eq_mod(expr *v, rational d, rational r) {
     expr *res = nullptr;
     if (m_arith.is_int(v)) {
-        res = m.mk_eq(m_arith.mk_mod(v, m_arith.mk_int(d)), m_arith.mk_int(r));
+        expr_ref rem(m_arith.mk_mod(v, m_arith.mk_int(d)), m);
+        res = m.mk_eq(rem, m_arith.mk_int(r));
     } else if (m_bv.is_bv(v)) {
-        res = m.mk_eq(m_bv.mk_bv_urem(v, m_bv.mk_numeral(d, m_bv_sz)),
-                      m_bv.mk_numeral(r, m_bv_sz));
+        expr_ref rem(m_bv.mk_bv_urem(v, m_bv.mk_numeral(d, m_bv_sz)), m);
+        res = m.mk_eq(rem, m_bv.mk_numeral(r, m_bv_sz));
     } else {
         UNREACHABLE();
     }

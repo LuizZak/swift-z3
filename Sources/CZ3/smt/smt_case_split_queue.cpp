@@ -122,7 +122,7 @@ namespace {
             
             if (m_context.get_random_value() < static_cast<int>(m_params.m_random_var_freq * random_gen::max_value())) {
                 next = m_context.get_random_value() % m_context.get_num_b_internalized(); 
-                TRACE("random_split", tout << "next: " << next << " get_assignment(next): " << m_context.get_assignment(next) << "\n";);
+                TRACE(random_split, tout << "next: " << next << " get_assignment(next): " << m_context.get_assignment(next) << "\n";);
                 if (m_context.get_assignment(next) == l_undef)
                     return;
             }
@@ -280,7 +280,7 @@ namespace {
         ptr_vector<expr> undef_children;
         bool found_undef  = false;
         unsigned num_args = parent->get_num_args();
-        for (unsigned i = 0; i < num_args; i++) {
+        for (unsigned i = 0; i < num_args; ++i) {
             expr * arg    = parent->get_arg(i);
             lbool arg_val = ctx.get_assignment(arg);
             if (arg_val == val)
@@ -401,7 +401,7 @@ namespace {
             s.m_head_old     = m_head;
             s.m_queue2_trail = m_queue2.size();
             s.m_head2_old    = m_head2;
-            TRACE("case_split", tout << "head: " << m_head << "\n";);
+            TRACE(case_split, tout << "head: " << m_head << "\n";);
         }
 
         void pop_scope(unsigned num_scopes) override {
@@ -414,13 +414,13 @@ namespace {
             m_head2             = s.m_head2_old;
             m_scopes.shrink(new_lvl);
             SASSERT(m_head <= m_queue.size());
-            TRACE("case_split", display(tout); tout << "head: " << m_head << "\n";);
+            TRACE(case_split, display(tout); tout << "head: " << m_head << "\n";);
         }
         
         void next_case_split_core(ptr_vector<expr> & queue, unsigned & head, bool_var & next, lbool & phase) {
             phase = l_undef;
             unsigned sz = queue.size();
-            for (; head < sz; head++) {
+            for (; head < sz; ++head) {
                 expr * curr = queue[head];
                 bool is_or  = m_manager.is_or(curr);
                 bool is_and = m_manager.is_and(curr);
@@ -441,19 +441,19 @@ namespace {
                         if (m_manager.has_trace_stream()) {
                             m_manager.trace_stream() << "[decide-and-or] #" << curr->get_id() << " #" << undef_child->get_id() << "\n";
                         }
-                        TRACE("case_split", tout << "found AND/OR candidate: #" << curr->get_id() << " #" << undef_child->get_id() << "\n";);
+                        TRACE(case_split, tout << "found AND/OR candidate: #" << curr->get_id() << " #" << undef_child->get_id() << "\n";);
                         literal l = m_context.get_literal(undef_child);
                         next  = l.var();
                         phase = l.sign() ? l_false : l_true;
-                        TRACE("case_split", display(tout););
+                        TRACE(case_split, display(tout););
                         return;
                     }
                 }
                 else if (val == l_undef) {
                     SASSERT(intern && m_context.get_bool_var(curr) == next);
-                    TRACE("case_split", tout << "found candidate: #" << curr->get_id() << "\n";);
+                    TRACE(case_split, tout << "found candidate: #" << curr->get_id() << "\n";);
                     phase = l_undef;
-                    TRACE("case_split", display(tout););
+                    TRACE(case_split, display(tout););
                     return;
                 }
             }
@@ -480,7 +480,7 @@ namespace {
             if (queue.empty())
                 return;
             unsigned sz = queue.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 if (i == head) 
                     out << "[HEAD" << idx << "]=> ";
                 out << "#" << queue[i]->get_id() << " ";
@@ -597,7 +597,7 @@ namespace {
             scope & s = m_scopes.back();
             s.m_queue_trail  = m_queue.size();
             s.m_head_old     = m_head;
-            TRACE("case_split", tout << "head: " << m_head << "\n";);
+            TRACE(case_split, tout << "head: " << m_head << "\n";);
         }
 
         void pop_scope(unsigned num_scopes) override {
@@ -608,13 +608,13 @@ namespace {
             m_head              = s.m_head_old;
             m_scopes.shrink(new_lvl);
             SASSERT(m_head <= m_queue.size());
-            TRACE("case_split", display(tout); tout << "head: " << m_head << "\n";);
+            TRACE(case_split, display(tout); tout << "head: " << m_head << "\n";);
         }
 
         void next_case_split_core(bool_var & next, lbool & phase) {
             phase = l_undef;
             unsigned sz = m_queue.size();
-            for (; m_head < sz; m_head++) {
+            for (; m_head < sz; ++m_head) {
                 expr * curr = m_queue[m_head];
                 bool is_or  = m_manager.is_or(curr);
                 bool is_and = m_manager.is_and(curr);
@@ -632,19 +632,19 @@ namespace {
                 if ((is_or && val == l_true) || (is_and && val == l_false)) {
                     expr * undef_child = nullptr;
                     if (!has_child_assigned_to(m_context, to_app(curr), val, undef_child, m_params.m_rel_case_split_order)) {
-                        TRACE("case_split", tout << "found AND/OR candidate: #" << curr->get_id() << " #" << undef_child->get_id() << "\n";);
+                        TRACE(case_split, tout << "found AND/OR candidate: #" << curr->get_id() << " #" << undef_child->get_id() << "\n";);
                         literal l = m_context.get_literal(undef_child);
                         next  = l.var();
                         phase = l.sign() ? l_false : l_true;
-                        TRACE("case_split", display(tout););
+                        TRACE(case_split, display(tout););
                         return;
                     }
                 }
                 else if (val == l_undef) {
                     SASSERT(intern && m_context.get_bool_var(curr) == next);
-                    TRACE("case_split", tout << "found candidate: #" << curr->get_id() << "\n";);
+                    TRACE(case_split, tout << "found candidate: #" << curr->get_id() << "\n";);
                     phase = l_undef;
-                    TRACE("case_split", display(tout););
+                    TRACE(case_split, display(tout););
                     return;
                 }
             }
@@ -654,7 +654,7 @@ namespace {
         void next_case_split(bool_var & next, lbool & phase) override {
             if (m_context.get_random_value() < static_cast<int>(0.02 * random_gen::max_value())) {
                 next = m_context.get_random_value() % m_context.get_num_b_internalized(); 
-                TRACE("random_split", tout << "next: " << next << " get_assignment(next): " << m_context.get_assignment(next) << "\n";);
+                TRACE(random_split, tout << "next: " << next << " get_assignment(next): " << m_context.get_assignment(next) << "\n";);
                 if (m_context.get_assignment(next) == l_undef)
                     return;
             }
@@ -675,7 +675,7 @@ namespace {
             if (m_queue.empty())
                 return;
             unsigned sz = m_queue.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 if (i == m_head) 
                     out << "[HEAD]=> ";
                 out << "#" << m_queue[i]->get_id() << " ";
@@ -844,7 +844,7 @@ namespace {
             s.m_queue2_trail = m_queue2.size();
             s.m_generation   = m_current_generation;
             s.m_goal         = m_current_goal;
-            TRACE("case_split", tout << "head: " << m_head << "\n";);
+            TRACE(case_split, tout << "head: " << m_head << "\n";);
         }
 
         void pop_scope(unsigned num_scopes) override {
@@ -856,14 +856,14 @@ namespace {
             m_current_generation = s.m_generation;
             m_current_goal       = s.m_goal;
 
-            for (unsigned i = s.m_queue2_trail; i < m_queue2.size(); i++) {
-                //TRACE("case_split", tout << "ld[" << i << "] = " << m_queue2[i].m_last_decided << " cont " << 
+            for (unsigned i = s.m_queue2_trail; i < m_queue2.size(); ++i) {
+                //TRACE(case_split, tout << "ld[" << i << "] = " << m_queue2[i].m_last_decided << " cont " << 
                 SASSERT((m_queue2[i].m_last_decided == -1) == m_priority_queue2.contains(i));
                 if (m_priority_queue2.contains(i))
                     m_priority_queue2.erase(i);
             }
             
-            for (unsigned i = 0; i < s.m_queue2_trail; i++) {
+            for (unsigned i = 0; i < s.m_queue2_trail; ++i) {
                 queue_entry & e = m_queue2[i];
 
                 if (e.m_last_decided > static_cast<int>(new_lvl)) {
@@ -877,7 +877,7 @@ namespace {
             m_queue2.shrink(s.m_queue2_trail);
             m_scopes.shrink(new_lvl);
             SASSERT(m_head <= m_queue.size());
-            TRACE("case_split", display(tout); tout << "head: " << m_head << "\n";);        
+            TRACE(case_split, display(tout); tout << "head: " << m_head << "\n";);        
         }
         
         void next_case_split_core(expr * curr, bool_var & next, lbool & phase) {
@@ -900,19 +900,19 @@ namespace {
                     if (m_manager.has_trace_stream()) {
                         m_manager.trace_stream() << "[decide-and-or] #" << curr->get_id() << " #" << undef_child->get_id() << "\n";
                     }
-                    TRACE("case_split", tout << "found AND/OR candidate: #" << curr->get_id() << " #" << undef_child->get_id() << "\n";);
+                    TRACE(case_split, tout << "found AND/OR candidate: #" << curr->get_id() << " #" << undef_child->get_id() << "\n";);
                     literal l = m_context.get_literal(undef_child);
                     next  = l.var();
                     phase = l.sign() ? l_false : l_true;
-                    TRACE("case_split", display(tout););
+                    TRACE(case_split, display(tout););
                     return;
                 }
             }
             else if (val == l_undef) {
                 SASSERT(intern && m_context.get_bool_var(curr) == next);
-                TRACE("case_split", tout << "found candidate: #" << curr->get_id() << "\n";);
+                TRACE(case_split, tout << "found candidate: #" << curr->get_id() << "\n";);
                 phase = l_undef;
-                TRACE("case_split", display(tout););
+                TRACE(case_split, display(tout););
                 return;
             }
             next = null_bool_var;
@@ -923,7 +923,7 @@ namespace {
             next = null_bool_var;
 
             unsigned sz = m_queue.size();
-            for (; m_head < sz; m_head++) {
+            for (; m_head < sz; ++m_head) {
                 expr * curr = m_queue[m_head];
                 next_case_split_core(curr, next, phase);
                 if (next != null_bool_var)
@@ -932,7 +932,7 @@ namespace {
 
             while (!m_priority_queue2.empty()) {
                 unsigned idx = static_cast<unsigned>(m_priority_queue2.erase_min());
-                TRACE("case_split", tout << "q " << m_queue2.size() << " idx " << idx << "\n"; );
+                TRACE(case_split, tout << "q " << m_queue2.size() << " idx " << idx << "\n"; );
                 SASSERT(idx < m_queue2.size());
                 queue_entry & e = m_queue2[idx];
                 SASSERT(e.m_last_decided == -1);
@@ -955,7 +955,7 @@ namespace {
             if (queue.empty())
                 return;
             unsigned sz = queue.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 if (i == head) 
                     out << "[HEAD" << idx << "]=> ";
                 out << "#" << queue[i]->get_id() << " ";
@@ -989,7 +989,7 @@ namespace {
                 if (!m_manager.is_label_lit(lablit))
                     return;
 
-                TRACE("case_split", tout << "Found goal\n" << mk_pp(e, m_manager) << "\n"; );
+                TRACE(case_split, tout << "Found goal\n" << mk_pp(e, m_manager) << "\n"; );
 
                 set_goal(e);
             }
@@ -1012,7 +1012,7 @@ namespace {
                 stack.pop_back();
 
                 if (m_context.e_internalized(curr)) {
-                    gen = m_context.get_enode(curr)->get_generation();
+                    gen = m_context.get_generation(m_context.get_enode(curr));
                     if (gen > maxgen)
                         maxgen = gen;
                     if (gen < mingen)
@@ -1030,7 +1030,7 @@ namespace {
 
         void add_to_queue2(expr * e)
         {
-            int      idx = m_queue2.size();
+            int      idx = static_cast<int>(m_queue2.size());
 
             GOAL_START();
             m_queue2.push_back(queue_entry(e, get_generation(e)));
@@ -1046,7 +1046,7 @@ namespace {
             void operator()(expr * e) {
                 if (m_context.e_internalized(e)) {
                     enode * n = m_context.get_enode(e);
-                    n->set_generation(m_context, m_generation);
+                    m_context.set_generation(n, m_generation);
                 }
             }
         };
@@ -1069,7 +1069,8 @@ namespace {
                 stack.pop_back();
 
                 if (m_context.e_internalized(curr)) {
-                    unsigned curr_gen = m_context.get_enode(curr)->get_generation();
+                    enode * n = m_context.get_enode(curr);
+                    unsigned curr_gen = m_context.get_generation(n);
                     if (curr_gen > gen) {
                         // Lower it.
                         set_generation_rec(e, gen);
@@ -1189,7 +1190,7 @@ namespace {
             if (m_context.get_random_value() < threshold) {
                 SASSERT(m_context.get_num_b_internalized() > 0);
                 next = m_context.get_random_value() % m_context.get_num_b_internalized(); 
-                TRACE("random_split", tout << "next: " << next << " get_assignment(next): " << m_context.get_assignment(next) << "\n";);
+                TRACE(random_split, tout << "next: " << next << " get_assignment(next): " << m_context.get_assignment(next) << "\n";);
                 if (m_context.get_assignment(next) == l_undef)
                     return;
             }
@@ -1209,7 +1210,7 @@ namespace {
         }
 
         void add_theory_aware_branching_info(bool_var v, double priority, lbool phase) override {
-            TRACE("theory_aware_branching", tout << "Add theory-aware branching information for l#" << v << ": priority=" << priority << std::endl;);
+            TRACE(theory_aware_branching, tout << "Add theory-aware branching information for l#" << v << ": priority=" << priority << std::endl;);
             m_theory_vars.insert(v);
             m_theory_var_phase.insert(v, phase);
             m_theory_var_priority.insert(v, priority);

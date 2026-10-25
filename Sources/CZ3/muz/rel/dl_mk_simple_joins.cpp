@@ -93,7 +93,7 @@ namespace datalog {
                     m_stratified = (head_stratum > m_src_stratum);
                 }
                 idx_set_union(m_all_nonlocal_vars, non_local_vars_normalized);
-                TRACE("dl", tout << "all-nonlocal: " << m_all_nonlocal_vars << "\n";);
+                TRACE(dl, tout << "all-nonlocal: " << m_all_nonlocal_vars << "\n";);
             }
 
             /**
@@ -243,7 +243,7 @@ namespace datalog {
 
             m_pinned.push_back(t1n);
             m_pinned.push_back(t2n);
-            TRACE("dl_verbose", tout << mk_pp(t1, m) << " " << mk_pp(t2, m) << " |-> " << t1n_ref << " " << t2n_ref << "\n";);
+            TRACE(dl_verbose, tout << mk_pp(t1, m) << " " << mk_pp(t2, m) << " |-> " << t1n_ref << " " << t2n_ref << "\n";);
             
             return app_pair(t1n, t2n);
         }
@@ -271,7 +271,7 @@ namespace datalog {
             }
 
             inf.add_rule(*this, t1, t2, r, normalized_vars, non_local_vars);
-            TRACE("dl", tout << mk_pp(t1, m) << " " << mk_pp(t2, m) << " ";
+            TRACE(dl, tout << mk_pp(t1, m) << " " << mk_pp(t2, m) << " ";
                   tout << non_local_vars << "\n";
                   r->display(m_context, tout); 
                   if (inf.can_be_joined()) tout << "cost: " << inf.get_cost() << "\n";);
@@ -290,14 +290,14 @@ namespace datalog {
         void register_rule(rule * r) {
             rule_counter counter;
             counter.count_rule_vars(r, 1);
-            TRACE("dl", tout << "counter: "; for (auto const& kv: counter) tout << kv.m_key << ": " << kv.m_value << " "; tout << "\n";);            
+            TRACE(dl, tout << "counter: "; for (auto const& kv: counter) tout << kv.m_key << ": " << kv.m_value << " "; tout << "\n";);            
             ptr_vector<app> & rule_content = m_rules_content.insert_if_not_there(r, ptr_vector<app>());
             SASSERT(rule_content.empty());
             
-            TRACE("dl", r->display(m_context, tout << "register ");); 
+            TRACE(dl, r->display(m_context, tout << "register ");); 
             
             unsigned pos_tail_size = r->get_positive_tail_size();
-            for (unsigned i = 0; i < pos_tail_size; i++) {
+            for (unsigned i = 0; i < pos_tail_size; ++i) {
                 app* t = r->get_tail(i);
                 if (!rule_content.contains(t))
                     rule_content.push_back(t);
@@ -305,11 +305,11 @@ namespace datalog {
                     m_modified_rules = true;
             }
             pos_tail_size = rule_content.size();
-            for (unsigned i = 0; i+1 < pos_tail_size; i++) {
+            for (unsigned i = 0; i+1 < pos_tail_size; ++i) {
                 app * t1 = rule_content[i];
                 var_idx_set t1_vars = rm.collect_vars(t1);
                 counter.count_vars(t1, -1);  //temporarily remove t1 variables from counter
-                for (unsigned j = i+1; j < pos_tail_size; j++) {
+                for (unsigned j = i+1; j < pos_tail_size; ++j) {
                     app * t2 = rule_content[j];
                     SASSERT(t1 != t2);
                     counter.count_vars(t2, -1);  //temporarily remove t2 variables from counter
@@ -319,7 +319,7 @@ namespace datalog {
                     counter.collect_positive(non_local_vars);
                     counter.count_vars(t2, 1);  //restore t2 variables in counter
                     set_intersection(non_local_vars, t2_vars);
-                    TRACE("dl", tout << "non-local vars: " << non_local_vars << "\n";);
+                    TRACE(dl, tout << "non-local vars: " << non_local_vars << "\n";);
                     register_pair(t1, t2, r, non_local_vars);
                 }
                 counter.count_vars(t1, 1);  //restore t1 variables in counter
@@ -356,7 +356,7 @@ namespace datalog {
                 }
                 SASSERT(found);
             }
-            TRACE("dl", 
+            TRACE(dl, 
                   tout << mk_pp(t1, m) << " " << mk_pp(t2, m) << " arity: " << arity << "\n";
                   tout << "output: " << output_vars << "\n";
                   tout << "args:   " << args << "\n";);
@@ -412,22 +412,22 @@ namespace datalog {
             unsigned len = rule_content.size();
             unsigned original_len = len+removed_tails.size()-added_tails0.size();
             app_ref_vector added_tails(added_tails0); //we need a copy since we'll be modifying it
-            TRACE("dl", tout << added_tails << "\n";);
+            TRACE(dl, tout << added_tails << "\n";);
 
             unsigned rt_sz = removed_tails.size();
             //remove edges between removed tails
-            for (unsigned i = 0; i < rt_sz; i++) {
-                for (unsigned j = i+1; j < rt_sz; j++) {
+            for (unsigned i = 0; i < rt_sz; ++i) {
+                for (unsigned j = i+1; j < rt_sz; ++j) {
                     app_pair pair_key = get_key(removed_tails[i], removed_tails[j]);
                     remove_rule_from_pair(pair_key, r, original_len);
                 }
             }
             //remove edges between surviving tails and removed tails
-            for (unsigned i = 0; i < len; i++) {
+            for (unsigned i = 0; i < len; ++i) {
                 if (added_tails.contains(rule_content[i])) {
                     continue;
                 }
-                for (unsigned ri = 0; ri < rt_sz; ri++) {
+                for (unsigned ri = 0; ri < rt_sz; ++ri) {
                     app_pair pair_key = get_key(rule_content[i], removed_tails[ri]);
                     remove_rule_from_pair(pair_key, r, original_len);
                 }
@@ -445,10 +445,10 @@ namespace datalog {
             unsigned tail_size = r->get_tail_size();
             unsigned pos_tail_size = r->get_positive_tail_size();
 
-            for (unsigned i = pos_tail_size; i < tail_size; i++) {
+            for (unsigned i = pos_tail_size; i < tail_size; ++i) {
                 counter.count_vars(r->get_tail(i), 1);
             }
-            for (unsigned i = 0; i < len; i++) {
+            for (unsigned i = 0; i < len; ++i) {
                 counter.count_vars(rule_content[i], 1);
             }
 
@@ -456,12 +456,12 @@ namespace datalog {
             while (!added_tails.empty()) {
                 app * a_tail = added_tails.back();  //added tail
                 
-                TRACE("dl", tout << "replace edges " << mk_pp(a_tail, m) << "\n";);
+                TRACE(dl, tout << "replace edges " << mk_pp(a_tail, m) << "\n";);
 
                 var_idx_set a_tail_vars = rm.collect_vars(a_tail);
                 counter.count_vars(a_tail, -1);  //temporarily remove a_tail variables from counter
 
-                for (unsigned i = 0; i < len; i++) {
+                for (unsigned i = 0; i < len; ++i) {
                     app * o_tail = rule_content[i]; //other tail
                     if (added_tails.contains(o_tail)) {
                         //this avoids adding edges between new tails twice
@@ -491,7 +491,7 @@ namespace datalog {
             if (len == 1) {
                 return;
             }
-            TRACE("dl", 
+            TRACE(dl, 
                   tout << "pair: " << mk_pp(t1, m) << " " << mk_pp(t2, m) << "\n";
                   tout << mk_pp(t_new, m) << "\n";
                   tout << "all-non-local: " << m_costs[pair_key]->m_all_nonlocal_vars << "\n";
@@ -507,7 +507,7 @@ namespace datalog {
             func_decl * t2_pred = t2->get_decl();
             app_ref_vector removed_tails(m);
             app_ref_vector added_tails(m);
-            for (unsigned i1 = 0; i1 < len; i1++) {
+            for (unsigned i1 = 0; i1 < len; ++i1) {
                 app * rt1 = rule_content[i1];
                 if (rt1->get_decl() != t1_pred) {
                     continue;
@@ -517,7 +517,7 @@ namespace datalog {
 
                 var_idx_set t1_vars = rm.collect_vars(t1);
                 unsigned i2start = (t1_pred == t2_pred) ? (i1+1) : 0;
-                for (unsigned i2 = i2start; i2 < len; i2++) {
+                for (unsigned i2 = i2start; i2 < len; ++i2) {
                     app * rt2 = rule_content[i2];
                     if (i1 == i2 || rt2->get_decl() != t2_pred) {
                         continue;
@@ -531,7 +531,7 @@ namespace datalog {
                     reverse_renaming(normalizer, denormalizer);
                     expr_ref new_transf(m);
                     new_transf = m_var_subst(t_new, denormalizer);
-                    TRACE("dl", tout  << mk_pp(rt1, m) << " " << mk_pp(rt2, m) << " -> " << new_transf << "\n";);            
+                    TRACE(dl, tout  << mk_pp(rt1, m) << " " << mk_pp(rt2, m) << " -> " << new_transf << "\n";);            
                     counter.count_vars(rt2, -1);
                     var_idx_set rt2_vars = rm.collect_vars(rt2);
                     var_idx_set tr_vars = rm.collect_vars(new_transf);
@@ -541,14 +541,14 @@ namespace datalog {
                     set_intersection(non_local_vars, rt2_vars);
                     counter.count_vars(rt2, +1);
                     // require that tr_vars contains non_local_vars
-                    TRACE("dl", tout << "non-local : " << non_local_vars << " tr_vars " << tr_vars << " rt12_vars " << rt2_vars << "\n";);
+                    TRACE(dl, tout << "non-local : " << non_local_vars << " tr_vars " << tr_vars << " rt12_vars " << rt2_vars << "\n";);
                     if (!non_local_vars.subset_of(tr_vars)) {                        
                         var_ref_vector normalizer2 = get_normalizer(rt2, rt1);
-                        TRACE("dl", tout << normalizer << "\nnorm\n" << normalizer2 << "\n";);
+                        TRACE(dl, tout << normalizer << "\nnorm\n" << normalizer2 << "\n";);
                         denormalizer.reset();
                         reverse_renaming(normalizer2, denormalizer);
                         new_transf = m_var_subst(t_new, denormalizer);
-                        TRACE("dl", tout  << mk_pp(rt2, m) << " " << mk_pp(rt1, m) << " -> " << new_transf << "\n";);            
+                        TRACE(dl, tout  << mk_pp(rt2, m) << " " << mk_pp(rt1, m) << " -> " << new_transf << "\n";);            
                         SASSERT(non_local_vars.subset_of(rm.collect_vars(new_transf)));
                     }
                     app * new_lit = to_app(new_transf);
@@ -585,7 +585,7 @@ namespace datalog {
             SASSERT(!removed_tails.empty());
             SASSERT(!added_tails.empty());
             m_modified_rules = true;
-            TRACE("dl", tout << "replace rule content\n";);
+            TRACE(dl, tout << "replace rule content\n";);
             replace_edges(r, removed_tails, added_tails, rule_content);
         }
 
@@ -636,7 +636,7 @@ namespace datalog {
             vi.populate(t1, t2);
             unsigned n = vi.size();
             // remove contributions from joined columns.
-            for (unsigned i = 0; i < n; i++) {
+            for (unsigned i = 0; i < n; ++i) {
                 unsigned arg_index1, arg_index2;
                 vi.get(i, arg_index1, arg_index2);
                 expr* arg = t1->get_arg(arg_index1);
@@ -661,7 +661,7 @@ namespace datalog {
 
             cost res = (estimate_size(t1) * estimate_size(t2)) / inters_size; 
 
-            TRACE("report_costs",                  
+            TRACE(report_costs,                  
                   display_predicate(m_context, t1, tout);
                   display_predicate(m_context, t2, tout);
                   tout << res << "\n";);
@@ -718,7 +718,7 @@ namespace datalog {
                 ptr_vector<app> tail(content);
                 bool_vector negs(tail.size(), false);
                 unsigned or_len = orig_r->get_tail_size();
-                for (unsigned i = orig_r->get_positive_tail_size(); i < or_len; i++) {
+                for (unsigned i = orig_r->get_positive_tail_size(); i < or_len; ++i) {
                     tail.push_back(orig_r->get_tail(i));
                     negs.push_back(orig_r->is_neg_tail(i));
                 }
@@ -751,5 +751,5 @@ namespace datalog {
     }
 
 
-};
+}
 

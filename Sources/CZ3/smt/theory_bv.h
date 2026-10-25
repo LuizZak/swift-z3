@@ -24,7 +24,7 @@ Revision History:
 #include "ast/arith_decl_plugin.h"
 #include "model/numeral_factory.h"
 #include "smt/smt_theory.h"
-#include "smt/params/theory_bv_params.h"
+#include "params/theory_bv_params.h"
 
 namespace smt {
     
@@ -54,8 +54,7 @@ namespace smt {
         };
 
         struct bit_atom : public atom {
-            var_pos_occ * m_occs;
-            bit_atom():m_occs(nullptr) {}
+            var_pos_occ * m_occs = nullptr;
             bool is_bit() const override { return true; }
         };
 
@@ -145,13 +144,13 @@ namespace smt {
         unsigned get_bv_size(app const * n) const { return m_util.get_bv_size(n); }
         unsigned get_bv_size(enode const * n) const { return m_util.get_bv_size(n->get_expr()); }
         unsigned get_bv_size(theory_var v) const { return get_bv_size(get_enode(v)); }
-        bool is_bv(app const* n) const { return m_util.is_bv_sort(n->get_sort()); }
+        bool is_bv(expr const* n) const { return m_util.is_bv_sort(n->get_sort()); }
         bool is_bv(enode const* n) const { return is_bv(n->get_expr()); }
         bool is_bv(theory_var v) const { return is_bv(get_enode(v)); }
         region & get_region() { return m_trail_stack.get_region(); }
 
-        bool is_numeral(theory_var v) const { return m_util.is_numeral(get_enode(v)->get_expr()); }
-        app * mk_bit2bool(app * bv, unsigned idx);
+        bool is_numeral(theory_var v) const { return m_util.is_numeral(get_expr(v)); }
+        app * mk_bit2bool(expr * bv, unsigned idx);
         void mk_bits(theory_var v);
         friend class mk_atom_trail;
         void mk_bit2bool(app * n);
@@ -218,7 +217,7 @@ namespace smt {
         void internalize_smul_no_overflow(app *n);
         void internalize_smul_no_underflow(app *n);
 
-        bool approximate_term(app* n);
+        bool approximate_term(expr* e);
 
         template<bool Signed>
         void internalize_le(app * atom);
@@ -230,6 +229,7 @@ namespace smt {
         void assert_int2bv_axiom(app* n);
         void assert_bv2int_axiom(app* n);
         void assert_udiv_quot_rem_axiom(app * n);
+        void assert_bv_divrem_bound_axiom(app * n);
 
 
     protected:
@@ -241,10 +241,10 @@ namespace smt {
         void new_diseq_eh(theory_var v1, theory_var v2) override;
         virtual void expand_diseq(theory_var v1, theory_var v2);
         void assign_eh(bool_var v, bool is_true) override;
-        void relevant_eh(app * n) override;
+        void relevant_eh(expr * n) override;
         void push_scope_eh() override;
         void pop_scope_eh(unsigned num_scopes) override;
-        final_check_status final_check_eh() override;
+        final_check_status final_check_eh(unsigned) override;
         void reset_eh() override;
         bool include_func_interp(func_decl* f) override;
         svector<theory_var>   m_merge_aux[2]; //!< auxiliary vector used in merge_zero_one_bits
@@ -297,4 +297,4 @@ namespace smt {
         bool check_invariant();
         bool check_zero_one_bits(theory_var v);
     };
-};
+}

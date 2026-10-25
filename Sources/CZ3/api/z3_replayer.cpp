@@ -29,8 +29,8 @@ Notes:
 void register_z3_replayer_cmds(z3_replayer & in);
 
 
-void throw_invalid_reference() {
-    TRACE("z3_replayer", tout << "invalid argument reference\n";);
+static void throw_invalid_reference() {
+    TRACE(z3_replayer, tout << "invalid argument reference\n";);
     throw z3_replayer_exception("invalid argument reference");
 }
 
@@ -65,21 +65,22 @@ struct z3_replayer::imp {
         case SYMBOL_ARRAY: return "symbol_array";
         case OBJECT_ARRAY: return "object_array";
         case FLOAT: return "float";
-        default: UNREACHABLE(); return "unknown";
         }
+        UNREACHABLE();
+        return "unknown";
     }
 
 
     void check_arg(unsigned pos, value_kind k) const {
         if (pos >= m_args.size()) {
-            TRACE("z3_replayer", tout << pos << " too few arguments " << m_args.size() << " expecting " << kind2string(k) << "\n";);
+            TRACE(z3_replayer, tout << pos << " too few arguments " << m_args.size() << " expecting " << kind2string(k) << "\n";);
             throw z3_replayer_exception("invalid argument reference");
         }
         if (m_args[pos].m_kind != k) {
             std::stringstream strm;
             strm << "expecting " << kind2string(k) << " at position "
                  << pos << " but got " << kind2string(m_args[pos].m_kind);
-            TRACE("z3_replayer", tout << strm.str() << "\n";);
+            TRACE(z3_replayer, tout << strm.str() << "\n";);
             throw z3_replayer_exception(std::move(strm).str());
         }
     }
@@ -155,7 +156,7 @@ struct z3_replayer::imp {
     }
 
     void display_args(std::ostream & out) const {
-        for (unsigned i = 0; i < m_args.size(); i++) {
+        for (unsigned i = 0; i < m_args.size(); ++i) {
             if (i > 0) out << " ";
             display_arg(out, m_args[i]);
         }
@@ -196,7 +197,7 @@ struct z3_replayer::imp {
                         throw z3_replayer_exception("invalid escaped character");
                     next();
                 }
-                TRACE("z3_replayer_escape", tout << "val: " << val << "\n";);
+                TRACE(z3_replayer_escape, tout << "val: " << val << "\n";);
                 m_string.push_back(static_cast<char>(val));
             }
             else if (c == delimiter) {
@@ -300,7 +301,7 @@ struct z3_replayer::imp {
 
     void read_ptr() {
         if (!(('0' <= curr() && curr() <= '9') || ('A' <= curr() && curr() <= 'F') || ('a' <= curr() && curr() <= 'f'))) {
-            TRACE("invalid_ptr", tout << "curr: " << curr() << "\n";);
+            TRACE(invalid_ptr, tout << "curr: " << curr() << "\n";);
             throw z3_replayer_exception("invalid ptr");
         }
         unsigned pos = 0;
@@ -348,7 +349,7 @@ struct z3_replayer::imp {
             throw z3_replayer_exception("invalid array size");
         uint64_t   aidx;
         value_kind nk;
-        for (unsigned i = asz - sz; i < asz; i++) {
+        for (unsigned i = asz - sz; i < asz; ++i) {
             if (m_args[i].m_kind != k)
                 throw z3_replayer_exception("invalid array: mixed value types");
         }
@@ -357,7 +358,7 @@ struct z3_replayer::imp {
             nk   = UINT_ARRAY;
             m_unsigned_arrays.push_back(unsigned_vector());
             unsigned_vector & v = m_unsigned_arrays.back();
-            for (unsigned i = asz - sz; i < asz; i++) {
+            for (unsigned i = asz - sz; i < asz; ++i) {
                 v.push_back(static_cast<unsigned>(m_args[i].m_uint));
             }
         }
@@ -366,7 +367,7 @@ struct z3_replayer::imp {
             nk   = INT_ARRAY;
             m_int_arrays.push_back(svector<int>());
             svector<int> & v = m_int_arrays.back();
-            for (unsigned i = asz - sz; i < asz; i++) {
+            for (unsigned i = asz - sz; i < asz; ++i) {
                 v.push_back(static_cast<int>(m_args[i].m_int));
             }
         }
@@ -375,22 +376,22 @@ struct z3_replayer::imp {
             nk   = SYMBOL_ARRAY;
             m_sym_arrays.push_back(svector<Z3_symbol>());
             svector<Z3_symbol> & v = m_sym_arrays.back();
-            for (unsigned i = asz - sz; i < asz; i++) {
+            for (unsigned i = asz - sz; i < asz; ++i) {
                 v.push_back(reinterpret_cast<Z3_symbol>(const_cast<char*>(m_args[i].m_str)));
             }
         }
         else if (k == OBJECT) {
-            TRACE("z3_replayer_bug",
+            TRACE(z3_replayer_bug,
                   tout << "args: "; display_args(tout); tout << "\n";
                   tout << "push_back, sz: " << sz << ", m_obj_arrays.size(): " << m_obj_arrays.size() << "\n";
-                  for (unsigned i = asz - sz; i < asz; i++) {
+                  for (unsigned i = asz - sz; i < asz; ++i) {
                       tout << "pushing: " << m_args[i].m_obj << "\n";
                   });
             aidx = m_obj_arrays.size();
             nk   = OBJECT_ARRAY;
             m_obj_arrays.push_back(ptr_vector<void>());
             ptr_vector<void> & v = m_obj_arrays.back();
-            for (unsigned i = asz - sz; i < asz; i++) {
+            for (unsigned i = asz - sz; i < asz; ++i) {
                 v.push_back(m_args[i].m_obj);
             }
         }
@@ -427,13 +428,13 @@ struct z3_replayer::imp {
             case 'R':
                 // reset
                 next();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "R\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] R\n";);
                 reset();
                 break;
             case 'P': {
                 // push pointer
                 next(); skip_blank(); read_ptr();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "P " << m_ptr << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] P " << m_ptr << "\n";);
                 if (m_ptr == 0) {
                     m_args.push_back(nullptr);
                 }
@@ -442,14 +443,14 @@ struct z3_replayer::imp {
                     if (!m_heap.find(m_ptr, obj))
                         throw z3_replayer_exception("invalid pointer");
                     m_args.push_back(value(obj));
-                    TRACE("z3_replayer_bug", tout << "args after 'P':\n"; display_args(tout); tout << "\n";);
+                    TRACE(z3_replayer_bug, tout << "args after 'P':\n"; display_args(tout); tout << "\n";);
                 }
                 break;
             }
             case 'S': {
                 // push string
                 next(); skip_blank(); read_string();
-                TRACE("z3_replayer", tout << "[" << m_line << "] "  << "S " << m_string.begin() << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] S " << m_string.begin() << "\n";);
                 symbol sym(m_string.begin()); // save string
                 m_args.push_back(value(STRING, sym.bare_str()));
                 break;
@@ -457,20 +458,20 @@ struct z3_replayer::imp {
             case 'N':
                 // push null symbol
                 next();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "N\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] N\n";);
                 m_args.push_back(value(SYMBOL, symbol::null));
                 break;
             case '$': {
                 // push symbol
                 next(); skip_blank(); read_quoted_symbol();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "$ " << m_id << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] " << "$ " << m_id << "\n";);
                 m_args.push_back(value(SYMBOL, m_id));
                 break;
             }
             case '#': {
                 // push numeral symbol
                 next(); skip_blank(); read_uint64();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "# " << m_uint64 << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] " << "# " << m_uint64 << "\n";);
                 symbol sym(static_cast<unsigned>(m_uint64));
                 m_args.push_back(value(SYMBOL, sym));
                 break;
@@ -478,25 +479,25 @@ struct z3_replayer::imp {
             case 'I':
                 // push integer;
                 next(); skip_blank(); read_int64();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "I " << m_int64 << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] " << "I " << m_int64 << "\n";);
                 m_args.push_back(value(INT64, m_int64));
                 break;
             case 'U':
                 // push unsigned;
                 next(); skip_blank(); read_uint64();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "U " << m_uint64 << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] " << "U " << m_uint64 << "\n";);
                 m_args.push_back(value(UINT64, m_uint64));
                 break;
             case 'F':
                 // push float
                 next(); skip_blank(); read_float();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "F " << m_float << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] " << "F " << m_float << "\n";);
                 m_args.push_back(value(FLOAT, m_float));
                 break;
             case 'D':
                 // push double
                 next(); skip_blank(); read_double();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "D " << m_double << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] " << "D " << m_double << "\n";);
                 m_args.push_back(value(DOUBLE, m_double));
                 break;
             case 'p':
@@ -505,7 +506,7 @@ struct z3_replayer::imp {
             case 'i':
                 // push array
                 next(); skip_blank(); read_uint64();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "A " << m_uint64 << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] " << "A " << m_uint64 << "\n";);
                 if (c == 'p')
                     push_array(static_cast<unsigned>(m_uint64), OBJECT);
                 else if (c == 's')
@@ -518,12 +519,12 @@ struct z3_replayer::imp {
             case 'C': {
                 // call procedure
                 next(); skip_blank(); read_uint64();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "C " << m_uint64 << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] " << "C " << m_uint64 << "\n";);
                 unsigned idx = static_cast<unsigned>(m_uint64);
                 if (idx >= m_cmds.size())
                     throw z3_replayer_exception("invalid command");
                 try {
-                    TRACE("z3_replayer_cmd", tout << idx << ":" << m_cmds_names[idx] << "\n";);
+                    TRACE(z3_replayer_cmd, tout << idx << ":" << m_cmds_names[idx] << "\n";);
                     m_cmds[idx](m_owner);
                 }
                 catch (z3_error & ex) {
@@ -541,7 +542,7 @@ struct z3_replayer::imp {
                 // save result
                 // = obj_id
                 next(); skip_blank(); read_ptr();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "= " << m_ptr << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] " << "= " << m_ptr << "\n";);
                 m_heap.insert(m_ptr, m_result);
                 break;
             case '*': {
@@ -549,7 +550,7 @@ struct z3_replayer::imp {
                 // @ obj_id pos
                 next(); skip_blank(); read_ptr(); skip_blank(); read_uint64();
                 unsigned pos = static_cast<unsigned>(m_uint64);
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "* " << m_ptr << " " << pos << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] " << "* " << m_ptr << " " << pos << "\n";);
                 check_arg(pos, OBJECT);
                 m_heap.insert(m_ptr, m_args[pos].m_obj);
                 break;
@@ -564,19 +565,19 @@ struct z3_replayer::imp {
                 ptr_vector<void> & v = m_obj_arrays[aidx];
                 skip_blank(); read_uint64();
                 unsigned idx = static_cast<unsigned>(m_uint64);
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "@ " << m_ptr << " " << pos << " " << idx << "\n";);
-                TRACE("z3_replayer_bug", tout << "v[idx]: " << v[idx] << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] " << "@ " << m_ptr << " " << pos << " " << idx << "\n";);
+                TRACE(z3_replayer_bug, tout << "v[idx]: " << v[idx] << "\n";);
                 m_heap.insert(m_ptr, v[idx]);
                 break;
             }
             case 'M':
                 // user message
                 next(); skip_blank(); read_string();
-                TRACE("z3_replayer", tout << "[" << m_line << "] " << "M " << m_string.begin() << "\n";);
+                TRACE(z3_replayer, tout << "[" << m_line << "] " << "M " << m_string.begin() << "\n";);
                 std::cout << m_string.begin() << "\n"; std::cout.flush();
                 break;
             default:
-                TRACE("z3_replayer", tout << "unknown command " << c << "\n";);
+                TRACE(z3_replayer, tout << "unknown command " << c << "\n";);
                 throw z3_replayer_exception("unknown log command");
                 break;
             }
@@ -621,7 +622,7 @@ struct z3_replayer::imp {
 
     Z3_symbol get_symbol(unsigned pos) const {
         check_arg(pos, SYMBOL);
-        return (Z3_symbol)m_args[pos].m_sym;
+        return (Z3_symbol)const_cast<void*>(m_args[pos].m_sym);
     }
 
     void * get_obj(unsigned pos) const {
@@ -657,9 +658,14 @@ struct z3_replayer::imp {
         check_arg(pos, OBJECT_ARRAY);
         unsigned idx = static_cast<unsigned>(m_args[pos].m_uint);
         ptr_vector<void> const & v = m_obj_arrays[idx];
-        TRACE("z3_replayer_bug", tout << "pos: " << pos << ", idx: " << idx << " size(): " << v.size() << "\n";
-              for (unsigned i = 0; i < v.size(); i++) tout << v[i] << " "; tout << "\n";);
+        TRACE(z3_replayer_bug, tout << "pos: " << pos << ", idx: " << idx << " size(): " << v.size() << "\n";
+              for (unsigned i = 0; i < v.size(); ++i) tout << v[i] << " "; tout << "\n";);
         return v.data();
+    }
+
+    bool * get_bool_addr(unsigned pos) {
+        check_arg(pos, INT64);
+        return reinterpret_cast<bool*>(&(m_args[pos].m_int));
     }
 
     int * get_int_addr(unsigned pos) {
@@ -788,6 +794,10 @@ Z3_symbol * z3_replayer::get_symbol_array(unsigned pos) const {
 
 void ** z3_replayer::get_obj_array(unsigned pos) const {
     return m_imp->get_obj_array(pos);
+}
+
+bool * z3_replayer::get_bool_addr(unsigned pos) {
+    return m_imp->get_bool_addr(pos);
 }
 
 int * z3_replayer::get_int_addr(unsigned pos) {

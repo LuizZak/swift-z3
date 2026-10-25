@@ -18,10 +18,12 @@ Revision History:
 --*/
 #include "util/backtrackable_set.h"
 #include "ast/ast_util.h"
+#include "ast/has_free_vars.h"
 #include "ast/macros/macro_util.h"
 #include "ast/arith_decl_plugin.h"
 #include "ast/bv_decl_plugin.h"
 #include "ast/array_decl_plugin.h"
+#include "ast/rewriter/recfun_rewriter.h"
 #include "ast/normal_forms/pull_quant.h"
 #include "ast/rewriter/var_subst.h"
 #include "ast/macros/cond_macro.h"
@@ -31,13 +33,17 @@ Revision History:
 #include "ast/ast_ll_pp.h"
 #include "ast/well_sorted.h"
 #include "ast/ast_smt2_pp.h"
+#include "ast/rewriter/term_enumeration.h"
 #include "model/model_pp.h"
 #include "model/model_macro_solver.h"
+#include "model/arith_value_order.h"
 #include "smt/smt_model_finder.h"
 #include "smt/smt_context.h"
 #include "tactic/tactic_exception.h"
+#include "util/statistics.h"
 
 namespace smt {
+
 
     namespace mf {
 
@@ -93,7 +99,7 @@ namespace smt {
                 SASSERT(m_elems.contains(n));
                 SASSERT(m_inv.empty());
                 m_elems.erase(n);
-                TRACE("model_finder", tout << mk_pp(n, m) << "\n";);
+                TRACE(model_finder, tout << mk_pp(n, m) << "\n";);
                 m.dec_ref(n);
             }
 
@@ -107,9 +113,15 @@ namespace smt {
                 }
             }
 
-            expr* get_inv(expr* v) const {
+            expr* get_inv(expr* v, model& mdl) const {
                 expr* t = nullptr;
                 m_inv.find(v, t);
+                if (!t) {
+                    for (auto [k, term] : m_inv) {
+                        if (mdl.are_equal(k, v))
+                            return term;
+                    }
+                }
                 return t;
             }
 
@@ -120,14 +132,11 @@ namespace smt {
             }
 
             void mk_inverse(evaluator& ev) {
-                for (auto const& kv : m_elems) {
-                    expr* t = kv.m_key;
+                for (auto const &[t, gen] : m_elems) {
                     SASSERT(!contains_model_value(t));
-                    unsigned gen = kv.m_value;
                     expr* t_val = ev.eval(t, true);
                     if (!t_val) break;
-                    TRACE("model_finder", tout << mk_pp(t, m) << " " << mk_pp(t_val, m) << "\n";);
-
+                    TRACE(model_finder, tout << mk_pp(t, m) << " " << mk_pp(t_val, m) << "\n";);
                     expr* old_t = nullptr;
                     if (m_inv.find(t_val, old_t)) {
                         unsigned old_t_gen = 0;
@@ -187,14 +196,14 @@ namespace smt {
            \brief Base class used to solve model construction constraints.
         */
         class node {
-            unsigned            m_id;
-            node* m_find{ nullptr };
-            unsigned            m_eqc_size{ 1 };
+            unsigned            m_id = 0;
+            node*               m_find = nullptr;
+            unsigned            m_eqc_size = 1;
 
-            sort* m_sort; // sort of the elements in the instantiation set.
+            sort* m_sort = nullptr; // sort of the elements in the instantiation set.
 
-            bool                m_mono_proj{ false };     // relevant for integers & reals & bit-vectors
-            bool                m_signed_proj{ false };   // relevant for bit-vectors.
+            bool                m_mono_proj = false;     // relevant for integers & reals & bit-vectors
+            bool                m_signed_proj = false;   // relevant for bit-vectors.
             ptr_vector<node>    m_avoid_set;
             ptr_vector<expr>    m_exceptions;
 
@@ -291,8 +300,8 @@ namespace smt {
             }
 
             void insert(expr* n, unsigned generation) {
-                SASSERT(is_ground(n));
-                get_root()->m_set->insert(n, generation);
+                if (is_ground(n) || (has_quantifiers(n) && !has_free_vars(n))) // this is a closed term
+                    get_root()->m_set->insert(n, generation);
             }
 
             void display(std::ostream& out, ast_manager& m) const {
@@ -568,7 +577,7 @@ namespace smt {
                             expr* n = kv.m_key;
                             expr* n_val = eval(n, true);
                             if (should_cleanup(n_val)) {
-                                TRACE("model_finder", tout << "cleanup " << s << " " << mk_pp(n, m) << " " << mk_pp(n_val, m) << "\n";);
+                                TRACE(model_finder, tout << "cleanup " << s << " " << mk_pp(n, m) << " " << mk_pp(n_val, m) << "\n";);
                                 to_delete.push_back(n);
                             }
                         }
@@ -595,11 +604,14 @@ namespace smt {
                 expr_ref tmp(m);
                 if (!m_model->eval(n, tmp, model_completion)) {
                     r = nullptr;
-                    TRACE("model_finder", tout << "eval\n" << mk_pp(n, m) << "\n-----> null\n";);
+                    TRACE(model_finder, tout << "eval\n" << mk_pp(n, m) << "\n-----> null\n";);
                 }
                 else {
                     r = tmp;
-                    TRACE("model_finder", tout << "eval\n" << mk_pp(n, m) << "\n----->\n" << mk_pp(r, m) << "\n";);
+                    TRACE(model_finder, tout << "eval-failed\n" << mk_pp(n, m) << "\n----->\n" << mk_pp(r, m) << "\n";);
+                    if (is_lambda(tmp)) {
+                        r = m.mk_fresh_const("lambda", tmp->get_sort());
+                    }
                 }
                 m_eval_cache[model_completion].insert(n, r);
                 m_eval_cache_range.push_back(r);
@@ -679,7 +691,7 @@ namespace smt {
                 m_model->register_aux_decl(r->get_decl());
                 m_sort2k.insert(s, r);
                 m_ks.push_back(r);
-                TRACE("model_finder", tout << sort_ref(s, m) << " := " << "\n";);
+                TRACE(model_finder, tout << sort_ref(s, m) << " := " << "\n";);
                 return r;
             }
 
@@ -702,7 +714,7 @@ namespace smt {
                     return nullptr;
                 m_model->register_decl(k_decl, r);
                 SASSERT(m_model->get_const_interp(k_decl) == r);
-                TRACE("model_finder", tout << mk_pp(r, m) << "\n";);
+                TRACE(model_finder, tout << mk_pp(r, m) << "\n";);
                 return r;
             }
 
@@ -712,7 +724,7 @@ namespace smt {
                It invokes get_k_interp that may fail.
             */
             bool assert_k_diseq_exceptions(app* k, ptr_vector<expr> const& exceptions) {
-                TRACE("assert_k_diseq_exceptions", tout << "assert_k_diseq_exceptions, " << "k: " << mk_pp(k, m) << "\nexceptions:\n";
+                TRACE(assert_k_diseq_exceptions, tout << "assert_k_diseq_exceptions, " << "k: " << mk_pp(k, m) << "\nexceptions:\n";
                 for (expr* e : exceptions) tout << mk_pp(e, m) << "\n";);
                 expr* k_interp = get_k_interp(k);
                 if (k_interp == nullptr)
@@ -730,7 +742,7 @@ namespace smt {
             }
 
             void set_projection_else(node* n) {
-                TRACE("model_finder", n->display(tout, m););
+                TRACE(model_finder, n->display(tout, m););
                 SASSERT(n->is_root());
                 SASSERT(!n->is_mono_proj());
                 instantiation_set const* s = n->get_instantiation_set();
@@ -747,7 +759,7 @@ namespace smt {
                         return;
                     }
                     sort* s = n->get_sort();
-                    TRACE("model_finder", tout << "trying to create k for " << mk_pp(s, m) << ", is_infinite: " << is_infinite(s) << "\n";);
+                    TRACE(model_finder, tout << "trying to create k for " << mk_pp(s, m) << ", is_infinite: " << is_infinite(s) << "\n";);
                     if (is_infinite(s)) {
                         app* k = get_k_for(s);
                         if (assert_k_diseq_exceptions(k, exceptions)) {
@@ -780,7 +792,7 @@ namespace smt {
                     for (expr* e : exceptions) {
                         arith_rw.mk_sub(e, one, e_minus_1);
                         arith_rw.mk_add(e, one, e_plus_1);
-                        TRACE("mf_simp_bug", tout << "e:\n" << mk_ismt2_pp(e, m) << "\none:\n" << mk_ismt2_pp(one, m) << "\n";);
+                        TRACE(mf_simp_bug, tout << "e:\n" << mk_ismt2_pp(e, m) << "\none:\n" << mk_ismt2_pp(one, m) << "\n";);
                         // Note: exceptions come from quantifiers bodies. So, they have generation 0.
                         n->insert(e_plus_1, 0);
                         n->insert(e_minus_1, 0);
@@ -792,7 +804,7 @@ namespace smt {
                     for (expr* e : exceptions) {
                         bv_rw.mk_add(e, one, e_plus_1);
                         bv_rw.mk_sub(e, one, e_minus_1);
-                        TRACE("mf_simp_bug", tout << "e:\n" << mk_ismt2_pp(e, m) << "\none:\n" << mk_ismt2_pp(one, m) << "\n";);
+                        TRACE(mf_simp_bug, tout << "e:\n" << mk_ismt2_pp(e, m) << "\none:\n" << mk_ismt2_pp(one, m) << "\n";);
                         // Note: exceptions come from quantifiers bodies. So, they have generation 0.
                         n->insert(e_plus_1, 0);
                         n->insert(e_minus_1, 0);
@@ -819,7 +831,7 @@ namespace smt {
                         already_found.insert(t_val);
                     }
                 }
-                TRACE("model_finder_bug", tout << "values for the instantiation_set of @" << n->get_id() << "\n";
+                TRACE(model_finder_bug, tout << "values for the instantiation_set of @" << n->get_id() << "\n";
                 for (expr* v : values) {
                     tout << mk_pp(v, m) << "\n";
                 });
@@ -858,10 +870,11 @@ namespace smt {
                 }
             };
 
-            void sort_values(node* n, ptr_buffer<expr>& values) {
+            bool sort_values(node* n, ptr_buffer<expr>& values) {
                 sort* s = n->get_sort();
                 if (m_arith.is_int(s) || m_arith.is_real(s)) {
-                    std::sort(values.begin(), values.end(), numeral_lt<arith_util>(m_arith));
+                    // Projection intervals require numeric order, including algebraic values.
+                    return arith_value_order(m_arith).sort(values.size(), values.data());
                 }
                 else if (!n->is_signed_proj()) {
                     std::sort(values.begin(), values.end(), numeral_lt<bv_util>(m_bv));
@@ -869,6 +882,7 @@ namespace smt {
                 else {
                     std::sort(values.begin(), values.end(), signed_bv_lt(m_bv, m_bv.get_bv_size(s)));
                 }
+                return true;
             }
 
             void mk_mono_proj(node* n) {
@@ -876,7 +890,9 @@ namespace smt {
                 ptr_buffer<expr> values;
                 get_instantiation_set_values(n, values);
                 if (values.empty()) return;
-                sort_values(n, values);
+                // Leave the argument unchanged if its values cannot be ordered numerically.
+                if (!sort_values(n, values))
+                    return;
                 sort* s = n->get_sort();
                 bool is_arith = m_arith.is_int(s) || m_arith.is_real(s);
                 bool is_signed = n->is_signed_proj();
@@ -900,7 +916,7 @@ namespace smt {
                 func_decl* p = m.mk_fresh_func_decl(1, &s, s);
                 m_model->register_aux_decl(p, rpi);
                 n->set_proj(p);
-                TRACE("model_finder", n->display(tout << p->get_name() << "\n", m););
+                TRACE(model_finder, n->display(tout << p->get_name() << "\n", m););
             }
 
             void mk_simple_proj(node* n) {
@@ -920,7 +936,7 @@ namespace smt {
                     pi->insert_new_entry(&v, v);
                 
                 n->set_proj(p);
-                TRACE("model_finder", n->display(tout << p->get_name() << "\n", m););
+                TRACE(model_finder, n->display(tout << p->get_name() << "\n", m););
             }
 
             void mk_projections() {
@@ -943,7 +959,7 @@ namespace smt {
                         func_interp* fi = m_model->get_func_interp(f);
                         if (fi == nullptr) {
                             fi = alloc(func_interp, m, f->get_arity());
-                            TRACE("model_finder", tout << "register " << f->get_name() << "\n";);
+                            TRACE(model_finder, tout << "register " << f->get_name() << "\n";);
                             m_model->register_decl(f, fi);
                             SASSERT(fi->is_partial());
                         }
@@ -980,7 +996,7 @@ namespace smt {
                 for (node* n : m_root_nodes) {
                     SASSERT(n->is_root());
                     instantiation_set const* s = n->get_instantiation_set();
-                    TRACE("model_finder", s->display(tout););
+                    TRACE(model_finder, s->display(tout););
                     obj_map<expr, unsigned> const& elems = s->get_elems();
                     if (elems.empty()) {
                         // The method get_some_value cannot be used if n->get_sort() is an uninterpreted sort or is a sort built using uninterpreted sorts
@@ -1010,7 +1026,7 @@ namespace smt {
                         sort2elems.insert(s, e);
                     }
                     n->insert(e, 0);
-                    TRACE("model_finder", tout << "fresh constant: " << mk_pp(e, m) << "\n";);
+                    TRACE(model_finder, tout << "fresh constant: " << mk_pp(e, m) << "\n";);
                 }
             }
 
@@ -1069,7 +1085,7 @@ namespace smt {
 
                     expr_ref_vector args(m);
                     bool has_proj = false;
-                    for (unsigned i = 0; i < arity; i++) {
+                    for (unsigned i = 0; i < arity; ++i) {
                         var* v = m.mk_var(i, f->get_domain(i));
                         func_decl* pi = get_f_i_proj(f, i);
                         if (pi != nullptr) {
@@ -1085,7 +1101,7 @@ namespace smt {
                         func_decl* f_aux = m.mk_fresh_func_decl(f->get_name(), symbol::null, arity, f->get_domain(), f->get_range());
                         func_interp* new_fi = alloc(func_interp, m, arity);
                         new_fi->set_else(m.mk_app(f_aux, args.size(), args.data()));
-                        TRACE("model_finder", tout << "Setting new interpretation for " << f->get_name() << "\n" <<
+                        TRACE(model_finder, tout << "Setting new interpretation for " << f->get_name() << "\n" <<
                             mk_pp(new_fi->get_else(), m) << "\n";
                         tout << "old interpretation: " << mk_pp(fi->get_interp(), m) << "\n";);
                         m_model->reregister_decl(f, new_fi, f_aux);
@@ -1121,7 +1137,7 @@ namespace smt {
                 mk_projections();
                 mk_inverses();
                 complete_partial_funcs(partial_funcs);
-                TRACE("model_finder", tout << "after auf_solver fixing the model\n";
+                TRACE(model_finder, tout << "after auf_solver fixing the model\n";
                       display_nodes(tout);
                       tout << "NEW MODEL:\n";
                       model_pp(tout, *m_model););
@@ -1159,6 +1175,7 @@ namespace smt {
             virtual char const* get_kind() const = 0;
             virtual bool is_equal(qinfo const* qi) const = 0;
             virtual void display(std::ostream& out) const { out << "[" << get_kind() << "]"; }
+            virtual void collect_statistics(::statistics &st) const {}
 
             // AUF fragment solver
             virtual void process_auf(quantifier* q, auf_solver& s, context* ctx) = 0;
@@ -1197,7 +1214,7 @@ namespace smt {
             void process_auf(quantifier* q, auf_solver& s, context* ctx) override {
                 node* n1 = s.get_A_f_i(m_f, m_arg_i);
                 node* n2 = s.get_uvar(q, m_var_j);
-                CTRACE("model_finder", n1->get_sort() != n2->get_sort(),
+                CTRACE(model_finder, n1->get_sort() != n2->get_sort(),
                        tout << "sort bug:\n" << mk_ismt2_pp(q->get_expr(), m) << "\n" << mk_ismt2_pp(q, m) << "\n";
                        tout << "decl(0): " << q->get_decl_name(0) << "\n";
                        tout << "f: " << m_f->get_name() << " i: " << m_arg_i << "\n";
@@ -1205,7 +1222,7 @@ namespace smt {
                        n1->get_root()->display(tout, m);
                        n2->get_root()->display(tout, m);
                        tout << "f signature: ";
-                       for (unsigned i = 0; i < m_f->get_arity(); i++) tout << mk_pp(m_f->get_domain(i), m) << " ";
+                       for (unsigned i = 0; i < m_f->get_arity(); ++i) tout << mk_pp(m_f->get_domain(i), m) << " ";
                        tout << "-> " << mk_pp(m_f->get_range(), m) << "\n";
                 );
 
@@ -1227,7 +1244,7 @@ namespace smt {
                         // a necessary instantiation.
                         enode* e_arg = n->get_arg(m_arg_i);
                         expr* arg = e_arg->get_expr();
-                        A_f_i->insert(arg, e_arg->get_generation());
+                        A_f_i->insert(arg, ctx->get_generation(e_arg));
                     }
                 }
             }
@@ -1235,8 +1252,8 @@ namespace smt {
             void populate_inst_sets(quantifier* q, func_decl* mhead, ptr_vector<instantiation_set>& uvar_inst_sets, context* ctx) override {
                 if (m_f != mhead)
                     return;
-                uvar_inst_sets.reserve(m_var_j + 1, 0);
-                if (uvar_inst_sets[m_var_j] == 0)
+                uvar_inst_sets.reserve(m_var_j + 1, nullptr);
+                if (uvar_inst_sets[m_var_j] == nullptr)
                     uvar_inst_sets[m_var_j] = alloc(instantiation_set, ctx->get_manager());
                 instantiation_set* s = uvar_inst_sets[m_var_j];
                 SASSERT(s != nullptr);
@@ -1245,7 +1262,7 @@ namespace smt {
                     if (ctx->is_relevant(n)) {
                         enode* e_arg = n->get_arg(m_arg_i);
                         expr* arg = e_arg->get_expr();
-                        s->insert(arg, e_arg->get_generation());
+                        s->insert(arg, ctx->get_generation(e_arg));
                     }
                 }
             }
@@ -1301,7 +1318,7 @@ namespace smt {
                                 bv_rw.mk_sub(arg, m_offset, arg_minus_k);
                             else
                                 arith_rw.mk_sub(arg, m_offset, arg_minus_k);
-                            S_j->insert(arg_minus_k, e_arg->get_generation());
+                            S_j->insert(arg_minus_k, ctx->get_generation(e_arg));
                         }
                     }
                 }
@@ -1369,6 +1386,94 @@ namespace smt {
 
         };
 
+        class ho_var : public qinfo {
+            unsigned m_var_i;
+            unsigned m_ho_var_term_enum = 0;
+        public:
+            ho_var(ast_manager& m, unsigned i) : qinfo(m), m_var_i(i) {
+            }
+
+            void collect_statistics(::statistics &st) const override {
+                st.update("mbqi.ho-var-term-enum", m_ho_var_term_enum);
+            }
+
+            char const *get_kind() const override {
+                return "ho_var";
+            }
+
+            bool is_equal(qinfo const *qi) const override {
+                if (qi->get_kind() != get_kind())
+                    return false;
+                ho_var const *other = static_cast<ho_var const *>(qi);
+                return m_var_i == other->m_var_i;
+            }
+
+            void display(std::ostream &out) const override {
+                out << "(" << "ho-var: " << m_var_i << ")";
+            }
+
+            void process_auf(quantifier *q, auf_solver &s, context *ctx) override {
+                /* node * S_i = */ s.get_uvar(q, m_var_i);
+            }
+
+            void populate_inst_sets(quantifier *q, auf_solver &s, context *ctx) override {
+                bool use_term_enum = ctx->get_fparams().m_term_enumeration;
+                if (!use_term_enum)
+                    return;
+                node *S = s.get_uvar(q, m_var_i);
+                sort *srt = S->get_sort();
+
+                IF_VERBOSE(3, verbose_stream() << "ho_var::populate_inst_sets: " << q->get_id() << " " << mk_pp(srt, m) << "\n";);
+
+                term_enumeration tn(m);
+                // Add ground terms of type S.
+                // Add productions for functions in E-graph
+                // add other possible relevant functions such as equality over srt, Boolean operators
+
+                ast_mark visited;
+                tn.add_production(m.mk_true());
+                tn.add_production(m.mk_false());
+                
+                for (enode *n : ctx->enodes()) {
+                    if (!ctx->is_relevant(n))
+                        continue;
+                    auto e = n->get_expr();
+                    if (srt == n->get_sort()) {
+                        TRACE(model_finder, tout << "inserting " << mk_pp(e, m) << " into inst set\n");
+                        S->insert(e, ctx->get_generation(n));
+                    }
+                    else if (!use_term_enum)
+                        continue;
+                    else if (is_app(e) && to_app(e)->get_decl()->is_skolem())
+                        ;
+                    else if (is_uninterp_const(e)) {
+                        TRACE(model_finder, tout << "add production " << mk_pp(e, m) << "\n");
+                        tn.add_production(e);
+                    }
+                    else if (is_uninterp(e)) {
+                        auto f = to_app(e)->get_decl();
+                        if (visited.is_marked(f))
+                            continue;
+                        visited.mark(f, true);
+                        TRACE(model_finder, tout << "add function " << mk_pp(f, m) << "\n");
+                        tn.add_production(f);
+                    }
+                }
+
+                unsigned max_count = 20;
+                for (auto t : tn.enum_terms(srt)) {
+                    if (max_count == 0)
+                        break;
+                    --max_count;
+                    unsigned generation = 0; // todo - inherited from sub-term of t?
+                    TRACE(model_finder, tout << "ho_var: adding term " << mk_ismt2_pp(t, m)
+                                                   << " to instantiation set of S" << std::endl;);
+                    ++m_ho_var_term_enum;
+                    S->insert(t, generation);                
+                }
+            }
+        };
+
 
         /**
            \brief auf_arr is a term (pattern) of the form:
@@ -1378,7 +1483,7 @@ namespace smt {
 
            Store in arrays, all enodes that match the pattern
         */
-        void get_auf_arrays(app* auf_arr, context* ctx, ptr_buffer<enode>& arrays) {
+        void get_auf_arrays(expr* auf_arr, context* ctx, ptr_buffer<enode>& arrays) {
             if (is_ground(auf_arr)) {
                 if (ctx->e_internalized(auf_arr)) {
                     enode* e = ctx->get_enode(auf_arr);
@@ -1387,8 +1492,8 @@ namespace smt {
                     }
                 }
             }
-            else {
-                app* nested_array = to_app(auf_arr->get_arg(0));
+            else if (is_app(auf_arr)) {
+                app* nested_array = to_app(to_app(auf_arr)->get_arg(0));
                 ptr_buffer<enode> nested_arrays;
                 get_auf_arrays(nested_array, ctx, nested_arrays);
                 for (enode* curr : nested_arrays) {
@@ -1396,7 +1501,7 @@ namespace smt {
                     enode_vector::iterator end2 = curr->end_parents();
                     for (; it2 != end2; ++it2) {
                         enode* p = *it2;
-                        if (ctx->is_relevant(p) && p->get_expr()->get_decl() == auf_arr->get_decl()) {
+                        if (ctx->is_relevant(p) && p->get_decl() == to_app(auf_arr)->get_decl()) {
                             arrays.push_back(p);
                         }
                     }
@@ -1411,10 +1516,10 @@ namespace smt {
             unsigned      m_arg_i;
             unsigned      m_var_j;
 
-            app* get_array() const { return to_app(m_select->get_arg(0)); }
+            expr* get_array() const { return m_select->get_arg(0); }
 
-            func_decl* get_array_func_decl(app* ground_array, auf_solver& s) {
-                TRACE("model_evaluator", tout << expr_ref(ground_array, m) << "\n";);
+            func_decl* get_array_func_decl(expr* ground_array, auf_solver& s) {
+                TRACE(model_evaluator, tout << expr_ref(ground_array, m) << "\n";);
                 expr* ground_array_interp = s.eval(ground_array, false);
                 if (ground_array_interp && m_array.is_as_array(ground_array_interp))
                     return m_array.get_as_array_func_decl(ground_array_interp);
@@ -1442,14 +1547,14 @@ namespace smt {
             void process_auf(quantifier* q, auf_solver& s, context* ctx) override {
                 ptr_buffer<enode> arrays;
                 get_auf_arrays(get_array(), ctx, arrays);
-                TRACE("select_var",
+                TRACE(select_var,
                     tout << "enodes matching: "; display(tout); tout << "\n";
                 for (enode* n : arrays) {
                     tout << "#" << n->get_expr_id() << "\n" << mk_pp(n->get_expr(), m) << "\n";
                 });
                 node* n1 = s.get_uvar(q, m_var_j);
                 for (enode* n : arrays) {
-                    app* ground_array = n->get_expr();
+                    auto ground_array = n->get_expr();
                     func_decl* f = get_array_func_decl(ground_array, s);
                     if (f) {
                         SASSERT(m_arg_i >= 1);
@@ -1463,7 +1568,7 @@ namespace smt {
                 ptr_buffer<enode> arrays;
                 get_auf_arrays(get_array(), ctx, arrays);
                 for (enode* curr : arrays) {
-                    app* ground_array = curr->get_expr();
+                    auto ground_array = curr->get_expr();
                     func_decl* f = get_array_func_decl(ground_array, s);
                     if (f) {
                         node* A_f_i = s.get_A_f_i(f, m_arg_i - 1);
@@ -1471,10 +1576,10 @@ namespace smt {
                         enode_vector::iterator end2 = curr->end_parents();
                         for (; it2 != end2; ++it2) {
                             enode* p = *it2;
-                            if (ctx->is_relevant(p) && p->get_expr()->get_decl() == m_select->get_decl()) {
-                                SASSERT(m_arg_i < p->get_expr()->get_num_args());
+                            if (ctx->is_relevant(p) && p->get_decl() == m_select->get_decl()) {
+                                SASSERT(m_arg_i < p->get_num_args());
                                 enode* e_arg = p->get_arg(m_arg_i);
-                                A_f_i->insert(e_arg->get_expr(), e_arg->get_generation());
+                                A_f_i->insert(e_arg->get_expr(), ctx->get_generation(e_arg));
                             }
                         }
                     }
@@ -1603,7 +1708,7 @@ namespace smt {
                     node* S_q_i = slv.get_uvar(q, m_var_i);
                     for (enode* n : ctx->enodes()) {
                         if (ctx->is_relevant(n) && n->get_expr()->get_sort() == s) {
-                            S_q_i->insert(n->get_expr(), n->get_generation());
+                            S_q_i->insert(n->get_expr(), ctx->get_generation(n));
                         }
                     }
                 }
@@ -1683,14 +1788,19 @@ namespace smt {
                     }
                 }
                 m_qinfo_vect.push_back(q.detach());
-                TRACE("model_finder", tout << "new quantifier qinfo: "; qi->display(tout); tout << "\n";);
+                TRACE(model_finder, tout << "new quantifier qinfo: "; qi->display(tout); tout << "\n";);
             }
 
         public:
             typedef ptr_vector<cond_macro>::const_iterator macro_iterator;
 
+            void collect_statistics(::statistics &st) const {
+                for (auto *qi : m_qinfo_vect)
+                    qi->collect_statistics(st);
+            }
+
             static quantifier_ref mk_flat(ast_manager& m, quantifier* q) {
-                if (has_quantifiers(q->get_expr()) && !m.is_lambda_def(q)) {
+                if (has_quantifiers(q->get_expr())) {
                     proof_ref pr(m);
                     expr_ref  new_q(m);
                     pull_quant pull(m);
@@ -1707,7 +1817,7 @@ namespace smt {
                 m_mf(mf),
                 m_q(q, m),
                 m_uvar_inst_sets(nullptr) {
-                CTRACE("model_finder_bug", has_quantifiers(m_flat_q->get_expr()),
+                CTRACE(model_finder_bug, has_quantifiers(m_flat_q->get_expr()),
                     tout << mk_pp(q, m) << "\n" << mk_pp(m_flat_q, m) << "\n";);
             }
 
@@ -1726,7 +1836,7 @@ namespace smt {
             }
 
             void process_auf(auf_solver& s, context* ctx) {
-                for (unsigned i = 0; i < m_flat_q->get_num_decls(); i++) {
+                for (unsigned i = 0; i < m_flat_q->get_num_decls(); ++i) {
                     // make sure a node exists for each variable.
                     s.get_uvar(m_flat_q, i);
                 }
@@ -1788,6 +1898,7 @@ namespace smt {
             array_util           m_array_util;
             arith_util           m_arith_util;
             bv_util              m_bv_util;
+            recfun_rewriter      m_recfun_rw;
 
             quantifier_info* m_info;
 
@@ -1812,7 +1923,7 @@ namespace smt {
 
             bool is_var_plus_ground(expr* n, var*& v, expr_ref& t) {
                 bool inv;
-                TRACE("is_var_plus_ground", tout << mk_pp(n, m) << "\n";
+                TRACE(is_var_plus_ground, tout << mk_pp(n, m) << "\n";
                 tout << "is_var_plus_ground: " << is_var_plus_ground(n, inv, v, t) << "\n";
                 tout << "inv: " << inv << "\n";);
                 return is_var_plus_ground(n, inv, v, t) && !inv;
@@ -1856,17 +1967,17 @@ namespace smt {
 
             bool is_var_and_ground(expr* lhs, expr* rhs, var*& v, expr_ref& t, bool& inv) {
                 inv = false; // true if invert the sign
-                TRACE("is_var_and_ground", tout << "is_var_and_ground: " << mk_ismt2_pp(lhs, m) << " " << mk_ismt2_pp(rhs, m) << "\n";);
+                TRACE(is_var_and_ground, tout << "is_var_and_ground: " << mk_ismt2_pp(lhs, m) << " " << mk_ismt2_pp(rhs, m) << "\n";);
                 if (is_var(lhs) && is_ground(rhs)) {
                     v = to_var(lhs);
                     t = rhs;
-                    TRACE("is_var_and_ground", tout << "var and ground\n";);
+                    TRACE(is_var_and_ground, tout << "var and ground\n";);
                     return true;
                 }
                 else if (is_var(rhs) && is_ground(lhs)) {
                     v = to_var(rhs);
                     t = lhs;
-                    TRACE("is_var_and_ground", tout << "ground and var\n";);
+                    TRACE(is_var_and_ground, tout << "ground and var\n";);
                     return true;
                 }
                 else {
@@ -1945,7 +2056,7 @@ namespace smt {
                     return false;
                 if (sign) {
                     bool r = is_le_ge(atom) && is_var_and_ground(to_app(atom)->get_arg(0), to_app(atom)->get_arg(1), v, t);
-                    CTRACE("is_x_gle_t", r, tout << "is_x_gle_t: " << mk_ismt2_pp(atom, m) << "\n--->\n"
+                    CTRACE(is_x_gle_t, r, tout << "is_x_gle_t: " << mk_ismt2_pp(atom, m) << "\n--->\n"
                         << mk_ismt2_pp(v, m) << " " << mk_ismt2_pp(t, m) << "\n";
                     tout << "sign: " << sign << "\n";);
                     return r;
@@ -1965,7 +2076,7 @@ namespace smt {
                                 mk_add(tmp, one, t);
                             else
                                 mk_sub(tmp, one, t);
-                            TRACE("is_x_gle_t", tout << "is_x_gle_t: " << mk_ismt2_pp(atom, m) << "\n--->\n"
+                            TRACE(is_x_gle_t, tout << "is_x_gle_t: " << mk_ismt2_pp(atom, m) << "\n--->\n"
                                 << mk_ismt2_pp(v, m) << " " << mk_ismt2_pp(t, m) << "\n";
                             tout << "sign: " << sign << "\n";);
                             return true;
@@ -2007,7 +2118,7 @@ namespace smt {
             */
             void process_u_app(app* t) {
                 unsigned num_args = t->get_num_args();
-                for (unsigned i = 0; i < num_args; i++) {
+                for (unsigned i = 0; i < num_args; ++i) {
                     expr* arg = t->get_arg(i);
                     if (is_var(arg)) {
                         SASSERT(t->get_decl()->get_domain(i) == to_var(arg)->get_sort());
@@ -2057,7 +2168,7 @@ namespace smt {
                     unsigned num_args = t->get_num_args();
                     app* array = to_app(t->get_arg(0));
                     visit_term(array); // array may be a nested array.
-                    for (unsigned i = 1; i < num_args; i++) {
+                    for (unsigned i = 1; i < num_args; ++i) {
                         expr* arg = t->get_arg(i);
                         if (is_var(arg)) {
                             insert_qinfo(alloc(select_var, m, t, i, to_var(arg)->get_idx()));
@@ -2081,7 +2192,14 @@ namespace smt {
                     m_info->m_ng_decls.insert(t->get_decl());
                 }
 
-                if (is_uninterp(t)) {
+                // A function defined by define-fun-rec is, from the point of view of
+                // model-based quantifier instantiation, an uninterpreted function: its
+                // interpretation is a table extended lazily by the recfun theory on the
+                // ground instances. Treating it as interpreted leaves the quantified
+                // variables occurring as its arguments without instantiation set, so the
+                // model finder invents a fresh element of that sort at every round and
+                // the model checker keeps producing a new counterexample.
+                if (is_uninterp(t) || m_recfun_rw.is_recfun_with_ground_recursion_args(t)) {
                     process_u_app(t);
                 }
                 else {
@@ -2105,7 +2223,10 @@ namespace smt {
                         process_app(to_app(curr));
                     }
                     else if (is_var(curr)) {
-                        m_info->m_is_auf = false; // unexpected occurrence of variable.
+                        if (m_array_util.is_array(curr)) {
+                            insert_qinfo(alloc(ho_var, m, to_var(curr)->get_idx()));
+                        }
+                        m_info->m_is_auf = false;                       
                     }
                     else {
                         SASSERT(is_lambda(curr));
@@ -2114,7 +2235,7 @@ namespace smt {
             }
 
             void process_literal(expr* atom, bool sign) {
-                CTRACE("model_finder_bug", is_ground(atom), tout << mk_pp(atom, m) << "\n";);
+                CTRACE(model_finder_bug, is_ground(atom), tout << mk_pp(atom, m) << "\n";);
                 SASSERT(!is_ground(atom));
                 SASSERT(m.is_bool(atom));
 
@@ -2163,7 +2284,6 @@ namespace smt {
                 }
 
                 SASSERT(is_quantifier(atom));
-                UNREACHABLE();
             }
 
             void process_literal(expr* atom, polarity pol) {
@@ -2203,9 +2323,15 @@ namespace smt {
                     if (is_app(curr)) {
                         if (to_app(curr)->get_family_id() == m.get_basic_family_id() && m.is_bool(curr)) {
                             switch (static_cast<basic_op_kind>(to_app(curr)->get_decl_kind())) {
-                            case OP_IMPLIES:
+                            case OP_IMPLIES: 
+                                process_literal(to_app(curr)->get_arg(0), neg(pol));
+                                process_literal(to_app(curr)->get_arg(1), pol);
+                                break;
                             case OP_XOR:
-                                UNREACHABLE(); // simplifier eliminated ANDs, IMPLIEs, and XORs
+                                for (expr *arg : *to_app(curr)) {
+                                    visit_formula(arg, pol);
+                                    visit_formula(arg, neg(pol));
+                                }
                                 break;
                             case OP_OR:
                             case OP_AND:
@@ -2252,7 +2378,7 @@ namespace smt {
             void process_clause(expr* cls) {
                 SASSERT(is_clause(m, cls));
                 unsigned num_lits = get_clause_num_literals(m, cls);
-                for (unsigned i = 0; i < num_lits; i++) {
+                for (unsigned i = 0; i < num_lits; ++i) {
                     expr* lit = get_clause_literal(m, cls, i);
                     SASSERT(is_literal(m, lit));
                     expr* atom;
@@ -2272,6 +2398,7 @@ namespace smt {
                 m_array_util(m),
                 m_arith_util(m),
                 m_bv_util(m),
+                m_recfun_rw(m),
                 m_info(nullptr) {
             }
 
@@ -2279,7 +2406,6 @@ namespace smt {
             void operator()(quantifier_info* d) {
                 m_info = d;
                 quantifier* q = d->get_flat_q();
-                if (m.is_lambda_def(q)) return;
                 expr* e = q->get_expr();
                 reset_cache();
                 if (!m.inc()) return;
@@ -2324,6 +2450,13 @@ namespace smt {
         reset();
     }
 
+    void model_finder::collect_statistics(::statistics & st) const {
+        // Retrieve the ho-var term-enumeration counters from the embedded
+        // qinfo objects (mf::ho_var) held by each registered quantifier_info.
+        for (auto const &[k, v] : m_q2info)
+            v->collect_statistics(st);
+    }
+
     void model_finder::checkpoint() {
         checkpoint("model_finder");
     }
@@ -2348,12 +2481,12 @@ namespace smt {
     }
 
     void model_finder::register_quantifier(quantifier* q) {
-        TRACE("model_finder", tout << "registering:\n" << q->get_id() << ": " << q << " " << &m_q2info << " " << mk_pp(q, m) << "\n";);
+        TRACE(model_finder, tout << "registering:\n" << q->get_id() << ": " << q << " " << &m_q2info << " " << mk_pp(q, m) << "\n";);
         quantifier_info* new_info = alloc(quantifier_info, *this, m, q);
         m_q2info.insert(q, new_info);
         m_quantifiers.push_back(q);
         m_analyzer->operator()(new_info);
-        TRACE("model_finder", tout << "after analyzer:\n"; new_info->display(tout););
+        TRACE(model_finder, tout << "after analyzer:\n"; new_info->display(tout););
     }
 
     void model_finder::push_scope() {
@@ -2365,7 +2498,7 @@ namespace smt {
     void model_finder::restore_quantifiers(unsigned old_size) {
         unsigned curr_size = m_quantifiers.size();
         SASSERT(old_size <= curr_size);
-        for (unsigned i = old_size; i < curr_size; i++) {
+        for (unsigned i = old_size; i < curr_size; ++i) {
             quantifier* q = m_quantifiers[i];
             SASSERT(m_q2info.contains(q));
             quantifier_info* info = get_quantifier_info(q);
@@ -2420,7 +2553,7 @@ namespace smt {
             qi->populate_inst_sets(*(m_auf_solver.get()), m_context);
         }
         m_auf_solver->fix_model(m_new_constraints);
-        TRACE("model_finder",
+        TRACE(model_finder,
             for (quantifier* q : qs) {
                 quantifier_info* qi = get_quantifier_info(q);
                 quantifier* fq = qi->get_flat_q();
@@ -2436,20 +2569,20 @@ namespace smt {
     void model_finder::process_simple_macros(ptr_vector<quantifier>& qs, ptr_vector<quantifier>& residue, proto_model* mdl) {
         simple_macro_solver sms(m, *this);
         sms(*mdl, qs, residue);
-        TRACE("model_finder", tout << "model after processing simple macros:\n"; model_pp(tout, *mdl););
+        TRACE(model_finder, tout << "model after processing simple macros:\n"; model_pp(tout, *mdl););
     }
 
     void model_finder::process_hint_macros(ptr_vector<quantifier>& qs, ptr_vector<quantifier>& residue, proto_model* mdl) {
         hint_macro_solver hms(m, *this);
         hms(*mdl, qs, residue);
-        TRACE("model_finder", tout << "model after processing simple macros:\n"; model_pp(tout, *mdl););
+        TRACE(model_finder, tout << "model after processing simple macros:\n"; model_pp(tout, *mdl););
     }
 
     void model_finder::process_non_auf_macros(ptr_vector<quantifier>& qs, ptr_vector<quantifier>& residue, proto_model* mdl) {
         non_auf_macro_solver nas(m, *this, m_dependencies);
         nas.set_mbqi_force_template(m_context->get_fparams().m_mbqi_force_template);
         nas(*mdl, qs, residue);
-        TRACE("model_finder", tout << "model after processing non auf macros:\n"; model_pp(tout, *mdl););
+        TRACE(model_finder, tout << "model after processing non auf macros:\n"; model_pp(tout, *mdl););
     }
 
     /**
@@ -2473,7 +2606,7 @@ namespace smt {
         collect_relevant_quantifiers(qs);
         if (qs.empty())
             return;
-        TRACE("model_finder", tout << "trying to satisfy quantifiers, given model:\n"; model_pp(tout, *m););
+        TRACE(model_finder, tout << "trying to satisfy quantifiers, given model:\n"; model_pp(tout, *m););
         cleanup_quantifier_infos(qs);
         m_dependencies.reset();
 
@@ -2498,7 +2631,7 @@ namespace smt {
         quantifier* flat_q = get_flat_quantifier(q);
         SASSERT(flat_q->get_num_decls() >= q->get_num_decls());
         mf::instantiation_set const* r = m_auf_solver->get_uvar_inst_set(flat_q, flat_q->get_num_decls() - q->get_num_decls() + i);
-        TRACE("model_finder", tout << "q: #" << q->get_id() << "\n" << mk_pp(q, m) << "\nflat_q: " << mk_pp(flat_q, m)
+        TRACE(model_finder, tout << "q: #" << q->get_id() << "\n" << mk_pp(q, m) << "\nflat_q: " << mk_pp(flat_q, m)
             << "\ni: " << i << " " << flat_q->get_num_decls() - q->get_num_decls() + i << "\n";);
         if (r != nullptr)
             return r;
@@ -2516,11 +2649,12 @@ namespace smt {
 
        Store in generation the generation of the result
     */
-    expr* model_finder::get_inv(quantifier* q, unsigned i, expr* val, unsigned& generation) {
+    expr* model_finder::get_inv(quantifier* q, unsigned i, expr* val, model& mdl,unsigned& generation) {
         instantiation_set const* s = get_uvar_inst_set(q, i);
         if (s == nullptr)
             return nullptr;
-        expr* t = s->get_inv(val);
+        
+        expr* t = s->get_inv(val, mdl);
         if (m_auf_solver->is_default_representative(t))
             return val;
         if (t != nullptr) {
@@ -2545,27 +2679,40 @@ namespace smt {
         // Since we only care about q (and its bindings), it only makes sense to restrict the variables of q.
         bool asserted_something = false;
         unsigned num_decls = q->get_num_decls();
-        // Remark: sks were created for the flat version of q.
+        // Remark: sks were created for the flat version of q.  
         SASSERT(get_flat_quantifier(q)->get_num_decls() == sks.size());
         SASSERT(sks.size() >= num_decls);
-        for (unsigned i = 0; i < num_decls; i++) {
-            expr* sk = sks.get(num_decls - i - 1);
+        for (unsigned i = 0; i < num_decls; ++i) {
+            expr *sk = sks.get(sks.size() - i - 1);
             instantiation_set const* s = get_uvar_inst_set(q, i);
             if (s == nullptr)
                 continue; // nothing to do
             obj_map<expr, expr*> const& inv = s->get_inv_map();
             if (inv.empty())
                 continue; // nothing to do
-            ptr_buffer<expr> eqs;
-            for (auto const& kv : inv) {
-                expr* val = kv.m_key;
-                eqs.push_back(m.mk_eq(sk, val));
+            expr_ref_vector eqs(m), defs(m);
+            
+            for (auto const& [val, term] : inv) {
+                if (val->get_sort() == sk->get_sort()) {
+                    if (is_lambda(term)) {
+                        eqs.push_back(m.mk_eq(sk, val));
+                        defs.push_back(m.mk_eq(val, term));
+                    }
+                    else 
+                       eqs.push_back(m.mk_eq(sk, val));
+                }
             }
-            expr_ref new_cnstr(m);
-            new_cnstr = m.mk_or(eqs.size(), eqs.data());
-            TRACE("model_finder", tout << "assert_restriction:\n" << mk_pp(new_cnstr, m) << "\n";);
-            aux_ctx->assert_expr(new_cnstr);
-            asserted_something = true;
+            if (!eqs.empty()) {
+                expr_ref new_cnstr(m);
+                new_cnstr = m.mk_or(eqs);
+                TRACE(model_finder, tout << "assert_restriction:\n" << mk_pp(new_cnstr, m) << "\n";);
+                aux_ctx->assert_expr(new_cnstr);
+                for (auto def : defs) {
+                    TRACE(model_finder, tout << "assert_def:\n" << mk_pp(def, m) << "\n";);
+                    aux_ctx->assert_expr(def);
+                }
+                asserted_something = true;
+            }
         }
         return asserted_something;
     }
@@ -2573,9 +2720,9 @@ namespace smt {
     void model_finder::restart_eh() {
         unsigned sz = m_new_constraints.size();
         if (sz > 0) {
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 expr* c = m_new_constraints.get(i);
-                TRACE("model_finder_bug_detail", tout << "asserting new constraint: " << mk_pp(c, m) << "\n";);
+                TRACE(model_finder_bug_detail, tout << "asserting new constraint: " << mk_pp(c, m) << "\n";);
                 m_context->internalize(c, true);
                 literal l(m_context->get_literal(c));
                 m_context->mark_as_relevant(l);

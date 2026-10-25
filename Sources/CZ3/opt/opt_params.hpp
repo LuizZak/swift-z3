@@ -1,72 +1,59 @@
-// Automatically generated file
+/*++
+Copyright (c) 2024 Microsoft Corporation
+
+Module Name:
+
+    opt_params.hpp
+
+Abstract:
+
+    Parameters for the 'opt' module.
+
+--*/
 #pragma once
+
 #include "util/params.h"
 #include "util/gparams.h"
-struct opt_params {
-  params_ref const & p;
-  params_ref g;
-  opt_params(params_ref const & _p = params_ref::get_empty()):
-     p(_p), g(gparams::get_module("opt")) {}
-  static void collect_param_descrs(param_descrs & d) {
-    d.insert("optsmt_engine", CPK_SYMBOL, "select optimization engine: 'basic', 'symba'", "basic","opt");
-    d.insert("maxsat_engine", CPK_SYMBOL, "select engine for maxsat: 'core_maxsat', 'wmax', 'maxres', 'pd-maxres', 'maxres-bin', 'rc2'", "maxres","opt");
-    d.insert("priority", CPK_SYMBOL, "select how to prioritize objectives: 'lex' (lexicographic), 'pareto', 'box'", "lex","opt");
-    d.insert("dump_benchmarks", CPK_BOOL, "dump benchmarks for profiling", "false","opt");
-    d.insert("dump_models", CPK_BOOL, "display intermediary models to stdout", "false","opt");
-    d.insert("solution_prefix", CPK_SYMBOL, "path prefix to dump intermediary, but non-optimal, solutions", "","opt");
-    d.insert("timeout", CPK_UINT, "timeout (in milliseconds) (UINT_MAX and 0 mean no timeout)", "4294967295","opt");
-    d.insert("rlimit", CPK_UINT, "resource limit (0 means no limit)", "0","opt");
-    d.insert("enable_sls", CPK_BOOL, "enable SLS tuning during weighted maxsat", "false","opt");
-    d.insert("enable_lns", CPK_BOOL, "enable LNS during weighted maxsat", "false","opt");
-    d.insert("lns_conflicts", CPK_UINT, "initial conflict count for LNS search", "1000","opt");
-    d.insert("enable_core_rotate", CPK_BOOL, "enable core rotation to both sample cores and correction sets", "false","opt");
-    d.insert("enable_sat", CPK_BOOL, "enable the new SAT core for propositional constraints", "true","opt");
-    d.insert("elim_01", CPK_BOOL, "eliminate 01 variables", "true","opt");
-    d.insert("incremental", CPK_BOOL, "set incremental mode. It disables pre-processing and enables adding constraints in model event handler", "false","opt");
-    d.insert("pp.neat", CPK_BOOL, "use neat (as opposed to less readable, but faster) pretty printer when displaying context", "true","opt");
-    d.insert("pb.compile_equality", CPK_BOOL, "compile arithmetical equalities into pseudo-Boolean equality (instead of two inequalites)", "false","opt");
-    d.insert("pp.wcnf", CPK_BOOL, "print maxsat benchmark into wcnf format", "false","opt");
-    d.insert("maxlex.enable", CPK_BOOL, "enable maxlex heuristic for lexicographic MaxSAT problems", "true","opt");
-    d.insert("rc2.totalizer", CPK_BOOL, "use totalizer for rc2 encoding", "true","opt");
-    d.insert("maxres.hill_climb", CPK_BOOL, "give preference for large weight cores", "true","opt");
-    d.insert("maxres.add_upper_bound_block", CPK_BOOL, "restrict upper bound with constraint", "false","opt");
-    d.insert("maxres.max_num_cores", CPK_UINT, "maximal number of cores per round", "200","opt");
-    d.insert("maxres.max_core_size", CPK_UINT, "break batch of generated cores if size reaches this number", "3","opt");
-    d.insert("maxres.maximize_assignment", CPK_BOOL, "find an MSS/MCS to improve current assignment", "false","opt");
-    d.insert("maxres.max_correction_set_size", CPK_UINT, "allow generating correction set constraints up to maximal size", "3","opt");
-    d.insert("maxres.wmax", CPK_BOOL, "use weighted theory solver to constrain upper bounds", "false","opt");
-    d.insert("maxres.pivot_on_correction_set", CPK_BOOL, "reduce soft constraints if the current correction set is smaller than current core", "true","opt");
-  }
-  /*
-     REG_MODULE_PARAMS('opt', 'opt_params::collect_param_descrs')
-     REG_MODULE_DESCRIPTION('opt', 'optimization parameters')
-  */
-  symbol optsmt_engine() const { return p.get_sym("optsmt_engine", g, symbol("basic")); }
-  symbol maxsat_engine() const { return p.get_sym("maxsat_engine", g, symbol("maxres")); }
-  symbol priority() const { return p.get_sym("priority", g, symbol("lex")); }
-  bool dump_benchmarks() const { return p.get_bool("dump_benchmarks", g, false); }
-  bool dump_models() const { return p.get_bool("dump_models", g, false); }
-  symbol solution_prefix() const { return p.get_sym("solution_prefix", g, symbol("")); }
-  unsigned timeout() const { return p.get_uint("timeout", g, 4294967295u); }
-  unsigned rlimit() const { return p.get_uint("rlimit", g, 0u); }
-  bool enable_sls() const { return p.get_bool("enable_sls", g, false); }
-  bool enable_lns() const { return p.get_bool("enable_lns", g, false); }
-  unsigned lns_conflicts() const { return p.get_uint("lns_conflicts", g, 1000u); }
-  bool enable_core_rotate() const { return p.get_bool("enable_core_rotate", g, false); }
-  bool enable_sat() const { return p.get_bool("enable_sat", g, true); }
-  bool elim_01() const { return p.get_bool("elim_01", g, true); }
-  bool incremental() const { return p.get_bool("incremental", g, false); }
-  bool pp_neat() const { return p.get_bool("pp.neat", g, true); }
-  bool pb_compile_equality() const { return p.get_bool("pb.compile_equality", g, false); }
-  bool pp_wcnf() const { return p.get_bool("pp.wcnf", g, false); }
-  bool maxlex_enable() const { return p.get_bool("maxlex.enable", g, true); }
-  bool rc2_totalizer() const { return p.get_bool("rc2.totalizer", g, true); }
-  bool maxres_hill_climb() const { return p.get_bool("maxres.hill_climb", g, true); }
-  bool maxres_add_upper_bound_block() const { return p.get_bool("maxres.add_upper_bound_block", g, false); }
-  unsigned maxres_max_num_cores() const { return p.get_uint("maxres.max_num_cores", g, 200u); }
-  unsigned maxres_max_core_size() const { return p.get_uint("maxres.max_core_size", g, 3u); }
-  bool maxres_maximize_assignment() const { return p.get_bool("maxres.maximize_assignment", g, false); }
-  unsigned maxres_max_correction_set_size() const { return p.get_uint("maxres.max_correction_set_size", g, 3u); }
-  bool maxres_wmax() const { return p.get_bool("maxres.wmax", g, false); }
-  bool maxres_pivot_on_correction_set() const { return p.get_bool("maxres.pivot_on_correction_set", g, true); }
-};
+
+#define OPT_PARAMS_LIST(UINT_, BOOL_, DOUBLE_, STRING_, SYMBOL_) \
+  SYMBOL_(optsmt_engine,                   "optsmt_engine",                   "basic",   "select optimization engine: 'basic', 'symba'") \
+  UINT_  (optsmt_bisect_rounds,            "optsmt_bisect_rounds",            64,        "maximal number of solver calls spent bisecting the interval between the best model value and the refuted arithmetic bound of a real-valued objective (e.g. under nonlinear constraints); when exhausted the objective is reported as unknown with that interval") \
+  BOOL_  (optsmt_nlsat,                    "optsmt_nlsat",                    true,      "optimize real objectives under nonlinear constraints exactly over nlsat cells (algebraic optima print as root-obj; unboundedness proven by native nlsat projection under an escalating rlimit budget)") \
+  BOOL_  (optsmt_dual_bounds,              "optsmt_dual_bounds",              true,      "retain exact rational nonlinear relaxation upper bounds, independently of hint attainability") \
+  UINT_  (optsmt_dual_bound_rlimit,        "optsmt_dual_bound_rlimit",        100,       "resource limit for a cross-branch nonlinear bound probe while no finite upper bound is known (0 disables the extra check)") \
+  UINT_  (optsmt_nlsat_supremum_rlimit,    "optsmt_nlsat_supremum_rlimit",    100000,    "resource limit for certifying finite open suprema with native nlsat projection (0 disables the extra check)") \
+  BOOL_  (optsmt_lex_after_unbounded,      "optsmt_lex_after_unbounded",      true,      "after an unbounded lexicographic objective, determine later arithmetic objectives as the limits of their optima; false leaves them as unrestricted intervals") \
+  BOOL_  (pareto_nlsat,                    "pareto_nlsat",                    true,      "enumerate Pareto fronts of pure NRA problems over an nlsat-backed solver, comparing objectives against exact algebraic model values instead of rounded isolating-interval endpoints") \
+  BOOL_  (pareto_nlsat_reuse,              "pareto_nlsat_reuse",              true,      "reuse nlsat clauses across Pareto checks on polynomial real problems; false keeps the exact solver that starts each check from scratch") \
+  UINT_  (pareto_nlsat_max_lemmas,         "pareto_nlsat_max_lemmas",         128,       "maximum number of independent learned clauses retained between Pareto climbs; shorter clauses are preferred") \
+  SYMBOL_(maxsat_engine,                   "maxsat_engine",                   "maxres",  "select engine for maxsat: 'core_maxsat', 'wmax', 'maxres', 'maxresw', 'pd-maxres', 'maxres-bin', 'rc2'") \
+  SYMBOL_(priority,                        "priority",                        "lex",     "select how to prioritize objectives: 'lex' (lexicographic), 'pareto', 'box'") \
+  BOOL_  (dump_benchmarks,                 "dump_benchmarks",                 false,     "dump benchmarks for profiling") \
+  BOOL_  (dump_models,                     "dump_models",                     false,     "display intermediary models to stdout") \
+  SYMBOL_(solution_prefix,                 "solution_prefix",                 "",        "path prefix to dump intermediary, but non-optimal, solutions") \
+  UINT_  (timeout,                         "timeout",                         UINT_MAX,  "timeout (in milliseconds) (UINT_MAX and 0 mean no timeout)") \
+  UINT_  (rlimit,                          "rlimit",                          0,         "resource limit (0 means no limit)") \
+  BOOL_  (enable_sls,                      "enable_sls",                      false,     "enable SLS tuning during weighted maxsat") \
+  BOOL_  (enable_lns,                      "enable_lns",                      false,     "enable LNS during weighted maxsat") \
+  UINT_  (lns_conflicts,                   "lns_conflicts",                   1000,      "initial conflict count for LNS search") \
+  BOOL_  (enable_core_rotate,              "enable_core_rotate",              false,     "enable core rotation to both sample cores and correction sets") \
+  BOOL_  (enable_sat,                      "enable_sat",                      true,      "enable the new SAT core for propositional constraints") \
+  BOOL_  (elim_01,                         "elim_01",                         true,      "eliminate 01 variables") \
+  BOOL_  (incremental,                     "incremental",                     false,     "set incremental mode. It disables pre-processing and enables adding constraints in model event handler") \
+  BOOL_  (pp_neat,                         "pp.neat",                         true,      "use neat (as opposed to less readable, but faster) pretty printer when displaying context") \
+  BOOL_  (pb_compile_equality,             "pb.compile_equality",             false,     "compile arithmetical equalities into pseudo-Boolean equality (instead of two inequalites)") \
+  BOOL_  (pp_wcnf,                         "pp.wcnf",                         false,     "print maxsat benchmark into wcnf format") \
+  BOOL_  (maxlex_enable,                   "maxlex.enable",                   true,      "enable maxlex heuristic for lexicographic MaxSAT problems") \
+  BOOL_  (rc2_totalizer,                   "rc2.totalizer",                   true,      "use totalizer for rc2 encoding") \
+  BOOL_  (maxres_hill_climb,               "maxres.hill_climb",               true,      "give preference for large weight cores") \
+  BOOL_  (maxres_add_upper_bound_block,    "maxres.add_upper_bound_block",    false,     "restrict upper bound with constraint") \
+  UINT_  (maxres_max_num_cores,            "maxres.max_num_cores",            200,       "maximal number of cores per round") \
+  UINT_  (maxres_max_core_size,            "maxres.max_core_size",            3,         "break batch of generated cores if size reaches this number") \
+  BOOL_  (maxres_maximize_assignment,      "maxres.maximize_assignment",      false,     "find an MSS/MCS to improve current assignment") \
+  UINT_  (maxres_max_correction_set_size,  "maxres.max_correction_set_size",  3,         "allow generating correction set constraints up to maximal size") \
+  BOOL_  (maxres_wmax,                     "maxres.wmax",                     false,     "use weighted theory solver to constrain upper bounds") \
+  BOOL_  (maxres_pivot_on_correction_set,  "maxres.pivot_on_correction_set",  true,      "reduce soft constraints if the current correction set is smaller than current core")
+
+Z3_DEFINE_MODULE_PARAMS(opt_params, "opt", OPT_PARAMS_LIST, "optimization parameters");
+
+#undef OPT_PARAMS_LIST

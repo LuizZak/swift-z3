@@ -19,14 +19,12 @@ Revision History:
 #pragma once
 
 #include "smt/smt_theory.h"
-#include "smt/theory_array_bapa.h"
 #include "ast/array_decl_plugin.h"
 #include "model/array_factory.h"
 
 namespace smt {
 
     class theory_array_base : public theory {
-        friend class theory_array_bapa;
     protected:
         bool m_found_unsupported_op;
         unsigned m_array_weak_head;
@@ -36,29 +34,31 @@ namespace smt {
         virtual void set_prop_upward(theory_var v) {}
         void found_unsupported_op(expr * n);
         void found_unsupported_op(enode* n) { found_unsupported_op(n->get_expr()); }
-        void found_unsupported_op(theory_var v) { found_unsupported_op(get_enode(v)->get_expr()); }
+        void found_unsupported_op(theory_var v) { found_unsupported_op(get_expr(v)); }
         
-        bool is_store(app const* n) const { return n->is_app_of(get_id(), OP_STORE); }
-        bool is_map(app const* n) const { return n->is_app_of(get_id(), OP_ARRAY_MAP); }
-        bool is_select(app const* n) const { return n->is_app_of(get_id(), OP_SELECT); }
-        bool is_default(app const* n) const { return n->is_app_of(get_id(), OP_ARRAY_DEFAULT); }
-        bool is_const(app const* n) const { return n->is_app_of(get_id(), OP_CONST_ARRAY); }
-        bool is_array_ext(app const * n) const { return n->is_app_of(get_id(), OP_ARRAY_EXT); }
-        bool is_as_array(app const * n) const { return n->is_app_of(get_id(), OP_AS_ARRAY); }
+        bool is_store(expr const* n) const { return is_app(n) && to_app(n)->is_app_of(get_id(), OP_STORE); }
+        bool is_map(expr const* n) const { return is_app(n) && to_app(n)->is_app_of(get_id(), OP_ARRAY_MAP); }
+        bool is_select(expr const* n) const { return is_app(n) && to_app(n)->is_app_of(get_id(), OP_SELECT); }
+        bool is_default(expr const* n) const { return is_app(n) && to_app(n)->is_app_of(get_id(), OP_ARRAY_DEFAULT); }
+        bool is_const(expr const* n) const { return is_app(n) && to_app(n)->is_app_of(get_id(), OP_CONST_ARRAY); }
+        bool is_array_ext(expr const * n) const { return is_app(n) && to_app(n)->is_app_of(get_id(), OP_ARRAY_EXT); }
+        bool is_as_array(expr const * n) const { return is_app(n) && to_app(n)->is_app_of(get_id(), OP_AS_ARRAY); }
+        bool is_choice(expr const* n) const { return is_app(n) && to_app(n)->is_app_of(get_id(), OP_CHOICE); }
         bool is_array_sort(sort const* s) const { return s->is_sort_of(get_id(), ARRAY_SORT); }
-        bool is_array_sort(app const* n) const { return is_array_sort(n->get_sort()); }
-        bool is_set_has_size(app const* n) const { return n->is_app_of(get_id(), OP_SET_HAS_SIZE); }
-        bool is_set_card(app const* n) const { return n->is_app_of(get_id(), OP_SET_CARD); }
+        bool is_array_sort(expr const* n) const { return is_array_sort(n->get_sort()); }
+        
 
         bool is_store(enode const * n) const { return is_store(n->get_expr()); }
         bool is_map(enode const* n) const { return is_map(n->get_expr()); }
         bool is_select(enode const* n) const { return is_select(n->get_expr()); }
         bool is_const(enode const* n) const { return is_const(n->get_expr()); }
         bool is_as_array(enode const * n) const { return is_as_array(n->get_expr()); }
+        bool is_choice(enode const* n) const { return is_choice(n->get_expr()); }
         bool is_default(enode const* n) const { return is_default(n->get_expr()); }
-        bool is_array_sort(enode const* n) const { return is_array_sort(n->get_expr()); }
-        bool is_set_has_size(enode const* n) const { return is_set_has_size(n->get_expr()); }
-        bool is_set_carde(enode const* n) const { return is_set_card(n->get_expr()); }
+        bool is_array_sort(enode const* n) const { return is_array_sort(n->get_sort()); }
+        
+        
+        
         bool is_select_arg(enode* r);
 
         app * mk_select(unsigned num_args, expr * const * args);
@@ -74,20 +74,20 @@ namespace smt {
         enode_pair_vector                   m_axiom2_todo;
         enode_pair_vector                   m_extensionality_todo;
         enode_pair_vector                   m_congruent_todo;
-        scoped_ptr<theory_array_bapa>       m_bapa;
 
         void assert_axiom(unsigned num_lits, literal * lits);
         void assert_axiom(literal l1, literal l2);
         void assert_axiom(literal l);
         void assert_store_axiom1_core(enode * n);
         void assert_store_axiom2_core(enode * store, enode * select);
+        void assert_lambda_axiom_core(enode *lambda, enode *select);
         void assert_store_axiom1(enode * n) { m_axiom1_todo.push_back(n); }
         bool assert_store_axiom2(enode * store, enode * select);
 
         void assert_extensionality_core(enode * a1, enode * a2);
         bool assert_extensionality(enode * a1, enode * a2);
 
-        expr_ref instantiate_lambda(app* e);
+        expr_ref instantiate_lambda(expr* e);
         void assert_congruent_core(enode * a1, enode * a2);
         void assert_congruent(enode * a1, enode * a2);
 
@@ -191,6 +191,10 @@ namespace smt {
         ptr_vector<select_set>       m_selects_range;
         bool                         m_use_unspecified_default;  // temporary field for model construction
 
+        void reset_selects();
+        std::ostream &display_selects(std::ostream &out);
+        bool check_selects();
+
         theory_var mg_find(theory_var v);
         void mg_merge(theory_var n, theory_var m);
 
@@ -213,6 +217,5 @@ namespace smt {
         ~theory_array_base() override { restore_sorts(0); }
     };
 
-};
-
+}
 

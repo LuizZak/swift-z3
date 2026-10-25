@@ -126,7 +126,7 @@ class reduce_args_simplifier : public dependent_expr_simplifier {
         for (auto i : indices())
             quick_for_each_expr(proc, visited, m_fmls[i].fml());
 
-        TRACE("reduce_args", tout << "non_candidates:\n"; for (func_decl* d : non_candidates) tout << d->get_name() << "\n";);
+        TRACE(reduce_args, tout << "non_candidates:\n"; for (func_decl* d : non_candidates) tout << d->get_name() << "\n";);
     }
 
     struct populate_decl2args_proc {
@@ -196,7 +196,7 @@ class reduce_args_simplifier : public dependent_expr_simplifier {
         for (func_decl* a : bad_decls)
             decl2args.erase(a);
 
-        TRACE("reduce_args", tout << "decl2args:" << std::endl;
+        TRACE(reduce_args, tout << "decl2args:" << std::endl;
               for (auto const& [k, v] : decl2args) {
                   tout << k->get_name() << ": ";
                   for (unsigned i = 0; i < v.size(); ++i)
@@ -213,7 +213,7 @@ class reduce_args_simplifier : public dependent_expr_simplifier {
             // compute the hash-code using only the arguments where m_bv is true.
             unsigned a = 0x9e3779b9;
             unsigned num_args = n->get_num_args();
-            for (unsigned i = 0; i < num_args; i++) {
+            for (unsigned i = 0; i < num_args; ++i) {
                 if (!m_bv.get(i)) 
                     continue; // ignore argument
                 a = hash_u_u(a, n->get_arg(i)->get_id());
@@ -230,7 +230,7 @@ class reduce_args_simplifier : public dependent_expr_simplifier {
             // compare only the arguments where m_bv is true
             SASSERT(n1->get_num_args() == n2->get_num_args());
             unsigned num_args = n1->get_num_args();
-            for (unsigned i = 0; i < num_args; i++) {
+            for (unsigned i = 0; i < num_args; ++i) {
                 if (!m_bv.get(i)) 
                     continue; // ignore argument
                 if (n1->get_arg(i) != n2->get_arg(i))
@@ -306,7 +306,7 @@ class reduce_args_simplifier : public dependent_expr_simplifier {
             }
 
             ptr_buffer<expr> new_args;
-            for (unsigned i = 0; i < num; i++) {
+            for (unsigned i = 0; i < num; ++i) {
                 if (!bv.get(i))
                     new_args.push_back(args[i]);
             }
@@ -339,7 +339,7 @@ class reduce_args_simplifier : public dependent_expr_simplifier {
             bit_vector & bv = decl2args.find(f);
             new_vars.reset();
             new_args.reset();
-            for (unsigned i = 0; i < f->get_arity(); i++) {
+            for (unsigned i = 0; i < f->get_arity(); ++i) {
                 new_vars.push_back(m.mk_var(i, f->get_domain(i)));
                 if (!bv.get(i))
                     new_args.push_back(new_vars.back());
@@ -352,7 +352,7 @@ class reduce_args_simplifier : public dependent_expr_simplifier {
                 }
                 else {
                     new_eqs.reset();
-                    for (unsigned i = 0; i < f->get_arity(); i++) 
+                    for (unsigned i = 0; i < f->get_arity(); ++i) 
                         if (bv.get(i))
                             new_eqs.push_back(m.mk_eq(new_vars.get(i), t->get_arg(i)));                    
                     SASSERT(new_eqs.size() > 0);

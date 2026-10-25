@@ -23,7 +23,7 @@ namespace array {
     sat::literal solver::internalize(expr* e, bool sign, bool root) { 
         SASSERT(m.is_bool(e));
         if (!visit_rec(m, e, sign, root)) {
-            TRACE("array", tout << mk_pp(e, m) << "\n";);
+            TRACE(array, tout << mk_pp(e, m) << "\n";);
             return sat::null_literal;
         }
         auto lit = expr2literal(e);
@@ -111,6 +111,9 @@ namespace array {
         case OP_CONST_ARRAY:
             internalize_lambda_eh(n);
             break;
+        case OP_CHOICE:
+            push_axiom(choice_axiom(n));
+            break;
         case OP_ARRAY_EXT:
             SASSERT(is_array(n->get_arg(0)));
             push_axiom(extensionality_axiom(n->get_arg(0), n->get_arg(1)));
@@ -137,10 +140,6 @@ namespace array {
             add_equiv(eq, sub);
             break;
         }            
-        case OP_SET_HAS_SIZE:
-        case OP_SET_CARD:
-            ctx.unhandled_function(n->get_decl());
-            break;
         default:
             UNREACHABLE();
             break;
@@ -173,6 +172,8 @@ namespace array {
         case OP_ARRAY_DEFAULT:
             set_prop_upward(find(n->get_arg(0)));
             break;
+        case OP_CHOICE:
+            break;
         case OP_ARRAY_MAP:
         case OP_SET_UNION:
         case OP_SET_INTERSECT:
@@ -183,10 +184,6 @@ namespace array {
             set_prop_upward(find(n));
             break;
         case OP_SET_SUBSET:
-            break;
-        case OP_SET_HAS_SIZE:
-        case OP_SET_CARD:
-            ctx.unhandled_function(n->get_decl());
             break;
         default:
             UNREACHABLE();
@@ -219,13 +216,13 @@ namespace array {
             unsigned num_args = parent->num_args();
             if (a.is_store(p)) {
                 set_array(parent->get_arg(0));
-                for (unsigned i = 1; i < num_args - 1; i++)
+                for (unsigned i = 1; i < num_args - 1; ++i)
                     set_index(parent->get_arg(i));
                 set_value(parent->get_arg(num_args - 1));
             }
             else if (a.is_select(p)) {
                 set_array(parent->get_arg(0));
-                for (unsigned i = 1; i < num_args - 1; i++)
+                for (unsigned i = 1; i < num_args - 1; ++i)
                     set_index(parent->get_arg(i));
             }
             else if (a.is_const(p)) {
@@ -263,4 +260,3 @@ namespace array {
     }
 
 }
-

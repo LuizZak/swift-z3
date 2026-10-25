@@ -71,7 +71,7 @@ void quasi_macros::find_occurrences(expr * e) {
             default: UNREACHABLE();
         }
     }
-};
+}
 
 bool quasi_macros::is_non_ground_uninterp(expr const * e) const {
     return is_non_ground(e) && is_uninterp(e);
@@ -89,7 +89,7 @@ public:
     void operator()(quantifier * n) {}
     void operator()(app * n) {}
     bool all_used() {
-        for (unsigned i = 0; i < m_bitset.size() ; i++)
+        for (unsigned i = 0; i < m_bitset.size() ; ++i)
             if (!m_bitset.get(i))
                 return false;
         return true;
@@ -111,7 +111,7 @@ bool quasi_macros::fully_depends_on(app * a, quantifier * q) const {
         if (is_var(arg))
              bitset.set(to_var(arg)->get_idx(), true);
 
-    for (unsigned i = 0; i < bitset.size() ; i++) 
+    for (unsigned i = 0; i < bitset.size() ; ++i) 
         if (!bitset.get(i))
             return false;    
 
@@ -157,7 +157,7 @@ bool quasi_macros::is_quasi_macro(expr * e, app_ref & a, expr_ref & t) const {
     // Our definition of a quasi-macro:
     // Forall X. f[X] = T[X], where f[X] is a term starting with symbol f, f is uninterpreted,
     // f[X] contains all universally quantified variables, and f does not occur in T[X].
-    TRACE("quasi_macros", tout << "Checking for quasi macro: " << mk_pp(e, m) << std::endl;);
+    TRACE(quasi_macros, tout << "Checking for quasi macro: " << mk_pp(e, m) << std::endl;);
 
     if (is_forall(e)) {
         quantifier * q = to_quantifier(e);
@@ -249,7 +249,7 @@ bool quasi_macros::quasi_macro_to_macro(quantifier * q, app * a, expr * t, quant
     }
 
     // We want to keep all the old variables [already reversed]
-    for (unsigned i = 0 ; i < q->get_num_decls() ; i++) {
+    for (unsigned i = 0 ; i < q->get_num_decls() ; ++i) {
         new_var_names_rev.push_back(q->get_decl_name(i));
         new_qsorts_rev.push_back(q->get_decl_sort(i));
     }
@@ -262,7 +262,7 @@ bool quasi_macros::quasi_macro_to_macro(quantifier * q, app * a, expr * t, quant
                                                   f->get_arity(), f->get_domain(),
                                                   f->get_range());
     expr_ref f_else(m.mk_app(fd, m_new_vars.size(), m_new_vars.data()), m);
-    expr_ref ite(m.mk_ite(m.mk_and(m_new_eqs.size(), m_new_eqs.data()), t, f_else), m);
+    expr_ref ite(m.mk_ite(m.mk_and(m_new_eqs), t, f_else), m);
 
     expr_ref eq(m.mk_eq(appl, ite), m);
 
@@ -273,30 +273,30 @@ bool quasi_macros::quasi_macro_to_macro(quantifier * q, app * a, expr * t, quant
 }
 
 bool quasi_macros::find_macros(unsigned n, expr * const * exprs) {
-    TRACE("quasi_macros", tout << "Finding quasi-macros in: " << std::endl;
-                          for (unsigned i = 0 ; i < n ; i++)
+    TRACE(quasi_macros, tout << "Finding quasi-macros in: " << std::endl;
+                          for (unsigned i = 0 ; i < n ; ++i)
                               tout << i << ": " << mk_pp(exprs[i], m) << std::endl; );
     bool res = false;
     m_occurrences.reset();
 
 
     // Find out how many non-ground appearances for each uninterpreted function there are
-    for (unsigned i = 0 ; i < n ; i++)
+    for (unsigned i = 0 ; i < n ; ++i)
         find_occurrences(exprs[i]);
 
-    TRACE("quasi_macros",
+    TRACE(quasi_macros,
         tout << "Occurrences: " << std::endl;
         for (auto & kd : m_occurrences)
             tout << kd.m_key->get_name() << ": " << kd.m_value << std::endl; );
 
     // Find all macros
-    for (unsigned i = 0 ; i < n ; i++) {
+    for (unsigned i = 0 ; i < n ; ++i) {
         app_ref a(m);
         expr_ref t(m);
         quantifier_ref macro(m);
         if (is_quasi_macro(exprs[i], a, t) && 
             quasi_macro_to_macro(to_quantifier(exprs[i]), a, t, macro)) {
-            TRACE("quasi_macros", tout << "Found quasi macro: " << mk_pp(exprs[i], m) << std::endl;
+            TRACE(quasi_macros, tout << "Found quasi macro: " << mk_pp(exprs[i], m) << std::endl;
                                   tout << "Macro: " << mk_pp(macro, m) << std::endl; );
             proof * pr = nullptr;
             if (m.proofs_enabled())
@@ -311,29 +311,29 @@ bool quasi_macros::find_macros(unsigned n, expr * const * exprs) {
 }
 
 bool quasi_macros::find_macros(unsigned n, justified_expr const * exprs) {
-    TRACE("quasi_macros", tout << "Finding quasi-macros in: " << std::endl;
-          for (unsigned i = 0; i < n; i++)
+    TRACE(quasi_macros, tout << "Finding quasi-macros in: " << std::endl;
+          for (unsigned i = 0; i < n; ++i)
               tout << i << ": " << mk_pp(exprs[i].fml(), m) << std::endl; );
     bool res = false;
     m_occurrences.reset();
 
 
     // Find out how many non-ground appearances for each uninterpreted function there are
-    for (unsigned i = 0 ; i < n ; i++)
+    for (unsigned i = 0 ; i < n ; ++i)
         find_occurrences(exprs[i].fml());
 
-    TRACE("quasi_macros", tout << "Occurrences: " << std::endl;
+    TRACE(quasi_macros, tout << "Occurrences: " << std::endl;
           for (auto kv : m_occurrences) 
               tout << kv.m_key->get_name() << ": " << kv.m_value << std::endl; );
 
     // Find all macros
-    for (unsigned i = 0 ; i < n ; i++) {
+    for (unsigned i = 0 ; i < n ; ++i) {
         app_ref a(m);
         expr_ref t(m);
         quantifier_ref macro(m);
         if (is_quasi_macro(exprs[i].fml(), a, t) && 
             quasi_macro_to_macro(to_quantifier(exprs[i].fml()), a, t, macro)) {
-            TRACE("quasi_macros", tout << "Found quasi macro: " << mk_pp(exprs[i].fml(), m) << std::endl;
+            TRACE(quasi_macros, tout << "Found quasi macro: " << mk_pp(exprs[i].fml(), m) << std::endl;
                                   tout << "Macro: " << mk_pp(macro, m) << std::endl; );
             proof * pr = nullptr;
             if (m.proofs_enabled())
@@ -348,7 +348,7 @@ bool quasi_macros::find_macros(unsigned n, justified_expr const * exprs) {
 
 void quasi_macros::apply_macros(expr_ref_vector & exprs, proof_ref_vector & prs, expr_dependency_ref_vector& deps) {
     unsigned n = exprs.size();
-    for (unsigned i = 0 ; i < n ; i++ ) {
+    for (unsigned i = 0 ; i < n ; ++i ) {
         expr_ref r(m), rr(m);
         proof_ref pr(m), prr(m);
         expr_dependency_ref dep(m);
@@ -374,7 +374,7 @@ bool quasi_macros::operator()(expr_ref_vector & exprs, proof_ref_vector & prs, e
 }
 
 void quasi_macros::apply_macros(unsigned n, justified_expr const* fmls, vector<justified_expr>& new_fmls) {
-    for (unsigned i = 0 ; i < n ; i++) {
+    for (unsigned i = 0 ; i < n ; ++i) {
         expr_ref r(m), rr(m);
         proof_ref pr(m), prr(m);
         proof * p = m.proofs_enabled() ? fmls[i].pr() : nullptr;
@@ -387,14 +387,14 @@ void quasi_macros::apply_macros(unsigned n, justified_expr const* fmls, vector<j
 }
 
 bool quasi_macros::operator()(unsigned n, justified_expr const* fmls, vector<justified_expr>& new_fmls) {
-    TRACE("quasi_macros", m_macro_manager.display(tout););
+    TRACE(quasi_macros, m_macro_manager.display(tout););
     if (find_macros(n, fmls)) {
         apply_macros(n, fmls, new_fmls);
         return true;
     } 
     else {
         // just copy them over
-        for (unsigned i = 0 ; i < n ; i++ ) {
+        for (unsigned i = 0 ; i < n ; ++i ) {
             new_fmls.push_back(fmls[i]);
         }
         return false;

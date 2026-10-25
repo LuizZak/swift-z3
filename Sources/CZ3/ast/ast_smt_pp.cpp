@@ -24,6 +24,7 @@ Revision History:
 #include "util/vector.h"
 #include "util/smt2_util.h"
 #include "ast/ast_smt_pp.h"
+#include "ast/ff_decl_plugin.h"
 #include "ast/ast_smt2_pp.h"
 #include "ast/arith_decl_plugin.h"
 #include "ast/bv_decl_plugin.h"
@@ -84,8 +85,9 @@ symbol smt_renaming::fix_symbol(symbol s, int k) {
 }
 
 bool smt_renaming::is_legal(char c) {
+    // A signed char may be negative; isalnum accepts only unsigned-char values or EOF.
     return c == '.' || c == '_' || c == '\''
-        || c == '?' || c == '!' || isalnum(c);
+        || c == '?' || c == '!' || isalnum(static_cast<unsigned char>(c));
 }
 
 bool smt_renaming::is_special(char const* s) {
@@ -103,7 +105,8 @@ bool smt_renaming::is_special(char const* s) {
 
 bool smt_renaming::is_numerical(char const* s) {
     while (*s) {
-        if (!isdigit(*s)) {
+        // A signed char may be negative; isdigit accepts only unsigned-char values or EOF.
+        if (!isdigit(static_cast<unsigned char>(*s))) {
             return false;
         }
         ++s;
@@ -303,6 +306,7 @@ class smt_printer {
     }
 
     void visit_sort(sort* s, bool bool2int = false) {
+        if (ff_util(m_manager).is_ff(s)) { m_out << mk_ismt2_pp(s,m_manager); return; }
         symbol sym;
         if (s->is_sort_of(m_bv_fid, BV_SORT)) {
             sym = symbol("BitVec");
@@ -397,6 +401,9 @@ class smt_printer {
         }
         else if (m_bvutil.is_numeral(n, val, bv_size)) {
             m_out << "(_ bv" << val << " " << bv_size << ")";
+        }
+        else if (ff_util(m_manager).is_numeral(n)) {
+            m_out << mk_ismt2_pp(n,m_manager);
         }
         else if (m_futil.is_numeral(n, float_val)) {
             m_out << mk_ismt2_pp(n, m_manager);
@@ -507,6 +514,7 @@ class smt_printer {
         case forall_k: m_out << "forall "; break;
         case exists_k: m_out << "exists "; break;
         case lambda_k: m_out << "lambda "; break;
+        case choice_k: m_out << "choice "; break;
         }
         m_out << "(";
         for (unsigned i = 0; i < q->get_num_decls(); ++i) {
@@ -733,7 +741,8 @@ public:
         m_AUFLIRA("AUFLIRA"),
         // It's much easier to read those testcases with that.
         m_no_lets(no_lets),
-        m_simplify_implies(simplify_implies)
+        m_simplify_implies(simplify_implies),
+        m_top(nullptr)
     {
         m_basic_fid = m.get_basic_family_id();
         m_label_fid = m.mk_family_id("label");
@@ -977,7 +986,7 @@ void ast_smt_pp::display_smt2(std::ostream& strm, expr* n) {
         strm << "(set-logic " << m_logic << ")\n";
     }
     if (!m_attributes.empty()) {
-        strm << "; " << m_attributes;
+        strm << "; " << m_attributes << "\n";
     }
 
 #if 0

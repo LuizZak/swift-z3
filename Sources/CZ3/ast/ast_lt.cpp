@@ -18,12 +18,12 @@ Revision History:
 --*/
 #include "ast/ast.h"
 
-#define check_symbol(S1,S2) if (S1 != S2) return lt(S1,S2)
-#define check_value(V1,V2) if (V1 != V2) return V1 < V2
-#define check_bool(B1,B2) if (B1 != B2) return !B1 && B2
-#define check_ptr(P1,P2) if (!P1 && P2) return true; if (P1 && !P2) return false
-#define check_ast(T1,T2) if (T1 != T2) { n1 = T1; n2 = T2; goto start; }
-#define check_zstring(S1, S2) if (S1 != S2) return S1 < S2
+#define check_symbol(S1,S2) if ((S1) != (S2)) return lt((S1),(S2))
+#define check_value(V1,V2) if ((V1) != (V2)) return (V1) < (V2)
+#define check_bool(B1,B2) if ((B1) != (B2)) return !(B1) && (B2)
+#define check_ptr(P1,P2) if (!(P1) && (P2)) return true; if ((P1) && !(P2)) return false
+#define check_ast(T1,T2) if ((T1) != (T2)) { n1 = (T1); n2 = (T2); goto start; }
+#define check_zstring(S1, S2) if ((S1) != (S2)) return (S1) < (S2)
 
 #define check_parameter(p1, p2) {                               \
     check_value(p1.get_kind(), p2.get_kind());                  \
@@ -49,9 +49,6 @@ Revision History:
     case parameter::PARAM_ZSTRING:                              \
         check_zstring(p1.get_zstring(), p2.get_zstring());      \
         break;                                                  \
-    default:                                                    \
-        UNREACHABLE();                                          \
-        break;                                                  \
     }                                                           \
 }
 
@@ -67,7 +64,7 @@ bool lt(ast * n1, ast * n2) {
         check_value(to_sort(n1)->get_num_parameters(), to_sort(n2)->get_num_parameters());
         num = to_sort(n1)->get_num_parameters();
         SASSERT(num > 0);
-        for (unsigned i = 0; i < num; i++) {
+        for (unsigned i = 0; i < num; ++i) {
             const parameter &p1 = to_sort(n1)->get_parameter(i);
             const parameter &p2 = to_sort(n2)->get_parameter(i);
             check_parameter(p1, p2);
@@ -79,13 +76,13 @@ bool lt(ast * n1, ast * n2) {
         check_value(to_func_decl(n1)->get_arity(), to_func_decl(n2)->get_arity());
         check_value(to_func_decl(n1)->get_num_parameters(), to_func_decl(n2)->get_num_parameters());
         num = to_func_decl(n1)->get_num_parameters();
-        for (unsigned i = 0; i < num; i++) {
+        for (unsigned i = 0; i < num; ++i) {
             const parameter &p1 = to_func_decl(n1)->get_parameter(i);
             const parameter &p2 = to_func_decl(n2)->get_parameter(i);
             check_parameter(p1, p2);
         }
         num = to_func_decl(n1)->get_arity();
-        for (unsigned i = 0; i < num; i++) {
+        for (unsigned i = 0; i < num; ++i) {
             ast * d1 = to_func_decl(n1)->get_domain(i);
             ast * d2 = to_func_decl(n2)->get_domain(i);
             check_ast(d1, d2);
@@ -98,7 +95,7 @@ bool lt(ast * n1, ast * n2) {
         check_value(to_app(n1)->get_depth(), to_app(n2)->get_depth());
         check_ast(to_app(n1)->get_decl(), to_app(n2)->get_decl());
         num = to_app(n1)->get_num_args();
-        for (unsigned i = 0; i < num; i++) {
+        for (unsigned i = 0; i < num; ++i) {
             expr * arg1 = to_app(n1)->get_arg(i);
             expr * arg2 = to_app(n2)->get_arg(i);
             check_ast(arg1, arg2);
@@ -112,16 +109,16 @@ bool lt(ast * n1, ast * n2) {
         check_value(to_quantifier(n1)->get_num_no_patterns(), to_quantifier(n2)->get_num_no_patterns());
         check_value(to_quantifier(n1)->get_weight(), to_quantifier(n2)->get_weight());
         num = to_quantifier(n1)->get_num_decls();
-        for (unsigned i = 0; i < num; i++) {
+        for (unsigned i = 0; i < num; ++i) {
             check_symbol(to_quantifier(n1)->get_decl_name(i), to_quantifier(n2)->get_decl_name(i));
             check_ast(to_quantifier(n1)->get_decl_sort(i), to_quantifier(n2)->get_decl_sort(i));
         }
         num = to_quantifier(n1)->get_num_patterns();
-        for (unsigned i = 0; i < num; i++) {
+        for (unsigned i = 0; i < num; ++i) {
             check_ast(to_quantifier(n1)->get_pattern(i), to_quantifier(n2)->get_pattern(i));
         }
         num = to_quantifier(n1)->get_num_no_patterns();
-        for (unsigned i = 0; i < num; i++) {
+        for (unsigned i = 0; i < num; ++i) {
             check_ast(to_quantifier(n1)->get_no_pattern(i), to_quantifier(n2)->get_no_pattern(i));
         }
         n1 = to_quantifier(n1)->get_expr();
@@ -132,14 +129,13 @@ bool lt(ast * n1, ast * n2) {
         n1 = to_var(n1)->get_sort();
         n2 = to_var(n2)->get_sort();
         goto start;
-    default:
-        UNREACHABLE();
-        return false;
     }
+    UNREACHABLE();
+    return false;
 }
 
 bool is_sorted(unsigned num, expr * const * ns) {
-    for (unsigned i = 1; i < num; i++) {
+    for (unsigned i = 1; i < num; ++i) {
         ast * prev = ns[i-1];
         ast * curr = ns[i];
         if (lt(curr, prev))

@@ -124,7 +124,7 @@ namespace nlarith {
             }
 
             if (!get_polys(contains_x, num_lits, lits, polys, comps, &branch_conds, nullptr)) {
-                TRACE("nlarith", 
+                TRACE(nlarith, 
                       tout << "could not extract polynomials " << mk_pp(x, m()) << "\n";
                       for (unsigned i = 0; i < num_lits; ++i) {
                           tout << mk_pp(lits[i], m()) << " ";
@@ -137,7 +137,7 @@ namespace nlarith {
                 return false;                
             }
             if (!m_enable_linear && is_linear(polys)) {
-                TRACE("nlarith", tout << "this is a linear problem " << mk_pp(x,m()) << "\n"; display(tout, polys););
+                TRACE(nlarith, tout << "this is a linear problem " << mk_pp(x,m()) << "\n"; display(tout, polys););
                 return false;
             }
             unsigned idx;
@@ -152,7 +152,7 @@ namespace nlarith {
                 }
             }
             inf_branch(polys, comps, branch_conds);
-            TRACE("nlarith", 
+            TRACE(nlarith, 
                   for (unsigned i = 0; i < num_lits; ++i) {
                       tout << mk_pp(lits[i], m()) << " ";
                   }
@@ -229,7 +229,7 @@ namespace nlarith {
                 }
             }
 
-            TRACE("nlarith",
+            TRACE(nlarith,
                   tout << "Non-linear variables: ";
                   for (unsigned i = 0; i < nl_vars.size(); ++i) {
                       tout << mk_pp(nl_vars[i], m()) << " ";
@@ -388,8 +388,10 @@ namespace nlarith {
             }
         };
 
-        expr* mk_abs(expr* e) { 
-            return m().mk_ite(mk_lt(e), mk_uminus(e), e);
+        expr* mk_abs(expr* e) {
+            expr_ref condition(mk_lt(e), m());
+            expr_ref then_value(mk_uminus(e), m());
+            return m().mk_ite(condition, then_value, e);
         }
 
 
@@ -405,7 +407,11 @@ namespace nlarith {
             }
             else {
                 expr* half = A.mk_numeral(rational(1,2), false);
-                result = A.mk_div(mk_add(s.m_a, mk_mul(num(s.m_b), A.mk_power(mk_abs(s.m_c), half))), s.m_d);
+                {
+                    expr_ref lhs(num(s.m_b), m());
+                    expr_ref rhs(A.mk_power(mk_abs(s.m_c), half), m());
+                    result = A.mk_div(mk_add(s.m_a, mk_mul(lhs, rhs)), s.m_d);
+                }
             }
             return result;
         }
@@ -439,11 +445,20 @@ namespace nlarith {
             expr* result = to_expr(s);
             if (is_strict(cmp)) {
                 if (p.m_a == z()) {
-                    result = mk_add(result, mk_mul(mk_epsilon(), m().mk_ite(mk_lt(p.m_b),num(1),num(-1))));
+                    expr_ref epsilon(mk_epsilon(), m());
+                    expr_ref condition(mk_lt(p.m_b), m());
+                    expr_ref then_value(num(1), m());
+                    expr_ref else_value(num(-1), m());
+                    expr_ref sign(m().mk_ite(condition, then_value, else_value), m());
+                    result = mk_add(result, mk_mul(epsilon, sign));
                 }
                 else {
                     if (s.m_b > 0) {
-                        result = mk_add(result, mk_mul(num(-1),mk_epsilon()));
+                        {
+                            expr_ref lhs(num(-1), m());
+                            expr_ref rhs(mk_epsilon(), m());
+                            result = mk_add(result, mk_mul(lhs, rhs));
+                        }
                     }
                     else {
                         result = mk_add(result, mk_epsilon());
@@ -480,8 +495,10 @@ namespace nlarith {
             return mk_mul(e,e);
         }
 
-        app* sq1(expr * e) { 
-            return mk_add(num(1), sq(e)); 
+        app* sq1(expr * e) {
+            expr_ref lhs(num(1), m());
+            expr_ref rhs(sq(e), m());
+            return mk_add(lhs, rhs);
         }
 
         app* inv(expr * e) { 
@@ -522,13 +539,14 @@ namespace nlarith {
                 apply_subst(sub, comps[j],  polys[j], t1); 
                 es.push_back(m().mk_implies(bc.preds(j), t1));
                 subst.push_back(t1);
-                TRACE("nlarith_verbose", 
+                TRACE(nlarith_verbose, 
                       display(tout << "inf", polys[j]); 
                       display(tout, comps[j]); 
                       tout << " 0 [-oo] --> " << mk_pp(t1.get(), m()) << "\n";);
             }
-            TRACE("nlarith", tout << "inf-branch\n";);
-            bc.add_branch(mk_and(es.size(), es.data()), m().mk_true(), subst, mk_inf(bc), z(), z(), z());
+            TRACE(nlarith, tout << "inf-branch\n";);
+            app* branch = mk_and(es.size(), es.data());
+            bc.add_branch(branch, m().mk_true(), subst, mk_inf(bc), z(), z(), z());
         }
 
         void create_branch_l(unsigned j, unsigned i, polys const& polys, comps const& comps, 
@@ -545,7 +563,7 @@ namespace nlarith {
             if (b != z()) {
                 sqrt_form e0(*this, mk_uminus(c), 0,   z(), b);
                 // a_i = 0 /\ b_i != 0 /\ phi[e_i/x]
-                TRACE("nlarith", display(tout << "a_i != 0 & b_i != 0 & hi[e_i / x]", p);tout<<"\n";);
+                TRACE(nlarith, display(tout << "a_i != 0 & b_i != 0 & hi[e_i / x]", p);tout<<"\n";);
                 scoped_ptr<expr_replacer> rp = mk_default_expr_replacer(m(), false);
                 expr_substitution sub(m());
                 sub.insert(a, z());
@@ -560,12 +578,13 @@ namespace nlarith {
                     es.push_back(m().mk_implies(bc.preds(k), t2));
                     subst.push_back(t1);
                 }
-                bc.add_branch(mk_and(es.size(), es.data()), cond, subst, mk_def(cmp, abc_poly(*this, z(), b, c), e0), a, b, c);
+                app* branch = mk_and(es.size(), es.data());
+                bc.add_branch(branch, cond, subst, mk_def(cmp, abc_poly(*this, z(), b, c), e0), a, b, c);
             }
 
             if (i == j && a != z()) {
                 // a != 0 & phi[-b/(2a)/x]
-                TRACE("nlarith", display(tout << "a != 0 & phi[-b/2a / x]", p);tout<<"\n";);
+                TRACE(nlarith, display(tout << "a != 0 & phi[-b/2a / x]", p);tout<<"\n";);
                 app* a2 = mk_mul(num(2), a);
                 sqrt_form e1(*this, mk_uminus(b), 0, z(), a2);
                 es.reset();
@@ -579,7 +598,8 @@ namespace nlarith {
                     es.push_back(m().mk_implies(bc.preds(k), t1));
                     subst.push_back(t1);
                 }
-                bc.add_branch(mk_and(es.size(), es.data()), cond, subst, mk_def(cmp, abc_poly(*this, a2, b, z()),e1), a, b, c);
+                app* branch = mk_and(es.size(), es.data());
+                bc.add_branch(branch, cond, subst, mk_def(cmp, abc_poly(*this, a2, b, z()),e1), a, b, c);
             }
         }
 
@@ -591,10 +611,12 @@ namespace nlarith {
             app_ref  t1(m()), a2(m()), d(m());
             expr_ref cond(m()), t2(m()), branch(m());
             expr_ref_vector es(m()), subst(m());
-            d = mk_sub(mk_mul(b,b), mk_mul(num(4), a, c));
+            app* bb = mk_mul(b, b);
+            app* four_ac = mk_mul(num(4), a, c);
+            d = mk_sub(bb, four_ac);
             a2 = mk_mul(a, num(2));            
 
-            TRACE("nlarith", 
+            TRACE(nlarith, 
                   display(tout, p); tout << "\n";
                   tout << "a:" << mk_pp(a, m()) << "\n";
                   tout << "b:" << mk_pp(b,m())  << "\n";
@@ -644,9 +666,9 @@ namespace nlarith {
                 }
                 branch = mk_and(es.size(), es.data());
                 bc.add_branch(branch, cond, subst, mk_def(cmp, abc_poly(*this, a, b, c), e1), a, b, c);
-                TRACE("nlarith", tout << mk_pp(branch,m()) << "\n";);
+                TRACE(nlarith, tout << mk_pp(branch,m()) << "\n";);
 
-                TRACE("nlarith", 
+                TRACE(nlarith, 
                       tout << "0 <= " << mk_pp(d,m()) << "\n";
                       tout << mk_pp(mk_ge(d), m()) << "\n";);
 
@@ -659,7 +681,7 @@ namespace nlarith {
                 }
                 branch = mk_and(es.size(), es.data());
                 bc.add_branch(branch, cond, subst, mk_def(cmp, abc_poly(*this, a, b, c), e2), a, b, c);
-                TRACE("nlarith", tout << mk_pp(branch,m()) << "\n";);
+                TRACE(nlarith, tout << mk_pp(branch,m()) << "\n";);
             }
         }        
 
@@ -675,7 +697,7 @@ namespace nlarith {
             else {
                 apply_subst(sub, c, p, r); 
             }
-            TRACE("nlarith_verbose", 
+            TRACE(nlarith_verbose, 
                   display(tout, p); 
                   display(tout, c); 
                   e.display(tout << " 0 "); 
@@ -700,7 +722,7 @@ namespace nlarith {
         bool is_degree_two_plus(polys const& ps) {
             for (unsigned i = 0; i < ps.size(); ++i) {
                 if (ps[i].size() > 3) {
-                    TRACE("nlarith", tout << "not second-degree: ";
+                    TRACE(nlarith, tout << "not second-degree: ";
                       display(tout, ps[i]); tout <<"\n"; );
                     return true;
                 }
@@ -796,7 +818,7 @@ namespace nlarith {
                 if (literals) {
                     literals->push_back(to_app(lits[i]));
                 }
-                TRACE("nlarith_verbose", 
+                TRACE(nlarith_verbose, 
                       tout << mk_pp(lits[i], m()) << " -> ";
                       display(tout, p); tout << "\n"; );
             }            
@@ -904,7 +926,7 @@ namespace nlarith {
                 mk_uminus(result);
                 return true;
             default:
-                TRACE("nlarith", tout << "Cannot decompose " << mk_pp(f, m()) << "\n" << mk_pp(e, m()) << "\n";);
+                TRACE(nlarith, tout << "Cannot decompose " << mk_pp(f, m()) << "\n" << mk_pp(e, m()) << "\n";);
                 return false;
             }
         }
@@ -951,7 +973,7 @@ namespace nlarith {
                 }
                 result.push_back(t);
             }
-            TRACE("nlarith_verbose", display(tout, r); display(tout <<" * ", other); display(tout << " = ", result); tout <<"\n";);
+            TRACE(nlarith_verbose, display(tout, r); display(tout <<" * ", other); display(tout << " = ", result); tout <<"\n";);
             r.reset();
             r.append(result.size(), result.data());
         }
@@ -1054,9 +1076,16 @@ namespace nlarith {
                    r = I.mk_lt(ad);
                 }
                 else {
-                    aabbc = I.mk_sub(I.mk_mul(a,a), I.mk_mul(b,b,c));
-                    r = I.mk_or(I.mk_and(I.mk_lt(ad), I.mk_gt(aabbc)),
-                                I.mk_and(I.mk_le(bd), I.mk_or(I.mk_lt(ad), I.mk_lt(aabbc))));
+                    app* aa = I.mk_mul(a, a);
+                    app* bbc = I.mk_mul(b, b, c);
+                    aabbc = I.mk_sub(aa, bbc);
+                    app* ad_lt = I.mk_lt(ad);
+                    app* aabbc_gt = I.mk_gt(aabbc);
+                    app* first = I.mk_and(ad_lt, aabbc_gt);
+                    app* bd_le = I.mk_le(bd);
+                    app* aabbc_lt = I.mk_lt(aabbc);
+                    app* second = I.mk_and(bd_le, I.mk_or(ad_lt, aabbc_lt));
+                    r = I.mk_or(first, second);
                 }
             }
 
@@ -1071,8 +1100,12 @@ namespace nlarith {
                     r = I.mk_eq(a);
                 }
                 else {
-                    aabbc = I.mk_sub(I.mk_mul(a, a), I.mk_mul(b, b, c));
-                    r = I.mk_and(I.mk_le(I.mk_mul(a, b)), I.mk_eq(aabbc));
+                    app* aa = I.mk_mul(a, a);
+                    app* bbc = I.mk_mul(b, b, c);
+                    aabbc = I.mk_sub(aa, bbc);
+                    app* ab_le = I.mk_le(I.mk_mul(a, b));
+                    app* aabbc_eq = I.mk_eq(aabbc);
+                    r = I.mk_and(ab_le, aabbc_eq);
                 }
             }
 
@@ -1091,9 +1124,16 @@ namespace nlarith {
                     r = I.mk_le(ad);
                 }
                 else {
-                    aabbc = I.mk_sub(I.mk_mul(a, a), I.mk_mul(b, b, c));
-                    r = I.mk_or(I.mk_and(I.mk_le(ad), I.mk_ge(aabbc)),
-                                I.mk_and(I.mk_le(bd), I.mk_le(aabbc)));
+                    app* aa = I.mk_mul(a, a);
+                    app* bbc = I.mk_mul(b, b, c);
+                    aabbc = I.mk_sub(aa, bbc);
+                    app* ad_le = I.mk_le(ad);
+                    app* aabbc_ge = I.mk_ge(aabbc);
+                    app* first = I.mk_and(ad_le, aabbc_ge);
+                    app* bd_le = I.mk_le(bd);
+                    app* aabbc_le = I.mk_le(aabbc);
+                    app* second = I.mk_and(bd_le, aabbc_le);
+                    r = I.mk_or(first, second);
                 }
             }
         };
@@ -1203,7 +1243,9 @@ namespace nlarith {
                     return e;
                 }
                 else {
-                    return I.mk_or(e, I.mk_and(I.mk_eq(t), mk_lt(p, i)));
+                    expr_ref lhs(I.mk_eq(t), m);
+                    expr_ref rhs(mk_lt(p, i), m);
+                    return I.mk_or(e, I.mk_and(lhs, rhs));
                 }            
             }
         public:
@@ -1233,7 +1275,9 @@ namespace nlarith {
                     return e;
                 }
                 else {
-                    return I.mk_or(e, I.mk_and(I.mk_eq(t), mk_lt(p, i)));
+                    app* eq = I.mk_eq(t);
+                    app* rest = mk_lt(p, i);
+                    return I.mk_or(e, I.mk_and(eq, rest));
                 }            
             }
         public:
@@ -1311,12 +1355,17 @@ namespace nlarith {
                 // = 
                 //   (d*dr*p[i] + a*ar + b*br*c + (a*br + ar*b)*sqrt(c))/d*dr
                 // 
-                app_ref tmp1(mk_add(mk_mul(d, dr, p[i]), mk_mul(a, ar), mk_mul(b, br, c)), m());
-                br = mk_add(mk_mul(a, br), mk_mul(ar, b));
+                app* term1 = mk_mul(d, dr, p[i]);
+                app* term2 = mk_mul(a, ar);
+                app* term3 = mk_mul(b, br, c);
+                app_ref tmp1(mk_add(term1, term2, term3), m());
+                term1 = mk_mul(a, br);
+                term2 = mk_mul(ar, b);
+                br = mk_add(term1, term2);
                 dr = mk_mul(d, dr);
                 ar = tmp1;
             }
-            TRACE("nlarith_verbose", 
+            TRACE(nlarith_verbose, 
                   display(tout, p);
                   s.display(tout << " ");
                   tout << " " << mk_pp(ar, m()) << " " << mk_pp(br, m()) << " " << mk_pp(dr, m()) << "\n";);
@@ -1453,7 +1502,7 @@ namespace nlarith {
             mk_sub(q1, u);
             for (unsigned i = 0; i < q1.size(); ++i) {
                 if (z() != q1[i].get()) {
-                    TRACE("nlarith", display(tout, q1););
+                    TRACE(nlarith, display(tout, q1););
                     return false;
                 }
             }
@@ -1823,13 +1872,25 @@ namespace nlarith {
 
             for (unsigned i = 0; i < lits.size(); ++i) {
                 if (lits.compare(i) == LT) {
-                    mk_bound_ext(lits.literal(i), lits.get_poly(i), p, lits.x_sup(), lits.x_inf(), conjs, new_atoms);
+                    {
+                        app_ref x_sup(lits.x_sup(), m());
+                        app_ref x_inf(lits.x_inf(), m());
+                        mk_bound_ext(lits.literal(i), lits.get_poly(i), p, x_sup, x_inf, conjs, new_atoms);
+                    }
                 }
             }
             // p'(x) < 0 -> r(y+epsilon) < 0 & r(z-epsilon) < 0
             // p'(x) > 0 -> r(y+epsilon) > 0 & r(z-epsilon) > 0
-            mk_bound_ext(p1_lt0, p1,   p, lits.x_sup(), lits.x_inf(), conjs, new_atoms);
-            mk_bound_ext(p1_gt0, p1_m, p, lits.x_sup(), lits.x_inf(), conjs, new_atoms);
+            {
+                app_ref x_sup(lits.x_sup(), m());
+                app_ref x_inf(lits.x_inf(), m());
+                mk_bound_ext(p1_lt0, p1, p, x_sup, x_inf, conjs, new_atoms);
+            }
+            {
+                app_ref x_sup(lits.x_sup(), m());
+                app_ref x_inf(lits.x_inf(), m());
+                mk_bound_ext(p1_gt0, p1_m, p, x_sup, x_inf, conjs, new_atoms);
+            }
             fml = mk_and(conjs.size(), conjs.data());
             simple_branch* br = alloc(simple_branch, m(), fml);
             swap_atoms(br, lits.lits(), new_atoms);
@@ -1953,8 +2014,8 @@ namespace nlarith {
             for (; i + 1 < mat.size(); i += 2) {
                 if (mat[i+1].contains(Zero)) {
                     if (i != j) {
-                        mat[j] = mat[i];
-                        mat[j+1] = mat[i+1];
+                        mat[j] = std::move(mat[i]);
+                        mat[j+1] = std::move(mat[i+1]);
                     }
                     j += 2;
                 }
@@ -2022,6 +2083,6 @@ namespace nlarith {
     void util::get_sign_branches(literal_set& lits, eval& ev, ptr_vector<branch>& branches) {
         m_imp->get_sign_branches(lits, ev, branches);
     }
-};
+}
 
 

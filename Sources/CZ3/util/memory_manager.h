@@ -55,6 +55,7 @@ public:
     static void set_high_watermark(size_t watermak);
     static bool above_high_watermark();
     static void set_max_size(size_t max_size);
+    static size_t get_max_size();
     static void set_max_alloc_count(size_t max_count);
     static void finalize(bool shutdown = true);
     static void display_max_usage(std::ostream& os);
@@ -72,10 +73,54 @@ public:
     static unsigned long long get_max_memory_size();
     // temporary hack to avoid out-of-memory crash in z3.exe
     static void exit_when_out_of_memory(bool flag, char const * msg);
+
+    /**
+       \brief Self-registration nodes used by Z3_ADD_INITIALIZER / Z3_ADD_FINALIZER below --
+       the ADD_INITIALIZER/ADD_FINALIZER analogue of gparams::module_registration (see
+       util/gparams.h for the rationale: each is instantiated as an `inline` global directly
+       in the header that needs early setup/teardown, and appending to these lists is safe
+       regardless of static-initialization order across translation units, since
+       memory::initialize()/finalize() are only ever invoked from application code, strictly
+       after every translation unit's static initializers have run.
+
+       Initializers additionally carry a priority (default 0, ascending order, ties broken by
+       an unspecified but stable order): e.g. gparams::init() must run after lower-level
+       modules like symbol have set themselves up, so it registers at priority 1.
+       Finalizers have no such ordering requirement today and run in an unspecified order.
+    */
+    struct initializer_registration {
+        typedef void (*fn_t)();
+        fn_t fn;
+        int priority;
+        initializer_registration * next;
+        initializer_registration(fn_t fn, int priority);
+    };
+    struct finalizer_registration {
+        typedef void (*fn_t)();
+        fn_t fn;
+        finalizer_registration * next;
+        explicit finalizer_registration(fn_t fn);
+    };
+
+private:
+    static initializer_registration * g_initializer_registrations;
+    static finalizer_registration * g_finalizer_registrations;
+    static void run_initializers();
+    static void run_finalizers();
 };
 
+// Registers a startup hook, run in ascending priority order (default 0) when
+// memory::initialize() first runs. TAG must be a bare identifier, unique in the
+// translation unit; FN a `void()` function (pointer).
+#define Z3_ADD_INITIALIZER(TAG, FN, PRIORITY) \
+  inline ::memory::initializer_registration g_z3_initializer_registration_##TAG(FN, PRIORITY)
 
-#if _DEBUG
+// Registers a shutdown hook, run when memory::finalize() first runs.
+#define Z3_ADD_FINALIZER(TAG, FN) \
+  inline ::memory::finalizer_registration g_z3_finalizer_registration_##TAG(FN)
+
+
+#if Z3DEBUG
 
 #define alloc(T,...) new (memory::allocate(__FILE__,__LINE__,#T, sizeof(T))) T(__VA_ARGS__)
 #define dealloc(_ptr_) deallocf(__FILE__,__LINE__,_ptr_)
@@ -155,6 +200,5 @@ inline std::ostream & operator<<(std::ostream & out, mem_stat const & m) {
     double mem = static_cast<double>(memory::get_allocation_size())/static_cast<double>(1024*1024);
     return out << std::fixed << std::setprecision(2) << mem;
 }
-
 
 

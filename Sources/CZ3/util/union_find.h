@@ -72,7 +72,7 @@ class union_find {
 
     void unmerge(unsigned r1) {
         unsigned r2 = m_find[r1];
-        TRACE("union_find", tout << "unmerging " << r1 << " " << r2 << "\n";);
+        TRACE(union_find, tout << "unmerging " << r1 << " " << r2 << "\n";);
         SASSERT(find(r2) == r2);
         m_size[r2] -= m_size[r1];
         m_find[r1]  = r1;
@@ -120,7 +120,7 @@ public:
     void merge(unsigned v1, unsigned v2) {
         unsigned r1 = find(v1);
         unsigned r2 = find(v2);
-        TRACE("union_find", tout << "merging " << r1 << " " << r2 << "\n";);
+        TRACE(union_find, tout << "merging " << r1 << " " << r2 << "\n";);
         if (r1 == r2)
             return;
         if (m_size[r1] > m_size[r2]) {
@@ -137,7 +137,7 @@ public:
     }
 
     void set_root(unsigned v, unsigned root) {
-        TRACE("union_find", tout << "merging " << v << " " << root << "\n";);
+        TRACE(union_find, tout << "merging " << v << " " << root << "\n";);
         SASSERT(v != root);
         m_find[v] = root;
         m_size[root] += m_size[v];
@@ -159,7 +159,7 @@ public:
 
     void display(std::ostream & out) const {
         unsigned num = get_num_vars(); 
-        for (unsigned v = 0; v < num; v++) {
+        for (unsigned v = 0; v < num; ++v) {
             out << "v" << v << " --> v" << m_find[v] << " (" << size(v) << ")\n";
         }
     }
@@ -167,7 +167,7 @@ public:
 #ifdef Z3DEBUG
     bool check_invariant() const {
         unsigned num = get_num_vars(); 
-        for (unsigned v = 0; v < num; v++) {
+        for (unsigned v = 0; v < num; ++v) {
             if (is_root(v)) {
                 unsigned curr = v;
                 unsigned sz   = 0;

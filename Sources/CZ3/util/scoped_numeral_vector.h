@@ -28,7 +28,7 @@ public:
 
     _scoped_numeral_vector(const _scoped_numeral_vector & other) : m_manager(other.m_manager) {
         for (unsigned i = 0, e = other.size(); i != e; ++i) {
-            push_back((*this)[i]);
+            push_back(other[i]);
         }
     }
 
@@ -40,7 +40,7 @@ public:
 
     void reset() {
         auto sz = this->size();
-        for (unsigned i = 0; i < sz; i++) {
+        for (unsigned i = 0; i < sz; ++i) {
             m().del(this->operator[](i));
         }
         svector<typename Manager::numeral>::reset();
@@ -61,7 +61,7 @@ public:
         unsigned old_sz = this->size();
         if (old_sz == sz)
             return;
-        for (unsigned i = sz; i < old_sz; i++)
+        for (unsigned i = sz; i < old_sz; ++i)
             m().del(this->operator[](i));
         svector<typename Manager::numeral>::shrink(sz);
     }

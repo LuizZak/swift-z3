@@ -20,7 +20,7 @@ Revision History:
 
 #include "smt/smt_types.h"
 #include "util/heap.h"
-#include "smt/params/smt_params.h"
+#include "params/smt_params.h"
 
 namespace smt {
     class context;
@@ -52,6 +52,6 @@ namespace smt {
     };
 
     case_split_queue * mk_case_split_queue(context & ctx, smt_params & p);
-};
+}
 
 

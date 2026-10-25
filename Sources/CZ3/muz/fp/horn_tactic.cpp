@@ -160,13 +160,13 @@ class horn_tactic : public tactic {
             }
             if (head) {
                 if (!is_implication(f)) {
-                    f = m.mk_and(body.size(), body.data());
+                    f = m.mk_and(body);
                     f = m.mk_implies(f, head);
                 }
                 return IS_RULE;
             }
             else {
-                f = m.mk_and(body.size(), body.data());
+                f = m.mk_and(body);
                 return IS_QUERY;
             }
         }
@@ -198,7 +198,7 @@ class horn_tactic : public tactic {
             m_ctx.reset();
             m_ctx.ensure_opened();
 
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 f = g->form(i);
                 formula_kind k = get_formula_kind(f);
                 switch(k) {
@@ -210,7 +210,7 @@ class horn_tactic : public tactic {
                     break;
                 default:
                     msg << "formula is not in Horn fragment: " << mk_pp(g->form(i), m) << "\n";
-                    TRACE("horn", tout << msg.str(););
+                    TRACE(horn, tout << msg.str(););
                     throw tactic_exception(msg.str());
                 }
             }
@@ -267,15 +267,12 @@ class horn_tactic : public tactic {
             switch (is_reachable) {
             case l_true: {
                 // goal is unsat
-                if (!m_ctx.is_monotone()) {
-                    is_reachable = l_undef;
-                }
-                else if (produce_proofs) {
+                if (m_ctx.is_monotone() && produce_proofs) {
                     proof_ref proof = m_ctx.get_proof();
                     pc = proof2proof_converter(m, proof);
                     g->assert_expr(m.get_fact(proof), proof, nullptr);
                 }
-                else {
+                else if (m_ctx.is_monotone()) {
                     g->assert_expr(m.mk_false());
                 }
                 break;
@@ -287,7 +284,7 @@ class horn_tactic : public tactic {
                     model_ref md = m_ctx.get_model();
                     model_converter_ref mc2 = model2model_converter(md.get());
                     mc = mc2.get();
-                    TRACE("dl", mc->display(tout << *md << "\n"););
+                    TRACE(dl, mc->display(tout << *md << "\n"););
                 }
                 break;
             }

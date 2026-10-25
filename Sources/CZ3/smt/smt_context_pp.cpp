@@ -148,7 +148,7 @@ namespace smt {
 
     void context::display_watch_lists(std::ostream & out) const {
         unsigned s = m_watches.size();
-        for (unsigned l_idx = 0; l_idx < s; l_idx++) {
+        for (unsigned l_idx = 0; l_idx < s; ++l_idx) {
             literal l = to_literal(l_idx);
             display_watch_list(out, l);
             out << "\n";
@@ -164,7 +164,7 @@ namespace smt {
 
     void context::display_bool_var_defs(std::ostream & out) const {
         unsigned num = get_num_bool_vars();
-        for (unsigned v = 0; v < num; v++) {
+        for (unsigned v = 0; v < num; ++v) {
             expr * n = m_bool_var2expr[v];
             ast_def_ll_pp(out << v << " ", m, n, get_pp_visited(), true, false);
         }
@@ -292,7 +292,7 @@ namespace smt {
         if (!m_e_internalized_stack.empty()) {
             out << "expression -> enode:\n";
             unsigned sz = m_e_internalized_stack.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 expr *  n = m_e_internalized_stack.get(i);
                 out << "(#" << n->get_id() << " -> e!" << i << ") ";
             }
@@ -304,7 +304,7 @@ namespace smt {
         if (!m_b_internalized_stack.empty()) {
             out << "expression -> bool_var:\n";
             unsigned sz = m_b_internalized_stack.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 expr *  n  = m_b_internalized_stack.get(i);
                 bool_var v = get_bool_var_of_id(n->get_id());
                 out << "(#" << n->get_id() << " -> " << literal(v, false) << ") ";
@@ -316,7 +316,7 @@ namespace smt {
     void context::display_hot_bool_vars(std::ostream & out) const {
         out << "hot bool vars:\n";
         unsigned num = get_num_bool_vars();
-        for (bool_var v = 0; v < num; v++) {
+        for (bool_var v = 0; v < num; ++v) {
             double val = get_activity(v)/m_bvar_inc;
             if (val > 10.00) {
                 expr * n = m_b_internalized_stack.get(v);
@@ -423,6 +423,7 @@ namespace smt {
         st.update("minimized lits", m_stats.m_num_minimized_lits);
         st.update("num checks", m_stats.m_num_checks);
         st.update("mk bool var", m_stats.m_num_mk_bool_var ? m_stats.m_num_mk_bool_var - 1 : 0);
+        st.update("random seed", m_fparams.m_random_seed);
         m_qmanager->collect_statistics(st);
         m_asserted_formulas.collect_statistics(st);
         for (theory* th : m_theory_set) {
@@ -447,7 +448,7 @@ namespace smt {
         expr_ref_vector fmls(m);
         visitor.collect(fmls);
         expr_ref n(m);
-        for (unsigned i = 0; i < num_antecedents; i++) {
+        for (unsigned i = 0; i < num_antecedents; ++i) {
             literal l = antecedents[i];
             literal2expr(l, n);
             fmls.push_back(std::move(n));
@@ -468,7 +469,7 @@ namespace smt {
     unsigned context::display_lemma_as_smt_problem(unsigned num_antecedents, literal const * antecedents, literal consequent, symbol const& logic) const {
         std::string name = mk_lemma_name();
         std::ofstream out(name);
-        TRACE("lemma", tout << name << "\n";);
+        TRACE(lemma, tout << name << "\n";);
         display_lemma_as_smt_problem(out, num_antecedents, antecedents, consequent, logic);
         out.close();
         return m_lemma_id;
@@ -481,14 +482,14 @@ namespace smt {
         expr_ref_vector fmls(m);
         visitor.collect(fmls);
         expr_ref n(m);
-        for (unsigned i = 0; i < num_antecedents; i++) {
+        for (unsigned i = 0; i < num_antecedents; ++i) {
             literal l = antecedents[i];
             literal2expr(l, n);
             fmls.push_back(n);
         }
-        for (unsigned i = 0; i < num_eq_antecedents; i++) {
-            enode_pair const & p = eq_antecedents[i];
-            n = m.mk_eq(p.first->get_expr(), p.second->get_expr());
+        for (unsigned i = 0; i < num_eq_antecedents; ++i) {
+            auto const& [n1, n2] = eq_antecedents[i];
+            n = m.mk_eq(n1->get_expr(), n2->get_expr());
             fmls.push_back(n);
         }
         if (x && y) {
@@ -524,7 +525,7 @@ namespace smt {
                                                literal consequent, symbol const& logic) const {
         std::string name = mk_lemma_name();
         std::ofstream out(name);
-        TRACE("lemma", tout << name << "\n";
+        TRACE(lemma, tout << name << "\n";
               display_lemma_as_smt_problem(tout, num_antecedents, antecedents, num_eq_antecedents, eq_antecedents, consequent, logic);
               );
         display_lemma_as_smt_problem(out, num_antecedents, antecedents, num_eq_antecedents, eq_antecedents, consequent, logic);
@@ -544,14 +545,14 @@ namespace smt {
             out << std::left << n->get_owner_id() << " #";
             out.width(5);
             out << n->get_root()->get_owner_id() << " := " << std::right;
-            unsigned num = n->get_expr()->get_num_args();
+            unsigned num = n->get_num_args();
             if (num > 0)
                 out << "(";
             out << n->get_decl()->get_name();
             if (!n->get_decl()->private_parameters())
                 display_parameters(out, n->get_decl()->get_num_parameters(), n->get_decl()->get_parameters());
-            for (unsigned i = 0; i < num; i++) {
-                expr * arg = n->get_expr()->get_arg(i);
+            for (unsigned i = 0; i < num; ++i) {
+                expr * arg = n->get_arg(i)->get_expr();
                 if (e_internalized(arg)) {
                     enode * n = get_enode(arg)->get_root();
                     out << " #" << n->get_owner_id();
@@ -643,9 +644,6 @@ namespace smt {
             display_literals_smt2(out, lits);
             break;
         }
-        default:
-            UNREACHABLE();
-            break;
         }
         return out << "\n";
     }
@@ -671,9 +669,6 @@ namespace smt {
             out << lits;
             break;
         }
-        default:
-            UNREACHABLE();
-            break;
         }
         return out << "\n";
     }
@@ -697,7 +692,8 @@ namespace smt {
     }
 
     std::ostream& operator<<(std::ostream& out, enode_eq_pp const& p) {
-        return out << enode_pp(p.p.first, p.ctx) << " = " << enode_pp(p.p.second, p.ctx) << "\n";
+        auto const& [n1, n2] = p.p;
+        return out << enode_pp(n1, p.ctx) << " = " << enode_pp(n2, p.ctx) << "\n";
     }
 
     void context::log_stats() {
@@ -724,8 +720,11 @@ namespace smt {
              << std::setw(5) << (m_aux_clauses.size() + bin_clauses) << '/' << bin_clauses << '/' << num_units() << ' '
              << std::setw(7) << m_lemmas.size() << '/' << bin_lemmas << ' '
              << std::setw(5) << m_stats.m_num_simplifications << ' '
-             << std::setw(4) << m_stats.m_num_del_clauses << ' '
-             << std::setw(7) << mem_stat() << ")\n";
+             << std::setw(4) << m_stats.m_num_del_clauses;
+        if (!get_suppress_platform_verbose()) {
+            strm << ' ' << std::setw(7) << mem_stat();
+        }
+        strm << ")\n";
 
         std::string str = std::move(strm).str();
         svector<size_t> offsets;
@@ -784,5 +783,5 @@ namespace smt {
         IF_VERBOSE(2, verbose_stream() << str);
     }
 
-};
+}
 

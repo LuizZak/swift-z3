@@ -20,6 +20,7 @@ Notes:
 #include "ast/ast_ll_pp.h"
 #include "ast/pb_decl_plugin.h"
 #include "ast/arith_decl_plugin.h"
+#include "ast/recfun_decl_plugin.h"
 #include "ast/rewriter/rewriter_def.h"
 #include "ast/rewriter/expr_safe_replace.h"
 #include "ast/ast_util.h"
@@ -84,7 +85,7 @@ class lia2card_tactic : public tactic {
             else {
                 return BR_FAILED;
             }
-            TRACE("pbsum", tout << expr_ref(m.mk_app(f, sz, es), m) << " ==>\n" <<  result << "\n";);
+            TRACE(pbsum, tout << expr_ref(m.mk_app(f, sz, es), m) << " ==>\n" <<  result << "\n";);
 
             return BR_DONE;
         }
@@ -163,7 +164,9 @@ public:
 
             expr_ref v(m.mk_fresh_const(x->get_decl()->get_name(), m.mk_bool_sort()), m);
             if (last_v) axioms.push_back(m.mk_implies(v, last_v));
-            xs.push_back(m.mk_ite(v, a.mk_int(1), a.mk_int(0)));
+            expr_ref one(a.mk_int(1), m);
+            expr_ref zero(a.mk_int(0), m);
+            xs.push_back(m.mk_ite(v, one, zero));
             m_mc->hide(v);
             last_v = v;
         }
@@ -185,6 +188,10 @@ public:
         expr_safe_replace rep(m);
 
         tactic_report report("lia2card", *g);
+        if (recfun::util(m).has_rec_defs()) {
+            result.push_back(g.get());
+            return;
+        }
 
         bound_manager bounds(m);
         for (unsigned i = 0; i < g->size(); ++i)
@@ -202,10 +209,10 @@ public:
                 expr_ref b = mk_bounded(axioms, to_app(x), lo.get_unsigned(), hi.get_unsigned());
                 rep.insert(x, b);
                 m_bounds.insert(x, bound(lo.get_unsigned(), hi.get_unsigned(), b));
-                TRACE("pb", tout << "add bound " << lo << " " << hi << ": " << mk_pp(x, m) << "\n";);
+                TRACE(pb, tout << "add bound " << lo << " " << hi << ": " << mk_pp(x, m) << "\n";);
             }
         }
-        for (unsigned i = 0; !g->inconsistent() && i < g->size(); i++) {
+        for (unsigned i = 0; !g->inconsistent() && i < g->size(); ++i) {
             checkpoint();
 
             expr_ref   new_curr(m), tmp(m);
@@ -260,7 +267,9 @@ public:
             return m_pb.mk_eq(sz, weights, args, w);
         }
         else {
-            return m.mk_and(mk_ge(sz, weights, args, w), mk_le(sz, weights, args, w));
+            expr_ref ge(mk_ge(sz, weights, args, w), m);
+            expr_ref le(mk_le(sz, weights, args, w), m);
+            return m.mk_and(ge, le);
         }
     }
 
@@ -330,7 +339,7 @@ public:
             conds.pop_back();
         }
         else {
-            TRACE("pb", tout << "Can't handle " << mk_pp(x, m) << "\n";);
+            TRACE(pb, tout << "Can't handle " << mk_pp(x, m) << "\n";);
             ok = false;
         }
         return ok;
@@ -341,7 +350,7 @@ public:
         if (!m.is_true(e)) {
             es.push_back(e);
         }
-        result = mk_and(m, es.size(), es.data());
+        result = mk_and(es);
         if (!m.is_true(e)) {
             es.pop_back();
         }

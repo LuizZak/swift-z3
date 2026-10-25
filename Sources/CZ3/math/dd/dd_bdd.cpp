@@ -285,10 +285,9 @@ namespace dd {
             return cnf_size(m_cost_bdd);
         case dnf_cost:
             return dnf_size(m_cost_bdd);
-        default:
-            UNREACHABLE();
-            return 0;
         }
+        UNREACHABLE();
+        return 0;
     }
 
     bool bdd_manager::is_bad_cost(double current_cost, double best_cost) const {
@@ -305,7 +304,7 @@ namespace dd {
             goto go_down;
         }
     go_up:
-        TRACE("bdd", tout << "sift up " << lvl << "\n";);
+        TRACE(bdd, tout << "sift up " << lvl << "\n";);
         while (lvl < max_lvl) {
             sift_up(lvl++);
             double cost = current_cost();
@@ -326,7 +325,7 @@ namespace dd {
             return;
         }
     go_down:
-        TRACE("bdd", tout << "sift down " << lvl << "\n";);
+        TRACE(bdd, tout << "sift down " << lvl << "\n";);
         while (lvl > 0) {
             sift_up(--lvl);
             double cost = current_cost();
@@ -370,7 +369,7 @@ namespace dd {
                 reorder_decref(h);            
                 m_T.push_back(n);
             }
-            TRACE("bdd", tout << "remove " << n << "\n";);
+            TRACE(bdd, tout << "remove " << n << "\n";);
             m_node_table.remove(m_nodes[n]);
         }
         m_level2nodes[lvl + 1].reset();
@@ -384,7 +383,7 @@ namespace dd {
                 m_to_free.push_back(n);
             }
             else {
-                TRACE("bdd", tout << "set level " << n << " to " << lvl + 1 << "\n";);
+                TRACE(bdd, tout << "set level " << n << " to " << lvl + 1 << "\n";);
                 m_node_table.insert(node);
                 m_level2nodes[lvl + 1].push_back(n);
             }
@@ -435,7 +434,7 @@ namespace dd {
             m_nodes[n].m_hi = bd;
             reorder_incref(ac);
             reorder_incref(bd);
-            TRACE("bdd", tout << "transform " << n << " " << " " << a << " " << b << " " << c << " " << d << " " << ac << " " << bd << "\n";);
+            TRACE(bdd, tout << "transform " << n << " " << " " << a << " " << b << " " << c << " " << d << " " << ac << " " << bd << "\n";);
             m_node_table.insert(m_nodes[n]);
         }
         unsigned v = m_level2var[lvl];
@@ -467,7 +466,7 @@ namespace dd {
                 }
             }
         }
-        TRACE("bdd", tout << "sift " << lvl << "\n"; display(tout); );
+        TRACE(bdd, tout << "sift " << lvl << "\n"; display(tout); );
         DEBUG_CODE(
             for (unsigned i = 0; i < m_level2nodes.size(); ++i) {
                 for (unsigned n : m_level2nodes[i]) {
@@ -476,7 +475,7 @@ namespace dd {
                 }
             });
         
-        TRACE("bdd", 
+        TRACE(bdd, 
               for (unsigned i = 0; i < m_nodes.size(); ++i) {
                 if (m_reorder_rc[i] != 0) {
                     tout << i << " " << m_reorder_rc[i] << "\n";
@@ -503,7 +502,7 @@ namespace dd {
             reorder_incref(n.m_lo);
             reorder_incref(n.m_hi);
         }
-        TRACE("bdd",
+        TRACE(bdd,
               display(tout);
               for (unsigned i = 0; i < sz; ++i) {
                   bdd_node const& n = m_nodes[i];

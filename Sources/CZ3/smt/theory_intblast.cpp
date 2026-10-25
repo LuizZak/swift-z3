@@ -35,17 +35,15 @@ namespace smt {
         bv(m),
         a(m)
     {}
-    
-    theory_intblast::~theory_intblast() {}
-        
-    final_check_status theory_intblast::final_check_eh() {
+
+    final_check_status theory_intblast::final_check_eh(unsigned) {
         for (auto e : m_translator.bv2int()) {
             auto* n = ctx.get_enode(e);
             auto* r1 = n->get_arg(0)->get_root();
             for (auto sib : *n) {
                 if (sib == n)
                     continue;
-                if (!bv.is_bv2int(sib->get_expr()))
+                if (!bv.is_ubv2int(sib->get_expr()))
                     continue;
                 if (sib->get_arg(0)->get_root() == r1)
                     continue;
@@ -64,7 +62,7 @@ namespace smt {
         for (auto e : m_translator.int2bv()) {
             auto n = ctx.get_enode(e);
             auto x = n->get_arg(0)->get_expr();
-            auto bv2int = bv.mk_bv2int(e);
+            auto bv2int = bv.mk_ubv2int(e);
             ctx.internalize(bv2int, false);
             auto N = rational::power_of_two(bv.get_bv_size(e));
             auto xModN = a.mk_mod(x, a.mk_int(N));
@@ -119,13 +117,33 @@ namespace smt {
         return true;
     }
 
+    bool theory_intblast::add_bv2int_axioms() {
+        auto const& bv2int = m_translator.bv2int();
+        if (m_bv2int_qhead == bv2int.size())
+            return false;
+        ctx.push_trail(value_trail(m_bv2int_qhead));
+        for (; m_bv2int_qhead < bv2int.size(); ++m_bv2int_qhead) {
+            app* e = bv2int[m_bv2int_qhead];
+            expr_ref r(m_translator.translated(e), m);
+            if (r.get() == e)
+                continue;
+            ctx.get_rewriter()(r);
+            auto eq = mk_eq(e, r, false);
+            ctx.mark_as_relevant(eq);
+            ctx.mk_th_axiom(m_id, 1, &eq);
+        }
+        return true;
+    }
+
     bool theory_intblast::can_propagate() {
-        return m_preds_qhead < m_translator.preds().size() || m_vars_qhead < m_translator.vars().size();
+        return m_preds_qhead < m_translator.preds().size() || m_vars_qhead < m_translator.vars().size() ||
+               m_bv2int_qhead < m_translator.bv2int().size();
     }
 
     void theory_intblast::propagate() {
         add_bound_axioms();
         add_predicate_axioms();
+        add_bv2int_axioms();
     }
     
     bool theory_intblast::internalize_atom(app * atom, bool gate_ctx) {
@@ -135,7 +153,7 @@ namespace smt {
     void theory_intblast::apply_sort_cnstr(enode* n, sort* s) {
         SASSERT(bv.is_bv_sort(s));
         if (!is_attached_to_var(n)) {
-            m_translator.internalize_bv(n->get_expr());
+            m_translator.internalize_bv(n->get_app());
             auto v = mk_var(n);
             ctx.attach_th_var(n, this, v);
         }
@@ -164,6 +182,20 @@ namespace smt {
     
     void theory_intblast::internalize_eq_eh(app * atom, bool_var v) {
         m_translator.translate_eq(atom);
+    }
+
+    void theory_intblast::new_eq_eh(theory_var v1, theory_var v2) {
+        expr* x = get_enode(v1)->get_expr();
+        expr* y = get_enode(v2)->get_expr();
+        if (!bv.is_bv(x) || !bv.is_bv(y))
+            return;
+        expr_ref eq(m.mk_eq(x, y), m);
+        m_translator.translate_eq(eq);
+        auto lit1 = mk_literal(eq);
+        auto lit2 = mk_literal(m_translator.translated(eq));
+        ctx.mark_as_relevant(lit1);
+        ctx.mark_as_relevant(lit2);
+        ctx.mk_th_axiom(m_id, ~lit1, lit2);
     }
 
     void theory_intblast::init_model(model_generator& mg) {

@@ -189,7 +189,7 @@ namespace datalog {
     void compiler::make_add_unbound_column(rule* compiled_rule, unsigned col_idx, func_decl* pred, reg_idx src, const relation_sort& s, reg_idx & result,
             bool & dealloc, instruction_block & acc) {
         
-        TRACE("dl", tout << "Adding unbound column " << mk_pp(pred, m_context.get_manager()) 
+        TRACE(dl, tout << "Adding unbound column " << mk_pp(pred, m_context.get_manager()) 
               << " " << m_context.get_rel_context()->get_rmanager().to_nice_string(s) << "\n";);
             IF_VERBOSE(3, { 
                     expr_ref e(m_context.get_manager()); 
@@ -219,7 +219,7 @@ namespace datalog {
     void compiler::make_full_relation(func_decl* pred, const relation_signature & sig, reg_idx & result, 
             instruction_block & acc) {
         SASSERT(sig.empty());
-        TRACE("dl", tout << "Adding unbound column " << mk_pp(pred, m_context.get_manager()) << "\n";);
+        TRACE(dl, tout << "Adding unbound column " << mk_pp(pred, m_context.get_manager()) << "\n";);
         if (m_empty_tables_registers.find(pred, result))
             return;
 
@@ -240,7 +240,7 @@ namespace datalog {
         }
         else {
             unsigned_vector removed_cols;
-            for(unsigned i=0; i<src_col_cnt; i++) {
+            for(unsigned i=0; i<src_col_cnt; ++i) {
                 if(i!=col) {
                     removed_cols.push_back(i);
                 }
@@ -271,7 +271,7 @@ namespace datalog {
         bool & dealloc,
         instruction_block & acc) {
 
-        TRACE("dl", tout << mk_pp(head_pred, m_context.get_manager()) << "\n";);
+        TRACE(dl, tout << mk_pp(head_pred, m_context.get_manager()) << "\n";);
 
         unsigned col_cnt = acis0.size();
         reg_idx curr = src;
@@ -292,7 +292,7 @@ namespace datalog {
 
         //first remove unused source columns
         int_set referenced_src_cols;
-        for(unsigned i=0; i<col_cnt; i++) {
+        for(unsigned i=0; i<col_cnt; ++i) {
             if(acis[i].kind==ACK_BOUND_VAR) {
                 SASSERT(acis[i].source_column<src_col_cnt); //we refer only to existing columns
                 referenced_src_cols.insert(acis[i].source_column);
@@ -304,7 +304,7 @@ namespace datalog {
         unsigned_vector new_src_col_offset;
 
         unsigned_vector src_cols_to_remove;
-        for(unsigned i=0; i<src_col_cnt; i++) {
+        for(unsigned i=0; i<src_col_cnt; ++i) {
             if(!referenced_src_cols.contains(i)) {
                 src_cols_to_remove.push_back(i);
             }
@@ -316,7 +316,7 @@ namespace datalog {
             curr_sig = & m_reg_signatures[curr];
 
             //update ACK_BOUND_VAR references
-            for(unsigned i=0; i<col_cnt; i++) {
+            for(unsigned i=0; i<col_cnt; ++i) {
                 if(acis[i].kind==ACK_BOUND_VAR) {
                     unsigned col = acis[i].source_column;
                     acis[i].source_column = col-new_src_col_offset[col];
@@ -325,7 +325,7 @@ namespace datalog {
         }
 
         //convert all result columns into bound variables by extending the source table
-        for(unsigned i=0; i<col_cnt; i++) {
+        for(unsigned i=0; i<col_cnt; ++i) {
             if(acis[i].kind==ACK_BOUND_VAR) {
                 continue;
             }
@@ -337,7 +337,7 @@ namespace datalog {
                 }
                 else {
                     SASSERT(acis[i].kind==ACK_UNBOUND_VAR);
-                    TRACE("dl", tout << head_pred->get_name() << " index: " << i 
+                    TRACE(dl, tout << head_pred->get_name() << " index: " << i 
                           << " " << m_context.get_rel_context()->get_rmanager().to_nice_string(acis[i].domain) << "\n";);
                     make_add_unbound_column(compiled_rule, i, head_pred, curr, acis[i].domain, curr, dealloc, acc);
                     handled_unbound.insert(acis[i].var_index,bound_column_index);
@@ -352,7 +352,7 @@ namespace datalog {
 
         //duplicate needed source columns
         int_set used_cols;
-        for(unsigned i=0; i<col_cnt; i++) {
+        for(unsigned i=0; i<col_cnt; ++i) {
             SASSERT(acis[i].kind==ACK_BOUND_VAR);
             unsigned col=acis[i].source_column;
             if(!used_cols.contains(col)) {
@@ -369,7 +369,7 @@ namespace datalog {
 
         //reorder source columns to match target
         SASSERT(curr_sig->size()==col_cnt); //now the intermediate table is a permutation
-        for(unsigned i=0; i<col_cnt; i++) {
+        for(unsigned i=0; i<col_cnt; ++i) {
             if(acis[i].source_column==i) {
                 continue;
             }
@@ -387,7 +387,6 @@ namespace datalog {
 
             make_rename(curr, permutation.size(), permutation.data(), curr, dealloc, acc);
             dealloc = true;
-            curr_sig = & m_reg_signatures[curr];
         }
 
         if(curr==execution_context::void_register) {
@@ -404,7 +403,7 @@ namespace datalog {
             unsigned_vector & res) {
         // TODO: this can be optimized to avoid renames in some cases
         unsigned n = t->get_num_args();
-        for(unsigned i = 0; i<n; i++) {
+        for(unsigned i = 0; i<n; ++i) {
             expr * e = t->get_arg(i);
             if (is_var(e) && globals.get(to_var(e)->get_idx()) > 0) {
               globals.update(to_var(e)->get_idx(), -1);
@@ -427,9 +426,8 @@ namespace datalog {
             counter_tail.count_vars(r->get_tail(i));
           }
 
-          rule_counter::iterator I = counter_tail.begin(), E = counter_tail.end();
-          for (; I != E; ++I) {
-            int& n = counter.get(I->m_key);
+          for (auto const& kv : counter_tail) {
+            int& n = counter.get(kv.m_key);
             if (n == 0)
               n = -1;
           }
@@ -456,7 +454,7 @@ namespace datalog {
         unsigned head_len = h->get_num_args();
         func_decl * head_pred = h->get_decl();
 
-        TRACE("dl", r->display(m_context, tout); );
+        TRACE(dl, r->display(m_context, tout); );
 
         unsigned pt_len = r->get_positive_tail_size();
         SASSERT(pt_len<=2); //we require rules to be processed by the mk_simple_joins rule transformer plugin
@@ -495,7 +493,7 @@ namespace datalog {
             unsigned rem_index = 0;
             unsigned rem_sz = removed_cols.size();
             unsigned a1len=a1->get_num_args();
-            for(unsigned i=0; i<a1len; i++) {
+            for(unsigned i=0; i<a1len; ++i) {
                 SASSERT(rem_index==rem_sz || removed_cols[rem_index]>=i);
                 if(rem_index<rem_sz && removed_cols[rem_index]==i) {
                     rem_index++;
@@ -505,7 +503,7 @@ namespace datalog {
             }
             second_tail_arg_ofs = single_res_expr.size();
             unsigned a2len=a2->get_num_args();
-            for(unsigned i=0; i<a2len; i++) {
+            for(unsigned i=0; i<a2len; ++i) {
                 SASSERT(rem_index==rem_sz || removed_cols[rem_index]>=i+a1len);
                 if(rem_index<rem_sz && removed_cols[rem_index]==i+a1len) {
                     rem_index++;
@@ -524,7 +522,7 @@ namespace datalog {
             SASSERT(m_reg_signatures[single_res].size() == a->get_num_args());
 
             unsigned n=a->get_num_args();
-            for(unsigned i=0; i<n; i++) {
+            for(unsigned i=0; i<n; ++i) {
                 expr * arg = a->get_arg(i);
                 if(is_app(arg)) {
                     app * c = to_app(arg); //argument is a constant
@@ -557,7 +555,7 @@ namespace datalog {
             //enforce equality to constants
             unsigned srlen=single_res_expr.size();
             SASSERT((single_res==execution_context::void_register) ? (srlen==0) : (srlen==m_reg_signatures[single_res].size()));
-            for(unsigned i=0; i<srlen; i++) {
+            for(unsigned i=0; i<srlen; ++i) {
                 expr * exp = single_res_expr[i].get();
                 if(is_app(exp)) {
                     SASSERT(m_context.get_decl_util().is_numeral_ext(exp));
@@ -577,11 +575,8 @@ namespace datalog {
         }
 
         //enforce equality of columns
-        int2ints::iterator vit=var_indexes.begin();
-        int2ints::iterator vend=var_indexes.end();
-        for(; vit!=vend; ++vit) {
-            int2ints::key_data & k = *vit;
-            unsigned_vector & indexes = k.m_value;
+        for (auto& kv : var_indexes) {
+            unsigned_vector & indexes = kv.m_value;
             if(indexes.size()==1) {
                 continue;
             }
@@ -625,7 +620,7 @@ namespace datalog {
                 } else {
                     // we have an unbound variable, so we add an unbound column for it
                     relation_sort unbound_sort = m_free_vars[v];
-                    TRACE("dl", tout << "unbound: " << v << "\n" << filter_cond << " " << mk_pp(unbound_sort, m) << "\n";);
+                    TRACE(dl, tout << "unbound: " << v << "\n" << filter_cond << " " << mk_pp(unbound_sort, m) << "\n";);
                     make_add_unbound_column(r, 0, head_pred, filtered_res, unbound_sort, filtered_res, dealloc, acc);
 
                     src_col = single_res_expr.size();
@@ -646,7 +641,7 @@ namespace datalog {
         }
 
         //enforce negative predicates
-        for (unsigned i = pt_len; i<ut_len; i++) {
+        for (unsigned i = pt_len; i<ut_len; ++i) {
             app * neg_tail = r->get_tail(i);
             func_decl * neg_pred = neg_tail->get_decl();
             variable_intersection neg_intersection(m_context.get_manager());
@@ -655,7 +650,7 @@ namespace datalog {
             unsigned_vector neg_cols(neg_intersection.size(), neg_intersection.get_cols2());
 
             unsigned neg_len = neg_tail->get_num_args();
-            for (unsigned i = 0; i<neg_len; i++) {
+            for (unsigned i = 0; i<neg_len; ++i) {
                 expr * e = neg_tail->get_arg(i);
                 if (is_var(e)) {
                     continue;
@@ -681,20 +676,19 @@ namespace datalog {
 
         // enforce interpreted tail predicates
         if (!tail.empty()) {
-            app_ref filter_cond(tail.size() == 1 ? to_app(tail.back()) : m.mk_and(tail.size(), tail.data()), m);
+            app_ref filter_cond(tail.size() == 1 ? to_app(tail.back()) : m.mk_and(tail), m);
 
             // check if there are any columns to remove
             unsigned_vector remove_columns;
             {
                 unsigned_vector var_idx_to_remove;
                 m_free_vars(r->get_head());
-                for (int2ints::iterator I = var_indexes.begin(), E = var_indexes.end();
-                    I != E; ++I) {
-                    unsigned var_idx = I->m_key;
+                for (auto const& kv : var_indexes) {
+                    unsigned var_idx = kv.m_key;
                     if (!m_free_vars.contains(var_idx)) {
-                        unsigned_vector & cols = I->m_value;
-                        for (unsigned i = 0; i < cols.size(); ++i) {
-                            remove_columns.push_back(cols[i]);
+                        unsigned_vector const& cols = kv.m_value;
+                        for (unsigned col : cols) {
+                            remove_columns.push_back(col);
                         }
                         var_idx_to_remove.push_back(var_idx);
                     }
@@ -715,9 +709,8 @@ namespace datalog {
                         }
                     }
 
-                    for (int2ints::iterator I = var_indexes.begin(), E = var_indexes.end();
-                    I != E; ++I) {
-                        unsigned_vector & cols = I->m_value;
+                    for (auto& kv : var_indexes) {
+                        unsigned_vector & cols = kv.m_value;
                         for (unsigned i = 0; i < cols.size(); ++i) {
                             cols[i] -= offsets[cols[i]];
                         }
@@ -743,7 +736,7 @@ namespace datalog {
         // since it constraints each unbound column at a time (reducing the
         // size of intermediate results).
         unsigned ft_len=r->get_tail_size(); //full tail
-        for(unsigned tail_index=ut_len; tail_index<ft_len; tail_index++) {
+        for(unsigned tail_index=ut_len; tail_index<ft_len; ++tail_index) {
             app * t = r->get_tail(tail_index);
             m_free_vars(t);
             
@@ -778,7 +771,7 @@ namespace datalog {
                     relation_sort unbound_sort = m_free_vars[v];
 
                     reg_idx new_reg;
-                    TRACE("dl", tout << mk_pp(head_pred, m_context.get_manager()) << "\n";);
+                    TRACE(dl, tout << mk_pp(head_pred, m_context.get_manager()) << "\n";);
                     bool new_dealloc;
                     make_add_unbound_column(r, 0, head_pred, filtered_res, unbound_sort, new_reg, new_dealloc, acc);
 
@@ -814,7 +807,7 @@ namespace datalog {
             relation_signature & head_sig = m_reg_signatures[head_reg];
             svector<assembling_column_info> head_acis;
             unsigned_vector head_src_cols;
-            for(unsigned i=0; i<head_len; i++) {
+            for(unsigned i=0; i<head_len; ++i) {
                 assembling_column_info aci;
                 aci.domain=head_sig[i];
 
@@ -895,14 +888,13 @@ namespace datalog {
             }
         }
         // add negative variables that are not in positive
-        u_map<expr*>::iterator it = neg_vars.begin(), end = neg_vars.end();
-        for (; it != end; ++it) {
-            unsigned v = it->m_key;
-            expr* e = it->m_value;
+        for (auto const& kv : neg_vars) {
+            unsigned v = kv.m_key;
+            expr* e = kv.m_value;
             if (!pos_vars.contains(v)) {
                 single_res_expr.push_back(e);
                 make_add_unbound_column(r, v, pred, single_res, e->get_sort(), single_res, dealloc, acc);
-                TRACE("dl", tout << "Adding unbound column: " << mk_pp(e, m_context.get_manager()) << "\n";);
+                TRACE(dl, tout << "Adding unbound column: " << mk_pp(e, m_context.get_manager()) << "\n";);
             }
         }
     }
@@ -917,7 +909,7 @@ namespace datalog {
 
         svector<reg_idx> tail_regs;
         tail_delta_infos tail_deltas;
-        for(unsigned j=0;j<rule_len;j++) {
+        for(unsigned j=0;j<rule_len;++j) {
             func_decl * tail_pred = r->get_tail(j)->get_decl();
             reg_idx tail_reg = m_pred_regs.find(tail_pred);
             tail_regs.push_back(tail_reg);
@@ -1152,7 +1144,7 @@ namespace datalog {
         set_difference(local_deltas, global_deltas);
         */
         func_decl_set local_deltas;
-        func_decl_set global_deltas(head_preds);
+        const func_decl_set & global_deltas = head_preds;
 
         pred2idx d_global_src;  //these deltas serve as sources of tuples for rule evaluation inside the loop
         get_fresh_registers(global_deltas, d_global_src);
@@ -1268,7 +1260,7 @@ namespace datalog {
                 continue;
             }
 
-            TRACE("dl",
+            TRACE(dl,
                 tout << "Stratum: ";
                 func_decl_set::iterator pit = strat_preds.begin();
                 func_decl_set::iterator pend = strat_preds.end();
@@ -1303,12 +1295,12 @@ namespace datalog {
 
 
         //load predicate data
-        for(unsigned i=0;i<rule_cnt;i++) {
+        for(unsigned i=0;i<rule_cnt;++i) {
             const rule * r = m_rule_set.get_rule(i);
             ensure_predicate_loaded(r->get_decl(), acc);
 
             unsigned rule_len = r->get_uninterpreted_tail_size();
-            for(unsigned j=0;j<rule_len;j++) {
+            for(unsigned j=0;j<rule_len;++j) {
                 ensure_predicate_loaded(r->get_tail(j)->get_decl(), acc);
             }
         }
@@ -1332,9 +1324,8 @@ namespace datalog {
 
         acc.set_observer(nullptr);
 
-        TRACE("dl", execution_code.display(execution_context(m_context), tout););
+        TRACE(dl, execution_code.display(execution_context(m_context), tout););
     }
 
 
 }
-

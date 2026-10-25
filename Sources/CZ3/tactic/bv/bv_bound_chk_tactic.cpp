@@ -26,7 +26,7 @@ struct bv_bound_chk_stats {
     unsigned            m_unsats;
     unsigned            m_singletons;
     unsigned            m_reduces;
-    bv_bound_chk_stats() : m_unsats(0), m_singletons(0), m_reduces(0) {};
+    bv_bound_chk_stats() : m_unsats(0), m_singletons(0), m_reduces(0) {}
 };
 
 struct bv_bound_chk_rewriter_cfg : public default_rewriter_cfg {
@@ -56,9 +56,9 @@ struct bv_bound_chk_rewriter_cfg : public default_rewriter_cfg {
 
     br_status reduce_app(func_decl * f, unsigned num, expr * const * args, expr_ref & result, proof_ref & result_pr) {
         const br_status st = reduce_app_core(f, num, args, result, result_pr);
-        CTRACE("bv_bound_chk_step", st != BR_FAILED,
+        CTRACE(bv_bound_chk_step, st != BR_FAILED,
             tout << f->get_name() << "\n";
-        for (unsigned i = 0; i < num; i++) tout << mk_ismt2_pp(args[i], m()) << "\n";
+        for (unsigned i = 0; i < num; ++i) tout << mk_ismt2_pp(args[i], m()) << "\n";
         tout << "---------->\n" << mk_ismt2_pp(result, m()) << "\n";);
         return st;
     }
@@ -151,7 +151,7 @@ public:
         ast_manager& m(g->m());
         expr_ref   new_curr(m);
         const unsigned size = g->size();
-        for (unsigned idx = 0; idx < size; idx++) {
+        for (unsigned idx = 0; idx < size; ++idx) {
             if (g->inconsistent()) break;
             expr * curr = g->form(idx);
             m_rw(curr, new_curr);

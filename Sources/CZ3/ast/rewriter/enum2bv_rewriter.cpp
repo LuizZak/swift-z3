@@ -20,6 +20,7 @@ Notes:
 #include "ast/rewriter/rewriter.h"
 #include "ast/rewriter/rewriter_def.h"
 #include "ast/rewriter/enum2bv_rewriter.h"
+#include "ast/ast_translation.h"
 #include "ast/ast_util.h"
 #include "ast/ast_pp.h"
 
@@ -64,7 +65,7 @@ struct enum2bv_rewriter::imp {
             unsigned bv_size = get_bv_size(s);
             sort_ref bv_sort(m_bv.mk_sort(bv_size), m);
             if (is_unate(s))
-                return m_bv.mk_numeral(rational((1 << idx) - 1), bv_sort.get());
+                return m_bv.mk_numeral(rational::power_of_two(idx) - rational::one(), bv_sort.get());
             else 
                 return m_bv.mk_numeral(rational(idx), bv_sort.get());
         }
@@ -73,9 +74,10 @@ struct enum2bv_rewriter::imp {
             unsigned domain_size = m_dt.get_datatype_num_constructors(s);
             if (is_unate(s)) {
                 expr_ref one(m_bv.mk_numeral(rational::one(), 1), m);
-                for (unsigned i = 0; i + 2 < domain_size; ++i) {                    
-                    bounds.push_back(m.mk_implies(m.mk_eq(one, m_bv.mk_extract(i + 1, i + 1, x)),
-                                                          m.mk_eq(one, m_bv.mk_extract(i, i, x))));
+                for (unsigned i = 0; i + 2 < domain_size; ++i) {
+                    auto _seq77_0 = m.mk_eq(one, m_bv.mk_extract(i + 1, i + 1, x));
+                    auto _seq77_1 = m.mk_eq(one, m_bv.mk_extract(i, i, x));
+                    bounds.push_back(m.mk_implies(_seq77_0, _seq77_1));
                 }
             }
             else {
@@ -167,7 +169,9 @@ struct enum2bv_rewriter::imp {
                 ptr_vector<func_decl> const& cs = *m_dt.get_datatype_constructors(s);
                 f_def = m.mk_const(cs[nc-1]);
                 for (unsigned i = nc - 1; i-- > 0; ) {
-                    f_def = m.mk_ite(m.mk_eq(result, value2bv(i, s)), m.mk_const(cs[i]), f_def);
+                    auto _seq170_0 = m.mk_eq(result, value2bv(i, s));
+                    auto _seq170_1 = m.mk_const(cs[i]);
+                    f_def = m.mk_ite(_seq170_0, _seq170_1, f_def);
                 }
                 m_imp.m_enum2def.insert(f, f_def);
                 m_imp.m_enum2bv.insert(f, f_fresh);
@@ -225,6 +229,7 @@ struct enum2bv_rewriter::imp {
                     new_body_ref = mk_and(bounds);
                     break;
                 case lambda_k:
+                case choice_k:
                     UNREACHABLE();
                     break;
                 }
@@ -333,3 +338,24 @@ void enum2bv_rewriter::pop(unsigned num_scopes) { m_imp->pop(num_scopes); }
 void enum2bv_rewriter::flush_side_constraints(expr_ref_vector& side_constraints) { m_imp->flush_side_constraints(side_constraints); } 
 unsigned enum2bv_rewriter::num_translated() const { return m_imp->m_num_translated; }
 void enum2bv_rewriter::set_is_fd(i_sort_pred* sp) const { m_imp->set_is_fd(sp); }
+
+void enum2bv_rewriter::translate(enum2bv_rewriter const& src, ast_translation& tr) const {
+    auto& source = *src.m_imp;
+    auto& dst = *m_imp;
+    SASSERT(source.m_enum_consts_lim.empty());
+    SASSERT(dst.m_enum_consts.empty());
+    for (unsigned i = 0; i < source.m_enum_consts.size(); ++i) {
+        func_decl* f = tr(source.m_enum_consts.get(i));
+        func_decl* bv = tr(source.m_enum_bvs.get(i));
+        expr* def = tr(source.m_enum_defs.get(i));
+        dst.m_enum2bv.insert(f, bv);
+        dst.m_bv2enum.insert(bv, f);
+        dst.m_enum2def.insert(f, def);
+        dst.m_enum_consts.push_back(f);
+        dst.m_enum_bvs.push_back(bv);
+        dst.m_enum_defs.push_back(def);
+    }
+    for (expr* bound : source.m_bounds)
+        dst.m_bounds.push_back(tr(bound));
+    dst.m_num_translated = source.m_num_translated;
+}

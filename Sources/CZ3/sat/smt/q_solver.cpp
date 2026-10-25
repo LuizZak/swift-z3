@@ -16,6 +16,7 @@ Author:
 --*/
 
 #include "ast/ast_util.h"
+#include "ast/recfun_decl_plugin.h"
 #include "ast/well_sorted.h"
 #include "ast/rewriter/var_subst.h"
 #include "ast/normal_forms/pull_quant.h"
@@ -273,7 +274,7 @@ namespace q {
         else
             UNREACHABLE();
 
-        if (m_expanded.size() == 1 && is_forall(q)) {
+        if (m_expanded.size() == 1 && is_forall(q) && !recfun::util(m).contains_def(q->get_expr())) {
             m_expanded.reset();
             flatten_or(q->get_expr(), m_expanded);
             expr_ref split1(m), split2(m), e1(m), e2(m);
@@ -341,7 +342,8 @@ namespace q {
         }
         if (m.is_not(arg, z) && m.is_iff(z, x, y) && is_literal(x) && is_literal(y)) {
             e1 = m.mk_or(x, y);
-            e2 = m.mk_or(mk_not(m, x), mk_not(m, y));
+            expr_ref not_x(mk_not(m, x), m);
+            e2 = m.mk_or(not_x, mk_not(m, y));
             return true;
         }
         return false;
@@ -357,7 +359,7 @@ namespace q {
     }
 
     void solver::log_instantiation(unsigned n, sat::literal const* lits, justification* j) {
-        TRACE("q", for (unsigned i = 0; i < n; ++i) tout << literal2expr(lits[i]) << "\n";);
+        TRACE(q, for (unsigned i = 0; i < n; ++i) tout << literal2expr(lits[i]) << "\n";);
         if (get_config().m_instantiations2console) {
             ctx.on_instantiation(n, lits, j ? j->m_clause.num_decls() : 0, j ? j->m_binding : nullptr);
         }

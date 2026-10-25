@@ -29,7 +29,7 @@ and V is a value (true or false) and x is a subterm
 
 #include "smt/tactic/ctx_solver_simplify_tactic.h"
 #include "ast/arith_decl_plugin.h"
-#include "smt/params/smt_params.h"
+#include "params/smt_params.h"
 #include "smt/smt_kernel.h"
 #include "ast/ast_pp.h"
 #include "ast/rewriter/mk_simplified_app.h"
@@ -97,21 +97,21 @@ protected:
     void reduce(goal& g) {
         if (m.proofs_enabled())
             return;
-        TRACE("ctx_solver_simplify_tactic", g.display(tout););
+        TRACE(ctx_solver_simplify_tactic, g.display(tout););
         expr_ref fml(m);
         tactic_report report("ctx-solver-simplify", g);
         if (g.inconsistent())
             return;
         ptr_vector<expr> fmls;
         g.get_formulas(fmls);
-        fml = mk_and(m, fmls.size(), fmls.data());
+        fml = mk_and(m, fmls);
         m_solver.push();
         reduce(fml);
         m_solver.pop(1);
         if (!m.inc())
             return;
         SASSERT(m_solver.get_scope_level() == 0);
-        TRACE("ctx_solver_simplify_tactic",
+        TRACE(ctx_solver_simplify_tactic,
               for (expr* f : fmls) {
                   tout << mk_pp(f, m) << "\n";
               }
@@ -122,16 +122,16 @@ protected:
             // enable_trace("after_search");
             m_solver.push();
             expr_ref fml1(m);
-            fml1 = mk_and(m, fmls.size(), fmls.data());
+            fml1 = mk_and(m, fmls);
             fml1 = m.mk_iff(fml, fml1);
             fml1 = m.mk_not(fml1);
             m_solver.assert_expr(fml1);
             lbool is_sat = m_solver.check();
-            TRACE("ctx_solver_simplify_tactic", tout << "is non-equivalence sat?: " << is_sat << "\n";);
+            TRACE(ctx_solver_simplify_tactic, tout << "is non-equivalence sat?: " << is_sat << "\n";);
             if (is_sat == l_true) {
                 model_ref mdl;
                 m_solver.get_model(mdl);
-                TRACE("ctx_solver_simplify_tactic", 
+                TRACE(ctx_solver_simplify_tactic, 
                       tout << "result is not equivalent to input\n";
                       tout << mk_pp(fml1, m) << "\n";
                       tout << "evaluates to: " << (*mdl)(fml1) << "\n";
@@ -203,7 +203,7 @@ protected:
                 goto done;
             }
             if (m.is_bool(e) && simplify_bool(n, res)) {
-                TRACE("ctx_solver_simplify_tactic",
+                TRACE(ctx_solver_simplify_tactic,
                     m_solver.display(tout) << "\n";
                       tout << "simplified: " << mk_pp(n, m) << "\n" << mk_pp(e, m) << " |-> " << mk_pp(res, m) << "\n";);
                 goto done;

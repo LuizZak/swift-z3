@@ -59,14 +59,50 @@ class nlsat_tactic : public tactic {
             m_solver.updt_params(m_params);
         }
         
+        // Transcendental applications (sin/cos/tan/asin/acos/atan/sinh/cosh/
+        // tanh/asinh/acosh/atanh/exp/log/atan2/pi) registered
+        // with nlsat's own transcendental engine (see goal2nlsat's
+        // register_transcendentals / nlsat_transcendentals.*) are a second,
+        // legitimate reason for an x2t entry not to be a bare uninterpreted
+        // constant: mk_model below already skips registering a model entry
+        // for them (their value is recoverable by evaluating the function
+        // at the model's value for the argument(s), not by looking up a
+        // named declaration), so they must not be flagged as "unsupported"
+        // here.
+        static bool is_supported_transcendental(ast_manager & m, expr * t) {
+            if (!is_app(t))
+                return false;
+            if (to_app(t)->get_family_id() != arith_family_id)
+                return false;
+            unsigned n = to_app(t)->get_num_args();
+            switch (to_app(t)->get_decl_kind()) {
+            case OP_SIN: case OP_COS: case OP_TAN:
+            case OP_ASIN: case OP_ACOS: case OP_ATAN:
+            case OP_SINH: case OP_COSH: case OP_TANH:
+            case OP_ASINH: case OP_ACOSH: case OP_ATANH:
+            case OP_EXP: case OP_LOG:
+                return n == 1;
+            case OP_ATAN2:
+                return n == 2;
+            case OP_PI:
+                return n == 0;
+            default:
+                return false;
+            }
+        }
+
         bool contains_unsupported(expr_ref_vector & b2a, expr_ref_vector & x2t) {
-            for (unsigned x = 0; x < x2t.size(); x++) {
-                if (!is_uninterp_const(x2t.get(x))) {
-                    TRACE("unsupported", tout << "unsupported atom:\n" << mk_ismt2_pp(x2t.get(x), m) << "\n";);
+            arith_util a(m);
+            for (unsigned x = 0; x < x2t.size(); ++x) {
+                expr* t = x2t.get(x);
+                bool complex_component = (a.is_real_part(t) || a.is_imag_part(t)) &&
+                    is_uninterp_const(to_app(t)->get_arg(0));
+                if (!is_uninterp_const(t) && !complex_component && !is_supported_transcendental(m, t)) {
+                    TRACE(unsupported, tout << "unsupported atom:\n" << mk_ismt2_pp(x2t.get(x), m) << "\n";);
                     return true;
                 }
             }
-            for (unsigned b = 0; b < b2a.size(); b++) {
+            for (unsigned b = 0; b < b2a.size(); ++b) {
                 expr * a = b2a.get(b);
                 if (a == nullptr)
                     continue;
@@ -74,7 +110,7 @@ class nlsat_tactic : public tactic {
                     continue;
                 if (m_solver.is_interpreted(b))
                     continue; // arithmetic atom
-                TRACE("unsupported", tout << "unsupported atom:\n" << mk_ismt2_pp(a, m) << "\n";);
+                TRACE(unsupported, tout << "unsupported atom:\n" << mk_ismt2_pp(a, m) << "\n";);
                 return true; // unsupported
             }
             return false;
@@ -82,9 +118,9 @@ class nlsat_tactic : public tactic {
 
         bool eval_model(model& model, goal& g) {
             unsigned sz = g.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 if (model.is_false(g.form(i))) {
-                    TRACE("nlsat", tout << mk_pp(g.form(i), m) << " -> " << model(g.form(i)) << "\n";);
+                    TRACE(nlsat, tout << mk_pp(g.form(i), m) << " -> " << model(g.form(i)) << "\n";);
                     IF_VERBOSE(0, verbose_stream() << mk_pp(g.form(i), m) << " -> " << model(g.form(i)) << "\n";);
                     IF_VERBOSE(1, verbose_stream() << model << "\n");
                     IF_VERBOSE(1, m_solver.display(verbose_stream()));
@@ -99,8 +135,20 @@ class nlsat_tactic : public tactic {
             bool ok = true;
             model_ref md = alloc(model, m);
             arith_util util(m);
-            for (unsigned x = 0; x < x2t.size(); x++) {
+            obj_map<func_decl, expr*> real_parts, imag_parts;
+            expr_ref_vector component_values(m);
+            for (unsigned x = 0; x < x2t.size(); ++x) {
                 expr * t = x2t.get(x);
+                if (util.is_real_part(t) || util.is_imag_part(t)) {
+                    expr* z = to_app(t)->get_arg(0);
+                    if (is_uninterp_const(z)) {
+                        expr* v = util.mk_numeral(m_solver.am(), m_solver.value(x), false);
+                        component_values.push_back(v);
+                        auto& parts = util.is_real_part(t) ? real_parts : imag_parts;
+                        parts.insert(to_app(z)->get_decl(), v);
+                    }
+                    continue;
+                }
                 if (!is_uninterp_const(t))
                     continue;
                 expr * v;
@@ -116,7 +164,21 @@ class nlsat_tactic : public tactic {
                 }
                 md->register_decl(to_app(t)->get_decl(), v);
             }
-            for (unsigned b = 0; b < b2a.size(); b++) {
+            expr_ref zero(util.mk_real(0), m);
+            for (auto const& kv : real_parts) {
+                expr* im = nullptr;
+                if (!imag_parts.find(kv.m_key, im))
+                    im = zero;
+                expr_ref value(util.mk_complex(kv.m_value, im), m);
+                md->register_decl(kv.m_key, value);
+            }
+            for (auto const& kv : imag_parts) {
+                if (real_parts.contains(kv.m_key))
+                    continue;
+                expr_ref value(util.mk_complex(zero, kv.m_value), m);
+                md->register_decl(kv.m_key, value);
+            }
+            for (unsigned b = 0; b < b2a.size(); ++b) {
                 expr * a = b2a.get(b);
                 if (a == nullptr || !is_uninterp_const(a))
                     continue;
@@ -133,8 +195,7 @@ class nlsat_tactic : public tactic {
             return ok;
         }
 
-        void operator()(goal_ref const & g, 
-                        goal_ref_buffer & result) {
+        void operator()(goal_ref const & g, goal_ref_buffer & result) {
             tactic_report report("nlsat", *g);
             
             if (g->is_decided()) {
@@ -144,7 +205,7 @@ class nlsat_tactic : public tactic {
 
             fail_if_proof_generation("nlsat", g);
 
-            TRACE("nlsat", g->display(tout););
+            TRACE(nlsat, g->display(tout););
             expr2var  a2b(m);
             expr2var  t2x(m);
             
@@ -153,7 +214,7 @@ class nlsat_tactic : public tactic {
             m_display_var.m_var2expr.reset();
             t2x.mk_inv(m_display_var.m_var2expr);
             m_solver.set_display_var(m_display_var);
-            TRACE("nlsat", m_solver.display(tout););
+            TRACE(nlsat, m_solver.display(tout););
             IF_VERBOSE(10000, m_solver.display(verbose_stream()));
             IF_VERBOSE(10000, g->display(verbose_stream()));
 
@@ -270,4 +331,3 @@ public:
 tactic * mk_nlsat_tactic(ast_manager & m, params_ref const & p) {
     return clean(alloc(nlsat_tactic, p));
 }
-

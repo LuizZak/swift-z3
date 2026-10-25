@@ -33,6 +33,7 @@ Author:
 #include "util/statistics.h"
 #include "util/params.h"
 #include "util/z3_exception.h"
+#include "ast/ast_util.h"
 #include "ast/converters/model_converter.h"
 #include "ast/simplifiers/dependent_expr.h"
 #include "ast/simplifiers/model_reconstruction_trail.h"
@@ -44,13 +45,12 @@ Author:
 class dependent_expr_state {
     unsigned m_qhead = 0;
     bool     m_suffix_frozen = false;
-    unsigned m_num_recfun = 0, m_num_lambdas = 0;
+    unsigned m_num_recfun = 0;
     lbool    m_has_quantifiers = l_undef;
     ast_mark m_frozen;
     func_decl_ref_vector m_frozen_trail;
     void freeze_prefix();
     void freeze_recfun();
-    void freeze_lambda();
     void freeze_terms(expr* term, bool only_as_array, ast_mark& visited);
     void freeze(func_decl* f);
     struct thaw : public trail {
@@ -65,7 +65,7 @@ class dependent_expr_state {
     };
 public:
     dependent_expr_state(ast_manager& m) : m_frozen_trail(m) {}
-    virtual ~dependent_expr_state() {}
+    virtual ~dependent_expr_state() = default;
     unsigned qhead() const { return m_qhead; }
     virtual unsigned qtail() const = 0;
     virtual dependent_expr const& operator[](unsigned i) = 0;
@@ -73,9 +73,11 @@ public:
     virtual void add(dependent_expr const& j) = 0;
     virtual bool inconsistent() = 0;
     virtual model_reconstruction_trail& model_trail() = 0;
+    virtual model_reconstruction_trail const& model_trail() const = 0;
     virtual void flatten_suffix() {}
     virtual bool updated() = 0;
     virtual void reset_updated() = 0;
+    virtual bool proofs_enabled() const { return m_frozen_trail.get_manager().proofs_enabled(); }
 
     trail_stack    m_trail;
     void push() {
@@ -84,6 +86,7 @@ public:
         m_trail.push(thaw(*this));
     }
     void pop(unsigned n) { m_trail.pop_scope(n); }
+    void translate(dependent_expr_state const& src, ast_translation& tr);
     
     void advance_qhead() { freeze_prefix(); m_suffix_frozen = false; m_has_quantifiers = l_undef;  m_qhead = qtail(); }
     unsigned num_exprs();
@@ -111,10 +114,88 @@ public:
     void add(dependent_expr const& j) override { throw default_exception("unexpected addition"); }
     bool inconsistent() override { return false; }
     model_reconstruction_trail& model_trail() override { throw default_exception("unexpected access to model reconstruction"); }
+    model_reconstruction_trail const& model_trail() const override { throw default_exception("unexpected access to model reconstruction"); }
     bool updated() override { return false; }
     void reset_updated() override {}
-
 };
+
+
+struct base_dependent_expr_state : public dependent_expr_state {
+    ast_manager& m;
+    model_reconstruction_trail m_reconstruction_trail;
+    bool m_updated = false;
+    bool m_inconsistent = false;
+    vector<dependent_expr> m_fmls;
+    base_dependent_expr_state(ast_manager& m) :dependent_expr_state(m), m(m), m_reconstruction_trail(m, m_trail) {}
+    unsigned qtail() const override { return m_fmls.size(); }
+    dependent_expr const& operator[](unsigned i) override { return m_fmls[i]; }
+    void update(unsigned i, dependent_expr const& j) override {
+        SASSERT(j.fml());
+        check_false(j.fml());
+        m_fmls[i] = j;
+        m_updated = true;
+    }
+    void add(dependent_expr const& j) override { m_updated = true; check_false(j.fml()); m_fmls.push_back(j); }
+    bool inconsistent() override { return m_inconsistent; }
+    bool updated() override { return m_updated; }
+    void reset_updated() override { m_updated = false; }
+    model_reconstruction_trail& model_trail() override { return m_reconstruction_trail; }
+    model_reconstruction_trail const& model_trail() const override { return m_reconstruction_trail; }
+    std::ostream& display(std::ostream& out) const override {
+        unsigned i = 0;
+        for (auto const& d : m_fmls) {
+            if (i > 0 && i == qhead())
+                out << "---- head ---\n";
+            out << d << "\n";
+            ++i;
+        }
+        m_reconstruction_trail.display(out);
+        return out;
+    }
+    void check_false(expr* f) {
+        if (m.is_false(f))
+            m_inconsistent = true;
+    }
+    void replay(unsigned qhead, expr_ref_vector& assumptions) {
+        m_reconstruction_trail.replay(qhead, assumptions, *this);
+    }
+    void flatten_suffix() override {
+        expr_mark seen;
+        unsigned j = qhead();
+        expr_ref_vector pinned(m);
+        for (unsigned i = qhead(); i < qtail(); ++i) {
+            expr* f = m_fmls[i].fml(), * g = nullptr;
+            pinned.push_back(f);
+            if (seen.is_marked(f))
+                continue;
+            seen.mark(f, true);
+            if (m.is_true(f))
+                continue;
+            if (m.is_and(f)) {
+                auto* d = m_fmls[i].dep();
+                proof_ref p(m_fmls[i].pr(), m);
+                unsigned index = 0;
+                for (expr* arg : *to_app(f))
+                    add(dependent_expr(m, arg, p ? m.mk_and_elim(p, index++) : nullptr, d));
+                continue;
+            }
+            if (m.is_not(f, g) && m.is_or(g)) {
+                auto* d = m_fmls[i].dep();
+                proof_ref p(m_fmls[i].pr(), m);
+                unsigned index = 0;
+                for (expr* arg : *to_app(g))
+                    add(dependent_expr(m, mk_not(m, arg),
+                                       p ? m.mk_not_or_elim(p, index++) : nullptr, d));
+                continue;
+            }
+            if (i != j)
+                m_fmls[j] = m_fmls[i];
+            ++j;
+        }
+        m_fmls.shrink(j);
+    }
+};
+
 
 inline std::ostream& operator<<(std::ostream& out, dependent_expr_state& st) {
     return st.display(out);
@@ -133,6 +214,7 @@ protected:
 
     unsigned qhead() const { return m_fmls.qhead(); }
     unsigned qtail() const { return m_fmls.qtail(); }
+    bool proofs_enabled() const { return m_fmls.proofs_enabled(); }
     struct iterator {
         dependent_expr_simplifier& s;
         unsigned m_index, m_end;
@@ -155,10 +237,11 @@ protected:
     proof* tr(proof* a, proof* b) { return m.mk_transitivity(a, b); }
 public:
     dependent_expr_simplifier(ast_manager& m, dependent_expr_state& s) : m(m), m_fmls(s), m_trail(s.m_trail) {}
-    virtual ~dependent_expr_simplifier() {}
+    virtual ~dependent_expr_simplifier() = default;
     virtual char const* name() const = 0;
     virtual void push() { }
     virtual void pop(unsigned n) { }
+    virtual void translate(dependent_expr_simplifier const& src, ast_translation& tr) {}
     virtual void reduce() = 0;
     virtual void collect_statistics(statistics& st) const {}
     virtual void reset_statistics() {}
@@ -170,3 +253,25 @@ public:
 };
 
 typedef std::function<dependent_expr_simplifier*(ast_manager&, const params_ref&, dependent_expr_state& s)> simplifier_factory;
+
+/**
+   \brief Self-registration for built-in simplifiers -- the simplifier analogue of
+   tactic_registration (see tactic/tactic.h for the full rationale). The factory is a
+   std::function (matching simplifier_factory) rather than a plain function pointer because
+   the original ADD_SIMPLIFIER('name', 'descr', 'code') macro expanded `code` inside a generic
+   lambda `[](auto&, auto&, auto&) {...}`; Z3_ADD_SIMPLIFIER preserves that shape.
+*/
+struct simplifier_registration {
+    char const * name;
+    char const * descr;
+    simplifier_factory factory;
+    simplifier_registration * next;
+    static inline simplifier_registration * g_head = nullptr;
+    simplifier_registration(char const * name, char const * descr, simplifier_factory factory):
+        name(name), descr(descr), factory(std::move(factory)), next(g_head) {
+        g_head = this;
+    }
+};
+
+#define Z3_ADD_SIMPLIFIER(TAG, NAME, DESCR, CODE) \
+  inline simplifier_registration g_z3_simplifier_registration_##TAG(NAME, DESCR, [](auto & m, auto & p, auto & s) -> dependent_expr_simplifier* { return CODE; })

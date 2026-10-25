@@ -4,12 +4,16 @@ Copyright (c) 2015 Microsoft Corporation
 --*/
 
 #include "ast/proofs/proof_checker.h"
+#include "ast/ff/ff_evidence.h"
 #include "ast/ast_ll_pp.h"
 #include "ast/ast_pp.h"
 #include "ast/ast_smt_pp.h"
 #include "ast/arith_decl_plugin.h"
 #include "ast/rewriter/th_rewriter.h"
 #include "ast/rewriter/var_subst.h"
+#include "ast/rewriter/expr_safe_replace.h"
+
+#include "ast/proofs/lp_proof.h"
 
 #define IS_EQUIV(_e_) m.is_eq(_e_)
 
@@ -94,6 +98,8 @@ proof_checker::proof_checker(ast_manager& m) : m(m), m_todo(m), m_marked(), m_pi
     m_nil = m.mk_const(m_hyp_fid, OP_NIL);
 }
 
+proof_checker::~proof_checker() = default;
+
 bool proof_checker::check(proof* p, expr_ref_vector& side_conditions) {
     proof_ref curr(m);
     m_todo.push_back(p);
@@ -112,6 +118,7 @@ bool proof_checker::check(proof* p, expr_ref_vector& side_conditions) {
     m_pinned.reset();
     m_todo.reset();
     m_marked.reset();
+    m_lp_checker.reset();
 
     return result;
 }
@@ -170,7 +177,7 @@ bool proof_checker::check1_spc(proof* p, expr_ref_vector& side_conditions) {
                 }
             }
             expr_ref rewrite_cond(m);
-            rewrite_cond = m.mk_or(rewrite_eq.size(), rewrite_eq.c_ptr());
+            rewrite_cond = m.mk_or(rewrite_eq);
             side_conditions.push_back(rewrite_cond.get());
             return true;
         }
@@ -301,7 +308,7 @@ bool proof_checker::check1_basic(proof* p, expr_ref_vector& side_conditions) {
         return false;
     }
     case PR_MONOTONICITY: {
-        TRACE("proof_checker", tout << mk_bounded_pp(p, m, 3) << "\n";);
+        TRACE(proof_checker, tout << mk_bounded_pp(p, m, 3) << "\n";);
         if (match_fact(p, fact) &&
             match_binary(fact, d1, t1, t2) &&
             match_app(t1, f1, terms1) &&
@@ -337,19 +344,19 @@ bool proof_checker::check1_basic(proof* p, expr_ref_vector& side_conditions) {
         if (match_proof(p, p1) &&
             match_fact(p, fact) &&
             match_fact(p1, fml) &&
-            (is_lambda(fact) || is_lambda(fml)))
-            return true;
-
-        if (match_proof(p, p1) &&
-            match_fact(p, fact) &&
-            match_fact(p1, fml) &&
-            (match_iff(fact, t1, t2) || match_oeq(fact, t1, t2)) &&
-            (match_iff(fml, s1, s2) || match_oeq(fml, s1, s2)) &&
-            m.is_oeq(fact) == m.is_oeq(fml) &&
+            // `mk_iff(q1, q2)` (and `mk_oeq`) use the generic polymorphic
+            // `=` decl for *any* sort, not just Bool: ordinary
+            // `forall`/`exists` always have a Bool body, so this is a
+            // genuine Boolean iff, but `PR_QUANT_INTRO` is also used over
+            // `lambda` terms (also represented as `quantifier` nodes) whose
+            // body -- and hence `q1`/`q2` themselves -- can be of any sort
+            // (e.g. an array/function sort). `match_eq` alone (OP_EQ with no
+            // sort restriction) already covers the Boolean-iff case, so
+            // `match_iff` adds nothing here and is omitted; `match_equiv`
+            // is exactly `match_oeq(...) || match_eq(...)`.
+            match_equiv(fact, t1, t2) &&
             is_quantifier(t1) &&
             is_quantifier(t2) &&
-            to_quantifier(t1)->get_expr() == s1 &&
-            to_quantifier(t2)->get_expr() == s2 &&
             to_quantifier(t1)->get_num_decls() == to_quantifier(t2)->get_num_decls() &&
             to_quantifier(t1)->get_kind() == to_quantifier(t2)->get_kind()) {
             quantifier* q1 = to_quantifier(t1);
@@ -361,17 +368,66 @@ bool proof_checker::check1_basic(proof* p, expr_ref_vector& side_conditions) {
                     return false;
                 }
             }
-            return true;
+            // Shape 1 (the one `rewriter_tpl::process_quantifier` actually
+            // produces, via `mk_quant_intro(q1, q2, mk_bind_proof(q1, p0))`):
+            // `p1` is a `PR_BIND` node whose fact `fml` is a lambda term
+            // binding `q1`'s variables over a *proof* `p0` of `q1`'s body =
+            // `q2`'s body. Unwrap it and verify `p0` genuinely establishes
+            // that equation (previously this was accepted unconditionally
+            // the moment either side was any lambda, without ever looking
+            // at `p0`'s own fact), then schedule `p0` itself to be checked
+            // recursively -- `p0` is not a structural "parent" of `p1`
+            // (`mk_bind_proof`'s lambda-wrapping hides it from
+            // `get_parents`), so without this it would never be visited by
+            // `check`'s worklist at all.
+            if (is_lambda(fml)) {
+                quantifier* lam = to_quantifier(fml);
+                expr* p0_expr = lam->get_expr();
+                if (!m.is_proof(p0_expr)) {
+                    UNREACHABLE();
+                    return false;
+                }
+                proof* p0 = to_app(p0_expr);
+                if (!match_fact(p0, fml0) ||
+                    // same non-Bool-body caveat as above: `q1`/`q2`'s
+                    // bodies (and hence `r1`/`r2`) need not be Bool-sorted;
+                    // `match_equiv` already subsumes `match_iff`.
+                    !match_equiv(fml0, r1, r2) ||
+                    r1 != q1->get_expr() ||
+                    r2 != q2->get_expr()) {
+                    UNREACHABLE();
+                    return false;
+                }
+                add_premise(p0);
+                return true;
+            }
+            // Shape 2: `p1`'s own fact directly (without lambda-wrapping)
+            // relates the two quantifiers' bodies -- the fully-structural
+            // shape some other, non-`rewriter_def.h` caller could in
+            // principle construct. `match_equiv` already subsumes
+            // `match_iff`.
+            if (match_equiv(fml, s1, s2) &&
+                m.is_oeq(fact) == m.is_oeq(fml) &&
+                q1->get_expr() == s1 &&
+                q2->get_expr() == s2) {
+                return true;
+            }
         }
         UNREACHABLE();
         return false;
     }
-    case PR_BIND:
+    case PR_BIND: {
         // it is a lambda expression returning a proof object.
-        if (!is_lambda(to_app(p)->get_arg(0)))
+        expr* b = to_app(p)->get_arg(0);
+        if (!is_lambda(b))
             return false;
-        // check that body is a proof object.
-        return true;
+        // check that body is a fact-bearing proof object. (`PR_QUANT_INTRO`'s
+        // lambda-wrapped case above is responsible for checking *which*
+        // equation this proof establishes, and for recursively scheduling
+        // it; this local check only confirms the type-level shape.)
+        expr* p0_expr = to_quantifier(b)->get_expr();
+        return m.is_proof(p0_expr) && m.has_fact(to_app(p0_expr));
+    }
 
     case PR_DISTRIBUTIVITY: {
         if (match_fact(p, fact) &&
@@ -431,11 +487,43 @@ bool proof_checker::check1_basic(proof* p, expr_ref_vector& side_conditions) {
                 }
             }
             expr_ref rewrite_cond(m);
-            rewrite_cond = m.mk_or(rewrite_eq.size(), rewrite_eq.data());
+            rewrite_cond = m.mk_or(rewrite_eq);
             side_conditions.push_back(rewrite_cond.get());
             return true;
         }
         IF_VERBOSE(0, verbose_stream() << "Expected proof of equality:\n" << mk_bounded_pp(p, m););
+        return false;
+    }
+    case PR_DEMODULATION: {
+        // `t1 = t2` (or `t1 <~> t2`) holds because `t2` is obtained from `t1`
+        // by simultaneously replacing every occurrence of `l_i` by `r_i`,
+        // for each premise proof of `l_i = r_i` (i = 1..n). Re-run the
+        // substitution here and compare the result structurally against
+        // `t2`: since `expr_safe_replace` is a pure, capture-avoiding
+        // rewrite, this is a precise (not merely plausible) check, modulo
+        // trusting that each premise genuinely proves its own `l_i = r_i`
+        // fact (checked recursively like any other premise).
+        if (match_fact(p, fact) &&
+            match_equiv(fact, t1, t2)) {
+            expr_safe_replace sub(m);
+            bool all_eqs = true;
+            for (proof* pr : proofs) {
+                expr* eq_fact = nullptr, *l = nullptr, *r = nullptr;
+                if (!pr || !match_fact(pr, eq_fact) || !match_equiv(eq_fact, l, r)) {
+                    all_eqs = false;
+                    break;
+                }
+                sub.insert(l, r);
+            }
+            if (all_eqs) {
+                expr_ref t1_subst(t1, m);
+                sub(t1_subst);
+                if (t1_subst.get() == t2)
+                    return true;
+            }
+        }
+        IF_VERBOSE(0, verbose_stream() << "Expected proof of equality by demodulation:\n" << mk_bounded_pp(p, m););
+        UNREACHABLE();
         return false;
     }
     case PR_PULL_QUANT: {
@@ -450,24 +538,28 @@ bool proof_checker::check1_basic(proof* p, expr_ref_vector& side_conditions) {
         return false;
     }
     case PR_PUSH_QUANT: {
+        // Two shapes are produced by distribute_forall_simplifier:
+        //   (forall X (and F1 .. Fn)) <-> (and (forall X F1) .. (forall X Fn))
+        //   (exists X (or  F1 .. Fn)) <-> (or  (exists X F1) .. (exists X Fn))
+        // Match whichever connective (and/or) the outer quantifier's body
+        // uses, and require the same connective on both sides of the iff.
         if (match_proof(p) &&
             match_fact(p, fact) &&
             match_iff(fact, t1, t2) &&
             is_quantifier(t1) &&
-            match_and(to_quantifier(t1)->get_expr(), terms1) &&
-            match_and(t2, terms2) &&
+            ((match_and(to_quantifier(t1)->get_expr(), terms1) && match_and(t2, terms2)) ||
+             (match_or(to_quantifier(t1)->get_expr(), terms1) && match_or(t2, terms2))) &&
             terms1.size() == terms2.size()) {
             quantifier * q1 = to_quantifier(t1);
-            for (unsigned i = 0; i < terms1.size(); ++i) {
-                if (is_quantifier(terms2[i]) &&
-                    to_quantifier(terms2[i])->get_expr() == terms1[i] &&
-                    to_quantifier(terms2[i])->get_num_decls() == q1->get_num_decls()) {
-                    // ok.
-                }
-                else {
-                    return false;
-                }
+            bool ok = true;
+            for (unsigned i = 0; ok && i < terms1.size(); ++i) {
+                ok = is_quantifier(terms2[i]) &&
+                     to_quantifier(terms2[i])->get_expr() == terms1[i] &&
+                     to_quantifier(terms2[i])->get_kind() == q1->get_kind() &&
+                     to_quantifier(terms2[i])->get_num_decls() == q1->get_num_decls();
             }
+            if (ok)
+                return true;
         }
         UNREACHABLE();
         return false;
@@ -530,7 +622,7 @@ bool proof_checker::check1_basic(proof* p, expr_ref_vector& side_conditions) {
                     found = match_negated(ors[j].get(), hypotheses[i].get());
                 }
                 if (!found) {
-                    TRACE("pr_lemma_bug",
+                    TRACE(pr_lemma_bug,
                           tout << "i: " << i << "\n";
                           tout << "ORs:\n" << ors << "\n";
                           tout << "HYPOTHESIS:\n" << hypotheses << "\n";
@@ -538,7 +630,7 @@ bool proof_checker::check1_basic(proof* p, expr_ref_vector& side_conditions) {
                     UNREACHABLE();
                     return false;
                 }
-                TRACE("proof_checker", tout << "Matched:\n";
+                TRACE(proof_checker, tout << "Matched:\n";
                       ast_ll_pp(tout, m, hypotheses[i].get());
                       ast_ll_pp(tout, m, ors[j-1].get()););
             }
@@ -575,9 +667,9 @@ bool proof_checker::check1_basic(proof* p, expr_ref_vector& side_conditions) {
                     }
                 }
                 if (!found) {
-                    TRACE("pr_unit_bug",
+                    TRACE(pr_unit_bug,
                           tout << "Parents:\n";
-                          for (unsigned i = 0; i < proofs.size(); i++) {
+                          for (unsigned i = 0; i < proofs.size(); ++i) {
                               expr* p = nullptr;
                               match_fact(proofs.get(i), p);
                               tout << mk_pp(p, m) << "\n";
@@ -762,6 +854,8 @@ bool proof_checker::check1_basic(proof* p, expr_ref_vector& side_conditions) {
     case PR_TH_LEMMA: {
         SASSERT(p->get_decl()->get_num_parameters() > 0);
         SASSERT(p->get_decl()->get_parameter(0).is_symbol());
+        if (symbol("ff") == p->get_decl()->get_parameter(0).get_symbol())
+            return ff::check_refutation_lemma(m, p);
         if (symbol("arith") == p->get_decl()->get_parameter(0).get_symbol()) {
             return check_arith_proof(p);
         }
@@ -791,7 +885,7 @@ bool proof_checker::check1_basic(proof* p, expr_ref_vector& side_conditions) {
                 premise = vs(premise, sub.size(), sub.data());
             }
             fmls.push_back(premise.get());
-            TRACE("proof_checker",
+            TRACE(proof_checker,
                   tout << mk_pp(premise.get(), m) << "\n";
                   for (unsigned j = 0; j < sub.size(); ++j) {
                       tout << mk_pp(sub[j], m) << " ";
@@ -819,7 +913,7 @@ bool proof_checker::check1_basic(proof* p, expr_ref_vector& side_conditions) {
             fmls[i] = premise1;
         }
         fmls[0] = premise0;
-        premise0 = m.mk_or(fmls.size(), fmls.data());
+        premise0 = m.mk_or(fmls);
         if (is_forall(conclusion)) {
             quantifier* q = to_quantifier(conclusion);
             premise0 = m.mk_iff(premise0, q->get_expr());
@@ -861,7 +955,7 @@ void proof_checker::set_false(expr_ref& e, unsigned position, expr_ref& lit) {
         args.append(a->get_num_args(), a->get_args());
         lit = args[position].get();
         args[position] = m.mk_false();
-        e = m.mk_or(args.size(), args.data());
+        e = m.mk_or(args);
     }
     else if (m.is_implies(e, body, head)) {
         expr* const* heads = &head;
@@ -880,14 +974,14 @@ void proof_checker::set_false(expr_ref& e, unsigned position, expr_ref& lit) {
             args.append(num_heads, heads);
             lit = args[position].get();
             args[position] = m.mk_false();
-            e = m.mk_implies(body, m.mk_or(args.size(), args.data()));
+            e = m.mk_implies(body, m.mk_or(args));
         }
         else {
             position -= num_heads;
             args.append(num_bodies, bodies);
             lit = m.mk_not(args[position].get());
             args[position] = m.mk_true();
-            e = m.mk_implies(m.mk_and(args.size(), args.data()), head);
+            e = m.mk_implies(m.mk_and(args), head);
         }
     }
     else if (position == 0) {
@@ -1151,7 +1245,7 @@ void proof_checker::get_hypotheses(proof* p, expr_ref_vector& ante) {
             SASSERT(match_nil(h));
         }
     }
-    TRACE("proof_checker",
+    TRACE(proof_checker,
           {
               ast_ll_pp(tout << "Getting hypotheses from: ", m, p);
               tout << "Found hypotheses:\n";
@@ -1236,7 +1330,7 @@ void proof_checker::dump_proof(proof const* pr) {
     expr * consequent = m.get_fact(pr);
     unsigned num      = m.get_num_parents(pr);
     ptr_buffer<expr> antecedents;
-    for (unsigned i = 0; i < num; i++) {
+    for (unsigned i = 0; i < num; ++i) {
         proof * a = m.get_parent(pr, i);
         SASSERT(m.has_fact(a));
         antecedents.push_back(m.get_fact(a));
@@ -1252,7 +1346,7 @@ void proof_checker::dump_proof(unsigned num_antecedents, expr * const * antecede
     pp.set_benchmark_name("lemma");
     pp.set_status("unsat");
     pp.set_logic(symbol(m_logic.c_str()));
-    for (unsigned i = 0; i < num_antecedents; i++)
+    for (unsigned i = 0; i < num_antecedents; ++i)
         pp.add_assumption(antecedents[i]);
     expr_ref n(m);
     n = m.mk_not(consequent);
@@ -1345,6 +1439,11 @@ bool proof_checker::check_arith_literal(bool is_pos, app* lit0, rational const& 
 }
 
 bool proof_checker::check_arith_proof(proof* p) {
+    if (lp::is_evidence_proof(p)) {
+        if (!m_lp_checker)
+            m_lp_checker = std::make_unique<lp::evidence_proof_checker>(m);
+        return m_lp_checker->check(p);
+    }
     func_decl* d = p->get_decl();
     SASSERT(PR_TH_LEMMA == p->get_decl_kind());
     SASSERT(d->get_parameter(0).get_symbol() == "arith");
@@ -1389,15 +1488,15 @@ bool proof_checker::check_arith_proof(proof* p) {
     }
 
     unsigned num_parents = m.get_num_parents(p);
-    for (unsigned i = 0; i < num_parents; i++) {
+    for (unsigned i = 0; i < num_parents; ++i) {
         proof * a = m.get_parent(p, i);
         SASSERT(m.has_fact(a));
         if (!check_arith_literal(true, to_app(m.get_fact(a)), coeffs[offset++], sum, is_strict)) {
             return false;
         }
     }
-    TRACE("proof_checker", 
-          for (unsigned i = 0; i < num_parents; i++) 
+    TRACE(proof_checker, 
+          for (unsigned i = 0; i < num_parents; ++i) 
               tout << coeffs[i] << " * " << mk_bounded_pp(m.get_fact(m.get_parent(p, i)), m) << "\n";
           tout << "fact:" << mk_bounded_pp(fact, m) << "\n";);
     

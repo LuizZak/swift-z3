@@ -55,7 +55,7 @@ namespace euf {
         if (num != n2->num_args()) {
             return false;
         }
-        for (unsigned i = 0; i < num; i++) 
+        for (unsigned i = 0; i < num; ++i) 
             if (get_root(n1, i) != get_root(n2, i))
                 return false;
         return true;
@@ -237,7 +237,7 @@ namespace euf {
             UNTAG(table*, t)->erase(n);
             break;
         }
-        CTRACE("euf", contains_ptr(n), display(tout));
+        CTRACE(euf, contains_ptr(n), display(tout));
         SASSERT(!contains_ptr(n));
     }
 
@@ -276,5 +276,5 @@ namespace euf {
         return find(n) == n;
     }
 
-};
+}
 

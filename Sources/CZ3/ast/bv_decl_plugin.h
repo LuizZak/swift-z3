@@ -109,33 +109,14 @@ enum bv_op_kind {
     OP_BIT2BOOL, // predicate
     OP_MKBV,     // bools to bv
     OP_INT2BV,
-    OP_BV2INT,
+    OP_UBV2INT,
+    OP_SBV2INT,
 
     OP_CARRY,
     OP_XOR3,
 
     LAST_BV_OP
 };
-
-// Assume k is a "div" operator. It returns the div0 uninterpreted function that
-// models the value of "div" it is underspecified (i.e., when the denominator is zero).
-inline bv_op_kind get_div0_op(bv_op_kind k) {
-    switch (k) {
-    case OP_BSDIV: return OP_BSDIV0;
-    case OP_BUDIV: return OP_BUDIV0;
-    case OP_BSREM: return OP_BSREM0;
-    case OP_BUREM: return OP_BUREM0;
-    case OP_BSMOD: return OP_BSMOD0;
-    default: UNREACHABLE(); return LAST_BV_OP;
-    }
-}
-
-// Assume decl is the declaration of a "div" operator. It returns the div0 declaration that
-// models the value of "div" it is underspecified (i.e., when the denominator is zero).
-inline func_decl * get_div0_decl(ast_manager & m, func_decl * decl) {
-    return m.mk_func_decl(decl->get_family_id(), get_div0_op(static_cast<bv_op_kind>(decl->get_decl_kind())),
-                          0, nullptr, 1, decl->get_domain());
-}
 
 class bv_decl_plugin : public decl_plugin {
     friend class bv_util;
@@ -225,7 +206,8 @@ protected:
     ptr_vector<func_decl>  m_ext_rotate_left;
     ptr_vector<func_decl>  m_ext_rotate_right;
 
-    ptr_vector<func_decl>  m_bv2int;
+    ptr_vector<func_decl>  m_ubv2int;
+    ptr_vector<func_decl>  m_sbv2int;
     ptr_vector<func_decl>  m_int2bv;
     vector<ptr_vector<func_decl> > m_bit2bool;
     ptr_vector<func_decl>  m_mkbv;
@@ -250,7 +232,9 @@ protected:
     bool get_extract_size(unsigned num_parameters, parameter const * parameters,
                           unsigned arity, sort * const * domain, int & result);
 
-    func_decl * mk_bv2int(unsigned bv_size, unsigned num_parameters, parameter const * parameters,
+    func_decl * mk_ubv2int(unsigned bv_size, unsigned num_parameters, parameter const * parameters,
+                          unsigned arity, sort * const * domain);
+    func_decl * mk_sbv2int(unsigned bv_size, unsigned num_parameters, parameter const * parameters,
                           unsigned arity, sort * const * domain);
 
     func_decl * mk_int2bv(unsigned bv_size, unsigned num_parameters, parameter const * parameters,
@@ -337,7 +321,8 @@ public:
     unsigned get_extract_low(expr const * n) const { SASSERT(is_extract(n)); return get_extract_low(to_app(n)->get_decl()); }
     bool is_extract(expr const * e, unsigned & low, unsigned & high, expr * & b) const;
     bool is_repeat(expr const * e, expr*& arg, unsigned& n) const;
-    bool is_bv2int(expr const * e, expr * & r) const;
+    bool is_ubv2int(expr const * e, expr * & r) const;
+    bool is_sbv2int(expr const * e, expr * & r) const;
     bool is_bv_add(expr const * e) const { return is_app_of(e, get_fid(), OP_BADD); }
     bool is_bv_sub(expr const * e) const { return is_app_of(e, get_fid(), OP_BSUB); }
     bool is_bv_mul(expr const * e) const { return is_app_of(e, get_fid(), OP_BMUL); }
@@ -378,7 +363,8 @@ public:
     bool is_uge(expr const * e) const { return is_app_of(e, get_fid(), OP_UGEQ); }
     bool is_sge(expr const * e) const { return is_app_of(e, get_fid(), OP_SGEQ); }
     bool is_bit2bool(expr const * e) const { return is_app_of(e, get_fid(), OP_BIT2BOOL); }
-    bool is_bv2int(expr const* e) const { return is_app_of(e, get_fid(), OP_BV2INT); }
+    bool is_ubv2int(expr const* e) const { return is_app_of(e, get_fid(), OP_UBV2INT); }
+    bool is_sbv2int(expr const* e) const { return is_app_of(e, get_fid(), OP_SBV2INT); }
     bool is_int2bv(expr const* e) const { return is_app_of(e, get_fid(), OP_INT2BV); }
     bool is_mkbv(expr const * e) const { return is_app_of(e, get_fid(), OP_MKBV); }
     bool is_bv_ashr(expr const * e) const { return is_app_of(e, get_fid(), OP_BASHR); }
@@ -404,9 +390,11 @@ public:
         return is_int2bv(e) && (n = to_app(e)->get_parameter(0).get_int(), x = to_app(e)->get_arg(0), true);
     }
 
+    START_DISABLE_EXTRA_SEMI_WARNING;
     MATCH_UNARY(is_bv_not);
     MATCH_UNARY(is_redand);
     MATCH_UNARY(is_redor);
+    MATCH_UNARY(is_sign_ext);
 
     MATCH_BINARY(is_ext_rotate_left);
     MATCH_BINARY(is_ext_rotate_right);
@@ -453,10 +441,10 @@ public:
     MATCH_BINARY(is_bv_smod0);
     MATCH_UNARY(is_bit2bool);
     MATCH_UNARY(is_int2bv);
+    END_DISABLE_WARNING;
     bool is_bit2bool(expr* e, expr*& bv, unsigned& idx) const;
 
-    rational norm(rational const & val, unsigned bv_size, bool is_signed) const ;
-    rational norm(rational const & val, unsigned bv_size) const { return norm(val, bv_size, false); }
+    rational norm(rational const & val, unsigned bv_size, bool is_signed = false) const ;
     bool has_sign_bit(rational const & n, unsigned bv_size) const;
 };
 
@@ -488,6 +476,7 @@ public:
 
 
     app * mk_ule(expr * arg1, expr * arg2) { return m_manager.mk_app(get_fid(), OP_ULEQ, arg1, arg2); }
+    app * mk_ult(expr * arg1, expr * arg2) { return m_manager.mk_app(get_fid(), OP_ULT, arg1, arg2); }
     app * mk_sle(expr * arg1, expr * arg2) { return m_manager.mk_app(get_fid(), OP_SLEQ, arg1, arg2); }
     app * mk_slt(expr * arg1, expr * arg2) { return m_manager.mk_app(get_fid(), OP_SLT, arg1, arg2); }
     app * mk_extract(unsigned high, unsigned low, expr * n) {
@@ -495,13 +484,17 @@ public:
         return m_manager.mk_app(get_fid(), OP_EXTRACT, 2, params, 1, &n);
     }
     app * mk_concat(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_CONCAT, num, args);  }
+    app * mk_concat(std::initializer_list<expr*> args) { return m_manager.mk_app(get_fid(), OP_CONCAT, static_cast<unsigned>(args.size()), args.begin());  }
     app * mk_concat(expr_ref_vector const& es) { return m_manager.mk_app(get_fid(), OP_CONCAT, es.size(), es.data());  }
     app * mk_concat(expr_ref_buffer const& es) { return m_manager.mk_app(get_fid(), OP_CONCAT, es.size(), es.data());  }
     app * mk_concat(ptr_buffer<expr> const& es) { return m_manager.mk_app(get_fid(), OP_CONCAT, es.size(), es.data());  }
     app * mk_concat(ptr_vector<expr> const& es) { return m_manager.mk_app(get_fid(), OP_CONCAT, es.size(), es.data());  }
     app * mk_bv_or(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_BOR, num, args);  }
+    app * mk_bv_or(std::initializer_list<expr*> args) { return m_manager.mk_app(get_fid(), OP_BOR, static_cast<unsigned>(args.size()), args.begin());  }
     app * mk_bv_and(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_BAND, num, args);  }
+    app * mk_bv_and(std::initializer_list<expr*> args) { return m_manager.mk_app(get_fid(), OP_BAND, static_cast<unsigned>(args.size()), args.begin());  }
     app * mk_bv_xor(unsigned num, expr * const * args) { return m_manager.mk_app(get_fid(), OP_BXOR, num, args);  }
+    app * mk_bv_xor(std::initializer_list<expr*> args) { return m_manager.mk_app(get_fid(), OP_BXOR, static_cast<unsigned>(args.size()), args.begin());  }
 
     app * mk_concat(expr * arg1, expr * arg2) { expr * args[2] = { arg1, arg2 }; return mk_concat(2, args); }
     app * mk_bv_and(expr* x, expr* y) { expr* args[2] = { x, y }; return mk_bv_and(2, args); }
@@ -510,6 +503,29 @@ public:
 
     app * mk_bv_not(expr * arg) { return m_manager.mk_app(get_fid(), OP_BNOT, arg); }
     app * mk_bv_neg(expr * arg) { return m_manager.mk_app(get_fid(), OP_BNEG, arg); }
+    // absolute value: ite(arg <s 0, -arg, arg). Note mk_abs(INT_MIN) = INT_MIN.
+    // Uses ¬(0 ≤s arg) instead of (arg <s 0) so that the ITE condition is OP_NOT(OP_SLEQ)
+    // (handled by theory_bv::internalize_atom) rather than OP_SLT (not handled).
+    app * mk_abs(expr * arg) {
+        expr_ref nonneg(mk_sle(mk_zero(arg->get_sort()), arg), m_manager);
+        expr_ref neg(mk_bv_neg(arg), m_manager);
+        return m_manager.mk_ite(nonneg, arg, neg);
+    }
+    // Magnitude-bound clause for a division/remainder term t with a symbolic (non-numeral)
+    // divisor. Fills clause with the disjuncts { divisor = 0, bound }, encoding
+    // divisor != 0 => bound, where bound is expressed using only OP_ULEQ and OP_NOT(OP_ULEQ)
+    // (so it can be internalized by theory_bv::internalize_atom):
+    //   urem:      ¬(b ≤u t)          srem/smod: ¬(|b| ≤u |t|)
+    //   udiv:      t ≤u a             sdiv:      |t| ≤u |a|
+    // Leaves clause empty if t is not a division/remainder operator or the divisor is a
+    // numeral. The bound is a bit-vector theory axiom (implied for a non-zero divisor); the
+    // unsigned comparison on absolute values keeps it sound at INT_MIN.
+    bool is_bv_divrem(expr* t) const {
+        return is_bv_urem(t) || is_bv_uremi(t) || is_bv_srem(t) || is_bv_sremi(t) ||
+               is_bv_smod(t) || is_bv_smodi(t) || is_bv_udiv(t) || is_bv_udivi(t) ||
+               is_bv_sdiv(t) || is_bv_sdivi(t);
+    }
+    void mk_bv_divrem_bound(expr* t, expr_ref_vector& clause);
     app * mk_bv_urem(expr * arg1, expr * arg2) const { return m_manager.mk_app(get_fid(), OP_BUREM, arg1, arg2); }
     app * mk_bv_srem(expr * arg1, expr * arg2) const { return m_manager.mk_app(get_fid(), OP_BSREM, arg1, arg2); }
     app * mk_bv_smod(expr * arg1, expr * arg2) const { return m_manager.mk_app(get_fid(), OP_BSMOD, arg1, arg2); }
@@ -549,7 +565,9 @@ public:
     app * mk_bv_ashr(expr* arg1, expr* arg2) { return m_manager.mk_app(get_fid(), OP_BASHR, arg1, arg2); }
     app * mk_bv_lshr(expr* arg1, expr* arg2) { return m_manager.mk_app(get_fid(), OP_BLSHR, arg1, arg2); }
 
-    app * mk_bv2int(expr* e) const;
+    app * mk_ubv2int(expr* e) const;
+    app * mk_sbv2int(expr* e) const;
+    app * mk_sbv2int_as_ubv2int(expr* e);
     app * mk_int2bv(unsigned sz, expr* e) const;
 
     app* mk_bv_rotate_left(expr* arg1, expr* arg2) { return m_manager.mk_app(get_fid(), OP_EXT_ROTATE_LEFT, arg1, arg2); }
@@ -621,5 +639,4 @@ public:
     }
 
 };
-
 

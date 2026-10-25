@@ -53,10 +53,7 @@ void arith_eq_solver::prop_mod_const(expr * e, unsigned depth, numeral const& k,
     numeral n;
     bool is_int;
 
-    if (depth == 0) {
-        result = e;
-    }
-    else if (m_util.is_add(e) || m_util.is_mul(e)) {
+    if (depth != 0 && (m_util.is_add(e) || m_util.is_mul(e))) {
         expr_ref_vector args(m);
         expr_ref tmp(m);
         app* a = to_app(e);
@@ -66,7 +63,7 @@ void arith_eq_solver::prop_mod_const(expr * e, unsigned depth, numeral const& k,
         }
         m_arith_rewriter.mk_app(a->get_decl(), args.size(), args.data(), result);
     }
-    else if (m_util.is_numeral(e, n, is_int) && is_int) {
+    else if (depth != 0 && m_util.is_numeral(e, n, is_int) && is_int) {
         result = m_util.mk_numeral(mod(n, k), true);
     }
     else {
@@ -161,7 +158,7 @@ bool arith_eq_solver::solve_integer_equation(
     bool&            is_fresh
     )
 {
-    TRACE("arith_eq_solver", print_row(tout << "solving: ", values); );
+    TRACE(arith_eq_solver, print_row(tout << "solving: ", values); );
     //
     // perform one step of the omega test equality elimination.
     //
@@ -198,7 +195,7 @@ bool arith_eq_solver::solve_integer_equation(
             return false;
     gcd_normalize(values);
     if (!gcd_test(values)) {
-        TRACE("arith_eq_solver", print_row(tout << "not sat\n", values););
+        TRACE(arith_eq_solver, print_row(tout << "not sat\n", values););
         return false;
     }
     index = find_abs_min(values);
@@ -232,7 +229,7 @@ bool arith_eq_solver::solve_integer_equation(
         values[index] = m;
     }
 
-    TRACE("arith_eq_solver",
+    TRACE(arith_eq_solver,
           tout << "solved at index " << index << ": ";
           print_row(tout, values);
           );
@@ -248,7 +245,7 @@ void arith_eq_solver::substitute(
     )
 {
     SASSERT(1 <= index && index < s.size());
-    TRACE("arith_eq_solver",
+    TRACE(arith_eq_solver,
           tout << "substitute " << index << ":\n";
           print_row(tout, r);
           print_row(tout, s);
@@ -318,7 +315,7 @@ void arith_eq_solver::substitute(
 
     }
 
-    TRACE("arith_eq_solver",
+    TRACE(arith_eq_solver,
           tout << "result: ";
           print_row(tout, r);
           );
@@ -343,7 +340,7 @@ bool arith_eq_solver::solve_integer_equations_units(
     )
 {
 
-    TRACE("arith_eq_solver", print_rows(tout << "solving:\n", rows););
+    TRACE(arith_eq_solver, print_rows(tout << "solving:\n", rows););
 
     unsigned_vector todo, done;
 
@@ -353,7 +350,7 @@ bool arith_eq_solver::solve_integer_equations_units(
         gcd_normalize(r);
         if (!gcd_test(r)) {
             unsat_row = r;
-            TRACE("arith_eq_solver", print_row(tout << "input is unsat: ", unsat_row); );
+            TRACE(arith_eq_solver, print_row(tout << "input is unsat: ", unsat_row); );
             return false;
         }
     }
@@ -362,7 +359,7 @@ bool arith_eq_solver::solve_integer_equations_units(
         gcd_normalize(r);
         if (!gcd_test(r)) {
             unsat_row = r;
-            TRACE("arith_eq_solver", print_row(tout << "unsat: ", unsat_row); );
+            TRACE(arith_eq_solver, print_row(tout << "unsat: ", unsat_row); );
             return false;
         }
         unsigned index = find_abs_min(r);
@@ -391,7 +388,7 @@ bool arith_eq_solver::solve_integer_equations_units(
         }
     }
 
-    TRACE("arith_eq_solver",
+    TRACE(arith_eq_solver,
           tout << ((done.size()<=1)?"solved ":"incomplete check ") << done.size() << "\n";
           for (unsigned i = 0; i < done.size(); ++i) {
               print_row(tout, rows[done[i]]);
@@ -433,7 +430,7 @@ bool arith_eq_solver::solve_integer_equations_omega(
             gcd_normalize(unsat_row);
             // invert the substitution for every index that is fresh.
 
-            TRACE("arith_eq_solver",
+            TRACE(arith_eq_solver,
                   tout << "unsat:\n";
                   print_row(tout, unsat_row);
                   for (unsigned l = 0; l + 1< rows_solved.size(); ++l) {
@@ -474,7 +471,7 @@ bool arith_eq_solver::solve_integer_equations_omega(
                     }
 
                     gcd_normalize(unsat_row);
-                    TRACE("arith_eq_solver",
+                    TRACE(arith_eq_solver,
                           tout << "gcd: ";
                           print_row(tout, solved_row);
                           print_row(tout, unsat_row);
@@ -482,7 +479,7 @@ bool arith_eq_solver::solve_integer_equations_omega(
 
                 }
                 if (gcd_test(unsat_row)) {
-                    TRACE("arith_eq_solver", tout << "missed pure explanation\n";);
+                    TRACE(arith_eq_solver, tout << "missed pure explanation\n";);
                     return true;
                 }
                 SASSERT(!gcd_test(unsat_row));
@@ -541,7 +538,7 @@ bool arith_eq_solver::solve_integer_equations_gcd(
         gcd_normalize(r);
         if (!gcd_test(r)) {
             unsat_row = r;
-            TRACE("arith_eq_solver", print_row(tout << "input is unsat: ", unsat_row); );
+            TRACE(arith_eq_solver, print_row(tout << "input is unsat: ", unsat_row); );
             return false;
         }
     }
@@ -613,7 +610,7 @@ bool arith_eq_solver::solve_integer_equations_gcd(
                     gcd_normalize(r);
                     if (!gcd_test(r)) {
                         unsat_row = r;
-                        TRACE("arith_eq_solver", print_row(tout << "unsat: ", unsat_row); );
+                        TRACE(arith_eq_solver, print_row(tout << "unsat: ", unsat_row); );
                         return false;
                     }
                 }
@@ -621,7 +618,7 @@ bool arith_eq_solver::solve_integer_equations_gcd(
         }
     }
 
-    TRACE("arith_eq_solver",
+    TRACE(arith_eq_solver,
           tout << ((live.size()<=1)?"solved ":"incomplete check ") << live.size() << "\n";
           for (unsigned l : live) print_row(tout, rows[l]); );
 

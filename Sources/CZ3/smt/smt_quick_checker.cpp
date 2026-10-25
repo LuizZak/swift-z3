@@ -34,7 +34,7 @@ namespace smt {
         m_already_found.reserve(m_num_vars+1, false);
         m_candidates.reserve(m_num_vars+1);
         m_tmp_candidates.reserve(m_num_vars+1);
-        for (unsigned i = 0; i < m_num_vars; i++) {
+        for (unsigned i = 0; i < m_num_vars; ++i) {
             m_already_found[i] = false;
             m_candidates[i].reset();
         }
@@ -62,7 +62,7 @@ namespace smt {
     void quick_checker::collector::collect_core(app * n, func_decl * p, unsigned i) {
         func_decl * f     = n->get_decl();
         unsigned num_args = n->get_num_args();
-        for (unsigned j = 0; j < num_args; j++) {
+        for (unsigned j = 0; j < num_args; ++j) {
             expr * arg = n->get_arg(j);
             if (is_var(arg)) {
                 unsigned idx = to_var(arg)->get_idx();
@@ -121,7 +121,7 @@ namespace smt {
 
     void quick_checker::collector::save_result(vector<enode_vector> & candidates) {
         candidates.reserve(m_num_vars+1);
-        for (unsigned i = 0; i < m_num_vars; i++) {
+        for (unsigned i = 0; i < m_num_vars; ++i) {
             enode_vector & v        = candidates[i];
             v.reset();
             enode_set & s           = m_candidates[i];
@@ -129,9 +129,9 @@ namespace smt {
                 v.push_back(curr);
             }
         }
-        TRACE("collector", 
+        TRACE(collector, 
               tout << "candidates:\n";
-              for (unsigned i = 0; i < m_num_vars; i++) {
+              for (unsigned i = 0; i < m_num_vars; ++i) {
                   tout << "var " << i << ":";
                   enode_vector & v           = candidates[i];
                   for (enode * n : v) 
@@ -143,7 +143,7 @@ namespace smt {
     void quick_checker::collector::operator()(quantifier * q, bool conservative, vector<enode_vector> & candidates) {
         flet<bool> l(m_conservative, conservative);
         init(q);
-        TRACE("collector", tout << "model checking: #" << q->get_id() << "\n" << mk_pp(q, m_manager) << "\n";);
+        TRACE(collector, tout << "model checking: #" << q->get_id() << "\n" << mk_pp(q, m_manager) << "\n";);
         collect(q->get_expr(), nullptr, 0);
         save_result(candidates);
     }
@@ -159,7 +159,7 @@ namespace smt {
        \brief Instantiate instances unsatisfied by the current model. Return true if new instances were generated.
     */
     bool quick_checker::instantiate_unsat(quantifier * q) {
-        TRACE("quick_checker", tout << "instantiate instances unsatisfied by current model\n" << mk_pp(q, m_manager) << "\n";);
+        TRACE(quick_checker, tout << "instantiate instances unsatisfied by current model\n" << mk_pp(q, m_manager) << "\n";);
         m_candidate_vectors.reset();
         m_collector(q, true, m_candidate_vectors);
         m_num_bindings = q->get_num_decls();
@@ -170,7 +170,7 @@ namespace smt {
        \brief Instantiate instances not satisfied by the current model. Return true if new instances were generated.
     */
     bool quick_checker::instantiate_not_sat(quantifier * q) {
-        TRACE("quick_checker", tout << "instantiate instances not satisfied by current model\n" << mk_pp(q, m_manager) << "\n";);
+        TRACE(quick_checker, tout << "instantiate instances not satisfied by current model\n" << mk_pp(q, m_manager) << "\n";);
         m_candidate_vectors.reset();
         m_collector(q, false, m_candidate_vectors);
         m_num_bindings = q->get_num_decls();
@@ -182,10 +182,10 @@ namespace smt {
         m_candidate_vectors.reset();
         m_num_bindings = q->get_num_decls();
         m_candidate_vectors.reserve(m_num_bindings+1);
-        for (unsigned i = 0; i < m_num_bindings; i++) {
+        for (unsigned i = 0; i < m_num_bindings; ++i) {
             m_candidate_vectors[i].reset();
             sort * s = q->get_decl_sort(i);
-            for (unsigned j = 0; j < num_candidates; j++) {
+            for (unsigned j = 0; j < num_candidates; ++j) {
                 if (candidates[j]->get_sort() == s) {
                     expr * n = candidates[j];
                     m_context.internalize(n, false);
@@ -201,17 +201,17 @@ namespace smt {
         vector<std::tuple<enode *, enode *>> empty_used_enodes;
         buffer<unsigned> szs;
         buffer<unsigned> it;
-        for (unsigned i = 0; i < m_num_bindings; i++) {
+        for (unsigned i = 0; i < m_num_bindings; ++i) {
             unsigned sz = m_candidate_vectors[i].size();
             if (sz == 0)
                 return false;
             szs.push_back(sz);
             it.push_back(0);
         }
-        TRACE("quick_checker_sizes", tout << mk_pp(q, m_manager) << "\n"; for (unsigned i = 0; i < szs.size(); i++) tout << szs[i] << " "; tout << "\n";);
-        TRACE("quick_checker_candidates", 
+        TRACE(quick_checker_sizes, tout << mk_pp(q, m_manager) << "\n"; for (unsigned i = 0; i < szs.size(); ++i) tout << szs[i] << " "; tout << "\n";);
+        TRACE(quick_checker_candidates, 
               tout << "candidates:\n";
-              for (unsigned i = 0; i < m_num_bindings; i++) {
+              for (unsigned i = 0; i < m_num_bindings; ++i) {
                   enode_vector & v           = m_candidate_vectors[i];
                   for (enode * n : v) 
                       tout << "#" << n->get_owner_id() << " ";
@@ -220,23 +220,23 @@ namespace smt {
         bool result = false;
         m_bindings.reserve(m_num_bindings+1, 0);
         do {
-            for (unsigned i = 0; i < m_num_bindings; i++)
+            for (unsigned i = 0; i < m_num_bindings; ++i)
                 m_bindings[m_num_bindings - i - 1] = m_candidate_vectors[i][it[i]];
             if (!m_context.contains_instance(q, m_num_bindings, m_bindings.data())) {
                 bool is_candidate = false;
-                TRACE("quick_checker", tout << "processing bindings:";
-                      for (unsigned i = 0; i < m_num_bindings; i++) tout << " #" << m_bindings[i]->get_owner_id();
+                TRACE(quick_checker, tout << "processing bindings:";
+                      for (unsigned i = 0; i < m_num_bindings; ++i) tout << " #" << m_bindings[i]->get_owner_id();
                       tout << "\n";);
                 if (unsat)
                     is_candidate = check_quantifier(q, false);
                 else
                     is_candidate = !check_quantifier(q, true);
                 if (is_candidate) {
-                    TRACE("quick_checker", tout << "found new candidate\n";);
-                    TRACE("quick_checker_sizes", tout << "found new candidate\n"; 
-                          for (unsigned i = 0; i < m_num_bindings; i++) tout << "#" << m_bindings[i]->get_owner_id() << " "; tout << "\n";);
-                    unsigned max_generation = get_max_generation(m_num_bindings, m_bindings.data());
-                    if (m_context.add_instance(q, nullptr /* no pattern was used */, m_num_bindings, m_bindings.data(), nullptr, 
+                    TRACE(quick_checker, tout << "found new candidate\n";);
+                    TRACE(quick_checker_sizes, tout << "found new candidate\n"; 
+                          for (unsigned i = 0; i < m_num_bindings; ++i) tout << "#" << m_bindings[i]->get_owner_id() << " "; tout << "\n";);
+                    unsigned max_generation = m_context.get_max_generation(m_num_bindings, m_bindings.data());
+                    if (m_context.add_instance(q, nullptr /* no pattern was used */, m_num_bindings, m_bindings.data(),
                                                max_generation,
                                                0,  // min_top_generation is only available for instances created by the MAM
                                                0,  // max_top_generation is only available for instances created by the MAM
@@ -259,7 +259,7 @@ namespace smt {
 
     bool quick_checker::all_args(app * a, bool is_true) {
         unsigned num_args = a->get_num_args();
-        for (unsigned i = 0; i < num_args; i++)
+        for (unsigned i = 0; i < num_args; ++i)
             if (!check(a->get_arg(i), is_true))
                 return false;
         return true;
@@ -267,7 +267,7 @@ namespace smt {
 
     bool quick_checker::any_arg(app * a, bool is_true) {
         unsigned num_args = a->get_num_args();
-        for (unsigned i = 0; i < num_args; i++)
+        for (unsigned i = 0; i < num_args; ++i)
             if (check(a->get_arg(i), is_true))
                 return true;
         return false;
@@ -329,7 +329,7 @@ namespace smt {
             }
         }
         expr * new_a = canonize(a);
-        TRACE("quick_checker_canonizer", tout << "before:\n" << mk_pp(a, m_manager) << "\nafter:\n" << mk_pp(new_a, m_manager) << "\n";);
+        TRACE(quick_checker_canonizer, tout << "before:\n" << mk_pp(a, m_manager) << "\nafter:\n" << mk_pp(new_a, m_manager) << "\n";);
         if (m_context.lit_internalized(new_a) && m_context.is_relevant(new_a)) {
             lbool val = m_context.get_assignment(new_a);
             if (val != l_undef)
@@ -371,7 +371,7 @@ namespace smt {
         ptr_buffer<expr>  new_args;
         ptr_buffer<enode> new_arg_enodes;
         unsigned num_args = to_app(n)->get_num_args();
-        for (unsigned i = 0; i < num_args; i++) {
+        for (unsigned i = 0; i < num_args; ++i) {
             expr * arg = canonize(to_app(n)->get_arg(i));
             new_args.push_back(arg);
             if (m_context.e_internalized(arg))
@@ -387,7 +387,7 @@ namespace smt {
             }
         }
         // substitute by values in the model
-        for (unsigned i = 0; i < num_args; i++) {
+        for (unsigned i = 0; i < num_args; ++i) {
             expr * arg = new_args[i];
             if (m_context.e_internalized(arg)) {
                 expr_ref new_value(m_manager);
@@ -404,5 +404,5 @@ namespace smt {
         return new_expr;
     }
 
-};
+}
 

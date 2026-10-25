@@ -103,6 +103,12 @@ public extension Z3DeclKind {
     
     static let opAbs = Z3_OP_ABS
     
+    static let opComplex = Z3_OP_COMPLEX
+    
+    static let opRealPart = Z3_OP_REAL_PART
+    
+    static let opImagPart = Z3_OP_IMAG_PART
+    
     /// Array store. It satisfies select(store(a,i,v),j) = if i = j then v else select(a,j).
     /// Array store takes at least 3 arguments.
     static let opStore = Z3_OP_STORE
@@ -142,10 +148,6 @@ public extension Z3DeclKind {
     /// Array extensionality function. It takes two arrays as arguments and produces an index, such that the arrays
     /// are different if they are different on the index.
     static let opArrayExt = Z3_OP_ARRAY_EXT
-    
-    static let opSetHasSize = Z3_OP_SET_HAS_SIZE
-    
-    static let opSetCard = Z3_OP_SET_CARD
     
     /// Bit-vector numeral.
     static let opBnum = Z3_OP_BNUM
@@ -290,15 +292,14 @@ public extension Z3DeclKind {
     
     static let opBit2bool = Z3_OP_BIT2BOOL
     
-    /// Coerce integer to bit-vector. NB. This function
-    /// is not supported by the decision procedures. Only the most
-    /// rudimentary simplification rules are applied to this function.
+    /// Coerce integer to bit-vector. 
     static let opInt2bv = Z3_OP_INT2BV
     
-    /// Coerce bit-vector to integer. NB. This function
-    /// is not supported by the decision procedures. Only the most
-    /// rudimentary simplification rules are applied to this function.
+    /// Coerce bit-vector to integer. 
     static let opBv2int = Z3_OP_BV2INT
+    
+    /// Coerce signed bit-vector to integer. 
+    static let opSbv2int = Z3_OP_SBV2INT
     
     /// Compute the carry bit in a full-adder.
     /// The meaning is given by the equivalence
@@ -344,6 +345,9 @@ public extension Z3DeclKind {
     /// Binary signed modulus.
     /// It has the same semantics as Z3_OP_BSMOD, but created in a context where the second operand can be assumed to be non-zero.
     static let opBsmodI = Z3_OP_BSMOD_I
+    
+    /// Construct a bit-vector from Boolean bits, least-significant bit first.
+    static let opMkbv = Z3_OP_MKBV
     
     /// Undef/Null proof object.
     static let opPrUndef = Z3_OP_PR_UNDEF
@@ -746,6 +750,12 @@ public extension Z3DeclKind {
     /// of literal positions from the main clause and side clause.
     static let opPrHyperResolve = Z3_OP_PR_HYPER_RESOLVE
     
+    /// Clausal proof theory axiom addition, optionally carrying a proof certificate.
+    static let opPrThAssumptionAdd = Z3_OP_PR_TH_ASSUMPTION_ADD
+    
+    /// Clausal proof theory lemma addition, optionally carrying a proof certificate.
+    static let opPrThLemmaAdd = Z3_OP_PR_TH_LEMMA_ADD
+    
     /// Insert a record into a relation.
     /// The function takes `n`+1 arguments, where the first argument is the relation and the remaining `n` elements
     /// correspond to the `n` columns of the relation.
@@ -857,6 +867,8 @@ public extension Z3DeclKind {
     static let opSeqFoldl = Z3_OP_SEQ_FOLDL
     
     static let opSeqFoldli = Z3_OP_SEQ_FOLDLI
+    
+    static let opSeqPower = Z3_OP_SEQ_POWER
     
     static let opStrToInt = Z3_OP_STR_TO_INT
     
@@ -1124,6 +1136,45 @@ public extension Z3DeclKind {
     ///     4 = 100 = Z3_OP_FPA_RM_TOWARD_ZERO.
     static let opFpaBv2rm = Z3_OP_FPA_BV2RM
     
+    /// Empty finite set.
+    static let opFiniteSetEmpty = Z3_OP_FINITE_SET_EMPTY
+    
+    /// Finite set containing a single element.
+    static let opFiniteSetSingleton = Z3_OP_FINITE_SET_SINGLETON
+    
+    /// Union of two finite sets.
+    static let opFiniteSetUnion = Z3_OP_FINITE_SET_UNION
+    
+    /// Intersection of two finite sets.
+    static let opFiniteSetIntersect = Z3_OP_FINITE_SET_INTERSECT
+    
+    /// Difference of two finite sets.
+    static let opFiniteSetDifference = Z3_OP_FINITE_SET_DIFFERENCE
+    
+    /// Membership predicate for finite sets.
+    static let opFiniteSetIn = Z3_OP_FINITE_SET_IN
+    
+    /// Cardinality of a finite set.
+    static let opFiniteSetSize = Z3_OP_FINITE_SET_SIZE
+    
+    /// Subset predicate for finite sets.
+    static let opFiniteSetSubset = Z3_OP_FINITE_SET_SUBSET
+    
+    /// Map operation on finite sets.
+    static let opFiniteSetMap = Z3_OP_FINITE_SET_MAP
+    
+    /// Filter operation on finite sets.
+    static let opFiniteSetFilter = Z3_OP_FINITE_SET_FILTER
+    
+    /// Range operation for finite sets of integers.
+    static let opFiniteSetRange = Z3_OP_FINITE_SET_RANGE
+    
+    /// Finite set extensionality. Returns a witness element that is in one set but not the other, demonstrating that two sets are different.
+    static let opFiniteSetExt = Z3_OP_FINITE_SET_EXT
+    
+    /// Inverse image under a finite set map operation. Related to reasoning about the pre-image of elements under set mappings.
+    static let opFiniteSetMapInverse = Z3_OP_FINITE_SET_MAP_INVERSE
+    
     /// internal (often interpreted) symbol, but no additional
     /// information is exposed. Tools may use the string representation of the
     /// function declaration to obtain more information.
@@ -1134,4 +1185,14 @@ public extension Z3DeclKind {
     
     /// kind used for uninterpreted symbols.
     static let opUninterpreted = Z3_OP_UNINTERPRETED
+    
+    static let opFfNum = Z3_OP_FF_NUM
+    
+    static let opFfAdd = Z3_OP_FF_ADD
+    
+    static let opFfMul = Z3_OP_FF_MUL
+    
+    static let opFfNeg = Z3_OP_FF_NEG
+    
+    static let opFfBitsum = Z3_OP_FF_BITSUM
 }

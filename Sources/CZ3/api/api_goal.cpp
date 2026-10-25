@@ -65,10 +65,8 @@ extern "C" {
         case goal::UNDER:   return Z3_GOAL_UNDER;
         case goal::OVER:    return Z3_GOAL_OVER;
         case goal::UNDER_OVER: return Z3_GOAL_UNDER_OVER;
-        default:
-            UNREACHABLE();
-            return Z3_GOAL_UNDER_OVER;
         }
+        return Z3_GOAL_UNDER_OVER;
         Z3_CATCH_RETURN(Z3_GOAL_UNDER_OVER);
     }
 
@@ -158,7 +156,10 @@ extern "C" {
         model_ref new_m;
         Z3_model_ref * m_ref = alloc(Z3_model_ref, *mk_c(c)); 
         mk_c(c)->save_object(m_ref);
-        if (m) m_ref->m_model = to_model_ref(m)->copy(); 
+        if (m)
+            m_ref->m_model = to_model_ref(m)->copy();
+        else
+            m_ref->m_model = alloc(model, mk_c(c)->m());
         if (to_goal_ref(g)->mc()) 
             (*to_goal_ref(g)->mc())(m_ref->m_model);
         RETURN_Z3(of_model(m_ref));
@@ -210,4 +211,4 @@ extern "C" {
         Z3_CATCH_RETURN("");
     }
 
-};
+}

@@ -98,7 +98,7 @@ bool lemma_cluster::match(const expr_ref &e, substitution &sub) {
         return m_arith.is_numeral(e) || m_bv.is_numeral(e);
     };
     // All the matches should be numerals
-    for (unsigned i = 0; i < n_binds; i++) {
+    for (unsigned i = 0; i < n_binds; ++i) {
         sub.get_binding(i, var, r);
         if (!is_numeral(r.get_expr())) return false;
     }
@@ -149,18 +149,18 @@ void lemma_cluster::rm_subsumed(lemma_info_vector &removed_lemmas) {
     lemma_info_vector keep;
     for (auto lem : m_lemma_vec) {
         bool found = false;
-        for (unsigned i = 0; i < r->size(); i++) {
+        for (unsigned i = 0; i < r->size(); ++i) {
             if (lem.get_lemma()->get_expr() == r->form(i)) {
                 found = true;
                 keep.push_back(lem);
-                TRACE("cluster_stats_verb", tout << "Keeping lemma "
+                TRACE(cluster_stats_verb, tout << "Keeping lemma "
                                                  << lem.get_lemma()->get_cube()
                                                  << "\n";);
                 break;
             }
         }
         if (!found) {
-            TRACE("cluster_stats_verb", tout << "Removing subsumed lemma "
+            TRACE(cluster_stats_verb, tout << "Removing subsumed lemma "
                                              << lem.get_lemma()->get_cube()
                                              << "\n";);
             removed_lemmas.push_back(lem);
@@ -191,7 +191,7 @@ bool lemma_cluster::add_lemma(const lemma_ref &lemma, bool subsume) {
     // cluster already contains the lemma
     if (contains(lemma)) return false;
 
-    TRACE("cluster_stats_verb",
+    TRACE(cluster_stats_verb,
           tout << "Trying to add lemma " << lemma->get_cube() << "\n";);
 
     lemma_cluster::lemma_info li(lemma, sub);
@@ -206,7 +206,7 @@ bool lemma_cluster::add_lemma(const lemma_ref &lemma, bool subsume) {
             if (rm.get_lemma() == li.get_lemma()) return false;
         }
     }
-    TRACE("cluster_stats", tout << "Added lemma\n" << mk_and(lemma->get_cube()) << "\n"
+    TRACE(cluster_stats, tout << "Added lemma\n" << mk_and(lemma->get_cube()) << "\n"
                                 << "to  existing cluster\n" << m_pattern << "\n";);
     return true;
 }
@@ -246,7 +246,7 @@ bool lemma_cluster_finder::anti_unify_n_intrp(const expr_ref &cube,
     anti_unifier antiunify(m);
     substitution sub1(m), sub2(m);
 
-    TRACE("cluster_stats_verb",
+    TRACE(cluster_stats_verb,
           tout << "Trying to generate a general pattern for " << cube
                << " neighbours are " << fmls << "\n";);
 
@@ -267,7 +267,7 @@ bool lemma_cluster_finder::anti_unify_n_intrp(const expr_ref &cube,
     sem_matcher matcher(m);
     unsigned n_vars_pat = 0;
     for (expr *e : patterns) {
-        TRACE("cluster_stats_verb",
+        TRACE(cluster_stats_verb,
               tout << "Checking pattern " << mk_pp(e, m) << "\n";);
         is_general_pattern = true;
         n_vars_pat = get_num_vars(e);
@@ -284,7 +284,7 @@ bool lemma_cluster_finder::anti_unify_n_intrp(const expr_ref &cube,
         }
         if (is_general_pattern) {
             SASSERT(e != nullptr);
-            TRACE("cluster_stats",
+            TRACE(cluster_stats,
                   tout << "Found a general pattern\n" << mk_pp(e, m) << "\n";);
             // found a good pattern
             res = expr_ref(e, m);
@@ -292,7 +292,7 @@ bool lemma_cluster_finder::anti_unify_n_intrp(const expr_ref &cube,
         }
     }
 
-    CTRACE("cluster_stats", !all_same,
+    CTRACE(cluster_stats, !all_same,
            tout << "Failed to find a general pattern for cluster. Cube is: "
                 << cube << " Patterns are " << patterns << "\n";);
     return false;
@@ -311,7 +311,7 @@ void lemma_cluster_finder::cluster(lemma_ref &lemma) {
     /// Add the lemma to a cluster it is matched against
     lemma_cluster *clstr = pt.clstr_match(lemma);
     if (clstr && clstr->get_size() <= MAX_CLUSTER_SIZE) {
-        TRACE("cluster_stats_verb", {
+        TRACE(cluster_stats_verb, {
             tout << "Trying to add lemma\n" << lemma->get_cube()
                  << " to an existing cluster\n";
             for (auto lem : clstr->get_lemmas())
@@ -370,7 +370,7 @@ void lemma_cluster_finder::cluster(lemma_ref &lemma) {
     // subsumption check we do is based on unit propagation, it is not complete.
     lemma_cluster *cluster = pt.mk_cluster(pattern);
 
-    TRACE("cluster_stats",
+    TRACE(cluster_stats,
           tout << "created new cluster with pattern:\n" << pattern << "\n"
                << " and lemma cube:\n" << lcube << "\n";);
 
@@ -382,7 +382,7 @@ void lemma_cluster_finder::cluster(lemma_ref &lemma) {
         SASSERT(cluster->can_contain(l));
         bool added = cluster->add_lemma(l, false);
         (void)added;
-        CTRACE("cluster_stats", added,
+        CTRACE(cluster_stats, added,
                tout << "Added neighbour lemma\n" << mk_and(l->get_cube()) << "\n";);
     }
 

@@ -16,6 +16,8 @@ Author:
 --*/
 
 #include <cmath>
+#include <numeric>
+#include <tuple>
 #include "util/mpz.h"
 #include "sat/sat_types.h"
 #include "sat/smt/pb_solver.h"
@@ -34,7 +36,7 @@ namespace pb {
 
     void solver::set_conflict(constraint& c, literal lit) {
         m_stats.m_num_conflicts++;
-        TRACE("pb", display(tout, c, true); );
+        TRACE(pb, display(tout, c, true); );
         if (!validate_conflict(c)) {
             IF_VERBOSE(0, display(verbose_stream(), c, true));
             UNREACHABLE();
@@ -56,7 +58,7 @@ namespace pb {
         default:
             m_stats.m_num_propagations++;
             m_num_propagations_since_pop++;
-            //TRACE("pb", tout << "#prop: " << m_stats.m_num_propagations << " - " << c.lit() << " => " << lit << "\n";);
+            //TRACE(pb, tout << "#prop: " << m_stats.m_num_propagations << " - " << c.lit() << " => " << lit << "\n";);
             SASSERT(validate_unit_propagation(c, lit));
             assign(lit, sat::justification::mk_ext_justification(s().scope_lvl(), c.cindex()));
             break;
@@ -69,7 +71,7 @@ namespace pb {
     void solver::simplify(constraint& p) {
         SASSERT(s().at_base_lvl());
         if (p.lit() != sat::null_literal && value(p.lit()) == l_false) {
-            TRACE("pb", tout << "pb: flip sign " << p << "\n";);
+            TRACE(pb, tout << "pb: flip sign " << p << "\n";);
             IF_VERBOSE(2, verbose_stream() << "sign is flipped " << p << "\n";);
             return;
         }
@@ -263,8 +265,9 @@ namespace pb {
     void solver::add_index(pbc& p, unsigned index, literal lit) {
         if (value(lit) == l_undef) {
             m_pb_undef.push_back(index);
-            if (p[index].first > m_a_max) {
-                m_a_max = p[index].first;
+            auto [w, l] = p[index];
+            if (w > m_a_max) {
+                m_a_max = w;
             }
         }
     }    
@@ -280,7 +283,7 @@ namespace pb {
      */
     lbool solver::add_assign(pbc& p, literal alit) {
         BADLOG(display(verbose_stream() << "assign: " << alit << " watch: " << p.num_watch() << " size: " << p.size(), p, true));
-        TRACE("pb", display(tout << "assign: " << alit << "\n", p, true););
+        TRACE(pb, display(tout << "assign: " << alit << "\n", p, true););
         SASSERT(!inconsistent());
         unsigned sz = p.size();
         unsigned bound = p.k();
@@ -295,7 +298,7 @@ namespace pb {
         m_a_max = 0;
         m_pb_undef.reset();
         for (; index < num_watch; ++index) {
-            literal lit = p[index].second;
+            auto [w, lit] = p[index];
             if (lit == alit) {
                 break;
             }
@@ -316,21 +319,22 @@ namespace pb {
         SASSERT(index < num_watch);
         unsigned index1 = index + 1;
         for (; m_a_max == 0 && index1 < num_watch; ++index1) {
-            add_index(p, index1, p[index1].second);
+            auto [w, lit] = p[index1];
+            add_index(p, index1, lit);
         }
         
-        unsigned val = p[index].first;
-        SASSERT(value(p[index].second) == l_false);
+        auto [val, alit_lit] = p[index];
+        SASSERT(value(alit_lit) == l_false);
         SASSERT(val <= slack);
         slack -= val;
 
         // find literals to swap with:            
         for (unsigned j = num_watch; j < sz && slack < bound + m_a_max; ++j) {
-            literal lit = p[j].second;
+            auto [w, lit] = p[j];
             if (value(lit) != l_false) {
-                slack += p[j].first;
-                SASSERT(!p.is_watched(*this, p[j].second));
-                p.watch_literal(*this, p[j].second);
+                slack += w;
+                SASSERT(!p.is_watched(*this, lit));
+                p.watch_literal(*this, lit);
                 p.swap(num_watch, j);
                 add_index(p, num_watch, lit);             
                 ++num_watch;
@@ -348,7 +352,7 @@ namespace pb {
             SASSERT(validate_watch(p, sat::null_literal));
             BADLOG(display(verbose_stream() << "conflict: " << alit << " watch: " << p.num_watch() << " size: " << p.size(), p, true));            
             SASSERT(bound <= slack);
-            TRACE("pb", tout << "conflict " << alit << "\n";);
+            TRACE(pb, tout << "conflict " << alit << "\n";);
             set_conflict(p, alit);
             return l_false;
         }
@@ -372,16 +376,15 @@ namespace pb {
         // 
         if (slack < bound + m_a_max) {            
             BADLOG(verbose_stream() << "slack " << slack << " " << bound << " " << m_a_max << "\n";);
-            TRACE("pb", tout << p << "\n"; for(auto j : m_pb_undef) tout << j << " "; tout << "\n";);
+            TRACE(pb, tout << p << "\n"; for(auto j : m_pb_undef) tout << j << " "; tout << "\n";);
             for (unsigned index1 : m_pb_undef) {
                 if (index1 == num_watch) {
                     index1 = index;
                 }
-                wliteral wl = p[index1];
-                literal lit = wl.second;
+                auto [w, lit] = p[index1];
                 SASSERT(value(lit) == l_undef);
-                if (slack < bound + wl.first) {
-                    BADLOG(verbose_stream() << "Assign " << lit << " " << wl.first << "\n");                
+                if (slack < bound + w) {
+                    BADLOG(verbose_stream() << "Assign " << lit << " " << w << "\n");                
                     assign(p, lit);
                 }
             }
@@ -389,26 +392,23 @@ namespace pb {
 
         SASSERT(validate_watch(p, alit)); // except that alit is still watched.
 
-        TRACE("pb", display(tout << "assign: " << alit << "\n", p, true););
+        TRACE(pb, display(tout << "assign: " << alit << "\n", p, true););
 
         BADLOG(verbose_stream() << "unwatch " << alit << " watch: " << p.num_watch() << " size: " << p.size() << " slack: " << p.slack() << " " << inconsistent() << "\n");
 
         return l_undef;
     }
 
-    void solver::recompile(pbc& p) {
-        // IF_VERBOSE(2, verbose_stream() << "re: " << p << "\n";);
-        SASSERT(p.num_watch() == 0);
-        m_weights.resize(2*s().num_vars(), 0);
-        for (wliteral wl : p) {
-            m_weights[wl.second.index()] += wl.first;
-        }
-        unsigned k = p.k();
-        unsigned sz = p.size();
-        bool all_units = true;
-        unsigned j = 0;
-        for (unsigned i = 0; i < sz && 0 < k; ++i) {
-            literal l = p[i].second;
+    std::pair<unsigned, unsigned> solver::normalize(wliteral* begin, wliteral* end, unsigned k) {
+        m_weights.resize(2 * s().num_vars(), 0);
+        for (auto it = begin; it != end; ++it) {
+            auto [w, lit] = *it;        
+            m_weights[lit.index()] += w;
+        }        
+        auto j = begin;
+        unsigned sz = 0;
+        for (auto it = begin; it != end; ++it) {
+            auto [w, l] = *it;
             unsigned w1 = m_weights[l.index()];
             unsigned w2 = m_weights[(~l).index()];
             if (w1 == 0 || w1 < w2) {
@@ -423,23 +423,33 @@ namespace pb {
                 k -= w2;
                 w1 -= w2;
                 m_weights[l.index()] = 0;
-                m_weights[(~l).index()] = 0;        
+                m_weights[(~l).index()] = 0;
                 if (w1 == 0) {
                     continue;
-                }    
+                }
                 else {
-                    p[j] = wliteral(w1, l);            
-                    all_units &= w1 == 1;
+                    *j = wliteral(w1, l);
                     ++j;
+                    ++sz;
                 }
             }
         }
-        sz = j;
         // clear weights
-        for (wliteral wl : p) {
-            m_weights[wl.second.index()] = 0;
-            m_weights[(~wl.second).index()] = 0;
+        while (begin != end) {
+            auto [w, l] = *begin;
+            m_weights[l.index()] = 0;
+            m_weights[(~l).index()] = 0;
+            ++begin;
         }
+        return {sz, k};
+    }
+
+    void solver::recompile(pbc& p) {
+        // IF_VERBOSE(2, verbose_stream() << "re: " << p << "\n";);
+
+        auto [sz, k] = normalize(p.data(), p.data() + p.size(), p.k());
+        p.set_size(sz);
+        auto all_units = all_of(p, [](wliteral const& wl) { return wl.first == 1; });
 
         if (k == 0) {
             if (p.lit() != sat::null_literal) {
@@ -462,8 +472,7 @@ namespace pb {
             remove_constraint(p, "recompiled to cardinality");
             return;
         }
-        else {
-            p.set_size(sz);
+        else {            
             p.update_max_sum();
             if (p.max_sum() < k) {
                 if (p.lit() == sat::null_literal) {
@@ -497,7 +506,7 @@ namespace pb {
         bool_var v = l.var();
         SASSERT(v != sat::null_bool_var);
         m_coeffs.reserve(v + 1, 0);
-        TRACE("ba_verbose", tout << l << " " << offset << "\n";);
+        TRACE(ba_verbose, tout << l << " " << offset << "\n";);
 
         int64_t coeff0 = m_coeffs[v];
         if (coeff0 == 0) {
@@ -547,7 +556,7 @@ namespace pb {
         literal l = literal(v, c1 < 0);
         c1 = std::abs(c1);
         unsigned c = static_cast<unsigned>(c1);
-        // TRACE("pb", tout << l << " " << c << "\n";);
+        // TRACE(pb, tout << l << " " << c << "\n";);
         m_overflow |= c != c1;
         return wliteral(c, l);
     }
@@ -606,7 +615,7 @@ namespace pb {
                 IF_VERBOSE(0, 
                            active2pb(m_A);
                            uint64_t c = 0;
-                           for (wliteral l : m_A.m_wlits) c += l.first;
+                           for (auto [w, l] : m_A.m_wlits) c += w;
                            verbose_stream() << "sum of coefficients: " << c << "\n";
                            display(verbose_stream(), m_A, true);
                            verbose_stream() << "conflicting literal: " << s().m_not_l << "\n";);
@@ -638,7 +647,7 @@ namespace pb {
         m_bound = 0;
         literal consequent = s().m_not_l;
         sat::justification js = s().m_conflict;
-        TRACE("pb", tout << consequent << " " << js << "\n";);
+        TRACE(pb, tout << consequent << " " << js << "\n";);
         bool unique_max;
         m_conflict_lvl = s().get_max_lvl(consequent, js, unique_max);
         if (m_conflict_lvl == 0) {
@@ -666,8 +675,8 @@ namespace pb {
                 goto process_next_resolvent;            
             }
 
-            DEBUG_CODE(TRACE("sat_verbose", display(tout, m_A);););
-            TRACE("pb", tout << "process consequent: " << consequent << " : "; s().display_justification(tout, js) << "\n";);
+            DEBUG_CODE(TRACE(sat_verbose, display(tout, m_A);););
+            TRACE(pb, tout << "process consequent: " << consequent << " : "; s().display_justification(tout, js) << "\n";);
             SASSERT(offset > 0);
             
             if (_debug_conflict) {
@@ -704,7 +713,7 @@ namespace pb {
                     }
                 }
                 unsigned sz = c.size();
-                for (; i < sz; i++)
+                for (; i < sz; ++i)
                     process_antecedent(c[i], offset);
                 break;
             }
@@ -729,7 +738,7 @@ namespace pb {
                     inc_bound(offset);
                     inc_coeff(consequent, offset);
                     get_antecedents(consequent, p, m_lemma);
-                    TRACE("pb", display(tout, p, true); tout << m_lemma << "\n";);
+                    TRACE(pb, display(tout, p, true); tout << m_lemma << "\n";);
                     if (_debug_conflict) {
                         verbose_stream() << consequent << " ";
                         verbose_stream() << "antecedents: " << m_lemma << "\n";
@@ -737,15 +746,9 @@ namespace pb {
                     for (literal l : m_lemma) process_antecedent(~l, offset);
                     break;
                 }
-                default:
-                    UNREACHABLE();
-                    break;
                 }
                 break;
             }
-            default:
-                UNREACHABLE();
-                break;
             }
             
             SASSERT(validate_lemma());            
@@ -754,7 +757,7 @@ namespace pb {
                 active2pb(m_C);
                 VERIFY(validate_resolvent());
                 m_A = m_C;
-                TRACE("pb", display(tout << "conflict: ", m_A);););
+                TRACE(pb, display(tout << "conflict: ", m_A);););
 
             cut();
 
@@ -781,7 +784,7 @@ namespace pb {
             SASSERT(lvl(v) == m_conflict_lvl);
             s().reset_mark(v);
             --idx;
-            TRACE("sat_verbose", tout << "Unmark: v" << v << "\n";);
+            TRACE(sat_verbose, tout << "Unmark: v" << v << "\n";);
             --m_num_marks;
             js = s().m_justification[v];
             offset = get_abs_coeff(v);
@@ -827,7 +830,7 @@ namespace pb {
     }
 
     void solver::ineq::divide(unsigned c) {
-        if (c == 1) return;
+        if (c <= 1) return;
         for (unsigned i = size(); i-- > 0; ) {
             m_wlits[i].first = (coeff(i) + c - 1) / c;
         }
@@ -850,7 +853,7 @@ namespace pb {
      */
     void solver::round_to_one(ineq& ineq, bool_var v) {
         unsigned c = ineq.bv_coeff(v);
-        if (c == 1) return;
+        if (c <= 1) return;
         unsigned sz = ineq.size();
         for (unsigned i = 0; i < sz; ++i) {
             unsigned ci = ineq.coeff(i); 
@@ -875,17 +878,17 @@ namespace pb {
             }
         }
         ineq.divide(c);
-        TRACE("pb", display(tout << "var: " << v << " " << c << ": ", ineq, true););
+        TRACE(pb, display(tout << "var: " << v << " " << c << ": ", ineq, true););
     }
 
     void solver::round_to_one(bool_var w) {
         unsigned c = get_abs_coeff(w);
         if (c == 1 || c == 0) return;
         for (bool_var v : m_active_vars) {
-            wliteral wl = get_wliteral(v);
-            unsigned q = wl.first % c;
-            if (q != 0 && !is_false(wl.second)) {
-                m_coeffs[v] = wl.first - q;
+            auto [coeff, l] = get_wliteral(v);
+            unsigned q = coeff % c;
+            if (q != 0 && !is_false(l)) {
+                m_coeffs[v] = coeff - q;
                 m_bound -= q;
                 SASSERT(m_bound > 0);
             }
@@ -893,7 +896,7 @@ namespace pb {
         SASSERT(validate_lemma());
         divide(c);
         SASSERT(validate_lemma());
-        TRACE("pb", active2pb(m_B); display(tout, m_B, true););
+        TRACE(pb, active2pb(m_B); display(tout, m_B, true););
     }
 
     void solver::divide(unsigned c) {
@@ -923,14 +926,14 @@ namespace pb {
     }
 
     void solver::resolve_with(ineq const& ineq) {
-        TRACE("pb", display(tout, ineq, true););
+        TRACE(pb, display(tout, ineq, true););
         inc_bound(ineq.m_k);        
-        TRACE("pb", tout << "bound: " << m_bound << "\n";);
+        TRACE(pb, tout << "bound: " << m_bound << "\n";);
 
         for (unsigned i = ineq.size(); i-- > 0; ) {
             literal l = ineq.lit(i);
             inc_coeff(l, static_cast<unsigned>(ineq.coeff(i)));
-            TRACE("pb", tout << "bound: " << m_bound << " lit: " << l << " coeff: " << ineq.coeff(i) << "\n";);
+            TRACE(pb, tout << "bound: " << m_bound << " lit: " << l << " coeff: " << ineq.coeff(i) << "\n";);
         }
     }
 
@@ -951,8 +954,7 @@ namespace pb {
      * below the current processing level.
      */
     void solver::mark_variables(ineq const& ineq) {
-        for (wliteral wl : ineq.m_wlits) {
-            literal l = wl.second;
+        for (auto [w, l] : ineq.m_wlits) {
             if (!is_false(l)) continue;
             bool_var v = l.var();
             unsigned level = lvl(v);
@@ -983,11 +985,11 @@ namespace pb {
             consequent.neg();
             process_antecedent(consequent, 1);
         }
-        TRACE("pb", tout << consequent << " " << js << "\n";);
+        TRACE(pb, tout << consequent << " " << js << "\n";);
         unsigned idx = s().m_trail.size() - 1;
         
         do {
-            TRACE("pb", s().display_justification(tout << "process consequent: " << consequent << " : ", js) << "\n";
+            TRACE(pb, s().display_justification(tout << "process consequent: " << consequent << " : ", js) << "\n";
                   if (consequent != sat::null_literal) { active2pb(m_A); display(tout, m_A, true); }
                   );
 
@@ -1022,7 +1024,7 @@ namespace pb {
                 }
                 inc_bound(1);
                 unsigned sz = c.size();
-                for (; i < sz; i++)
+                for (; i < sz; ++i)
                     process_antecedent(c[i]);
                 break;
             }
@@ -1049,7 +1051,7 @@ namespace pb {
                     }
                     else {
                         SASSERT(k > c);
-                        TRACE("pb", tout << "visited: " << l << "\n";);
+                        TRACE(pb, tout << "visited: " << l << "\n";);
                         k -= c;
                     }
                 }
@@ -1061,8 +1063,8 @@ namespace pb {
                 if (consequent == sat::null_literal) {
                     SASSERT(validate_ineq(m_A)); 
                     m_bound = static_cast<unsigned>(m_A.m_k);
-                    for (wliteral wl : m_A.m_wlits) {
-                        process_antecedent(wl.second, wl.first);
+                    for (auto [w, lit] : m_A.m_wlits) {
+                        process_antecedent(lit, w);
                     } 
                 }
                 else {
@@ -1073,9 +1075,6 @@ namespace pb {
                 }
                 break;
             }
-            default:
-                UNREACHABLE();
-                break;
             }            
 
             SASSERT(validate_lemma());
@@ -1098,7 +1097,7 @@ namespace pb {
                     }
                 }
                 if (idx == 0) {
-                    TRACE("pb", tout << "there is no consequent\n";);
+                    TRACE(pb, tout << "there is no consequent\n";);
                     goto bail_out;
                 }
                 --idx;
@@ -1111,7 +1110,7 @@ namespace pb {
             js = s().m_justification[v];
         }        
         while (m_num_marks > 0 && !m_overflow);
-        TRACE("pb", active2pb(m_A); display(tout, m_A, true););
+        TRACE(pb, active2pb(m_A); display(tout, m_A, true););
 
         // TBD: check if this is useful
         if (!m_overflow && consequent != sat::null_literal) {
@@ -1123,7 +1122,7 @@ namespace pb {
         }
         
     bail_out:
-        TRACE("pb", tout << "bail " << m_overflow << "\n";);
+        TRACE(pb, tout << "bail " << m_overflow << "\n";);
         if (m_overflow) {
             ++m_stats.m_num_overflow;
             m_overflow = false;
@@ -1179,23 +1178,23 @@ namespace pb {
             }
         }
         if (slack >= 0) {
-            TRACE("pb", tout << "slack is non-negative\n";);
+            TRACE(pb, tout << "slack is non-negative\n";);
             IF_VERBOSE(20, verbose_stream() << "(sat.card slack: " << slack << " skipped: " << num_skipped << ")\n";);
             return false;
         }
         if (m_overflow) {
-            TRACE("pb", tout << "overflow\n";);
+            TRACE(pb, tout << "overflow\n";);
             return false;
         }        
         if (m_lemma[0] == sat::null_literal) {
             if (m_lemma.size() == 1) {
                 s().set_conflict(sat::justification(0));
             }
-            TRACE("pb", tout << "no asserting literal\n";);
+            TRACE(pb, tout << "no asserting literal\n";);
             return false;
         }
 
-        TRACE("pb", tout << m_lemma << "\n";);
+        TRACE(pb, tout << m_lemma << "\n";);
 
         if (get_config().m_drat && m_solver) {
             s().m_drat.add(m_lemma, sat::status::th(true, get_id()));
@@ -1204,7 +1203,7 @@ namespace pb {
         s().m_lemma.reset();
         s().m_lemma.append(m_lemma);
         for (unsigned i = 1; i < m_lemma.size(); ++i) {
-            CTRACE("pb", s().is_marked(m_lemma[i].var()), tout << "marked: " << m_lemma[i] << "\n";);
+            CTRACE(pb, s().is_marked(m_lemma[i].var()), tout << "marked: " << m_lemma[i] << "\n";);
             s().mark(m_lemma[i].var());
         }
         return true;
@@ -1244,7 +1243,7 @@ namespace pb {
                 g = coeff;
             }
             else {
-                g = u_gcd(g, coeff);
+                g = std::gcd(g, coeff);
             }
         }
 
@@ -1335,12 +1334,10 @@ namespace pb {
 
     solver::~solver() {
         m_stats.reset();
-        for (constraint* c : m_constraints) {
-            c->deallocate(m_allocator);
-        }
-        for (constraint* c : m_learned) {
-            c->deallocate(m_allocator);
-        }
+        for (constraint* c : m_constraints) 
+            c->deallocate(m_allocator);        
+        for (constraint* c : m_learned) 
+            c->deallocate(m_allocator);        
     }
 
     void solver::add_at_least(bool_var v, literal_vector const& lits, unsigned k) {
@@ -1371,6 +1368,17 @@ namespace pb {
 
         if (!learned && clausify(lit, lits.size(), lits.data(), k)) {
             return nullptr;
+        }
+        init_visited();
+        for (literal l : lits) {
+            auto v = l.var();
+            if (is_visited(v)) {
+                svector<wliteral> wlits;
+                for (literal l : lits) 
+                    wlits.push_back(wliteral(1, l));
+                return add_pb_ge(lit, wlits, k, learned);
+            }
+            mark_visited(v);
         }
         void * mem = m_allocator.allocate(card::get_obj_size(lits.size()));
         sat::constraint_base::initialize(mem, this);
@@ -1432,8 +1440,8 @@ namespace pb {
 
     constraint* solver::add_pb_ge(literal lit, svector<wliteral> const& wlits, unsigned k, bool learned) {
         bool units = true;
-        for (wliteral wl : wlits) 
-            units &= wl.first == 1;
+        for (auto [w, l] : wlits) 
+            units &= w == 1;
 
         if (k == 0) {
             if (lit != sat::null_literal)
@@ -1450,13 +1458,24 @@ namespace pb {
                 s().add_clause(~lit, sat::status::th(false, get_id()));
             return nullptr;
         }
+        init_visited();
+        for (auto const&[w, l] : wlits) {
+            auto v = l.var();
+            if (is_visited(v)) {
+                svector<wliteral> wlits2(wlits);
+                auto [sz, k2] = normalize(wlits2.data(), wlits2.data() + wlits2.size(), k);
+                wlits2.shrink(sz);
+                return add_pb_ge(lit, wlits2, k2, learned);
+            }
+            mark_visited(v);
+        }
         if (!learned) {
-            for (wliteral wl : wlits) 
-                s().set_external(wl.second.var()); 
+            for (auto [w, l] : wlits) 
+                s().set_external(l.var()); 
         }
         if (units || k == 1) {
             literal_vector lits;
-            for (wliteral wl : wlits) lits.push_back(wl.second);
+            for (auto [w, l] : wlits) lits.push_back(l);
             return add_at_least(lit, lits, k, learned);
         }
         void * mem = m_allocator.allocate(pbc::get_obj_size(wlits.size()));
@@ -1550,7 +1569,7 @@ namespace pb {
     }
 
     void solver::get_antecedents(literal l, pbc const& p, literal_vector& r) {
-        TRACE("pb", display(tout << l << " level: " << s().scope_lvl() << " ", p, true););
+        TRACE(pb, display(tout << l << " level: " << s().scope_lvl() << " ", p, true););
         SASSERT(p.lit() == sat::null_literal || value(p.lit()) == l_true);
 
         if (p.lit() != sat::null_literal) {
@@ -1568,16 +1587,14 @@ namespace pb {
             // The literal comes from a conflict.
             // it is forced true, but assigned to false.
             unsigned slack = 0;
-            for (wliteral wl : p) {
-                if (value(wl.second) != l_false) {
-                    slack += wl.first;
+            for (auto [w, lit] : p) {
+                if (value(lit) != l_false) {
+                    slack += w;
                 }
             }
             SASSERT(slack < k);
-            for (wliteral wl : p) {
-                literal lit = wl.second;
+            for (auto [w, lit] : p) {
                 if (lit != l && value(lit) == l_false) {
-                    unsigned w = wl.first;
                     if (slack + w < k) {
                         slack += w;
                     }
@@ -1592,8 +1609,9 @@ namespace pb {
             SASSERT(value(l) == l_true);
             unsigned coeff = 0, j = 0;
             for (; j < p.size(); ++j) {
-                if (p[j].second == l) {
-                    coeff = p[j].first;
+                auto [w, lit] = p[j];
+                if (lit == l) {
+                    coeff = w;
                     break;
                 }
             }
@@ -1602,7 +1620,7 @@ namespace pb {
             if (j < p.num_watch()) {
                 j = p.num_watch();
             }
-            CTRACE("pb", coeff == 0, display(tout << l << " coeff: " << coeff << "\n", p, true);); 
+            CTRACE(pb, coeff == 0, display(tout << l << " coeff: " << coeff << "\n", p, true);); 
             
             if (_debug_conflict) {
                 IF_VERBOSE(0, verbose_stream() << "coeff " << coeff << "\n";);
@@ -1613,8 +1631,7 @@ namespace pb {
             
             // we need antecedents to be deeper than alit.
             for (; j < p.size(); ++j) {
-                literal lit = p[j].second;
-                unsigned w = p[j].first;
+                auto [w, lit] = p[j];
                 if (l_false != value(lit)) {
                     // skip
                 }
@@ -1653,7 +1670,7 @@ namespace pb {
             for (unsigned i = 0; !found && i < c.k(); ++i) {
                 found = c[i] == l;
             }
-            CTRACE("pb",!found, s().display(tout << l << ":" << c << "\n"););
+            CTRACE(pb,!found, s().display(tout << l << ":" << c << "\n"););
             SASSERT(found););
         
         VERIFY(c.lit() == sat::null_literal || value(c.lit()) != l_false);
@@ -1677,7 +1694,6 @@ namespace pb {
         switch (c.tag()) {
         case pb::tag_t::card_t: get_antecedents(l, c.to_card(), r); break;
         case pb::tag_t::pb_t: get_antecedents(l, c.to_pb(), r); break;
-        default: UNREACHABLE(); break;            
         }
         if (get_config().m_drat && m_solver && !probing) {
             literal_vector lits;
@@ -1693,7 +1709,7 @@ namespace pb {
     }
 
     void solver::remove_constraint(constraint& c, char const* reason) {
-        TRACE("pb", display(tout << "remove ", c, true) << " " << reason << "\n";);
+        TRACE(pb, display(tout << "remove ", c, true) << " " << reason << "\n";);
         IF_VERBOSE(21, display(verbose_stream() << "remove " << reason << " ", c, true););
         c.nullify_tracking_literal(*this);
         clear_watch(c);
@@ -1805,7 +1821,7 @@ namespace pb {
         if (p.lit() == sat::null_literal || value(p.lit()) != l_true)
             return true;
         for (unsigned i = 0; i < p.size(); ++i) {
-            literal l = p[i].second;
+            auto [w, l] = p[i];
             if (l != alit && lvl(l) != 0 && p.is_watched(*this, l) != (i < p.num_watch())) {
                 IF_VERBOSE(0, display(verbose_stream(), p, true);
                            verbose_stream() << "literal " << l << " at position " << i << " " << p.is_watched(*this, l) << "\n";);
@@ -1814,8 +1830,10 @@ namespace pb {
             }
         }
         unsigned slack = 0;
-        for (unsigned i = 0; i < p.num_watch(); ++i) 
-            slack += p[i].first;        
+        for (unsigned i = 0; i < p.num_watch(); ++i) {
+            auto [w, l] = p[i];
+            slack += w;
+        }
         if (slack != p.slack()) {
             IF_VERBOSE(0, display(verbose_stream(), p, true););
             UNREACHABLE();
@@ -1847,11 +1865,9 @@ namespace pb {
             }
             break;
         case pb::tag_t::pb_t:
-            for (wliteral l : c.to_pb()) {                
-                if (s().m_phase[l.second.var()] == !l.second.sign()) ++r;
+            for (auto [w, l] : c.to_pb()) {                
+                if (s().m_phase[l.var()] == !l.sign()) ++r;
             }
-            break;
-        default:
             break;
         }
         c.set_psm(r);
@@ -1868,11 +1884,11 @@ namespace pb {
     }
 
     void solver::gc_half(char const* st_name) {
-        TRACE("pb", tout << "gc\n";);
+        TRACE(pb, tout << "gc\n";);
         unsigned sz     = m_learned.size();
         unsigned new_sz = sz/2;
         unsigned removed = 0;
-        for (unsigned i = new_sz; i < sz; i++) {
+        for (unsigned i = new_sz; i < sz; ++i) {
             constraint* c = m_learned[i];
             if (!m_constraint_to_reinit.contains(c)) {
                 remove_constraint(*c, "gc");
@@ -1915,7 +1931,7 @@ namespace pb {
         // literal is assigned to false.        
         unsigned sz = c.size();
         unsigned bound = c.k();
-        TRACE("pb", tout << "assign: " << c.lit() << ": " << ~alit << "@" << lvl(~alit) << " " << c << "\n";);
+        TRACE(pb, tout << "assign: " << c.lit() << ": " << ~alit << "@" << lvl(~alit) << " " << c << "\n";);
 
         SASSERT(0 < bound && bound <= sz);
         if (bound == sz) {
@@ -1953,7 +1969,7 @@ namespace pb {
 
         // conflict
         if (bound != index && value(c[bound]) == l_false) {
-            TRACE("pb", tout << "conflict " << c[bound] << " " << alit << "\n";);
+            TRACE(pb, tout << "conflict " << c[bound] << " " << alit << "\n";);
             if (c.lit() != sat::null_literal && value(c.lit()) == l_undef) {
                 if (index + 1 < bound) c.swap(index, bound - 1);
                 assign(c, ~c.lit());
@@ -1967,7 +1983,7 @@ namespace pb {
             c.swap(index, bound);
         }        
 
-        // TRACE("pb", tout << "no swap " << index << " " << alit << "\n";);
+        // TRACE(pb, tout << "no swap " << index << " " << alit << "\n";);
         // there are no literals to swap with,
         // prepare for unit propagation by swapping the false literal into 
         // position bound. Then literals in positions 0..bound-1 have to be
@@ -2002,7 +2018,7 @@ namespace pb {
     }
 
     void solver::pop(unsigned n) {        
-        TRACE("sat_verbose", tout << "pop:" << n << "\n";);
+        TRACE(sat_verbose, tout << "pop:" << n << "\n";);
         unsigned new_lim = m_constraint_to_reinit_lim.size() - n;
         m_constraint_to_reinit_last_sz = m_constraint_to_reinit_lim[new_lim];
         m_constraint_to_reinit_lim.shrink(new_lim);
@@ -2229,8 +2245,6 @@ namespace pb {
         case pb::tag_t::pb_t:
             recompile(c.to_pb());
             break;
-        default:
-            UNREACHABLE();
         }                
     }
 
@@ -2333,7 +2347,7 @@ namespace pb {
         }
 
         if (!all_units) {            
-            TRACE("pb", tout << "replacing by pb: " << c << "\n";);
+            TRACE(pb, tout << "replacing by pb: " << c << "\n";);
             m_wlits.reset();
             for (unsigned i = 0; i < sz; ++i) {
                 m_wlits.push_back(wliteral(coeffs[i], c[i]));
@@ -2391,8 +2405,8 @@ namespace pb {
         
         bool ok = !p.learned();
         bool is_def = p.lit() != sat::null_literal;
-        for (wliteral wl : p) {
-            ok &= !s().was_eliminated(wl.second);
+        for (auto [w, lit] : p) {
+            ok &= !s().was_eliminated(lit);
         }
         ok &= !is_def || !s().was_eliminated(p.lit());
         if (!ok) {
@@ -2415,12 +2429,12 @@ namespace pb {
     bool solver::is_cardinality(pbc const& p, literal_vector& lits) {
         lits.reset();
         p.size();
-        for (wliteral wl : p) {
-            if (lits.size() > 2*p.size() + wl.first) {
+        for (auto [w, lit] : p) {
+            if (lits.size() > 2*p.size() + w) {
                 return false;
             }
-            for (unsigned i = 0; i < wl.first; ++i) {
-                lits.push_back(wl.second);
+            for (unsigned i = 0; i < w; ++i) {
+                lits.push_back(lit);
             }
         }
         return true;
@@ -2863,8 +2877,6 @@ namespace pb {
             case pb::tag_t::pb_t:
                 sub = subsumes(p1, c->to_pb()); 
                 break;
-            default: 
-                break;
             }
             if (sub) {
                 ++m_stats.m_num_pb_subsumes;                
@@ -2898,13 +2910,13 @@ namespace pb {
             SASSERT(&c1 != &c2);
             if (subsumes(c1, c2, slit)) {
                 if (slit.empty()) {
-                    TRACE("pb", tout << "subsume cardinality\n" << c1 << "\n" << c2 << "\n";);
+                    TRACE(pb, tout << "subsume cardinality\n" << c1 << "\n" << c2 << "\n";);
                     remove_constraint(c2, "subsumed");
                     ++m_stats.m_num_pb_subsumes;
                     set_non_learned(c1);
                 }
                 else {
-                    TRACE("pb", tout << "self subsume cardinality\n";);
+                    TRACE(pb, tout << "self subsume cardinality\n";);
                     IF_VERBOSE(11, 
                                verbose_stream() << "self-subsume cardinality\n"; 
                                verbose_stream() << c1 << "\n";
@@ -2936,7 +2948,7 @@ namespace pb {
                     // self-subsumption is TBD
                 }
                 else {
-                    TRACE("pb", tout << "remove\n" << c1 << "\n" << c2 << "\n";);
+                    TRACE(pb, tout << "remove\n" << c1 << "\n" << c2 << "\n";);
                     removed_clauses.push_back(&c2);
                     ++m_stats.m_num_clause_subsumes;
                     set_non_learned(c1);
@@ -3012,17 +3024,18 @@ namespace pb {
             return;
         }
         init_visited();
-        for (wliteral l : p1) {
-            SASSERT(m_weights.size() <= l.second.index() || m_weights[l.second.index()] == 0);
-            m_weights.setx(l.second.index(), l.first, 0);
-            mark_visited(l.second);  
+        for (auto [w, l] : p1) {
+            SASSERT(m_weights.size() <= l.index() || m_weights[l.index()] == 0);
+            m_weights.setx(l.index(), w, 0);
+            mark_visited(l);  
         }
         for (unsigned i = 0; i < std::min(10u, p1.num_watch()); ++i) {
             unsigned j = s().m_rand() % p1.num_watch();
-            subsumes(p1, p1[j].second);
+            auto [w, lit] = p1[j];
+            subsumes(p1, lit);
         }
-        for (wliteral l : p1) {
-            m_weights[l.second.index()] = 0;
+        for (auto [w, l] : p1) {
+            m_weights[l.index()] = 0;
         }        
     }
 
@@ -3092,8 +3105,6 @@ namespace pb {
                 result->add_pb_ge(p.lit(), wlits, p.k(), p.learned());
                 break;
             }
-            default:
-                UNREACHABLE();
             }                
         }
     }
@@ -3228,10 +3239,9 @@ namespace pb {
         // sum a < k
         // val(r) = false
         // hence alit has to be true.
-        for (wliteral wl : p) {
-            literal lit = wl.second;
+        for (auto [w, lit] : p) {
             if (lit != alit && !r.contains(~lit)) {
-                sum += wl.first;
+                sum += w;
             }
         }
         if (sum >= p.k()) {
@@ -3240,14 +3250,14 @@ namespace pb {
                        display(verbose_stream(), p, true);
                        verbose_stream() << "id: " << p.id() << "\n";
                        sum = 0;
-                       for (wliteral wl : p) sum += wl.first;
+                       for (auto [w, lit] : p) sum += w;
                        verbose_stream() << "overall sum " << sum << "\n";
                        verbose_stream() << "asserting literal: " << alit << "\n";
                        verbose_stream() << "reason: " << r << "\n";);
             return false;
         }
-        for (wliteral wl : p) {
-            if (alit == wl.second) {
+        for (auto [w, lit] : p) {
+            if (alit == lit) {
                 return true;
             }
         }
@@ -3262,13 +3272,13 @@ namespace pb {
         reset_active_var_set();
         for (bool_var v : m_active_vars) {
             if (!test_and_set_active(v)) continue;
-            wliteral wl = get_wliteral(v);
-            if (wl.first == 0) continue;
-            if (!is_false(wl.second)) {
-                val += wl.first;
+            auto [w, l] = get_wliteral(v);
+            if (w == 0) continue;
+            if (!is_false(l)) {
+                val += w;
             }
         }
-        CTRACE("pb", val >= 0, active2pb(m_A); display(tout, m_A, true););
+        CTRACE(pb, val >= 0, active2pb(m_A); display(tout, m_A, true););
         return val < 0;
     }
 
@@ -3277,11 +3287,11 @@ namespace pb {
      */
     bool solver::validate_ineq(ineq const& ineq) const {
         int64_t k = -static_cast<int64_t>(ineq.m_k);
-        for (wliteral wl : ineq.m_wlits) {
-            if (!is_false(wl.second))
-                k += wl.first;
+        for (auto [w, lit] : ineq.m_wlits) {
+            if (!is_false(lit))
+                k += w;
         }
-        CTRACE("pb", k > 0, display(tout, ineq, true););
+        CTRACE(pb, k > 0, display(tout, ineq, true););
         return k <= 0;
     }
 
@@ -3315,9 +3325,10 @@ namespace pb {
         for (bool_var v : m_active_vars) {
             if (!test_and_set_active(v)) continue;
             wliteral wl = get_wliteral(v);
-            if (wl.first == 0) continue;
+            auto [w, l] = wl;
+            if (w == 0) continue;
             wlits.push_back(wl);
-            sum += wl.first;
+            sum += w;
         }
         m_overflow |= sum >= UINT_MAX/2;
     }
@@ -3328,10 +3339,9 @@ namespace pb {
             return active2card();
         case sat::PB_LEMMA_PB:
             return active2constraint();
-        default:
-            UNREACHABLE();
-            return nullptr;
         }
+        UNREACHABLE();
+        return nullptr;
     }
 
     constraint* solver::active2constraint() {
@@ -3340,7 +3350,7 @@ namespace pb {
             return nullptr;
         }
         constraint* c = add_pb_ge(sat::null_literal, m_wlits, m_bound, true);                
-        TRACE("pb", if (c) display(tout, *c, true););
+        TRACE(pb, if (c) display(tout, *c, true););
         ++m_stats.m_num_lemmas;
         return c;
     }
@@ -3371,7 +3381,8 @@ namespace pb {
      */
     struct compare_wlit {
         bool operator()(wliteral l1, wliteral l2) const {
-            return l1.first > l2.first;
+            return std::tuple(l1.first, l1.second.index()) >
+                   std::tuple(l2.first, l2.second.index());
         }
     };
 
@@ -3384,27 +3395,27 @@ namespace pb {
         std::sort(m_wlits.begin(), m_wlits.end(), compare_wlit());
         unsigned k = 0;
         uint64_t sum = 0, sum0 = 0;
-        for (wliteral wl : m_wlits) {
+        for (auto [w, lit] : m_wlits) {
             if (sum >= m_bound) break;
             sum0 = sum;
-            sum += wl.first;
+            sum += w;
             ++k;
         }
         if (k == 1) {
             return nullptr;
         }
         while (!m_wlits.empty()) {
-            wliteral wl = m_wlits.back();
-            if (wl.first + sum0 >= m_bound) break;
+            auto [w, lit] = m_wlits.back();
+            if (w + sum0 >= m_bound) break;
             m_wlits.pop_back();
-            sum0 += wl.first;
+            sum0 += w;
         }
 
         unsigned slack = 0;
         unsigned max_level = 0;
-        for (wliteral wl : m_wlits) {
-            if (value(wl.second) != l_false) ++slack;
-            unsigned level = lvl(wl.second);
+        for (auto [w, lit] : m_wlits) {
+            if (value(lit) != l_false) ++slack;
+            unsigned level = lvl(lit);
             if (level > max_level) {
                 max_level = level;
             }
@@ -3419,8 +3430,8 @@ namespace pb {
 
         // produce asserting cardinality constraint
         literal_vector lits;
-        for (wliteral wl : m_wlits) { 
-            lits.push_back(wl.second);
+        for (auto [w, lit] : m_wlits) { 
+            lits.push_back(lit);
         }       
         constraint* c = add_at_least(sat::null_literal, lits, k, true);      
 
@@ -3428,8 +3439,8 @@ namespace pb {
 
         if (c) {
             lits.reset();
-            for (wliteral wl : m_wlits) {
-                if (value(wl.second) == l_false) lits.push_back(wl.second);        
+            for (auto [w, lit] : m_wlits) {
+                if (value(lit) == l_false) lits.push_back(lit);        
             }
             unsigned glue = s().num_diff_levels(lits.size(), lits.data());
             c->set_glue(glue);
@@ -3449,13 +3460,10 @@ namespace pb {
         case pb::tag_t::pb_t: {
             pbc& p = cnstr.to_pb();
             ineq.reset(static_cast<uint64_t>(offset) * p.k());
-            for (wliteral wl : p) ineq.push(wl.second, offset * wl.first);
+            for (auto [w, lit] : p) ineq.push(lit, offset * w);
             if (p.lit() != sat::null_literal) ineq.push(~p.lit(), offset * p.k());
             break;
         }
-        default:
-            UNREACHABLE();
-            break;
         }
     }
 
@@ -3528,7 +3536,7 @@ namespace pb {
         s0.assign_scoped(l2);
         s0.assign_scoped(l3);
         lbool is_sat = s0.check();
-        TRACE("pb", s0.display(tout << "trying sat encoding"););
+        TRACE(pb, s0.display(tout << "trying sat encoding"););
         if (is_sat == l_false) return true;
 
         IF_VERBOSE(0, 
@@ -3639,11 +3647,11 @@ namespace pb {
     bool solver::validate_conflict(literal_vector const& lits, ineq& p) { 
         for (literal l : lits) {
             if (value(l) != l_false) {
-                TRACE("pb", tout << "literal " << l << " is not false\n";);
+                TRACE(pb, tout << "literal " << l << " is not false\n";);
                 return false;
             }
             if (!p.contains(l)) {
-                TRACE("pb", tout << "lemma contains literal " << l << " not in inequality\n";);
+                TRACE(pb, tout << "lemma contains literal " << l << " not in inequality\n";);
                 return false;
             }
         }
@@ -3654,7 +3662,7 @@ namespace pb {
                 value += coeff;
             }
         }
-        CTRACE("pb", value >= p.m_k, tout << "slack: " << value << " bound " << p.m_k << "\n";
+        CTRACE(pb, value >= p.m_k, tout << "slack: " << value << " bound " << p.m_k << "\n";
                display(tout, p);
                tout << lits << "\n";);
         return value < p.m_k;
@@ -3734,13 +3742,13 @@ namespace pb {
                 lits.reset();
                 coeffs.reset();
                 unsigned sum = 0;
-                for (wliteral wl : p) sum += wl.first;
+                for (auto [w, lit] : p) sum += w;
 
                 if (p.lit() == sat::null_literal) {
                     //   w1 + .. + w_n >= k
                     // <=> 
                     //  ~wl + ... + ~w_n <= sum_of_weights - k
-                    for (wliteral wl : p) lits.push_back(~(wl.second)), coeffs.push_back(wl.first);
+                    for (auto [w, lit] : p) lits.push_back(~lit), coeffs.push_back(w);
                     add_pb(lits.size(), lits.data(), coeffs.data(), sum - p.k());
                 }
                 else {
@@ -3752,13 +3760,13 @@ namespace pb {
                     //     (sum - k + 1)*~lit + w1 + .. + w_n <= sum
                     //     k*lit + ~wl + ... + ~w_n <= sum
                     lits.push_back(p.lit()), coeffs.push_back(p.k());
-                    for (wliteral wl : p) lits.push_back(~(wl.second)), coeffs.push_back(wl.first);
+                    for (auto [w, lit] : p) lits.push_back(~lit), coeffs.push_back(w);
                     add_pb(lits.size(), lits.data(), coeffs.data(), sum);
 
                     lits.reset();
                     coeffs.reset();
                     lits.push_back(~p.lit()), coeffs.push_back(sum + 1 - p.k());
-                    for (wliteral wl : p) lits.push_back(wl.second), coeffs.push_back(wl.first);
+                    for (auto [w, lit] : p) lits.push_back(lit), coeffs.push_back(w);
                     add_pb(lits.size(), lits.data(), coeffs.data(), sum);
                 }
                 break;
@@ -3768,6 +3776,4 @@ namespace pb {
         return true;
     }
     
-};
-
-
+}

@@ -84,8 +84,7 @@ namespace array {
         m_eq(*this),
         m_axioms(DEFAULT_HASHTABLE_INITIAL_CAPACITY, m_hash, m_eq)
     {
-        m_constraint = alloc(sat::constraint_base);
-        m_constraint->initialize(m_constraint.get(), this);
+        m_array_hint = symbol("array");
     }
 
     sat::check_result solver::check() {
@@ -105,6 +104,15 @@ namespace array {
 
         if (!check_lambdas())
             return sat::check_result::CR_GIVEUP;
+
+        switch (check_const_arrays()) {
+        case l_false:
+            return sat::check_result::CR_CONTINUE;
+        case l_undef:
+            return sat::check_result::CR_GIVEUP;
+        default:
+            break;
+        }
 
         // validate_check();
         return sat::check_result::CR_DONE;
@@ -150,7 +158,7 @@ namespace array {
     void solver::merge_eh(theory_var v1, theory_var v2, theory_var, theory_var) {
         euf::enode* n1 = var2enode(v1);
         euf::enode* n2 = var2enode(v2);
-        TRACE("array", tout << "merge: " << ctx.bpp(n1) << " == " << ctx.bpp(n2) << "\n";);
+        TRACE(array, tout << "merge: " << ctx.bpp(n1) << " == " << ctx.bpp(n2) << "\n";);
         SASSERT(n1->get_root() == n2->get_root());
         SASSERT(v1 == find(v1));
         expr* e1 = n1->get_expr();
@@ -179,8 +187,8 @@ namespace array {
         v_child = find(v_child);
         ctx.push_vec(get_var_data(v_child).m_parent_selects, select);
         euf::enode* child = var2enode(v_child);
-        TRACE("array", tout << "v" << v_child << " - " << ctx.bpp(select) << " " << ctx.bpp(child) << " prop: " << should_prop_upward(get_var_data(v_child)) << "\n";);
-        TRACE("array", tout << "can beta reduce " << can_beta_reduce(child) << "\n";);
+        TRACE(array, tout << "v" << v_child << " - " << ctx.bpp(select) << " " << ctx.bpp(child) << " prop: " << should_prop_upward(get_var_data(v_child)) << "\n";);
+        TRACE(array, tout << "can beta reduce " << can_beta_reduce(child) << "\n";);
         if (can_beta_reduce(child)) 
             push_axiom(select_axiom(select, child));
         propagate_parent_select_axioms(v_child);
@@ -203,6 +211,8 @@ namespace array {
         ctx.push_vec(d.m_parent_lambdas, lambda);
         if (should_prop_upward(d))        
             propagate_select_axioms(d, lambda);
+        if (d.m_has_default)
+            push_axiom(default_axiom(lambda));
     }
 
     void solver::add_parent_default(theory_var v) {
@@ -282,5 +292,33 @@ namespace array {
 
     bool solver::can_beta_reduce(expr* c) const {
         return a.is_const(c) || a.is_as_array(c) || a.is_store(c) || is_lambda(c) || is_map_combinator(c);
+    }
+
+    bool solver::propagate_axiom(euf::enode* n1, euf::enode* n2) {
+        if (n1->get_root() == n2->get_root())
+            return false;
+        euf::th_proof_hint const* hint = nullptr;
+        if (ctx.use_drat()) {
+            // Record the derived equality in the hint so the log entry is
+            // self-contained and does not introduce a nullary "array" symbol.
+            euf::enode_pair eq(n1, n2);
+            hint = ctx.mk_smt_hint(m_array_hint, 0, nullptr, 1, &eq);
+        }
+        auto* jst = euf::th_explain::propagate(*this, euf::enode_pair_vector(), n1, n2, hint);
+        return ctx.propagate(n1, n2, jst->to_index());
+    }
+
+    bool solver::propagate_axiom(euf::enode_pair_vector const& eqs, euf::enode* n1, euf::enode* n2) {
+        if (n1->get_root() == n2->get_root())
+            return false;
+        euf::th_proof_hint const* hint = nullptr;
+        if (ctx.use_drat())
+            hint = ctx.mk_smt_hint(m_array_hint, eqs);
+        auto* jst = euf::th_explain::propagate(*this, eqs, n1, n2, hint);
+        return ctx.propagate(n1, n2, jst->to_index());
+    }
+
+    void solver::get_antecedents(literal l, sat::ext_justification_idx idx, literal_vector& r, bool probing) {
+        ctx.get_th_antecedents(l, euf::th_explain::from_index(idx), r, probing);
     }
 }

@@ -24,7 +24,7 @@ Revision History:
 #include "smt/smt_enode.h"
 #include "smt/dyn_ack.h"
 #include "util/obj_pair_hashtable.h"
-#include "smt/params/smt_params.h"
+#include "params/smt_params.h"
 #include "util/obj_pair_hashtable.h"
 #include "util/map.h"
 #include "smt/watch_list.h"
@@ -91,10 +91,10 @@ namespace smt {
                 struct {
                     enode *            m_lhs;
                     enode *            m_rhs;
-                };
+                } m_pair;
             };
             tp_elem(literal l):m_kind(LITERAL), m_lidx(l.index()) {}
-            tp_elem(enode * lhs, enode * rhs):m_kind(EQUALITY), m_lhs(lhs), m_rhs(rhs) {}
+            tp_elem(enode * lhs, enode * rhs):m_kind(EQUALITY), m_pair(lhs, rhs) {}
         tp_elem(justification * js):m_kind(JUSTIFICATION), m_js(js) { SASSERT(js);}
         };
 
@@ -105,6 +105,7 @@ namespace smt {
         proof_ref_vector               m_new_proofs;
         ast_ref_vector                 m_trail;
         proof_ref                      m_lemma_proof;
+        bool                           m_clause_proof_hypotheses = false;
 
         literal_vector                 m_assumptions;
 
@@ -125,7 +126,7 @@ namespace smt {
                     std::swap(n1, n2);
                 enode_pair p(n1, n2);
                 if (m_already_processed_eqs.insert_if_not_there(p)) {
-                    TRACE("conflict_detail_verbose", tout << "marking eq #" << p.first->get_owner_id() << " = #" << 
+                    TRACE(conflict_detail_verbose, tout << "marking eq #" << p.first->get_owner_id() << " = #" << 
                           p.second->get_owner_id() << "\n";);
                     m_todo_eqs.push_back(p);
                     SASSERT(m_already_processed_eqs.contains(p));
@@ -158,7 +159,9 @@ namespace smt {
         void mk_proof(enode * lhs, enode * rhs, ptr_buffer<proof> & result);
         void mk_proof(enode * lhs, enode * rhs);
         void reset();
+        void process_proof_todo();
         void mk_conflict_proof(b_justification conflict, literal not_l);
+        proof_ref mk_clause_proof(justification* js);
 
     protected:
         template<bool Set>
@@ -263,7 +266,7 @@ namespace smt {
     };
 
     inline void mark_literals(conflict_resolution & cr, unsigned sz, literal const * ls) {
-        for (unsigned i = 0; i < sz; i++)
+        for (unsigned i = 0; i < sz; ++i)
             cr.mark_literal(ls[i]);
     }
 
@@ -276,6 +279,4 @@ namespace smt {
                                                  );
 
 
-};
-
-
+}

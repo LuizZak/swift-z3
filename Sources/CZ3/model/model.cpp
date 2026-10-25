@@ -35,11 +35,13 @@ Revision History:
 #include "model/model_evaluator.h"
 #include "model/array_factory.h"
 #include "model/value_factory.h"
+#include "model/ff_factory.h"
 #include "model/seq_factory.h"
 #include "model/datatype_factory.h"
 #include "model/numeral_factory.h"
 #include "model/fpa_factory.h"
 #include "model/char_factory.h"
+#include "model/finite_set_factory.h"
 
 
 model::model(ast_manager & m):
@@ -95,7 +97,7 @@ bool model::eval_expr(expr * e, expr_ref & result, bool model_completion) {
     }
     catch (model_evaluator_exception & ex) {
         (void)ex;
-        TRACE("model_evaluator", tout << ex.what() << "\n";);
+        TRACE(model_evaluator, tout << ex.what() << "\n";);
         return false;
     }
 }
@@ -108,9 +110,11 @@ value_factory* model::get_factory(sort* s) {
         m_factories.register_plugin(alloc(array_factory, m, *this));
         m_factories.register_plugin(alloc(datatype_factory, m, *this));
         m_factories.register_plugin(alloc(bv_factory, m));
+        m_factories.register_plugin(alloc(ff_factory, m));
         m_factories.register_plugin(alloc(arith_factory, m));
         m_factories.register_plugin(alloc(seq_factory, m, su.get_family_id(), *this));
         m_factories.register_plugin(alloc(fpa_value_factory, m, fu.get_family_id()));
+        m_factories.register_plugin(alloc(finite_set_factory, m, m.get_family_id("finite_set"), *this));
         //m_factories.register_plugin(alloc(char_factory, m, char_decl_plugin(m).get_family_id());
     }
     family_id fid = s->get_family_id();
@@ -278,7 +282,7 @@ void model::compress(bool force_inline) {
         std::swap(m_decls, sorted_decls);
         if (removed.empty())
             break;
-        TRACE("model", tout << "remove\n"; for (func_decl* f : removed) tout << f->get_name() << "\n";);
+        TRACE(model, tout << "remove\n"; for (func_decl* f : removed) tout << f->get_name() << "\n";);
         remove_decls(m_func_decls, removed);
         remove_decls(m_const_decls, removed);
     }
@@ -443,7 +447,7 @@ bool model::can_inline_def(top_sort& ts, func_decl* f, bool force_inline) {
 expr_ref model::cleanup_expr(top_sort& ts, expr* e, unsigned current_partition, bool force_inline) {
     if (!e) return expr_ref(nullptr, m);
 
-    TRACE("model", tout << "cleaning up:\n" << mk_pp(e, m) << "\n";);
+    TRACE(model, tout << "cleaning up:\n" << mk_pp(e, m) << "\n";);
 
     obj_map<expr, expr*> cache;
     expr_ref_vector trail(m);
@@ -488,7 +492,7 @@ expr_ref model::cleanup_expr(top_sort& ts, expr* e, unsigned current_partition, 
                     fi = get_func_interp(f);
                     if (fi) {
                         new_t = fi->get_array_interp(f);
-                        TRACE("model", tout << "array interpretation:" << new_t << "\n";);
+                        TRACE(model, tout << "array interpretation:" << new_t << "\n";);
                     }
                 }
             }
@@ -503,7 +507,9 @@ expr_ref model::cleanup_expr(top_sort& ts, expr* e, unsigned current_partition, 
             }
             else if (bv.is_bit2bool(t)) {
                 unsigned idx = f->get_parameter(0).get_int();
-                new_t = m.mk_eq(bv.mk_extract(idx, idx, args[0]), bv.mk_numeral(1, 1));
+                expr_ref bit(bv.mk_extract(idx, idx, args[0]), m);
+                expr_ref one(bv.mk_numeral(1, 1), m);
+                new_t = m.mk_eq(bit, one);
             }
 #if 0
             else if (is_uninterp_const(a) && !get_const_interp(f)) {
@@ -516,7 +522,7 @@ expr_ref model::cleanup_expr(top_sort& ts, expr* e, unsigned current_partition, 
             }
             
             if (t != new_t.get()) trail.push_back(new_t);
-            CTRACE("model", (t != new_t.get()), tout << mk_bounded_pp(t, m) << " " << new_t << "\n";);
+            CTRACE(model, (t != new_t.get()), tout << mk_bounded_pp(t, m) << " " << new_t << "\n";);
             todo.pop_back();
             cache.insert(t, new_t);
             break;
@@ -572,13 +578,6 @@ expr_ref model::operator()(expr* t) {
     return m_mev(t);
 }
 
-void model::set_solver(expr_solver* s) {
-    m_mev.set_solver(s);
-}
-
-bool model::has_solver() {
-    return m_mev.has_solver();
-}
 
 expr_ref_vector model::operator()(expr_ref_vector const& ts) {
     expr_ref_vector rs(m);
@@ -632,7 +631,11 @@ void model::add_rec_funs() {
         expr_safe_replace subst(m);
         unsigned arity = f->get_arity();
         for (unsigned i = 0; i < arity; ++i) {
-            subst.insert(m.mk_var(arity - i - 1, f->get_domain(i)), m.mk_var(i, f->get_domain(i)));            
+            {
+                expr_ref lhs(m.mk_var(arity - i - 1, f->get_domain(i)), m);
+                expr_ref rhs1(m.mk_var(i, f->get_domain(i)), m);
+                subst.insert(lhs, rhs1);
+            }
         }
         expr_ref bodyr(m);
         subst(rhs, bodyr);
@@ -640,5 +643,5 @@ void model::add_rec_funs() {
         fi->set_else(bodyr);
         register_decl(f, fi);
     }
-    TRACE("model", tout << *this << "\n";);
+    TRACE(model, tout << *this << "\n";);
 }

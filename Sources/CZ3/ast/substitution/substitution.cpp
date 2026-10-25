@@ -26,7 +26,7 @@ substitution::substitution(ast_manager & m):
     m_manager(m),
     m_refs(m),
     m_new_exprs(m),
-    m_state(CLEAN) {
+    m_state(state::CLEAN) {
 }
 
 void substitution::reset() {
@@ -39,12 +39,12 @@ void substitution::reset() {
 
 
 void substitution::reset_cache() {
-    TRACE("subst_bug", tout << "substitution::reset_cache\n";
-          for (unsigned i = 0; i < m_new_exprs.size(); i++) { tout << mk_pp(m_new_exprs.get(i), m_manager) << "\nref_count: " << m_new_exprs.get(i)->get_ref_count() << "\n"; });
+    TRACE(subst_bug, tout << "substitution::reset_cache\n";
+          for (unsigned i = 0; i < m_new_exprs.size(); ++i) { tout << mk_pp(m_new_exprs.get(i), m_manager) << "\nref_count: " << m_new_exprs.get(i)->get_ref_count() << "\n"; });
 
     m_apply_cache.reset();
     m_new_exprs.reset();
-    m_state = CLEAN;
+    m_state = state::CLEAN;
 }
 
 void substitution::pop_scope(unsigned num_scopes) {
@@ -54,7 +54,7 @@ void substitution::pop_scope(unsigned num_scopes) {
     unsigned old_sz  = m_scopes[new_lvl];
     unsigned curr_sz = m_vars.size();
     SASSERT(old_sz <= curr_sz);
-    for (unsigned i = old_sz; i < curr_sz; i++) {
+    for (unsigned i = old_sz; i < curr_sz; ++i) {
         var_offset & curr = m_vars[i];
         m_subst.erase(curr.first, curr.second);
     }
@@ -74,15 +74,15 @@ inline void substitution::apply_visit(expr_offset const & n, bool & visited) {
 void substitution::apply(unsigned num_actual_offsets, unsigned const * deltas, expr_offset const & n, 
                          expr_offset const & s, expr_offset const & t, expr_ref & result) {
     
-    TRACE("subst_bug", tout << "BEGIN substitution::apply\n";);
+    TRACE(subst_bug, tout << "BEGIN substitution::apply\n";);
 
 
     // It is incorrect to cache results between different calls if we are applying a substitution
     // modulo a substitution s -> t.
-    if (m_state == INSERT || s != expr_offset(nullptr,0))
+    if (m_state == state::INSERT || s != expr_offset(nullptr,0))
         reset_cache();
 
-    m_state = APPLY;
+    m_state = state::APPLY;
 
     unsigned         j;
     expr *           e = nullptr;
@@ -95,13 +95,13 @@ void substitution::apply(unsigned num_actual_offsets, unsigned const * deltas, e
     m_todo.push_back(n);
     while (!m_todo.empty()) {
         expr_offset n = m_todo.back();
-        TRACE("subst_bug", tout << "n: " << mk_pp(n.get_expr(), m_manager) << " : " << n.get_offset() << "\n";);
+        TRACE(subst_bug, tout << "n: " << mk_pp(n.get_expr(), m_manager) << " : " << n.get_offset() << "\n";);
         if (m_apply_cache.contains(n)) {
             m_todo.pop_back();
             continue;
         }
         expr_offset n_prime = n == s ? t : n;
-        TRACE("subst_bug", tout << "n_prime: " << mk_pp(n_prime.get_expr(), m_manager) << " : " << n_prime.get_offset() << "\n";);
+        TRACE(subst_bug, tout << "n_prime: " << mk_pp(n_prime.get_expr(), m_manager) << " : " << n_prime.get_offset() << "\n";);
         visited = true;
         e   = n_prime.get_expr();
         off = n_prime.get_offset();
@@ -109,13 +109,13 @@ void substitution::apply(unsigned num_actual_offsets, unsigned const * deltas, e
         case AST_VAR:
             if (find(to_var(e)->get_idx(), off, n1)) {
                 apply_visit(n1, visited);
-                TRACE("subst_bug", tout << "visited: " << visited << ", n1: " << mk_pp(n1.get_expr(), m_manager) << " : " << n1.get_offset() << "\n";);
+                TRACE(subst_bug, tout << "visited: " << visited << ", n1: " << mk_pp(n1.get_expr(), m_manager) << " : " << n1.get_offset() << "\n";);
                 if (visited) {
                     m_todo.pop_back();
                     expr * new_expr = nullptr;
                     m_apply_cache.find(n1, new_expr);
                     m_apply_cache.insert(n, new_expr);
-                    TRACE("subst_bug", tout << "1. insert n: " << mk_pp(n.get_expr(), m_manager) << " : " << n.get_offset() 
+                    TRACE(subst_bug, tout << "1. insert n: " << mk_pp(n.get_expr(), m_manager) << " : " << n.get_offset() 
                           << " --> " << mk_pp(new_expr, m_manager) << "\n";);
                 }
             }
@@ -129,7 +129,7 @@ void substitution::apply(unsigned num_actual_offsets, unsigned const * deltas, e
                     m_new_exprs.push_back(new_expr);
                 }
                 m_apply_cache.insert(n, new_expr);
-                TRACE("subst_bug", tout << "2. insert n: " << mk_pp(n.get_expr(), m_manager) << " : " << n.get_offset() 
+                TRACE(subst_bug, tout << "2. insert n: " << mk_pp(n.get_expr(), m_manager) << " : " << n.get_offset() 
                       << " --> " << mk_pp(new_expr, m_manager) << "\n";);
             }
             break;
@@ -144,7 +144,7 @@ void substitution::apply(unsigned num_actual_offsets, unsigned const * deltas, e
                 m_todo.pop_back();
                 new_args.reset();
                 bool has_new_args = false;
-                for (unsigned i = 0; i < num_args; i++) {
+                for (unsigned i = 0; i < num_args; ++i) {
                     expr * arg     = to_app(e)->get_arg(i);
                     expr * new_arg = nullptr;
                     
@@ -155,14 +155,14 @@ void substitution::apply(unsigned num_actual_offsets, unsigned const * deltas, e
                 }
                 if (!has_new_args) {
                     m_apply_cache.insert(n, e);
-                    TRACE("subst_bug", tout << "3. insert n: " << mk_pp(n.get_expr(), m_manager) << " : " << n.get_offset() 
+                    TRACE(subst_bug, tout << "3. insert n: " << mk_pp(n.get_expr(), m_manager) << " : " << n.get_offset() 
                           << " --> " << mk_pp(e, m_manager) << "\n";);
                 }
                 else {
                     expr * new_expr = m_manager.mk_app(to_app(e)->get_decl(), new_args.size(), new_args.data());
                     m_new_exprs.push_back(new_expr);
                     m_apply_cache.insert(n, new_expr);
-                    TRACE("subst_bug", tout << "3. insert n: " << mk_pp(n.get_expr(), m_manager) << " : " << n.get_offset() 
+                    TRACE(subst_bug, tout << "3. insert n: " << mk_pp(n.get_expr(), m_manager) << " : " << n.get_offset() 
                           << " --> " << mk_pp(new_expr, m_manager) << "\n";);
                 }
             }
@@ -175,8 +175,8 @@ void substitution::apply(unsigned num_actual_offsets, unsigned const * deltas, e
             subst.reserve(m_subst.offsets_capacity(), m_subst.vars_capacity() + num_vars);
             var_shifter var_sh(m_manager);
             expr_offset r;
-            for (unsigned i = 0; i < m_subst.offsets_capacity(); i++) {
-                for (unsigned j = 0; j < m_subst.vars_capacity(); j++) {
+            for (unsigned i = 0; i < m_subst.offsets_capacity(); ++i) {
+                for (unsigned j = 0; j < m_subst.vars_capacity(); ++j) {
                     if (find(j, i, r)) {
                         var_sh(r.get_expr(), num_vars, er);
                         subst.insert(j + num_vars, i, expr_offset(er, r.get_offset()));
@@ -221,7 +221,7 @@ void substitution::apply(unsigned num_actual_offsets, unsigned const * deltas, e
     if (s != expr_offset(nullptr,0))
         reset_cache();
     
-    TRACE("subst_bug", tout << "END substitution::apply\nresult:\n" << mk_pp(e, m_manager) << "\nref_count: " << e->get_ref_count() << "\n";);
+    TRACE(subst_bug, tout << "END substitution::apply\nresult:\n" << mk_pp(e, m_manager) << "\nref_count: " << e->get_ref_count() << "\n";);
 }
 
 inline substitution::color substitution::get_color(expr_offset const & p) const {
@@ -301,10 +301,8 @@ bool substitution::acyclic(expr_offset p) {
 bool substitution::acyclic() {
     m_color.reset();
     expr_offset r;
-    svector<var_offset>::iterator it  = m_vars.begin();
-    svector<var_offset>::iterator end = m_vars.end();
-    for (; it != end; ++it) {
-        m_subst.find(it->first, it->second, r);
+    for (auto const& [k, v] : m_vars) {
+        m_subst.find(k, v, r);
         if (!acyclic(r))
             return false;
     }
@@ -313,8 +311,8 @@ bool substitution::acyclic() {
 
 void substitution::display(std::ostream & out, unsigned num_actual_offsets, unsigned const * deltas) {
     reset_cache();
-    for (unsigned i = 0; i < num_actual_offsets; i++)
-        for (unsigned j = 0; j < m_subst.vars_capacity(); j++) {
+    for (unsigned i = 0; i < num_actual_offsets; ++i)
+        for (unsigned j = 0; j < m_subst.vars_capacity(); ++j) {
             expr_offset r;
             if (find(j, i, r)) {
                 expr_ref tmp(m_manager);
@@ -325,8 +323,8 @@ void substitution::display(std::ostream & out, unsigned num_actual_offsets, unsi
 }
 
 void substitution::display(std::ostream & out) {
-    for (unsigned i = 0; i < m_subst.offsets_capacity(); i++)
-        for (unsigned j = 0; j < m_subst.vars_capacity(); j++) {
+    for (unsigned i = 0; i < m_subst.offsets_capacity(); ++i)
+        for (unsigned j = 0; j < m_subst.vars_capacity(); ++j) {
             expr_offset r;
             if (find(j, i, r))
                 out << "VAR " << j << ":" << i << " --> " << r.get_offset() << "\n" << mk_pp(r.get_expr(), m_manager) << "\n";

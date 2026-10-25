@@ -16,6 +16,7 @@ Author:
 --*/
 #pragma once
 
+#include "util/union_find.h"
 #include "ast/ast_trail.h"
 #include "sat/smt/sat_th.h"
 #include "ast/array_decl_plugin.h"
@@ -42,7 +43,7 @@ namespace array {
             unsigned m_num_select_const_axiom, m_num_select_store_axiom_delayed;
             unsigned m_num_default_store_axiom, m_num_default_map_axiom;
             unsigned m_num_default_const_axiom, m_num_default_as_array_axiom;
-            unsigned m_num_select_lambda_axiom;
+            unsigned m_num_select_lambda_axiom, m_num_choice_axiom;
             void reset() { memset(this, 0, sizeof(*this)); }
             stats() { reset(); }
         };
@@ -85,7 +86,8 @@ namespace array {
                 is_select,
                 is_extensionality,
                 is_default,
-                is_congruence
+                is_congruence,
+                is_choice
             };
             enum class state_t {
                 is_new,
@@ -164,10 +166,17 @@ namespace array {
         axiom_record store_axiom(euf::enode* n) { return axiom_record(axiom_record::kind_t::is_store, n); }
         axiom_record extensionality_axiom(euf::enode* x, euf::enode* y) { return axiom_record(axiom_record::kind_t::is_extensionality, x, y); }
         axiom_record congruence_axiom(euf::enode* a, euf::enode* b) { return axiom_record(axiom_record::kind_t::is_congruence, a, b); }
+        axiom_record choice_axiom(euf::enode* n) { return axiom_record(axiom_record::kind_t::is_choice, n); }
 
-        scoped_ptr<sat::constraint_base> m_constraint;
+        symbol m_array_hint;
 
-        sat::ext_justification_idx array_axiom() { return m_constraint->to_index(); }
+        // Merge n1 and n2 as a consequence of an unconditional array axiom.
+        // The justification is a theory explanation so that proof logging and
+        // conflict explanation can inspect it.
+        bool propagate_axiom(euf::enode* n1, euf::enode* n2);
+        // Merge n1 and n2 as a consequence of the array axiom together with
+        // the (already established) equalities in eqs, recorded as antecedents.
+        bool propagate_axiom(euf::enode_pair_vector const& eqs, euf::enode* n1, euf::enode* n2);
 
         bool assert_store_axiom(app* _e);
         bool assert_select_store_axiom(app* select, app* store);
@@ -175,6 +184,7 @@ namespace array {
         bool assert_select_as_array_axiom(app* select, app* arr);
         bool assert_select_map_axiom(app* select, app* map);
         bool assert_select_lambda_axiom(app* select, expr* lambda);
+        bool assert_choice_axiom(app* choice_term);
         bool assert_extensionality(expr* e1, expr* e2);
         bool assert_default_map_axiom(app* map);
         bool assert_default_const_axiom(app* cnst);
@@ -212,6 +222,7 @@ namespace array {
         bool can_beta_reduce(euf::enode* n) const { return can_beta_reduce(n->get_expr()); }
         bool can_beta_reduce(expr* e) const;
         bool check_lambdas();
+        lbool check_const_arrays();
 
         var_data& get_var_data(euf::enode* n) { return get_var_data(n->get_th_var(get_id())); }
         var_data& get_var_data(theory_var v) { return *m_var_data[v]; }
@@ -269,7 +280,7 @@ namespace array {
     public:
         solver(euf::solver& ctx, theory_id id);
         bool is_external(bool_var v) override { return false; }
-        void get_antecedents(literal l, sat::ext_justification_idx idx, literal_vector& r, bool probing) override {}
+        void get_antecedents(literal l, sat::ext_justification_idx idx, literal_vector& r, bool probing) override;
         void asserted(literal l) override {}
         sat::check_result check() override;
 

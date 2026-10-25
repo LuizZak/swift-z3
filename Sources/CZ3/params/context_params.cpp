@@ -20,6 +20,7 @@ Notes:
 #include "util/gparams.h"
 #include "util/params.h"
 #include "params/context_params.h"
+#include <charconv>
 
 context_params::context_params() {
     updt_params();
@@ -40,19 +41,20 @@ void context_params::set_bool(bool & opt, char const * param, char const * value
 }
 
 void context_params::set_uint(unsigned & opt, char const * param, char const * value) {
-    char *endptr;
-    long val = strtol(value, &endptr, 10);
-    opt = static_cast<unsigned>(val);
-
-    if (!*value || *endptr) {
+    // Parse directly as unsigned: long is only 32 bits on Windows.
+    unsigned val;
+    char const* end = value + strlen(value);
+    auto [ptr, ec] = std::from_chars(value, end, val);
+    if (ec != std::errc() || ptr != end) {
         std::stringstream strm;
         strm << "invalid value '" << value << "' for unsigned int parameter '" << param << "'";
         throw default_exception(strm.str());
     }
+    opt = val;
 }
 
 static void lower_case(std::string& p) {
-    for (size_t i = 0; i < p.size(); i++) {
+    for (size_t i = 0; i < p.size(); ++i) {
         if (p[i] >= 'A' && p[i] <= 'Z')
             p[i] = p[i] - 'A' + 'a';
         else if (p[i] == '-')
@@ -157,6 +159,7 @@ void context_params::updt_params(params_ref const & p) {
 void context_params::collect_param_descrs(param_descrs & d) {
     insert_rlimit(d);
     insert_timeout(d);
+    insert_ctrl_c(d);
     d.insert("well_sorted_check", CPK_BOOL, "type checker", "false");
     d.insert("type_check", CPK_BOOL, "type checker (alias for well_sorted_check)", "true");
     d.insert("auto_config", CPK_BOOL, "use heuristics to automatically select solver and configure it", "true");

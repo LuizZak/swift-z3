@@ -27,13 +27,20 @@
 #include "math/lp/monomial_bounds.h"
 #include "math/lp/nla_intervals.h"
 #include "nlsat/nlsat_solver.h"
-#include "smt/params/smt_params_helper.hpp"
+#include "params/smt_params_helper.hpp"
+#include "math/lp/nla_throttle.h"
+#include "math/lp/nla_backoff.h"
+#include "math/lp/nla_patcher.h"
+#include "math/lp/nla_explanations.h"
+#include "math/lp/nla_transcendentals.h"
 
 namespace nra {
     class solver;
 }
 
 namespace nla {
+
+class solver;
 
 template <typename A, typename B>
 bool try_insert(const A& elem, B& collection) {
@@ -46,7 +53,7 @@ bool try_insert(const A& elem, B& collection) {
 
 class core {
     friend struct common;
-    friend class new_lemma;
+    friend class lemma_builder;
     friend class grobner;
     friend class order;
     friend struct basics;
@@ -59,12 +66,25 @@ class core {
     friend class monomial_bounds;
     friend class nra::solver;
     friend class divisions;
+    friend class patcher;
+    friend class explanations;
+    friend class transcendentals;
 
-    unsigned m_nlsat_delay = 0;
-    unsigned m_nlsat_delay_bound = 0;
+    backoff  m_nlsat_backoff;
+    unsigned m_check_assignment_fail_cnt = 0;
 
     bool should_run_bounded_nlsat();
     lbool bounded_nlsat();
+    lbool check_transcendentals_and_finish();
+    // Consolidates the "no monomials left to refine" transition: records it
+    // with the squeeze schedule and defers to check_transcendentals_and_finish()
+    // for the final verdict, which also examines any registered
+    // transcendental applications (sin/cos/etc.) for feasibility - these are
+    // not monomials, so m_to_refine being empty alone never certifies them.
+    // check() calls this once at each point where m_to_refine is found to
+    // have just become empty, instead of duplicating the squeeze-schedule
+    // bookkeeping and transcendentals check inline at every such call site.
+    lbool on_to_refine_empty();
 
     var_eqs<emonics>         m_evars;
 
@@ -84,30 +104,44 @@ class core {
     monotone                 m_monotone;
     powers                   m_powers;
     divisions                m_divisions;
-    intervals                m_intervals; 
+    intervals                m_intervals;
     monomial_bounds          m_monomial_bounds;
+    patcher                  m_patcher;
+    explanations             m_explanations;
+    transcendentals          m_transcendentals;
     unsigned                 m_conflicts;
     bool                     m_check_feasible = false;
+    // set when bound optimization re-calibrates m_to_refine to empty: every
+    // monomial is consistent under the optimized model, so the goal is satisfied.
+    bool                     m_nla_satisfied = false;
+    squeeze_schedule         m_squeeze_schedule;
     horner                   m_horner;
     grobner                  m_grobner;
     emonics                  m_emons;
     svector<lpvar>           m_add_buffer;
     mutable indexed_uint_set m_active_var_set;
+    // hook installed by theory_lra for creating a multiplication definition
+    std::function<lpvar(unsigned, lpvar const*)> m_add_mul_def_hook;
 
     reslimit                 m_nra_lim;
 
     bool                     m_use_nra_model = false;
     nra::solver              m_nra;
-    bool                     m_cautious_patching = true;
-    lpvar                    m_patched_var = 0;
-    monic const*             m_patched_monic = nullptr; 
+
+    nla_throttle             m_throttle;
+    bool                     m_throttle_enabled = true;
 
 
 
     void check_weighted(unsigned sz, std::pair<unsigned, std::function<void(void)>>* checks);
     void add_bounds();
 
+    bool refine_pseudo_linear();
+    bool is_pseudo_linear(monic const& m) const;    
+    void refine_pseudo_linear(monic const& m);
 
+    std::ostream& display_constraint_smt(std::ostream& out, unsigned id, lp::lar_base_constraint const& c) const;
+    std::ostream& display_declarations_smt(std::ostream& out) const;
 
 public:    
     // constructor
@@ -115,6 +149,8 @@ public:
     const auto& monics_with_changed_bounds() const { return m_monics_with_changed_bounds; }
     void insert_to_refine(lpvar j);
     void erase_from_to_refine(lpvar j);
+
+    void updt_params(params_ref const& p);
     
     const indexed_uint_set&  active_var_set () const { return m_active_var_set;}
     bool active_var_set_contains(unsigned j) const { return m_active_var_set.contains(j); }
@@ -177,9 +213,7 @@ public:
 
     void set_active_vars_weights(nex_creator&);
     std::unordered_set<lpvar> get_vars_of_expr_with_opening_terms(const nex* e);
-    
-    void incremental_linearization(bool);
-    
+
     svector<lpvar> sorted_rvars(const factor& f) const;
     bool done() const;
 
@@ -194,16 +228,19 @@ public:
     // the value of the rooted monomias is equal to the value of the m.var() variable multiplied
     // by the canonize_sign
     bool canonize_sign(const monic& m) const;
-    
 
-    void deregister_monic_from_monicomials (const monic & m, unsigned i);
-
-    void deregister_monic_from_tables(const monic & m, unsigned i);
-
-    void add_monic(lpvar v, unsigned sz, lpvar const* vs);   
-    void add_idivision(lpvar q, lpvar x, lpvar y) { m_divisions.add_idivision(q, x, y); }
-    void add_rdivision(lpvar q, lpvar x, lpvar y) { m_divisions.add_rdivision(q, x, y); }
-    void add_bounded_division(lpvar q, lpvar x, lpvar y) { m_divisions.add_bounded_division(q, x, y); }
+    void add_monic(lpvar v, unsigned sz, lpvar const* vs);
+    void add_idivision(lpvar q, lpvar x, lpvar y, lpvar r) { m_divisions.add_idivision(q, x, y, r); }
+    void add_rdivision(lpvar q, lpvar x, lpvar y, lpvar r) { m_divisions.add_rdivision(q, x, y, r); }
+    void add_bounded_division(lpvar q, lpvar x, lpvar y, lpvar r) { m_divisions.add_bounded_division(q, x, y, r); }
+    void add_divisibility(lpvar r, lpvar x, lpvar y, lpvar d) { m_divisions.add_divisibility(r, x, y, d); }
+    void add_transcendental(nlsat::transcendental_op_kind op, lpvar arg, lpvar val) { m_transcendentals.add_transcendental(op, arg, val); }
+    void add_pi(lpvar val) { m_transcendentals.add_pi(val); }
+    void add_atan2(lpvar y, lpvar x, lpvar val) { m_transcendentals.add_atan2(y, x, val); }
+    transcendentals const& get_transcendentals() const { return m_transcendentals; }
+    transcendentals& get_transcendentals() { return m_transcendentals; }
+    void set_add_mul_def_hook(std::function<lpvar(unsigned, lpvar const*)> const& f) { m_add_mul_def_hook = f; }
+    lpvar add_mul_def(unsigned sz, lpvar const* vs) { SASSERT(m_add_mul_def_hook); lpvar v = m_add_mul_def_hook(sz, vs); add_monic(v, sz, vs); return v; }
 
     void set_relevant(std::function<bool(lpvar)>& is_relevant) { m_relevant = is_relevant; }
     bool is_relevant(lpvar v) const { return !m_relevant || m_relevant(v); }
@@ -220,6 +257,9 @@ public:
     bool check_monic(const monic& m) const;
    
 
+    std::ostream & display_row(std::ostream& out, lp::row_strip<lp::mpq> const& row) const;
+    std::ostream & display(std::ostream& out);
+    std::ostream& display_smt(std::ostream& out);
     std::ostream & print_ineq(const ineq & in, std::ostream & out) const;
     std::ostream & print_var(lpvar j, std::ostream & out) const;
     std::ostream & print_monics(std::ostream & out) const;    
@@ -262,18 +302,14 @@ public:
                         const factor& b,
                         std::ostream& out);
 
-        
-    void mk_ineq_no_expl_check(new_lemma& lemma, lp::lar_term& t, llc cmp, const rational& rs);
-    
+
     void maybe_add_a_factor(lpvar i,
                             const factor& c,
                             std::unordered_set<lpvar>& found_vars,
                             std::unordered_set<unsigned>& found_rm,
                             vector<factor> & r) const;
 
-    llc apply_minus(llc cmp);
-    
-    void fill_explanation_and_lemma_sign(new_lemma& lemma, const monic& a, const monic & b, rational const& sign);
+    void fill_explanation_and_lemma_sign(lemma_builder& lemma, const monic& a, const monic & b, rational const& sign);
 
     svector<lpvar> reduce_monic_to_rooted(const svector<lpvar> & vars, rational & sign) const;
 
@@ -318,13 +354,7 @@ public:
     
     bool var_is_separated_from_zero(lpvar j) const;
 
-    bool vars_are_equiv(lpvar a, lpvar b) const;    
-    bool explain_ineq(new_lemma& lemma, const lp::lar_term& t, llc cmp, const rational& rs);
-    bool explain_upper_bound(const lp::lar_term& t, const rational& rs, lp::explanation& e) const;
-    bool explain_lower_bound(const lp::lar_term& t, const rational& rs, lp::explanation& e) const;
-    bool explain_coeff_lower_bound(const lp::lar_term::ival& p, rational& bound, lp::explanation& e) const;
-    bool explain_coeff_upper_bound(const lp::lar_term::ival& p, rational& bound, lp::explanation& e) const;
-    bool explain_by_equiv(const lp::lar_term& t, lp::explanation& e) const;
+    bool vars_are_equiv(lpvar a, lpvar b) const;
     bool has_zero_factor(const factorization& factorization) const;
 
     template <typename T>
@@ -332,30 +362,6 @@ public:
     lp::lp_settings& lp_settings();
     const lp::lp_settings& lp_settings() const;
     unsigned random();
-
-    // we look for octagon constraints here, with a left part  +-x +- y 
-    void collect_equivs();
-
-    bool is_octagon_term(const lp::lar_term& t, bool & sign, lpvar& i, lpvar &j) const;
-    
-    void add_equivalence_maybe(const lp::lar_term* t, u_dependency* c0, u_dependency* c1);
-
-    void init_vars_equivalence();
-
-    bool vars_table_is_ok() const;
-
-    bool rm_table_is_ok() const;
-    
-    bool tables_are_ok() const;
-    
-    bool var_is_a_root(lpvar j) const;
-
-    template <typename T>
-    bool vars_are_roots(const T& v) const;
-
-    void register_monic_in_tables(unsigned i_mon);
-
-    void register_monics_in_tables();
 
     void clear();
     
@@ -370,23 +376,36 @@ public:
     bool rm_check(const monic&) const;
     std::unordered_map<unsigned, unsigned_vector> get_rm_by_arity();
 
-    void negate_relation(new_lemma& lemma, unsigned j, const rational& a);
-    void negate_factor_equality(new_lemma& lemma, const factor& c, const factor& d);    
-    void negate_factor_relation(new_lemma& lemma, const rational& a_sign, const factor& a, const rational& b_sign, const factor& b);
+    void negate_relation(lemma_builder& lemma, unsigned j, const rational& a);
+    void negate_factor_equality(lemma_builder& lemma, const factor& c, const factor& d);    
+    void negate_factor_relation(lemma_builder& lemma, const rational& a_sign, const factor& a, const rational& b_sign, const factor& b);
 
     bool  find_bfc_to_refine_on_monic(const monic&, factorization & bf);
     
     bool  find_bfc_to_refine(const monic* & m, factorization& bf);
 
     bool  conflict_found() const;
-    
-    lbool check();
+
+    // True iff the current (rational) assignment satisfies both the
+    // registered monomials (re-derived here via init_to_refine()) and, if
+    // any are registered, the transcendental function applications
+    // (sin/cos/etc.), which are not monomials and so are not covered by the
+    // monomial check. Transcendental satisfaction is decided by
+    // check_transcendentals_and_finish(): a plain delta-check pass, or - on
+    // delta-check failure - certified unsatisfiability/satisfiability via
+    // bounded_nlsat when applicable. Like check_transcendentals_and_finish(),
+    // this can have the side effect of populating m_lemmas/m_literals with a
+    // refutation when the transcendentals are found inconsistent.
+    bool is_nla_context_satisfied();
+
+    lbool check(unsigned level);
     lbool check_power(lpvar r, lpvar x, lpvar y);
     void check_bounded_divisions();
 
     bool  no_lemmas_hold() const;
 
-    void propagate();
+    bool propagate();
+    bool incremental_propagate();
 
     void simplify();
     
@@ -408,29 +427,39 @@ public:
     bool is_nl_var(lpvar) const;
     
     bool is_used_in_monic(lpvar) const;
-    void patch_monomials();
-    void patch_monomials_on_to_refine();
-    void patch_monomial(lpvar);
-    bool var_breaks_correct_monic(lpvar) const;
-    bool var_breaks_correct_monic_as_factor(lpvar, const monic&) const;
-    void update_to_refine_of_var(lpvar j);
-    bool try_to_patch(const rational&);
-    bool to_refine_is_correct() const;
-    bool is_patch_blocked(lpvar u, const lp::impq&) const;
     bool has_big_num(const monic&) const;
     bool var_is_big(lpvar) const;
     bool has_real(const factorization&) const;
     bool has_real(const monic& m) const;
     void set_use_nra_model(bool m);
     bool use_nra_model() const { return m_use_nra_model; }
+    // Rational interval [lo, hi] enclosing v's algebraic-number witness in
+    // the most recent nra (nlsat) model; only meaningful when
+    // use_nra_model() is true. Unlike val(), which reads the plain LP
+    // column and is stale/unrelated once nlsat has run, this reads the
+    // actual nlsat witness via the algebraic number manager.
+    void nra_model_bound(lpvar v, rational& lo, rational& hi, unsigned precision = 64);
     vector<nla::lemma> const& lemmas() const { return m_lemmas; }
     vector<nla::ineq> const& literals() const { return m_literals; }
     vector<lp::equality> const& equalities() const { return m_equalities; }
     vector<lp::fixed_equality> const& fixed_equalities() const { return m_fixed_equalities; }
     bool should_check_feasible() const { return m_check_feasible; }
 
-    void add_fixed_equality(lp::lpvar v, rational const& k, lp::explanation const& e) { m_fixed_equalities.push_back({v, k, e}); }
-    void add_equality(lp::lpvar i, lp::lpvar j, lp::explanation const& e) { m_equalities.push_back({i, j, e}); }
+    void add_fixed_equality(lp::lpvar v, rational const& k, lp::explanation && e) { m_fixed_equalities.push_back({v, k, std::move(e)}); }
+    void add_equality(lp::lpvar i, lp::lpvar j, lp::explanation && e) { m_equalities.push_back({i, j, std::move(e)}); }
+
+    bool throttle_enabled() const { return m_throttle_enabled; }
+    nla_throttle& throttle() { return m_throttle; }
+    const nla_throttle& throttle() const { return m_throttle; }
+
+    lp::lar_solver& lra_solver() { return lra; }
+
+    indexed_uint_set const& to_refine() const {
+        return m_to_refine;
+    }
+
+    void set_nla_satisfied() { m_nla_satisfied = true; }
+    bool nla_satisfied() const { return m_nla_satisfied; }
 
 };  // end of core
 
@@ -454,4 +483,3 @@ inline std::ostream& operator<<(std::ostream& out, pp_factorization const& f) { 
 inline std::ostream& operator<<(std::ostream& out, pp_var const& v) { return v.c.print_var(v.v, out); }
 
 } // end of namespace nla
-

@@ -17,6 +17,10 @@ Revision History:
 
 --*/
 #include "tactic/tactical.h"
+// Pulls in this file's own Z3_ADD_TACTIC registration (see tactic/tactic.h) -- an `inline`
+// global's constructor only runs if some compiled translation unit includes the header
+// declaring it, and subpaving_tactic.h was otherwise never included by anything.
+#include "math/subpaving/tactic/subpaving_tactic.h"
 #include "tactic/core/simplify_tactic.h"
 #include "math/subpaving/tactic/expr2subpaving.h"
 #include "ast/expr2var.h"
@@ -154,7 +158,7 @@ class subpaving_tactic : public tactic {
             m_qm.div(k, n, k);
             if (is_neg(n))
                 lower = !lower;
-            TRACE("subpaving_tactic", tout << x << " " << k << " " << lower << " " << open << "\n";);
+            TRACE(subpaving_tactic, tout << x << " " << k << " " << lower << " " << open << "\n";);
             return m_ctx->mk_ineq(x, k, lower, open);
         }
 
@@ -170,7 +174,7 @@ class subpaving_tactic : public tactic {
                 sz   = 1;
             }
             ref_buffer<subpaving::ineq, subpaving::context> ineq_buffer(*m_ctx);
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 ineq_buffer.push_back(mk_ineq(args[i]));
             }
             m_ctx->add_clause(sz, ineq_buffer.data());
@@ -178,7 +182,7 @@ class subpaving_tactic : public tactic {
         
         void internalize(goal const & g) {
             try {
-                for (unsigned i = 0; i < g.size(); i++) {
+                for (unsigned i = 0; i < g.size(); ++i) {
                     process_clause(g.form(i));
                 }
             }

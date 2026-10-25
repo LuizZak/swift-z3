@@ -21,6 +21,7 @@ Author:
 #include "ast/ast_translation.h"
 #include "ast/ast_util.h"
 #include "ast/euf/euf_egraph.h"
+#include "ast/euf/euf_mam.h"
 #include "ast/rewriter/th_rewriter.h"
 #include "ast/converters/model_converter.h"
 #include "sat/sat_extension.h"
@@ -30,7 +31,7 @@ Author:
 #include "sat/smt/user_solver.h"
 #include "sat/smt/euf_relevancy.h"
 #include "sat/smt/euf_proof_checker.h"
-#include "smt/params/smt_params.h"
+#include "params/smt_params.h"
 
 
 namespace euf {
@@ -83,7 +84,7 @@ namespace euf {
         expr* get_hint(euf::solver& s) const override;
     };
 
-    class solver : public sat::extension, public th_internalizer, public th_decompile, public sat::clause_eh {
+    class solver : public sat::extension, public th_internalizer, public th_decompile, public sat::clause_eh, public mam_solver {
         typedef top_sort<euf::enode> deps_t;
         friend class ackerman;
         friend class eq_proof_hint;
@@ -135,6 +136,7 @@ namespace euf {
         mutable ptr_vector<expr>         m_todo;
 
         ptr_vector<expr>                 m_bool_var2expr;
+        bool_vector                      m_asserted_vars;
         ptr_vector<size_t>               m_explain;
         euf::cc_justification            m_explain_cc;
         enode_pair_vector                m_hint_eqs;
@@ -163,6 +165,10 @@ namespace euf {
         symbol                           m_euf = symbol("euf");
         symbol                           m_smt = symbol("smt");            
         expr_ref_vector                  m_clause;
+        // User-pop unbinds atoms before SAT emits clause deletions. These pins
+        // are proof-only and are released after gc_vars finishes notifications.
+        expr_ref_vector                  m_deleting_atoms;
+        expr_ref_vector                  m_scope_guards;
         expr_ref_vector                  m_expr_args;
         vector<sat::literal_vector>      m_top_level_clauses;
 
@@ -241,6 +247,7 @@ namespace euf {
         void display_deleted(std::ostream& out, unsigned n, literal const* lits);
         std::ostream& display_hint(std::ostream& out, expr* proof_hint);
         app_ref status2proof_hint(sat::status st);
+        bool status_is_assumed(sat::status st) const;
 
         // relevancy
         bool is_propagated(sat::literal lit);
@@ -304,7 +311,7 @@ namespace euf {
         // accessors
         
         sat::sat_internalizer& get_si() { return si; }
-        ast_manager& get_manager() { return m; }
+        ast_manager& get_manager() override { return m; }
         enode* get_enode(expr* e) const { return m_egraph.find(e); }
         enode* bool_var2enode(sat::bool_var b) const {
             expr* e = m_bool_var2expr.get(b, nullptr);
@@ -314,8 +321,8 @@ namespace euf {
         sat::literal enode2literal(enode* n) const { return sat::literal(n->bool_var(), false); }
         lbool value(enode* n) const { return s().value(enode2literal(n)); }
         smt_params const& get_config() const { return m_config; }
-        region& get_region() { return m_trail.get_region(); }
-        egraph& get_egraph() { return m_egraph; }
+        region& get_region() override { return m_trail.get_region(); }
+        egraph& get_egraph() override { return m_egraph; }
         th_solver* fid2solver(family_id fid) const { return m_id2solver.get(fid, nullptr); }
 
         template <typename C>
@@ -331,6 +338,7 @@ namespace euf {
             push(push_back_trail< V, false>(vec));
         }
         trail_stack& get_trail_stack() { return m_trail; }
+        trail_stack& get_trail() override { return m_trail; }
 
         void updt_params(params_ref const& p);
         void set_solver(sat::solver* s) override { m_solver = s; use_drat(); }
@@ -398,7 +406,7 @@ namespace euf {
         bool is_blocked(literal l, ext_constraint_idx) override;
         bool check_model(sat::model const& m) const override;
         void gc_vars(unsigned num_vars) override;
-        bool resource_limits_exceeded() const { return false; } // TODO
+        bool resource_limits_exceeded() const override { return false; } // TODO
 
 
         // proof
@@ -437,9 +445,7 @@ namespace euf {
         sat::status mk_tseitin_status(sat::literal a) { return mk_tseitin_status(1, &a); }
         sat::status mk_tseitin_status(sat::literal a, sat::literal b);
         sat::status mk_tseitin_status(unsigned n, sat::literal const* lits);
-        sat::status mk_distinct_status(sat::literal a) { return mk_distinct_status(1, &a); }
         sat::status mk_distinct_status(sat::literal a, sat::literal b) { sat::literal lits[2] = { a, b }; return mk_distinct_status(2, lits); }
-        sat::status mk_distinct_status(sat::literal_vector const& lits) { return mk_distinct_status(lits.size(), lits.data()); }
         sat::status mk_distinct_status(unsigned n, sat::literal const* lits);
 
         scoped_ptr<std::ostream> m_proof_out;
@@ -462,6 +468,14 @@ namespace euf {
         euf::enode* mk_enode(expr* e, unsigned n, enode* const* args);
         void set_bool_var2expr(sat::bool_var v, expr* e) { m_var_trail.push_back(v);  m_bool_var2expr.setx(v, e, nullptr); }
         expr* bool_var2expr(sat::bool_var v) const { return m_bool_var2expr.get(v, nullptr); }
+        expr* proof_var2expr(sat::bool_var v) const {
+            expr* e = bool_var2expr(v);
+            return e ? e : v < m_deleting_atoms.size() ? m_deleting_atoms.get(v) : nullptr;
+        }
+        expr_ref proof_literal2expr(sat::literal lit) const {
+            expr* e = proof_var2expr(lit.var());
+            return (e && lit.sign()) ? expr_ref(mk_not(m, e), m) : expr_ref(e, m);
+        }
         expr_ref literal2expr(sat::literal lit) const { expr* e = bool_var2expr(lit.var()); return (e && lit.sign()) ? expr_ref(mk_not(m, e), m) : expr_ref(e, m); }
         unsigned generation() const { return m_generation; }
 
@@ -494,7 +508,7 @@ namespace euf {
         void add_aux(sat::literal a, sat::literal b) { sat::literal lits[2] = {a, b}; add_aux(2, lits); } 
         void add_aux(sat::literal a, sat::literal b, sat::literal c) { sat::literal lits[3] = { a, b, c }; add_aux(3, lits); }
         void mark_relevant(sat::literal lit) { m_relevancy.mark_relevant(lit); }
-        bool is_relevant(enode* n) const { return m_relevancy.is_relevant(n); }
+        bool is_relevant(enode* n) const override { return m_relevancy.is_relevant(n); }
         bool is_relevant(bool_var v) const;
         bool is_relevant(sat::literal lit) const { return is_relevant(lit.var()); }
         void relevant_eh(euf::enode* n);
@@ -552,6 +566,10 @@ namespace euf {
             check_for_user_propagator();
             m_user_propagator->register_decide(ceh);
         }
+        void user_propagate_register_on_binding(user_propagator::binding_eh_t& on_binding_eh) {
+            check_for_user_propagator();
+            NOT_IMPLEMENTED_YET();
+        }
         void user_propagate_register_expr(expr* e) {
             check_for_user_propagator();
             m_user_propagator->add_expr(e);
@@ -570,7 +588,7 @@ namespace euf {
         return p.display(out);
     }
 
-};
+}
 
 inline std::ostream& operator<<(std::ostream& out, euf::solver const& s) {
     return s.display(out);

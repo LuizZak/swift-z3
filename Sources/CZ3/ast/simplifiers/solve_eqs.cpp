@@ -20,7 +20,7 @@ It traverses the same sub-terms many times.
 
 Outline of a presumably better scheme:
 
-1. maintain map FV: term -> bit-set where bitset reprsents set of free variables. Assume the number of variables is bounded.
+1. maintain map FV: term -> bit-set where bitset represents set of free variables. Assume the number of variables is bounded.
    FV is built from initial terms.
 2. maintain parent: term -> term-list of parent occurrences.
 3. repeat
@@ -46,14 +46,21 @@ Outline of a presumably better scheme:
 #include "ast/simplifiers/solve_context_eqs.h"
 #include "ast/converters/generic_model_converter.h"
 #include "params/tactic_params.hpp"
+#include "params/smt_params_helper.hpp"
 
 
 namespace euf {
 
     void solve_eqs::get_eqs(dep_eq_vector& eqs) {
-        for (extract_eq* ex : m_extract_plugins)
-            for (unsigned i : indices())
+        for (extract_eq* ex : m_extract_plugins) {
+            if (proofs_enabled() && !ex->supports_proofs())
+                continue;
+            for (unsigned i : indices()) {
+                if (proofs_enabled() && !m_fmls[i].pr())
+                    throw default_exception("solve-eqs requires proofs for its input formulas");
                 ex->get_eqs(m_fmls[i], eqs);
+            }
+        }
     }
 
     // initialize graph that maps variable ids to next ids
@@ -62,10 +69,10 @@ namespace euf {
         m_id2var.reset();
         m_next.reset();
         unsigned sz = 0;
-        for (auto const& [orig, v, t, d] : eqs)
+        for (auto const& [orig, v, t, d, p] : eqs)
             sz = std::max(sz, v->get_id());
         m_var2id.resize(sz + 1, UINT_MAX);
-        for (auto const& [orig, v, t, d] : eqs) {
+        for (auto const& [orig, v, t, d, p] : eqs) {
             if (is_var(v) || !can_be_var(v))
                 continue;
             m_var2id[v->get_id()] = m_id2var.size();
@@ -87,7 +94,7 @@ namespace euf {
         m_id2level.reset();
         m_id2level.resize(m_id2var.size(), UINT_MAX);
         m_subst_ids.reset();
-        m_subst = alloc(expr_substitution, m, true, false);        
+        m_subst = alloc(expr_substitution, m, true, proofs_enabled());
 
         auto is_explored = [&](unsigned id) {
             return m_id2level[id] != UINT_MAX;
@@ -114,11 +121,17 @@ namespace euf {
                 m_id2level[j] = curr_level++;
 
                 for (auto const& eq : m_next[j]) {
-                    auto const& [orig, v, t, d] = eq;
+                    auto const& [orig, v, t, d, p] = eq;
                     SASSERT(j == var2id(v));
                     if (m_fmls.frozen(v))
                         continue;
-                    
+
+                    if (!m_config.m_enable_non_ground && has_quantifiers(t)) 
+                        continue;   
+
+                    if (!m_config.m_enable_non_linear && !is_linear(t))
+                        continue;
+
                     bool is_safe = true;                    
                     unsigned todo_sz = todo.size();
 
@@ -126,6 +139,8 @@ namespace euf {
                     // all time-stamps must be at or above current level
                     // unexplored variables that are part of substitution are appended to work list.
                     SASSERT(m_todo.empty());
+
+
                     m_todo.push_back(t);
                     expr_fast_mark1 visited;
                     while (!m_todo.empty()) {
@@ -168,7 +183,7 @@ namespace euf {
     void solve_eqs::normalize() {
         if (m_subst_ids.empty())
             return;
-        scoped_ptr<expr_replacer> rp = mk_default_expr_replacer(m, false);
+        scoped_ptr<expr_replacer> rp = mk_default_expr_replacer(m, proofs_enabled());
         rp->set_substitution(m_subst.get());
 
         std::sort(m_subst_ids.begin(), m_subst_ids.end(), [&](unsigned u, unsigned v) { return m_id2level[u] > m_id2level[v]; });
@@ -176,19 +191,22 @@ namespace euf {
         for (unsigned id : m_subst_ids) {
             if (!m.inc())
                 return;
-            auto const& [orig, v, def, dep] = m_next[id][0];
-            auto [new_def, new_dep] = rp->replace_with_dep(def);
+            auto const& [orig, v, def, dep, pr] = m_next[id][0];
+            expr_ref new_def(m);
+            expr_dependency_ref new_dep(m);
+            proof_ref subst_pr(m);
+            (*rp)(def, new_def, subst_pr, new_dep);
             m_stats.m_num_steps += rp->get_num_steps() + 1;
             ++m_stats.m_num_elim_vars;
             new_dep = m.mk_join(dep, new_dep);
             IF_VERBOSE(11, verbose_stream() << mk_bounded_pp(v, m) << " -> " << mk_bounded_pp(new_def, m) << "\n");
-            m_subst->insert(v, new_def, new_dep);
+            m_subst->insert(v, new_def, tr(pr, subst_pr), new_dep);
             SASSERT(can_be_var(v));
             // we updated the substitution, but we don't need to reset rp
             // because all cached values there do not depend on v.
         }
 
-        TRACE("solve_eqs",
+        TRACE(solve_eqs,
             tout << "after normalizing variables\n";
         for (unsigned id : m_subst_ids) {
             auto const& eq = m_next[id][0];
@@ -205,37 +223,45 @@ namespace euf {
         if (m_subst_ids.empty())
             return;
         
-        scoped_ptr<expr_replacer> rp = mk_default_expr_replacer(m, false);
+        scoped_ptr<expr_replacer> rp = mk_default_expr_replacer(m, proofs_enabled());
         rp->set_substitution(m_subst.get());
 
         for (unsigned i : indices()) {
             auto [f, p, d] = m_fmls[i]();
-            auto [new_f, new_dep] = rp->replace_with_dep(f);
-            proof_ref new_pr(m);
-            expr_ref tmp(m);
+            expr_ref new_f(m), tmp(m);
+            expr_dependency_ref new_dep(m);
+            proof_ref subst_pr(m), new_pr(m);
+            (*rp)(f, new_f, subst_pr, new_dep);
             m_rewriter(new_f, tmp, new_pr);
             if (tmp == f)
                 continue;
             new_dep = m.mk_join(d, new_dep);
             old_fmls.push_back(m_fmls[i]);
+            new_pr = tr(subst_pr, new_pr);
             m_fmls.update(i, dependent_expr(m, tmp, mp(p, new_pr), new_dep));
         }
     }
     
     void solve_eqs::reduce() {
 
+        if (!m_config.m_enabled)
+            return;
+
         m_fmls.freeze_suffix();
 
         for (extract_eq* ex : m_extract_plugins)
-            ex->pre_process(m_fmls);
+            if (!proofs_enabled() || ex->supports_proofs())
+                ex->pre_process(m_fmls);
 
         unsigned count = 0;
         vector<dependent_expr> old_fmls;
         dep_eq_vector eqs;
+        auto _reset_unsafe = on_scope_exit([&]() { m_unsafe_vars.reset(); });
         do {
             old_fmls.reset();
             m_subst_ids.reset();
             eqs.reset();
+            filter_unsafe_vars();
             get_eqs(eqs);
             extract_dep_graph(eqs);
             extract_subst();
@@ -249,10 +275,11 @@ namespace euf {
         if (!m.inc())
             return;
 
-        if (m_config.m_context_solve) {            
+        if (m_config.m_context_solve && !proofs_enabled()) {
             old_fmls.reset();
             m_subst_ids.reset();
             eqs.reset();
+            filter_unsafe_vars();
             solve_context_eqs context_solve(*this);
             context_solve.collect_nested_equalities(eqs);
             extract_dep_graph(eqs);
@@ -300,21 +327,33 @@ namespace euf {
             return true;
         unsigned num = 0;
         m_num_occs.find(t, num);
-        TRACE("solve_eqs_check_occs", tout << mk_ismt2_pp(t, m) << " num_occs: " << num << " max: " << m_config.m_max_occs << "\n";);
+        TRACE(solve_eqs_check_occs, tout << mk_ismt2_pp(t, m) << " num_occs: " << num << " max: " << m_config.m_max_occs << "\n";);
         return num <= m_config.m_max_occs;
+    }
+
+    bool solve_eqs::is_linear(expr* t) const {
+        unsigned num_values = 0;
+        if (!is_app(t))
+            return false;
+        for (auto arg : *to_app(t))
+            num_values += m.is_value(arg) ? 0 : 1;
+        return num_values <= 1;
     }
 
     void solve_eqs::save_subst(vector<dependent_expr> const& old_fmls) {
         if (!m_subst->empty())   
-            m_fmls.model_trail().push(m_subst.detach(), old_fmls);                
+            m_fmls.model_trail().push(m_subst.detach(), old_fmls, false);                
     }
 
     void solve_eqs::filter_unsafe_vars() {
         m_unsafe_vars.reset();
         recfun::util rec(m);
-        for (func_decl* f : rec.get_rec_funs())
-            for (expr* term : subterms::all(expr_ref(rec.get_def(f).get_rhs(), m), &m_todo, &m_visited))
-                m_unsafe_vars.mark(term);
+        for (func_decl* f : rec.get_rec_funs()) {
+            auto const& d = rec.get_def(f);
+            if (!d.is_macro() && d.get_rhs())
+                for (expr* term : subterms::all(expr_ref(d.get_rhs(), m)))
+                    m_unsafe_vars.mark(term);
+        }
     }
 
     solve_eqs::solve_eqs(ast_manager& m, dependent_expr_state& fmls) : 
@@ -330,6 +369,10 @@ namespace euf {
         for (auto* ex : m_extract_plugins)
             ex->updt_params(p);
         m_rewriter.updt_params(p);
+        smt_params_helper sp(p);
+        m_config.m_enabled = sp.solve_eqs();
+        m_config.m_enable_non_ground = sp.solve_eqs_non_ground();
+        m_config.m_enable_non_linear = !sp.solve_eqs_linear();
     }
 
     void solve_eqs::collect_param_descrs(param_descrs& r) {

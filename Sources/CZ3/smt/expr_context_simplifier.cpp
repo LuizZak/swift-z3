@@ -167,7 +167,7 @@ void expr_context_simplifier::clean_trail(unsigned old_lim) {
 }
 
 void expr_context_simplifier::insert_context(expr* e, bool polarity) {
-    TRACE("expr_context_simplifier", tout << mk_pp(e, m_manager) << "\n";);
+    TRACE(expr_context_simplifier, tout << mk_pp(e, m_manager) << "\n";);
     if (m_manager.is_not(e)) {
         e = to_app(e)->get_arg(0);
         polarity = !polarity;
@@ -181,7 +181,7 @@ void expr_context_simplifier::insert_context(expr* e, bool polarity) {
 bool expr_context_simplifier::insert_arg(bool is_and, expr* arg, expr_ref_vector& args) {
     expr_ref tmp(m_manager);
     reduce_rec(arg, tmp);
-    TRACE("expr_context_simplifier", tout << mk_pp(arg, m_manager) << " -> " << mk_pp(tmp.get(), m_manager) << "\n";);    
+    TRACE(expr_context_simplifier, tout << mk_pp(arg, m_manager) << " -> " << mk_pp(tmp.get(), m_manager) << "\n";);    
     if (is_true(tmp.get()) && is_and) {
         // skip.
     }
@@ -401,10 +401,7 @@ void expr_strong_context_simplifier::simplify_basic(expr* fml, expr_ref& result)
                     args.push_back(arg);
                 }
             }
-            else if (!m.is_bool(arg)) {
-                args.push_back(arg);
-            }
-            else if (!n2) {                
+            else if (!n2 && m.is_bool(arg)) {                
                 n2 = m.mk_app(m_fn, m_arith.mk_numeral(rational(id++), true));
                 todo.push_back(arg);
                 parent_ids.push_back(self_pos);
@@ -431,7 +428,7 @@ void expr_strong_context_simplifier::simplify_basic(expr* fml, expr_ref& result)
             cache.insert(e, std::make_pair(pos, r));
         }
 
-        TRACE("expr_context_simplifier", 
+        TRACE(expr_context_simplifier, 
               tout << mk_pp(e, m_manager) 
               << " checked: " << checked 
               << " cached: " 
@@ -677,10 +674,7 @@ void expr_strong_context_simplifier::simplify_model_based(expr* fml, expr_ref& r
                     args.push_back(arg);
                 }
             }
-            else if (!m.is_bool(arg)) {
-                args.push_back(arg);
-            }
-            else if (!n2) {                
+            else if (!n2 && m.is_bool(arg)) {                
                 n2 = m.mk_app(m_fn, m_arith.mk_numeral(rational(id++), true));
                 todo.push_back(arg);
                 parent_ids.push_back(self_pos);
@@ -707,7 +701,7 @@ void expr_strong_context_simplifier::simplify_model_based(expr* fml, expr_ref& r
             cache.insert(e, std::make_pair(pos, r));
         }
 
-        TRACE("expr_context_simplifier", 
+        TRACE(expr_context_simplifier, 
               tout << mk_pp(e, m_manager) 
               << " checked: " << checked 
               << " cached: " 

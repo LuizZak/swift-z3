@@ -1,0 +1,611 @@
+/*++
+Copyright (c) 2025 Microsoft Corporation
+
+Module Name:
+
+    ho_matcher
+
+Abstract:
+
+    second and higher-order matcher
+    
+Author:
+
+    Nikolaj Bjorner (nbjorner) 2025-07-07
+
+--*/
+
+#pragma once
+
+#include "util/trail.h"
+#include "util/dlist.h"
+#include "util/uint_set.h"
+#include "ast/array_decl_plugin.h"
+#include "ast/arith_decl_plugin.h"
+#include "ast/for_each_expr.h"
+#include "ast/reg_decl_plugins.h"
+#include "ast/ast_pp.h"
+#include "ast/ast_ll_pp.h"
+#include "ast/rewriter/array_rewriter.h"
+#include "ast/rewriter/var_subst.h"
+#include <climits>
+
+
+namespace euf {
+
+    class ho_matcher;
+
+    class work_state {
+        enum state {
+            init_s,
+            project_s,
+            imitate_s, 
+            eq_s,
+            ite_s,
+            store_s,
+            done_s
+        };
+        state m_state = state::init_s;
+        unsigned m_index = 0;
+        bool m_in_scope = false;
+        expr *m_t = nullptr;
+
+        void set_state(state s) {
+            m_state = s;
+            m_index = 0;
+            m_t = nullptr;
+        }
+
+    public:
+        void set_init() {
+            m_state = state::init_s;
+            m_index = 0;
+            m_in_scope = false;
+            m_t = nullptr;
+        }
+        bool is_init() const { return m_state == state::init_s; }
+        bool is_project() const { return m_state == state::project_s; }
+        bool is_imitate() const { return m_state == state::imitate_s && m_index == 0; }
+        bool is_done() const { return m_state == state::done_s; }
+        bool is_eq() const {
+            return m_state == state::eq_s;
+        }
+        bool is_ite() const {
+            return m_state == state::ite_s;
+        }
+        bool is_store() const {
+            return m_state == state::store_s;
+        }
+        void set_project() {
+            set_state(state::project_s);
+        }
+        void set_imitate() {
+            set_state(state::imitate_s);
+        }
+        void set_eq() {
+            set_state(state::eq_s);
+        }
+        void set_ite() {
+            set_state(state::ite_s);
+        }
+        void set_store() {
+            set_state(state::store_s);
+        }
+        void set_term(expr *t) {
+            m_t = t;
+        }                        
+        expr* get_term() const { return m_t; }
+        void set_done() { set_state(state::done_s); }
+        void inc_index() { ++m_index; }
+        void set_index(unsigned i) { m_index = i; }
+        unsigned index() const { return m_index; }
+        bool in_scope() const { return m_in_scope; }
+        void set_in_scope(bool f = true) { m_in_scope = f; }
+    };
+
+    class match_goal : public dll_base<match_goal>, public work_state {
+        unsigned base_offset = 0;
+        unsigned delta_offset = 0; // offset of term
+        match_goal *m_parent = nullptr;
+    public:
+        expr_ref pat, t;
+        unsigned level = 0; // level backtrack level
+       
+        void reset() {
+            pat.reset();
+            t.reset();
+            level = 0;
+            base_offset = 0;
+            delta_offset = 0;
+        }
+
+        bool operator==(match_goal const& other) const {
+            return pat == other.pat && t == other.t && base_offset == other.base_offset && delta_offset == other.delta_offset;
+        }
+
+        bool operator!=(match_goal const& other) const {
+            return !(*this == other);
+        }
+
+        match_goal(match_goal* parent, unsigned level, unsigned offset, expr_ref const& pat, expr_ref const& t) noexcept : 
+            base_offset(offset), 
+            m_parent(parent), pat(pat), t(t),  level(level)  {
+            SASSERT(pat->get_sort() == t->get_sort());
+        }
+
+        unsigned term_offset() const { return base_offset + delta_offset; }
+        unsigned pat_offset() const { return base_offset + delta_offset; }
+
+        match_goal *parent() const {
+            return m_parent;
+        }
+
+        std::ostream& display(std::ostream& out) const {
+            return out << "[" << level << ":" << base_offset + delta_offset << "] " << mk_bounded_pp(pat, pat.m()) << " ~ " << mk_bounded_pp(t, t.m()) << "\n";
+        }
+    };
+
+    class match_goals {
+    protected:
+        ho_matcher& ho;
+        ast_manager &m;
+        
+        match_goal* m_expensive = nullptr, *m_cheap = nullptr;
+        match_goal* pop(match_goal*& q);
+        
+    public:
+        match_goals(ho_matcher& em, ast_manager& m) : ho(em), m(m) {}
+        bool empty() const { return m_cheap == nullptr && m_expensive == nullptr; }
+        void reset() { m_cheap = m_expensive = nullptr; }
+        void push(match_goal* parent, unsigned level, unsigned offset, expr_ref const& pat, expr_ref const& t);
+        void push(match_goal* parent, unsigned level, unsigned offset, expr* p, expr* t) { push(parent, level, offset, expr_ref(p, m), expr_ref(t, m)); }
+        match_goal* pop();
+
+        std::ostream& display(std::ostream& out) const;
+
+    };
+
+    class ho_subst {
+        expr_ref_vector m_subst;
+        expr_ref_vector m_binding;
+    public:
+        ho_subst(ast_manager &m) : m_subst(m), m_binding(m) {
+        }
+        void resize(unsigned n) {
+            m_subst.resize(n, nullptr);
+        }
+
+        unsigned size() const {
+            return m_subst.size();
+        }
+
+        void set(unsigned v, expr* t) {
+            SASSERT(!m_subst.get(v));
+            m_subst[v] = t;
+        }
+
+        expr* get(unsigned v) const {
+            return m_subst.get(v);
+        }
+
+        void unset(unsigned v) {
+            SASSERT(m_subst.get(v));
+            m_subst[v] = nullptr;
+        }
+
+        std::ostream& display(std::ostream& out) const {
+            auto& m = m_subst.get_manager();
+            for (unsigned i = 0; i < m_subst.size(); ++i) {
+                if (m_subst.get(i)) {
+                    out << "v" << i << " -> " << mk_pp(m_subst.get(i), m) << "\n";
+                }
+            }
+            return out;
+        }
+
+        expr_ref_vector const &get_binding(quantifier* q);
+        
+    };
+
+    class unitary_patterns {
+        array_util a;
+        vector<expr_ref_vector> m_patterns;
+        vector<svector<lbool>>  m_is_unitary;
+        svector<std::pair<unsigned, expr*>> m_todo;
+
+        lbool find(unsigned offset, expr* p) const {
+            if (offset >= m_is_unitary.size())
+                return l_undef;
+            if (p->get_id() >= m_is_unitary[offset].size())
+                return l_undef;
+            return m_is_unitary[offset][p->get_id()];
+        }
+
+        void set_unitary(unsigned offset, expr* p, lbool is_unitary) {
+            if (offset >= m_is_unitary.size())
+                m_is_unitary.resize(offset + 1);
+            if (p->get_id() >= m_is_unitary[offset].size())
+                m_is_unitary[offset].resize(p->get_id() + 1, l_undef);
+            m_is_unitary[offset][p->get_id()] = is_unitary;
+        }
+
+    public:
+        unitary_patterns(ast_manager& m) : a(m) {}
+
+        bool is_unitary(unsigned offset, expr* p) const {
+            return find(offset, p) == l_true;
+        }
+
+        bool is_flex(unsigned offset, expr* e) const {
+            bool is_select = false;
+            expr* t = e;
+            while (a.is_select(t))
+                t = to_app(t)->get_arg(0), is_select = true;
+            if (is_select && is_var(t) && to_var(t)->get_idx() >= offset) {
+                // check if e is a pattern.
+                return true;
+            }
+            return false;
+        }
+
+        void add_pattern(expr* p) {
+            m_todo.push_back({ 0, p });
+            while (!m_todo.empty()) {
+                auto [o, p] = m_todo.back();
+                if (l_undef != find(o, p)) {
+                    m_todo.pop_back();
+                    continue;
+                }
+
+                // ((M N) K)
+                // if M is a meta variable and N, K are not patterns it is non_unitary
+                // otherwise we declare it as (locally) unitary. It will be inserted into the "cheap" queue.
+                // subterms can be non-unitary.
+
+                if (is_app(p)) {
+                    auto a = to_app(p);
+                    auto sz = m_todo.size();
+                    lbool is_unitary = l_true;
+                    for (auto arg : *a) {
+                        switch (find(o, arg)) {
+                        case l_undef:
+                            m_todo.push_back({ o, arg });
+                            break;                       
+                        default:
+                            break;
+                        }
+                    }
+                    if (sz != m_todo.size())
+                        continue;
+                    if (is_flex(o, p))
+                        is_unitary = l_false;
+                    set_unitary(o, p, is_unitary);
+                    m_todo.pop_back();
+                }
+                else if (is_var(p)) 
+                    set_unitary(o, p, l_true);              
+                else {
+                    auto q = to_quantifier(p);
+                    unsigned nd = q->get_num_decls();
+                    auto body = q->get_expr();
+                    switch (find(o + nd, body)) {
+                    case l_undef:
+                        m_todo.push_back({ o + nd, body });
+                        break;
+                    default:
+                        m_todo.pop_back();
+                        set_unitary(o, p, l_true);
+                        break;
+                    }
+                }
+            }
+        }
+
+    };
+
+    struct undo_set : public trail {
+        ho_subst& s;
+        unsigned v;
+        undo_set(ho_subst& s, unsigned v) : s(s), v(v) {}
+        void undo() override {
+            s.unset(v);
+        }
+    };
+
+    struct undo_resize : public trail {
+        ho_subst& s;
+        unsigned old_size;
+        undo_resize(ho_subst& s) : s(s), old_size(s.size()) {}
+        void undo() override {
+            s.resize(old_size);
+        }
+    };
+
+
+    template<typename V>
+    class update_value : public trail {
+        V& lval;
+        V  rval;
+    public:
+        update_value(V& lval, V rval) : lval(lval), rval(rval) {}
+        void undo() override {
+            lval = rval;
+            rval.reset();
+        }
+    };
+
+    struct remove_dll : public trail {
+        match_goal*& m_list;
+        match_goal* m_value;
+        remove_dll(match_goal*& list, match_goal* value) : m_list(list), m_value(value) {}
+        void undo() override {
+            dll_base<match_goal>::remove_from(m_list, m_value);
+        }
+    };
+
+    struct insert_dll : public trail {
+        match_goal*& m_list;
+        match_goal* m_value;
+        insert_dll(match_goal*& list, match_goal* value) : m_list(list), m_value(value) {}
+        void undo() override {
+            dll_base<match_goal>::push_to_front(m_list, m_value);
+        }
+    };
+
+    class ho_matcher {
+    protected:
+        friend class match_goals;
+        friend class test_ho_matcher;
+        ast_manager &m;
+        trail_stack& m_trail;
+        ho_subst         m_subst;
+        match_goals      m_goals;
+        unitary_patterns m_unitary;
+        ptr_vector<match_goal> m_backtrack;
+        unsigned         m_max_depth = 10;        // bound on imitation/projection depth (secondary safety cap)
+        unsigned         m_max_iterations = 10000; // per-search expansion-step budget to guarantee termination
+        unsigned         m_max_matches = UINT_MAX;
+        unsigned         m_num_matches = 0;
+        bool             m_match_limit_reached = false;
+        mutable array_rewriter   m_rewriter;
+        array_util       m_array;
+        arith_util       m_arith;
+        obj_map<app, app*>     m_pat2hopat, m_hopat2pat;
+        obj_map<quantifier, quantifier*> m_q2hoq, m_hoq2q;
+        obj_map<app, expr_free_vars> m_hopat2free_vars;
+        obj_map<app, svector<std::pair<unsigned, expr*>>> m_pat2abs;
+        expr_ref_vector        m_ho_patterns, m_ho_qs;
+
+    	void resume();
+
+        void push_backtrack();
+
+        void backtrack();
+
+        bool consume_work(match_goal& wi);
+
+        bool process_project(match_goal &wi, var* v, ptr_vector<app> const& pats, expr* t);
+
+        bool process_app(match_goal &wi, expr *p, expr *t);
+
+        bool process_equiv_class(match_goal &wi, expr *t, std::function<bool(expr *)> const &f);
+
+        // Shared description of the curried argument structure of a flex head
+        // applied to a select chain `pats`. Used by both imitation and ite
+        // inference to build fresh meta-variable applications and to wrap the
+        // resulting body in the matching lambda binders.
+        struct flex_frame {
+            ptr_vector<sort> domain, pat_domain;
+            ptr_vector<expr> pat_args;  // slot 0 reserved for the flex head, then distinct pattern indices
+            expr_ref_vector  pat_vars;  // slot 0 reserved for the flex head, then bound-variable proxies
+            vector<symbol>   names;
+            unsigned         num_bound = 0;
+            flex_frame(ast_manager &m) : pat_vars(m) {}
+        };
+
+        // Populate `fr` from the select chain `pats`.
+        bool is_repeated_functional_projection(match_goal const& wi, expr* arg, expr* t) const;
+
+        bool process_functional_projection(match_goal &wi, var* v, ptr_vector<app> const& pats, expr* arg, expr* t);
+
+        void init_flex_frame(ptr_vector<app> const &pats, flex_frame &fr);
+
+        // Allocate a fresh meta-variable of range sort `range` over the frame,
+        // producing its application to the pattern indices (subgoal_app, used in
+        // residual subgoals) and to the bound-variable proxies (body_app, used
+        // inside the imitating lambda body).
+        void mk_flex_app(flex_frame &fr, unsigned pat_offset, sort *range, expr_ref &subgoal_app, expr_ref &body_app);
+
+        // Wrap `body` in the lambda binders described by `fr` / `pats`.
+        expr_ref mk_flex_lambda(flex_frame const &fr, ptr_vector<app> const &pats, expr *body);
+
+        // solve 
+        // v pats == f(ts)
+        // using imitation: v -> lambda xs . f(X1 pats, X2, pats...), X_i pats == t_i
+        bool process_imitation(match_goal &wi, var *v, ptr_vector<app> const &pats, expr *t);
+
+        bool process_eq(match_goal &wi, var *v, ptr_vector<app> const &pats, expr *t);
+
+        bool process_ite(match_goal &wi, var *v, ptr_vector<app> const &pats, expr *t);
+
+        // Last-resort inference for `select(F, idx...) ~ t` where F is a flex
+        // array-valued meta-variable, `idx` is already ground, and `t` is a
+        // ground value. Rather than inventing a fresh constant/ite-shaped
+        // array (as project/imitate/eq/ite would), anchor F to an existing
+        // ground array term of the same sort (queried via m_enum_terms, e.g.
+        // an asserted array constant) and bind
+        //   F -> store(anchor, idx, t)
+        // This directly produces the kind of witness (`store(g, a, 0)`-like)
+        // that counterexample-guided instantiation would derive from a
+        // model, without requiring model access: `select` over `store`
+        // satisfies the needed equation definitionally, by the ground
+        // array theory's own store axiom, once the ground solver checks the
+        // proposed instance. Tried after eq/ite since it is purely a
+        // heuristic fallback with no structural justification from the
+        // pattern itself.
+        bool process_store(match_goal &wi, var *v, ptr_vector<app> const &pats, expr *t);
+
+        // Returns true if `e` is a sub-goal that syntactic matching can never
+        // decide: a bare (nested) quantifier, or an equation whose one side
+        // is a meta-variable occurring (modulo de Bruijn shift) free inside
+        // the other side (an occurs-check failure, e.g. the self-referential
+        // "canonical form" equations produced by inlined define-funs such as
+        // `f = lambda y. ite(c y, select f y, d)`). ho_matcher only proposes
+        // candidate instantiations - the ground solver validates whatever
+        // instance is ultimately produced - so treating such a conjunct as a
+        // don't-care placeholder rather than hard-failing is a safe (never
+        // unsound) relaxation, not a soundness-relevant decision.
+        bool is_undecidable_conjunct(expr *e, unsigned pat_offset) const;
+
+        // Bridges an arithmetic comparison atom whose one side is a ground
+        // numeral and whose other side is `select(F, idx...)` for a flex
+        // array-valued meta-variable F, matched against true/false, into a
+        // concrete equation `select(F, idx...) ~ witness`, which the existing
+        // flex-select-head machinery (process_project/imitation/eq/ite) can
+        // then solve by binding F. Returns true if such a bridging subgoal
+        // was pushed.
+        bool process_arith_select(match_goal &wi, expr *p, expr *t);
+
+        bool block_inference(match_goal const& wi);
+
+        expr_ref whnf(expr* e, unsigned offset) const;
+
+        expr_ref whnf_star(expr *e, unsigned offset) const;
+        
+        bool is_bound_var(expr* v, unsigned offset) const { return is_var(v) && to_var(v)->get_idx() < offset; }
+
+        bool is_meta_var(expr* v, unsigned offset) const { return is_var(v) && to_var(v)->get_idx() >= offset; }
+
+        bool is_closed(expr* v, unsigned scopes, unsigned offset) const;
+
+        bool maps_to_sort(sort *s, sort *t) const;
+
+        void add_meta_var_apps(sort *s, sort *t, expr_ref& x, expr_ref_vector const& vars, unsigned offset);
+
+        void add_binding(var* v, unsigned offset, expr* t);
+
+        expr_ref mk_project(unsigned num_lambdas, unsigned xi, sort *array_sort,
+                            std::function<expr *(expr *)> const &mk_body);
+
+        void bind_lambdas(unsigned j, sort* s, expr_ref& body);
+
+        lbool are_equal(unsigned o1, expr* p, unsigned o2, expr* t) const;
+
+        bool is_pattern(expr* p, unsigned offset, expr* t);
+
+        expr_ref abstract_pattern(expr* p, unsigned offset, expr* t);
+
+        void reduce(match_goal& wi);
+
+        trail_stack& trail() { return m_trail; }
+
+        std::ostream& display(std::ostream& out) const;
+
+        bool is_cheap(match_goal const& g) const { return m_unitary.is_unitary(g.pat_offset(), g.pat); }
+
+        void add_pattern(expr* p) {
+            m_unitary.add_pattern(p);
+        }
+
+        void search();
+
+        std::function<void(ho_subst&)> m_on_match;
+
+        // Support for matching modulo constraints
+        std::function<bool(expr *, expr *)> m_are_equal;        // are expressions equal modulo assertions
+        std::function<bool(expr *, expr *)> m_are_distinct;     // are expressions forced distinct modulo assertions
+        std::function<expr *(expr *)> m_root;                   // root of equivalence class
+        std::function<expr *(expr *)> m_next;                   // next element in equivalence class
+        std::function<bool(expr *)> m_is_cgr_root;              // is root of congruence class
+        std::function<void(expr *, ptr_vector<expr>&)> m_enum_terms;
+
+        bool use_cgr() const {
+            SASSERT(!m_are_equal || (m_are_distinct && m_root && m_next && m_is_cgr_root));
+            return !!m_are_equal;
+        }
+
+
+    public:
+
+        ho_matcher(ast_manager& m, trail_stack &trail) : 
+            m(m),
+            m_trail(trail),
+            m_subst(m),
+            m_goals(*this, m),
+            m_unitary(m),
+            m_rewriter(m),
+            m_array(m),
+            m_arith(m),
+            m_ho_patterns(m),
+            m_ho_qs(m)
+        {
+        }
+
+        void set_on_match(std::function<void(ho_subst&)>& on_match) { m_on_match = on_match; }
+
+        void set_are_equal(std::function<bool(expr *, expr *)> &are_equal) {
+            m_are_equal = are_equal;
+        }
+        void set_are_distinct(std::function<bool(expr *, expr *)> &are_distinct) {
+            m_are_distinct = are_distinct;
+        }
+        void set_root(std::function<expr *(expr *)> &root) {
+            m_root = root;
+        }
+        void set_next(std::function<expr *(expr *)> &next) {
+            m_next = next;
+        }
+        void set_is_cgr_root(std::function<bool(expr *)> &is_cgr_root) {
+            m_is_cgr_root = is_cgr_root;
+        }
+        void set_enum_terms(std::function<void(expr *, ptr_vector<expr>&)>& enum_terms) {
+            m_enum_terms = enum_terms;
+        }
+
+        void set_max_depth(unsigned d) { m_max_depth = d; }
+
+        void set_max_iterations(unsigned n) { m_max_iterations = n; }
+
+        void set_max_matches(unsigned n) { m_max_matches = n; }
+
+        void operator()(expr *pat, expr *t, unsigned num_vars);
+
+        void operator()(expr* pat, expr* t, unsigned num_bound, unsigned num_vars);
+
+        void operator()(unsigned num_goals, expr* const* pats, expr* const* terms, unsigned num_vars);
+
+        std::pair<quantifier*, app*> compile_ho_pattern(quantifier* q, app* p);
+
+        bool is_ho_pattern(app* p);
+
+        // Register an alias pattern (e.g., after stripping ground elements) 
+        // that maps to the same original pattern as full_p
+        void register_ho_pattern(app* alias_p, app* full_p);
+
+        void refine_ho_match(app* p, expr_ref_vector& s);
+
+        // Returns true iff applying the substitution s to t (with the given
+        // variable ordering) is sort-safe: every free variable of t that is
+        // bound by s maps to a value of the same sort. Used to defensively
+        // skip higher-order matches whose bindings would produce ill-typed
+        // instantiation terms (which would otherwise abort the whole solve).
+        static bool subst_sorts_match(ast_manager& m, expr* t, expr_ref_vector const& s, bool std_order);
+
+        bool is_free(app* p, unsigned i) const { return m_hopat2free_vars[p].contains(i); }
+
+        quantifier* hoq2q(quantifier* q) const {
+            quantifier* result = nullptr;
+            m_hoq2q.find(q, result);
+            return result;
+        }
+
+
+        svector<std::pair<unsigned, expr*>> const* get_flex_subterms(app* p) const {
+            auto orig_p = m_hopat2pat.find_core(p);
+            if (!orig_p) return nullptr;
+            auto abs = m_pat2abs.find_core(orig_p->get_data().get_value());
+            return abs ? &abs->get_data().get_value() : nullptr;
+        }
+
+    };
+}

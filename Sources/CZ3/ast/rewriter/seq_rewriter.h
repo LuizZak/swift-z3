@@ -19,15 +19,15 @@ Notes:
 #pragma once
 
 #include "ast/seq_decl_plugin.h"
+#include "ast/rewriter/seq_derive.h"
 #include "ast/ast_pp.h"
 #include "ast/arith_decl_plugin.h"
 #include "ast/rewriter/rewriter_types.h"
 #include "ast/rewriter/bool_rewriter.h"
+#include "ast/rewriter/seq_subset.h"
 #include "util/params.h"
 #include "util/lbool.h"
 #include "util/sign.h"
-#include "math/automata/automaton.h"
-#include "math/automata/symbolic_automata.h"
 
 
 inline std::ostream& operator<<(std::ostream& out, expr_ref_pair_vector const& es) {
@@ -37,77 +37,6 @@ inline std::ostream& operator<<(std::ostream& out, expr_ref_pair_vector const& e
     return out;
 }
 
-class sym_expr {
-    enum ty {
-        t_char,
-        t_pred,
-        t_not,
-        t_range
-    };
-    ty        m_ty;
-    sort*     m_sort;
-    sym_expr* m_expr;
-    expr_ref  m_t;
-    expr_ref  m_s;
-    unsigned  m_ref;
-    sym_expr(ty ty, expr_ref& t, expr_ref& s, sort* srt, sym_expr* e) : 
-        m_ty(ty), m_sort(srt), m_expr(e), m_t(t), m_s(s), m_ref(0) {}
-public:
-    ~sym_expr() { if (m_expr) m_expr->dec_ref(); }
-    expr_ref accept(expr* e);
-    static sym_expr* mk_char(expr_ref& t) { return alloc(sym_expr, t_char, t, t, t->get_sort(), nullptr); }
-    static sym_expr* mk_char(ast_manager& m, expr* t) { expr_ref tr(t, m); return mk_char(tr); }
-    static sym_expr* mk_pred(expr_ref& t, sort* s) { return alloc(sym_expr, t_pred, t, t, s, nullptr); }
-    static sym_expr* mk_range(expr_ref& lo, expr_ref& hi) { return alloc(sym_expr, t_range, lo, hi, hi->get_sort(), nullptr); }
-    static sym_expr* mk_not(ast_manager& m, sym_expr* e) { expr_ref f(m); e->inc_ref(); return alloc(sym_expr, t_not, f, f, e->get_sort(), e); }
-    void inc_ref() { ++m_ref;  }
-    void dec_ref() { --m_ref; if (m_ref == 0) dealloc(this); }
-    std::ostream& display(std::ostream& out) const;
-    bool is_char() const { return m_ty == t_char; }
-    bool is_pred() const { return !is_char(); }
-    bool is_range() const { return m_ty == t_range; }
-    bool is_not() const { return m_ty == t_not; }
-    sort* get_sort() const { return m_sort; }
-    expr* get_char() const { SASSERT(is_char()); return m_t; }
-    expr* get_pred() const { SASSERT(is_pred()); return m_t; }
-    expr* get_lo() const { SASSERT(is_range()); return m_t; }
-    expr* get_hi() const { SASSERT(is_range()); return m_s; }
-    sym_expr* get_arg() const { SASSERT(is_not()); return m_expr; }
-};
-
-class sym_expr_manager {
-public:
-    void inc_ref(sym_expr* s) { if (s) s->inc_ref(); }
-    void dec_ref(sym_expr* s) { if (s) s->dec_ref(); }
-};
-
-class expr_solver {
-public:
-    virtual ~expr_solver() = default;
-    virtual lbool check_sat(expr* e) = 0;
-};
-
-typedef automaton<sym_expr, sym_expr_manager> eautomaton;
-class re2automaton {
-    typedef boolean_algebra<sym_expr*> boolean_algebra_t;
-    typedef symbolic_automata<sym_expr, sym_expr_manager> symbolic_automata_t;
-    ast_manager& m;
-    sym_expr_manager sm;
-    seq_util     u;     
-    scoped_ptr<expr_solver>         m_solver;
-    scoped_ptr<boolean_algebra_t>   m_ba;
-    scoped_ptr<symbolic_automata_t> m_sa;
-
-    bool is_unit_char(expr* e, expr_ref& ch);
-    eautomaton* re2aut(expr* e);
-    eautomaton* seq2aut(expr* e);
-public:
-    re2automaton(ast_manager& m);
-    eautomaton* operator()(expr* e);
-    void set_solver(expr_solver* solver);
-    bool has_solver() const { return m_solver; }
-    eautomaton* mk_product(eautomaton *a1, eautomaton *a2);
-};
 
 /**
    \brief Cheap rewrite rules for seq constraints
@@ -147,13 +76,21 @@ class seq_rewriter {
         void insert(decl_kind op, expr* a, expr* b, expr* c, expr* r);
     };
 
+    friend class seq::derive;
+
     seq_util       m_util;
+    seq_subset     m_subset;
     arith_util     m_autil;
     bool_rewriter  m_br;
-    re2automaton   m_re2aut;
+    seq::derive    m_derive;
+    // re2automaton   m_re2aut;
     op_cache       m_op_cache;
     expr_ref_vector m_es, m_lhs, m_rhs;
-    bool           m_coalesce_chars;    
+    bool m_coalesce_chars = true;
+    unsigned m_max_power_expansion = 2;
+    bool           m_in_bisim { false };   
+    unsigned       m_re_deriv_depth { 0 };
+    static const unsigned m_max_re_deriv_depth = 512;
 
     enum length_comparison {
         shorter_c, 
@@ -190,55 +127,29 @@ class seq_rewriter {
     //replace b in a by c into result
     void replace_all_subvectors(expr_ref_vector const& as, expr_ref_vector const& bs, expr* c, expr_ref_vector& result);
 
-    // Calculate derivative, memoized and enforcing a normal form
-    expr_ref is_nullable_rec(expr* r);
-    expr_ref mk_derivative_rec(expr* ele, expr* r);
-    expr_ref mk_der_op(decl_kind k, expr* a, expr* b);
-    expr_ref mk_der_op_rec(decl_kind k, expr* a, expr* b);
-    expr_ref mk_der_concat(expr* a, expr* b);
-    expr_ref mk_der_union(expr* a, expr* b);
-    expr_ref mk_der_inter(expr* a, expr* b);
-    expr_ref mk_der_compl(expr* a);
-    expr_ref mk_der_cond(expr* cond, expr* ele, sort* seq_sort);
-    expr_ref mk_der_antimirov_union(expr* r1, expr* r2);
-    bool ite_bdds_compatible(expr* a, expr* b);
-    /* if r has the form deriv(en..deriv(e1,to_re(s))..) returns 's = [e1..en]' else returns '() in r'*/
-    expr_ref is_nullable_symbolic_regex(expr* r, sort* seq_sort);
-    #ifdef Z3DEBUG
-    bool check_deriv_normal_form(expr* r, int level = 3);
-    #endif
+    // For replace_all(x, a, b) in R: transform R so that
+    // - occurrences of b_ch are replaced by union(to_re(a_str), to_re(b_str))
+    // - occurrences of a_ch are replaced by empty (replace_all never outputs a)
+    expr_ref re_replace_char(expr *r, unsigned a_ch, unsigned b_ch, expr *a_str, expr *b_str);
 
-    void mk_antimirov_deriv_rec(expr* e, expr* r, expr* path, expr_ref& result);
-
-    expr_ref mk_antimirov_deriv(expr* e, expr* r, expr* path);
-    expr_ref mk_in_antimirov_rec(expr* s, expr* d);
-    expr_ref mk_in_antimirov(expr* s, expr* d);
-
-    expr_ref mk_antimirov_deriv_intersection(expr* elem, expr* d1, expr* d2, expr* path);
-    expr_ref mk_antimirov_deriv_concat(expr* d, expr* r);
-    expr_ref mk_antimirov_deriv_negate(expr* elem, expr* d);
-    expr_ref mk_antimirov_deriv_union(expr* d1, expr* d2);
-    expr_ref mk_antimirov_deriv_restrict(expr* elem, expr* d1, expr* cond);
-    expr_ref mk_regex_reverse(expr* r);
-    expr_ref mk_regex_concat(expr* r1, expr* r2);
 
     expr_ref merge_regex_sets(expr* r1, expr* r2, expr* unit, std::function<bool(expr*, expr*&, expr*&)>& decompose, std::function<expr* (expr*, expr*)>& compose);
 
     // elem is (:var 0) and path a condition that may have (:var 0) as a free variable
     // simplify path, e.g., (:var 0) = 'a' & (:var 0) = 'b' is simplified to false
-    expr_ref simplify_path(expr* elem, expr* path);
+    // expr_ref simplify_path(expr* elem, expr* path);
 
     bool lt_char(expr* ch1, expr* ch2);
     bool eq_char(expr* ch1, expr* ch2);
     bool neq_char(expr* ch1, expr* ch2);
     bool le_char(expr* ch1, expr* ch2);
-    bool pred_implies(expr* a, expr* b);
     bool are_complements(expr* r1, expr* r2) const;
     bool is_subset(expr* r1, expr* r2) const;
 
     br_status mk_seq_unit(expr* e, expr_ref& result);
     br_status mk_seq_concat(expr* a, expr* b, expr_ref& result);
     br_status mk_seq_length(expr* a, expr_ref& result);
+    br_status mk_seq_power(expr* a, expr* b, expr_ref& result);
     expr_ref mk_len(rational const& offset, expr_ref_vector const& xs);
     bool extract_pop_suffix(expr_ref_vector const& as, expr* b, expr* c, expr_ref& result);
     bool extract_push_offset(expr_ref_vector const& as, expr* b, expr* c, expr_ref& result);
@@ -278,8 +189,18 @@ class seq_rewriter {
     br_status mk_re_union0(expr* a, expr* b, expr_ref& result);
     br_status mk_re_inter0(expr* a, expr* b, expr_ref& result);
     br_status mk_re_complement(expr* a, expr_ref& result);
+    // Range-set collapse helpers: if the operands form a boolean
+    // combination of character-class regexes, materialize the result as a
+    // canonical regex over a single range_predicate.  See
+    // ast/rewriter/seq_range_collapse.h for the recognized fragment.
+    // NOTE: re.complement is intentionally not in this set because it
+    // operates at the sequence level, not the character-class level.
+    bool try_collapse_re_union(expr* a, expr* b, expr_ref& result);
+    bool try_collapse_re_inter(expr* a, expr* b, expr_ref& result);
     br_status mk_re_star(expr* a, expr_ref& result);
     br_status mk_re_diff(expr* a, expr* b, expr_ref& result);
+    br_status mk_re_xor(expr* a, expr* b, expr_ref& result);
+    br_status mk_re_xor0(expr* a, expr* b, expr_ref& result);
     br_status mk_re_plus(expr* a, expr_ref& result);
     br_status mk_re_opt(expr* a, expr_ref& result);
     br_status mk_re_power(func_decl* f, expr* a, expr_ref& result);
@@ -322,9 +243,11 @@ class seq_rewriter {
     bool reduce_non_overlap(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
     bool reduce_subsequence(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
     bool reduce_by_length(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
+    bool reduce_extract(expr* l, expr* r, expr_ref_vector& res);
     bool has_var(expr_ref_vector const& es);
     bool reduce_itos(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& eqs);
-    bool reduce_eq_empty(expr* l, expr* r, expr_ref& result);    
+    bool reduce_eq_empty(expr* l, expr* r, expr_ref& result);
+    bool reduce_arith_eq(expr* l, expr* r, expr_ref_vector& constraints);
     std::pair<bool, unsigned> min_length(expr_ref_vector const& es);
     std::pair<bool, unsigned> min_length(expr* e);
     std::pair<bool, unsigned> min_length(unsigned sz, expr* const* es);
@@ -338,11 +261,12 @@ class seq_rewriter {
 
     void add_next(u_map<expr*>& next, expr_ref_vector& trail, unsigned idx, expr* cond);
     bool is_sequence(expr* e, expr_ref_vector& seq);
-    bool is_sequence(eautomaton& aut, expr_ref_vector& seq);
+//    bool is_sequence(eautomaton& aut, expr_ref_vector& seq);
     bool get_lengths(expr* e, expr_ref_vector& lens, rational& pos);
     bool reduce_value_clash(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& new_eqs);
     bool reduce_back(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& new_eqs);
     bool reduce_front(expr_ref_vector& ls, expr_ref_vector& rs, expr_ref_pair_vector& new_eqs);
+    bool split_bag(expr_ref_vector &ls, expr_ref_vector &rs, expr_ref_pair_vector &new_eqs);
     void remove_empty_and_concats(expr_ref_vector& es);
     void remove_leading(unsigned n, expr_ref_vector& es);
 
@@ -353,13 +277,12 @@ class seq_rewriter {
 
     void intersect(unsigned lo, unsigned hi, svector<std::pair<unsigned, unsigned>>& ranges);
 
-    bool get_bounds(expr* e, unsigned& low, unsigned& high);
-    lbool some_string_in_re(expr_mark& visited, expr* r, unsigned_vector& str);
-
 public:
     seq_rewriter(ast_manager & m, params_ref const & p = params_ref()):
-        m_util(m), m_autil(m), m_br(m, p), m_re2aut(m), m_op_cache(m), m_es(m), 
-        m_lhs(m), m_rhs(m), m_coalesce_chars(true) {
+        m_util(m), m_subset(m_util.re), m_autil(m), m_br(m, p), m_derive(m, *this), // m_re2aut(m),
+        m_op_cache(m), m_es(m), 
+        m_lhs(m), m_rhs(m) {
+        updt_params(p);
     }
     ast_manager & m() const { return m_util.get_manager(); }
     family_id get_fid() const { return m_util.get_family_id(); }
@@ -369,10 +292,8 @@ public:
     void updt_params(params_ref const & p);
     static void get_param_descrs(param_descrs & r);
 
-    void set_solver(expr_solver* solver) { m_re2aut.set_solver(solver); }
-    bool has_solver() { return m_re2aut.has_solver(); }
 
-    bool coalesce_chars() const { return m_coalesce_chars; }
+    // bool coalesce_chars() const { return m_coalesce_chars; }
 
     br_status mk_app_core(func_decl * f, unsigned num_args, expr * const * args, expr_ref & result);
     br_status mk_eq_core(expr * lhs, expr * rhs, expr_ref & result);
@@ -388,6 +309,86 @@ public:
         return result;
     }
 
+    expr_ref mk_xor0(expr *a, expr *b) {
+        expr_ref result(m());
+        if (mk_re_xor0(a, b, result) == BR_FAILED)
+            result = re().mk_xor(a, b);
+        return result;
+    }
+
+    expr_ref mk_union(expr *a, expr *b) {
+        expr_ref result(m());
+        if (mk_re_union(a, b, result) == BR_FAILED)
+            result = re().mk_union(a, b);
+        return result;
+    }
+
+    expr_ref mk_inter(expr *a, expr *b) {
+        expr_ref result(m());
+        if (mk_re_inter(a, b, result) == BR_FAILED)
+            result = re().mk_inter(a, b);
+        return result;
+    }
+
+    expr_ref mk_complement(expr *a) {
+        expr_ref result(m());
+        if (mk_re_complement(a, result) == BR_FAILED)
+            result = re().mk_complement(a);
+        return result;
+    }
+
+    expr_ref mk_to_re(expr* a) {
+        expr_ref result(m());
+        if (mk_str_to_regexp(a, result) == BR_FAILED)
+            result = re().mk_to_re(a);
+        return result;
+    }
+
+    expr_ref mk_star(expr* a) {
+        expr_ref result(m());
+        if (mk_re_star(a, result) == BR_FAILED)
+            result = re().mk_star(a);
+        return result;
+    }
+
+    expr_ref mk_plus(expr* a) {
+        expr_ref result(m());
+        if (mk_re_plus(a, result) == BR_FAILED)
+            result = re().mk_plus(a);
+        return result;
+    }
+
+    expr_ref mk_opt(expr* a) {
+        expr_ref result(m());
+        if (mk_re_opt(a, result) == BR_FAILED)
+            result = re().mk_opt(a);
+        return result;
+    }
+
+    expr_ref mk_loop(expr* a, unsigned lo) {
+        app_ref loop(re().mk_loop(a, lo), m());
+        return mk_app(loop->get_decl(), loop->get_num_args(), loop->get_args());
+    }
+
+    expr_ref mk_loop(expr* a, unsigned lo, unsigned hi) {
+        app_ref loop(re().mk_loop(a, lo, hi), m());
+        return mk_app(loop->get_decl(), loop->get_num_args(), loop->get_args());
+    }
+
+    expr_ref mk_diff(expr* a, expr* b) {
+        expr_ref result(m());
+        if (mk_re_diff(a, b, result) == BR_FAILED)
+            result = re().mk_diff(a, b);
+        return result;
+    }
+
+    expr_ref mk_reverse(expr* a) {
+        expr_ref result(m());
+        if (mk_re_reverse(a, result) == BR_FAILED)
+            result = re().mk_reverse(a);
+        return result;
+    }
+
     /*
     * makes concat and simplifies
     */
@@ -397,6 +398,25 @@ public:
             result = re().mk_concat(r1, r2);
         return result;
     }
+
+    /*
+     * Construct r1 XOR r2 applying the structural rewrites in
+     * mk_re_xor (r XOR r = empty, comp/empty/full normalisation, AC
+     * ordering). Used by the bisimulation procedure.
+     */
+    expr_ref mk_re_xor_simplified(expr* r1, expr* r2) {
+        expr_ref result(m());
+        if (mk_re_xor(r1, r2, result) == BR_FAILED)
+            result = re().mk_xor(r1, r2);
+        return result;
+    }
+
+    /**
+     * Reverse a concrete sequence, i.e. a concatenation of str.unit terms and string
+     * literals. Returns false if some element is neither, because sequences have no
+     * reverse operator to fall back on and the reverse is then not expressible.
+     */
+    bool mk_seq_reverse(expr* s, expr_ref& result);
 
     /**
      * check if regular expression is of the form all ++ s ++ all ++ t + u ++ all, where, s, t, u are sequences
@@ -427,6 +447,54 @@ public:
     */
     expr_ref mk_derivative(expr* r);
 
+    /*
+    Classical (non-antimirov) Brzozowski derivative wrt the canonical
+    variable v0 = (:var 0). Unlike `mk_derivative` this entry point keeps
+    the symbolic derivative as a single transition regex (TRegex): boolean
+    operators are pushed into the ITE leaves rather than lifted to the top
+    as a union. Used by the regex_bisim equivalence
+    procedure which relies on each leaf of D(p XOR q) being a coherent
+    XOR pair (D_v p) XOR (D_v q).
+    */
+    expr_ref mk_brz_derivative(expr *r) {
+        return mk_derivative(r);
+    }
+
+    /*
+    Enumerate the cofactors (min-terms) of a transition regex r taken with
+    respect to ele. Produces (path_condition, leaf_regex) pairs for every
+    feasible path through the ITE-tree, pruning infeasible character ranges.
+    Delegates to the derivative engine so the same path/interval context used
+    while hoisting ITEs is reused for the leaf simplification.
+    */
+    void get_cofactors(expr* ele, expr* r, expr_ref_pair_vector& result) {
+        m_derive.get_cofactors(ele, r, result);
+    }
+
+    seq::derive &get_derive() {
+        return m_derive;
+    }
+
+    /*
+    Compute the symbolic derivative of r and enumerate its reachable leaves
+    in fully ITE-hoisted normal form: a list of (path_condition, target)
+    pairs where every target is free of (:var 0) (so nullability is always
+    decidable) and unions are kept intact as single states. Used by
+    regex_bisim, which consumes the targets and ignores the path conditions.
+    */
+    void brz_derivative_cofactors(expr* r, expr_ref_pair_vector& result) {
+        m_derive.derivative_cofactors(r, result);
+    }
+
+    /*
+    Compute Brzozowski cofactors, then expose nondeterminism in targets of the
+    form (s1 | ... | sn) or (s1 | ... | sn) . tail. Cofactors with the same
+    resulting target are merged by disjoining their guards.
+    */
+    void light_ant_derivative_cofactors(expr* r, expr_ref_pair_vector& result) {
+        m_derive.light_ant_derivative_cofactors(r, result);
+    }
+
     // heuristic elimination of element from condition that comes form a derivative.
     // special case optimization for conjunctions of equalities, disequalities and ranges.
     void elim_condition(expr* elem, expr_ref& cond);
@@ -436,6 +504,8 @@ public:
     /* Apply simplifications to the intersection to keep it normalized (r1 and r2 are not normalized)*/
     expr_ref mk_regex_inter_normalize(expr* r1, expr* r2);
 
+    expr_ref mk_regex_concat(expr *r1, expr *r2);
+
     /*
     * Extract some string that is a member of r. 
     * Return true if a valid string was extracted.
@@ -443,4 +513,3 @@ public:
     */
     lbool some_string_in_re(expr* r, zstring& s);
 };
-

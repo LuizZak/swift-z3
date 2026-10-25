@@ -19,12 +19,15 @@ Notes:
 #include "tactic/tactical.h"
 #include "ast/converters/generic_model_converter.h"
 #include "ast/rewriter/rewriter_def.h"
+#include "ast/rewriter/seq_rewriter.h"
 #include "ast/arith_decl_plugin.h"
 #include "ast/bv_decl_plugin.h"
 #include "ast/recfun_decl_plugin.h"
 #include "ast/array_decl_plugin.h"
 #include "ast/datatype_decl_plugin.h"
 #include "ast/seq_decl_plugin.h"
+#include "ast/for_each_expr.h"
+#include "ast/polymorphism_util.h"
 #include "tactic/core/collect_occs.h"
 #include "ast/ast_smt2_pp.h"
 #include "ast/ast_ll_pp.h"
@@ -39,7 +42,8 @@ class elim_uncnstr_tactic : public tactic {
     struct rw_cfg : public default_rewriter_cfg {
         bool                   m_produce_proofs;
         obj_hashtable<expr> &  m_vars;
-        obj_hashtable<expr>&   m_nonvars;
+        obj_hashtable<expr>&   m_nonvars;  
+        expr_mark &            m_disabled;
         ref<mc>                m_mc;
         arith_util             m_a_util;
         bv_util                m_bv_util;
@@ -52,11 +56,14 @@ class elim_uncnstr_tactic : public tactic {
         unsigned long long     m_max_memory;
         unsigned               m_max_steps;
         
-        rw_cfg(ast_manager & m, bool produce_proofs, obj_hashtable<expr> & vars, obj_hashtable<expr> & nonvars, mc * _m, 
+        rw_cfg(ast_manager & m, bool produce_proofs, obj_hashtable<expr> & vars, 
+            obj_hashtable<expr> & nonvars, expr_mark& disabled,
+            mc * _m, 
                unsigned long long max_memory, unsigned max_steps):
             m_produce_proofs(produce_proofs),
             m_vars(vars),
-            m_nonvars(nonvars),
+            m_nonvars(nonvars), 
+            m_disabled(disabled),
             m_mc(_m),
             m_a_util(m),
             m_bv_util(m),
@@ -78,11 +85,11 @@ class elim_uncnstr_tactic : public tactic {
         }
         
         bool uncnstr(expr * arg) const {
-            return m_vars.contains(arg) && !m_nonvars.contains(arg);
+            return m_vars.contains(arg) && !m_nonvars.contains(arg) && !m_disabled.is_marked(arg);
         }
         
         bool uncnstr(unsigned num, expr * const * args) const {
-            for (unsigned i = 0; i < num; i++)
+            for (unsigned i = 0; i < num; ++i)
                 if (!uncnstr(args[i]))
                     return false;
             return true;
@@ -99,8 +106,8 @@ class elim_uncnstr_tactic : public tactic {
             }
             
             v = m().mk_fresh_const(nullptr, t->get_sort());
-            TRACE("elim_uncnstr_bug", tout << "eliminating:\n" << mk_ismt2_pp(t, m()) << "\n";);
-            TRACE("elim_uncnstr_bug_ll", tout << "eliminating:\n" << mk_bounded_pp(t, m()) << "\n";);
+            TRACE(elim_uncnstr_bug, tout << "eliminating:\n" << mk_ismt2_pp(t, m()) << "\n";);
+            TRACE(elim_uncnstr_bug_ll, tout << "eliminating:\n" << mk_bounded_pp(t, m()) << "\n";);
             m_fresh_vars.push_back(v);
             if (m_mc) m_mc->hide(v);
             m_cache_domain.push_back(t);
@@ -130,7 +137,7 @@ class elim_uncnstr_tactic : public tactic {
         void add_defs(unsigned num, expr * const * args, expr * u, expr * identity) {
             if (m_mc) {
                 add_def(args[0], u);
-                for (unsigned i = 1; i < num; i++)
+                for (unsigned i = 1; i < num; ++i)
                     add_def(args[i], identity);
             }
         }
@@ -155,7 +162,7 @@ class elim_uncnstr_tactic : public tactic {
                 if (m().is_uninterp(get_array_range(s)))
                     return false;
                 unsigned arity = get_array_arity(s);
-                for (unsigned i = 0; i < arity; i++)
+                for (unsigned i = 0; i < arity; ++i)
                     if (m().is_uninterp(get_array_domain(s, i)))
                         return false;
                 // building 
@@ -164,7 +171,7 @@ class elim_uncnstr_tactic : public tactic {
                 // and d is a term different from (select t i1 ... in)
                 ptr_buffer<expr> new_args;
                 new_args.push_back(t);
-                for (unsigned i = 0; i < arity; i++)
+                for (unsigned i = 0; i < arity; ++i)
                     new_args.push_back(m().get_some_value(get_array_domain(s, i)));
                 expr_ref sel(m());
                 sel = m().mk_app(fid, OP_SELECT, new_args.size(), new_args.data());
@@ -182,7 +189,7 @@ class elim_uncnstr_tactic : public tactic {
                 for (func_decl * constructor : constructors) {
                     unsigned num    = constructor->get_arity();
                     unsigned target = UINT_MAX;
-                    for (unsigned i = 0; i < num; i++) {
+                    for (unsigned i = 0; i < num; ++i) {
                         sort * s_arg = constructor->get_domain(i);
                         if (s == s_arg) {
                             target = i;
@@ -195,7 +202,7 @@ class elim_uncnstr_tactic : public tactic {
                         continue;
                     // use the constructor the distinct term constructor(...,t,...)
                     ptr_buffer<expr> new_args;
-                    for (unsigned i = 0; i < num; i++) {
+                    for (unsigned i = 0; i < num; ++i) {
                         if (i == target) {
                             new_args.push_back(t);
                         }
@@ -403,7 +410,7 @@ class elim_uncnstr_tactic : public tactic {
                 return nullptr;
             unsigned i;
             expr * v = nullptr;
-            for (i = 0; i < num; i++) {
+            for (i = 0; i < num; ++i) {
                 expr * arg = args[i];
                 if (uncnstr(arg)) {
                     v = arg;
@@ -418,7 +425,7 @@ class elim_uncnstr_tactic : public tactic {
             if (!m_mc) 
                 return u;
             ptr_buffer<expr> new_args;
-            for (unsigned j = 0; j < num; j++) {
+            for (unsigned j = 0; j < num; ++j) {
                 if (j == i)
                     continue;
                 new_args.push_back(args[j]);
@@ -756,6 +763,7 @@ class elim_uncnstr_tactic : public tactic {
                     }
                     return r;
                 }
+                return nullptr;
             default:
                 return nullptr;
             }
@@ -775,7 +783,7 @@ class elim_uncnstr_tactic : public tactic {
                         return r;
                     }
                     func_decl * c = m_dt_util.get_accessor_constructor(f);
-                    for (unsigned i = 0; i < c->get_arity(); i++) 
+                    for (unsigned i = 0; i < c->get_arity(); ++i) 
                         if (!m().is_fully_interp(c->get_domain(i)))
                             return nullptr;
                     app * u;
@@ -783,7 +791,7 @@ class elim_uncnstr_tactic : public tactic {
                         return u;
                     ptr_vector<func_decl> const & accs = *m_dt_util.get_constructor_accessors(c);
                     ptr_buffer<expr> new_args;
-                    for (unsigned i = 0; i < accs.size(); i++) {
+                    for (unsigned i = 0; i < accs.size(); ++i) {
                         if (accs[i] == f) 
                             new_args.push_back(u);
                         else
@@ -798,10 +806,10 @@ class elim_uncnstr_tactic : public tactic {
 
         // x ++ y -> z, x -> z, y -> eps
         app * process_seq_app(func_decl * f, unsigned num, expr * const * args) {
+            app *r = nullptr;
             switch (f->get_decl_kind()) {
             case _OP_STRING_CONCAT:
             case OP_SEQ_CONCAT: {
-                app * r = nullptr;
                 expr* x, *y;
                 if (uncnstr(args[0]) && num == 2 &&
                     args[1]->get_ref_count() == 1 && 
@@ -828,6 +836,27 @@ class elim_uncnstr_tactic : public tactic {
                 
                 return r;
             }
+            case OP_SEQ_IN_RE:
+                return nullptr;
+                if (uncnstr(args[0]) && m_seq_util.re.is_ground(args[1]) && m_seq_util.is_string(args[0]->get_sort())) {
+                    zstring s1;
+                    expr *re = args[1];
+                    seq_rewriter rw(m());
+                    if (l_true != rw.some_string_in_re(re, s1))
+                        return nullptr;
+                    zstring s2;
+                    expr_ref not_re(m_seq_util.re.mk_complement(re), m());
+                    if (l_true != rw.some_string_in_re(not_re, s2))
+                        return nullptr;
+
+                    mk_fresh_uncnstr_var_for(f, num, args, r);
+                    expr_ref witness1 = expr_ref(m_seq_util.str.mk_string(s1), m());
+                    expr_ref witness2 = expr_ref(m_seq_util.str.mk_string(s2), m());
+                    if (m_mc)
+                        add_def(args[0], m().mk_ite(r, witness1, witness2));
+                    return r;
+                }
+                return nullptr;
             default:
                 return nullptr;
             }            
@@ -841,7 +870,7 @@ class elim_uncnstr_tactic : public tactic {
             if (fid == null_family_id)
                 return BR_FAILED;
             
-            for (unsigned i = 0; i < num; i++) {
+            for (unsigned i = 0; i < num; ++i) {
                 if (!is_ground(args[i]))
                     return BR_FAILED; // non-ground terms are not handled.
             }
@@ -878,10 +907,11 @@ class elim_uncnstr_tactic : public tactic {
     class rw : public rewriter_tpl<rw_cfg> {
         rw_cfg m_cfg;
     public:
-        rw(ast_manager & m, bool produce_proofs, obj_hashtable<expr> & vars, obj_hashtable<expr>& nonvars, mc * _m,
+        rw(ast_manager & m, bool produce_proofs, obj_hashtable<expr> & vars, obj_hashtable<expr>& nonvars, 
+            expr_mark& disabled, mc * _m,
             unsigned long long max_memory, unsigned max_steps):
             rewriter_tpl<rw_cfg>(m, produce_proofs, m_cfg),
-            m_cfg(m, produce_proofs, vars, nonvars, _m, max_memory, max_steps) {
+            m_cfg(m, produce_proofs, vars, nonvars, disabled, _m, max_memory, max_steps) {
         }
     };
     
@@ -889,6 +919,8 @@ class elim_uncnstr_tactic : public tactic {
     ref<mc>                          m_mc;
     obj_hashtable<expr>              m_vars;
     obj_hashtable<expr>              m_nonvars;
+    expr_mark                        m_disabled;
+    expr_ref_vector                  m_pinned;
     scoped_ptr<rw>                   m_rw;
     unsigned                         m_num_elim_apps = 0;
     unsigned long long               m_max_memory;
@@ -903,24 +935,40 @@ class elim_uncnstr_tactic : public tactic {
     }
     
     void init_rw(bool produce_proofs) {
-        m_rw = alloc(rw, m(), produce_proofs, m_vars, m_nonvars, m_mc.get(), m_max_memory, m_max_steps);            
+        m_rw = alloc(rw, m(), produce_proofs, m_vars, m_nonvars, m_disabled, m_mc.get(), m_max_memory, m_max_steps);            
+    }
+
+    // The manager-wide has_type_vars() flag is a coarse over-approximation: it becomes
+    // true as soon as any type variable is created, including the type variables used to
+    // define the polymorphic signatures of builtin plugins (e.g. finite_set). Those never
+    // occur in the actual goal, so relying on the global flag needlessly disables this
+    // tactic. Check whether the goal itself contains type-variable typed terms instead.
+    bool goal_has_type_vars(goal_ref const & g) {
+        if (!m().has_type_vars())
+            return false;
+        polymorphism::util u(m());
+        for (unsigned i = 0; i < g->size(); ++i)
+            if (u.has_type_vars(g->form(i)))
+                return true;
+        return false;
     }
 
     void run(goal_ref const & g, goal_ref_buffer & result) {
         bool produce_proofs = g->proofs_enabled();
-        TRACE("goal", g->display(tout););
+        TRACE(goal, g->display(tout););
         statistics_report sreport([&](statistics& st) { collect_statistics(st); });
         tactic_report report("elim-uncnstr", *g);
         m_vars.reset();
         collect_occs p;
         p(*g, m_vars);
-        if (m_vars.empty() || recfun::util(m()).has_rec_defs()) {
+        disable_quantified(g);
+        if (m_vars.empty() || recfun::util(m()).has_rec_defs() || goal_has_type_vars(g)) {
             result.push_back(g.get());
             // did not increase depth since it didn't do anything.
             return;
         }
         bool modified = true;
-        TRACE("elim_uncnstr", tout << "unconstrained variables...\n";
+        TRACE(elim_uncnstr, tout << "unconstrained variables...\n";
                 for (expr * v : m_vars) tout << mk_ismt2_pp(v, m()) << " "; 
                 tout << "\n";);
         init_mc(g->models_enabled());
@@ -931,8 +979,9 @@ class elim_uncnstr_tactic : public tactic {
         unsigned round = 0;
         unsigned size  = g->size();
         unsigned idx   = 0;
+
         while (true) {
-            for (; idx < size; idx++) {
+            for (; idx < size; ++idx) {
                 expr * f = g->form(idx);
                 m_rw->operator()(f, new_f, new_pr);
                 if (f == new_f)
@@ -951,12 +1000,12 @@ class elim_uncnstr_tactic : public tactic {
                     m_num_elim_apps = m_rw->cfg().m_fresh_vars.size();
                     g->add(m_mc.get());                        
                 }
-                TRACE("elim_uncnstr", if (m_mc) m_mc->display(tout); else tout << "no mc\n";);
+                TRACE(elim_uncnstr, if (m_mc) m_mc->display(tout); else tout << "no mc\n";);
                 m_mc = nullptr;
                 m_rw = nullptr;                    
                 result.push_back(g.get());
                 g->inc_depth();
-                TRACE("goal", g->display(tout););
+                TRACE(goal, g->display(tout););
                 return;
             }
             modified = false;
@@ -964,6 +1013,7 @@ class elim_uncnstr_tactic : public tactic {
             size       = g->size();
             m_rw->reset(); // reset cache
             m_vars.reset(); 
+            disable_quantified(g);
             {
                 collect_occs p;
                 p(*g, m_vars);
@@ -974,11 +1024,42 @@ class elim_uncnstr_tactic : public tactic {
                 idx = 0;
         }
     }
+
+    void disable(expr* e) {
+        if (m_disabled.is_marked(e))
+            return;
+        m_pinned.push_back(e);
+
+        ptr_buffer<expr> todo;
+        todo.push_back(e);
+        while (!todo.empty()) {
+            e = todo.back();
+            todo.pop_back();
+            if (m_disabled.is_marked(e))
+                continue;
+            m_disabled.mark(e);
+            if (is_app(e))
+                for (auto arg : *to_app(e))
+                    todo.push_back(arg);
+        }
+    }
+
+    void disable_quantified(goal_ref const &g) {
+        m_disabled.reset();
+        m_pinned.reset();
+
+        for (unsigned idx = 0; idx < g->size(); ++idx) {
+            expr *f = g->form(idx);
+            for (expr *e : subterms::all(expr_ref(f, m())))
+                if (is_quantifier(e))
+                    disable(to_quantifier(e)->get_expr());
+        }
+    }
     
     params_ref m_params;
 public:
    elim_uncnstr_tactic(ast_manager & m, params_ref const & p):
-        m_manager(m), m_params(p) {
+        m_manager(m), m_pinned(m), m_params(p) {
         updt_params(p);
     }
 

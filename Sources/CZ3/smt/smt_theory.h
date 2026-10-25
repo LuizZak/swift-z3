@@ -259,7 +259,7 @@ namespace smt {
            \brief This method is invoked when the theory application n
            is marked as relevant.
          */
-        virtual void relevant_eh(app * n) {
+        virtual void relevant_eh(expr * n) {
         }
         
         /**
@@ -283,7 +283,6 @@ namespace smt {
         /**
            \brief This method is called by smt_context before the search starts
            to get any extra assumptions the theory wants to use.
-           (See theory_str for an example)
         */
         virtual void add_theory_assumptions(expr_ref_vector & assumptions) {
         }
@@ -316,8 +315,19 @@ namespace smt {
            a truth value to all boolean variables and no inconsistency was 
            detected.
         */
-        virtual final_check_status final_check_eh() {
+        virtual final_check_status final_check_eh(unsigned level) {
             return FC_DONE;
+        }
+
+        /**
+        * \brief This method signals the number of priority levels a theory supports for final checks.
+        * The first level are for the cheapest final check invocations.
+        * The levels after that are for more expensive final checks.
+        * This approach emulates a priority queue of actions taken at final check where the expensive
+        * checks are deferred.
+        */
+        virtual unsigned num_final_check_levels() const {
+            return 1;
         }
 
         /**
@@ -418,12 +428,14 @@ namespace smt {
 
         smt_params const& get_fparams() const;
 
+        virtual void updt_params() {}
+
         enode * get_enode(theory_var v) const {
             SASSERT(v < static_cast<int>(m_var2enode.size()));
             return m_var2enode[v];
         }
 
-        app * get_expr(theory_var v) const {
+        expr * get_expr(theory_var v) const {
             return get_enode(v)->get_expr();
         }
 
@@ -470,11 +482,11 @@ namespace smt {
 
     protected:
         void log_axiom_instantiation(app * r, unsigned axiom_id = UINT_MAX, unsigned num_bindings = 0, 
-                                     app * const * bindings = nullptr, unsigned pattern_id = UINT_MAX, 
+                                     expr * const * bindings = nullptr, unsigned pattern_id = UINT_MAX, 
                                      const vector<std::tuple<enode *, enode *>> & used_enodes = vector<std::tuple<enode *, enode*>>());
 
         void log_axiom_instantiation(expr * r, unsigned axiom_id = UINT_MAX, unsigned num_bindings = 0, 
-                                     app * const * bindings = nullptr, unsigned pattern_id = UINT_MAX, 
+                                     expr * const * bindings = nullptr, unsigned pattern_id = UINT_MAX, 
                                      const vector<std::tuple<enode *, enode *>> & used_enodes = vector<std::tuple<enode *, enode*>>()) { 
             log_axiom_instantiation(to_app(r), axiom_id, num_bindings, bindings, pattern_id, used_enodes); 
         }
@@ -512,22 +524,22 @@ namespace smt {
         */
         template<typename VarValueTable>
         bool assume_eqs(VarValueTable & table) {
-            TRACE("assume_eqs", tout << "starting...\n";);
+            TRACE(assume_eqs, tout << "starting...\n";);
             table.reset();
             bool result   = false;
             int num       = get_num_vars();
-            for (theory_var v = 0; v < num; v++) {
+            for (theory_var v = 0; v < num; ++v) {
                 enode * n        = get_enode(v);
                 theory_var other = null_theory_var;
-                TRACE("assume_eqs",
+                TRACE(assume_eqs,
                       tout << "#" << n->get_owner_id() << " is_relevant_and_shared: " << is_relevant_and_shared(n) << "\n";);
                 if (n != nullptr && is_relevant_and_shared(n)) {
                     other = table.insert_if_not_there(v);
                     if (other != v) {
                         enode * n2 = get_enode(other);
-                        TRACE("assume_eqs", tout << "value(#" << n->get_owner_id() << ") = value(#" << n2->get_owner_id() << ")\n";);
+                        TRACE(assume_eqs, tout << "value(#" << n->get_owner_id() << ") = value(#" << n2->get_owner_id() << ")\n";);
                         if (assume_eq(n, n2)) {
-                            TRACE("assume_eqs", tout << "new assumed eq\n";);
+                            TRACE(assume_eqs, tout << "new assumed eq\n";);
                             result = true;
                         }
                     }
@@ -643,6 +655,6 @@ namespace smt {
         virtual bool is_fixed_propagated(theory_var v, expr_ref& val, literal_vector & explain) { return false; }
     };
     
-};
+}
 
 

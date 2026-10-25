@@ -63,7 +63,8 @@ namespace sat {
                        verbose_stream() << " (sat-scc :elim-vars " << (m_scc.m_num_elim - m_num_elim);
                        if (elim_bin > 0) verbose_stream() << " :elim-bin " << elim_bin;
                        if (num_units > 0) verbose_stream() << " :units " << num_units;
-                       verbose_stream() << m_watch << ")\n";);
+                       if (!get_suppress_platform_verbose()) verbose_stream() << m_watch;
+                       verbose_stream() << ")\n";);
         }
     };
 
@@ -81,7 +82,7 @@ namespace sat {
         unsigned next_index = 0;
         svector<frame>   frames;
         
-        for (unsigned l_idx = 0; l_idx < num_lits; l_idx++) {
+        for (unsigned l_idx = 0; l_idx < num_lits; ++l_idx) {
             if (index[l_idx] != UINT_MAX)
                 continue;
             if (m_solver.was_eliminated(to_literal(l_idx).var()))
@@ -136,7 +137,7 @@ namespace sat {
                 // visited all successors
                 if (lowlink[l_idx] == index[l_idx]) {
                     // found new SCC
-                    CTRACE("scc_cycle", s.back() != l_idx, {
+                    CTRACE(scc_cycle, s.back() != l_idx, {
                             tout << "cycle: ";
                             unsigned j = s.size() - 1;
                             unsigned l2_idx;
@@ -153,7 +154,7 @@ namespace sat {
                     bool_var v = l.var();
                     if (roots[v] != null_literal) {
                         // variable was already assigned... just consume stack
-                        TRACE("scc_detail", tout << "consuming stack...\n";);
+                        TRACE(scc_detail, tout << "consuming stack...\n";);
                         unsigned l2_idx;
                         do {
                             l2_idx = s.back();
@@ -164,7 +165,7 @@ namespace sat {
                     }
                     else {
                         // check if the SCC has an external variable, and check for conflicts
-                        TRACE("scc_detail", tout << "assigning roots...\n";);
+                        TRACE(scc_detail, tout << "assigning roots...\n";);
                         literal  r = null_literal;
                         unsigned j = s.size() - 1;
                         unsigned l2_idx;
@@ -186,7 +187,7 @@ namespace sat {
                             r = to_literal(l_idx);
                         }
 
-                        TRACE("scc_detail", tout << "r: " << r << "\n";);
+                        TRACE(scc_detail, tout << "r: " << r << "\n";);
 
                         do {
                             l2_idx = s.back();
@@ -228,23 +229,23 @@ namespace sat {
             return 0;
         CASSERT("scc_bug", m_solver.check_invariant());
         report rpt(*this);
-        TRACE("scc", m_solver.display(tout););
-        TRACE("scc_details", m_solver.display_watches(tout););
+        TRACE(scc, m_solver.display(tout););
+        TRACE(scc_details, m_solver.display_watches(tout););
         literal_vector roots;
         bool_var_vector to_elim;
         if (!extract_roots(roots, to_elim))
             return 0;
-        TRACE("scc", for (unsigned i = 0; i < roots.size(); i++) { tout << i << " -> " << roots[i] << "\n"; }
+        TRACE(scc, for (unsigned i = 0; i < roots.size(); ++i) { tout << i << " -> " << roots[i] << "\n"; }
               tout << "to_elim: "; for (unsigned v : to_elim) tout << v << " "; tout << "\n";);
         m_num_elim += to_elim.size();
         elim_eqs eliminator(m_solver);
         eliminator(roots, to_elim);
-        TRACE("scc_detail", m_solver.display(tout););
+        TRACE(scc_detail, m_solver.display(tout););
         CASSERT("scc_bug", m_solver.check_invariant());
 
         if (m_scc_tr) 
             reduce_tr();
-        TRACE("scc_detail", m_solver.display(tout););
+        TRACE(scc_detail, m_solver.display(tout););
         return to_elim.size();
     }
 
@@ -282,4 +283,4 @@ namespace sat {
         sat_scc_params::collect_param_descrs(d);
     }
 
-};
+}

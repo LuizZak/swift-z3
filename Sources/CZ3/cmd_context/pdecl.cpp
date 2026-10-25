@@ -196,7 +196,7 @@ class psort_app : public psort {
         m.inc_ref(d);
         m.inc_ref(num_args, args);
         SASSERT(num_args == m_decl->get_num_params() || m_decl->has_var_params());
-        DEBUG_CODE(if (num_args == num_params) { for (unsigned i = 0; i < num_params; i++) args[i]->check_num_params(this); });
+        DEBUG_CODE(if (num_args == num_params) { for (unsigned i = 0; i < num_params; ++i) args[i]->check_num_params(this); });
     }
 
     void finalize(pdecl_manager & m) override {
@@ -247,7 +247,7 @@ public:
             return false;
         SASSERT(m_args.size() == _other->m_args.size());
         unsigned sz = m_args.size();
-        for (unsigned i = 0; i < sz; i++) {
+        for (unsigned i = 0; i < sz; ++i) {
             if (m_args[i] != _other->m_args[i])
                 return false;
         }
@@ -260,7 +260,7 @@ public:
         else {
             out << "(" << m_decl->get_name();
             unsigned sz = m_args.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 out << " ";
                 m_args[i]->display(out);
             }
@@ -319,7 +319,7 @@ sort * psort_user_decl::instantiate(pdecl_manager & m, unsigned n, sort * const 
         return r;
     if (m_def == nullptr) {
         buffer<parameter> ps;
-        for (unsigned i = 0; i < n; i++)
+        for (unsigned i = 0; i < n; ++i)
             ps.push_back(parameter(s[i]));
         r  = m.m().mk_uninterpreted_sort(m_name, ps.size(), ps.data());
     }
@@ -334,7 +334,7 @@ sort * psort_user_decl::instantiate(pdecl_manager & m, unsigned n, sort * const 
 void display_sort_args(std::ostream & out, unsigned num_params) {
     if (num_params > 0)
         out << " (";
-    for (unsigned i = 0; i < num_params; i++) {
+    for (unsigned i = 0; i < num_params; ++i) {
         if (i > 0) out << " ";
         out << "s_" << i;
     }
@@ -406,7 +406,7 @@ sort * psort_builtin_decl::instantiate(pdecl_manager & m, unsigned n, sort * con
     }
     else {
         buffer<parameter> params;
-        for (unsigned i = 0; i < n; i++)
+        for (unsigned i = 0; i < n; ++i)
             params.push_back(parameter(s[i]));
         sort * r = m.m().mk_sort(m_fid, m_kind, n, params.data());
         m.save_info(r, this, n, s);
@@ -422,7 +422,7 @@ sort * psort_builtin_decl::instantiate(pdecl_manager & m, unsigned n, unsigned c
     }
     else {
         buffer<parameter> params;
-        for (unsigned i = 0; i < n; i++)
+        for (unsigned i = 0; i < n; ++i)
             params.push_back(parameter(s[i]));
         sort * r = m.m().mk_sort(m_fid, m_kind, n, params.data());
         m.save_info(r, this, n, s);
@@ -466,7 +466,7 @@ bool paccessor_decl::has_missing_refs(symbol & missing) const {
 }
 
 bool paccessor_decl::fix_missing_refs(dictionary<int> const & symbol2idx, symbol & missing) {
-    TRACE("fix_missing_refs", tout << "m_type.kind(): " << (int)m_type.kind() << "\n";
+    TRACE(fix_missing_refs, tout << "m_type.kind(): " << (int)m_type.kind() << "\n";
           if (m_type.kind() == ptype_kind::PTR_MISSING_REF) tout << m_type.get_missing_ref() << "\n";);
     if (m_type.kind() != ptype_kind::PTR_MISSING_REF)
         return true;
@@ -504,7 +504,7 @@ pconstructor_decl::pconstructor_decl(unsigned id, unsigned num_params, pdecl_man
     m_recogniser_name(r),
     m_accessors(num_accessors, accessors) {
     m.inc_ref(num_accessors, accessors);
-    TRACE("pconstructor_decl", tout << "name: " << n << ", recognizer: " << r << "\n";);
+    TRACE(pconstructor_decl, tout << "name: " << n << ", recognizer: " << r << "\n";);
 }
 
 void pconstructor_decl::finalize(pdecl_manager & m) {
@@ -540,6 +540,12 @@ void pconstructor_decl::display(std::ostream & out, pdatatype_decl const * const
     }
     out << ")";
 }
+
+// ~~~~~~~~~~~~ psubterm_decl ~~~~~~~~~~~~ //
+std::ostream&  psubterm_decl::display(std::ostream & out) const {
+    return out << ":subterm " << m_name;
+}
+
 
 pdatatype_decl::pdatatype_decl(unsigned id, unsigned num_params, pdecl_manager & m,
                                symbol const & n, unsigned num_constructors, pconstructor_decl * const * constructors):
@@ -589,7 +595,11 @@ datatype_decl * pdatatype_decl::instantiate_decl(pdecl_manager & m, unsigned n, 
     for (auto c : m_constructors) 
         cs.push_back(c->instantiate_decl(m, n, s));
     datatype_util util(m.m());
-    return mk_datatype_decl(util, m_name, m_num_params, s, cs.size(), cs.data());
+    symbol subterm_name = symbol::null;
+    if (m_subterm.has_value()) {
+        subterm_name = m_subterm->get_name();
+    }
+    return mk_datatype_decl(util, m_name, m_num_params, s, cs.size(), cs.data(), subterm_name);
 }
 
 struct datatype_decl_buffer {
@@ -647,11 +657,14 @@ std::ostream& pdatatype_decl::display(std::ostream & out) const {
         }
         first = false;
     }
+    if (m_subterm.has_value()) {
+        m_subterm->display(out);
+    }
     return out << ")";
 }
 
 bool pdatatype_decl::commit(pdecl_manager& m) {
-    TRACE("datatype", tout << m_name << "\n";);
+    TRACE(datatype, tout << m_name << "\n";);
     sort_ref_vector ps(m.m());
     for (unsigned i = 0; i < m_num_params; ++i) {
         ps.push_back(m.m().mk_uninterpreted_sort(symbol(i), 0, nullptr));
@@ -685,7 +698,7 @@ void pdatatypes_decl::finalize(pdecl_manager & m) {
 }
 
 bool pdatatypes_decl::fix_missing_refs(symbol & missing) {
-    TRACE("fix_missing_refs", tout << "pdatatypes_decl::fix_missing_refs\n";);
+    TRACE(fix_missing_refs, tout << "pdatatypes_decl::fix_missing_refs\n";);
     dictionary<int> symbol2idx;
     int idx = 0;
     for (pdatatype_decl* d : m_datatypes) 
@@ -697,7 +710,7 @@ bool pdatatypes_decl::fix_missing_refs(symbol & missing) {
 }
 
 sort* pdecl_manager::instantiate_datatype(psort_decl* p, symbol const& name, unsigned n, sort * const* s) {
-    TRACE("datatype", tout << name << " "; for (unsigned i = 0; i < n; ++i) tout << s[i]->get_name() << " "; tout << "\n";);
+    TRACE(datatype, tout << name << " "; for (unsigned i = 0; i < n; ++i) tout << s[i]->get_name() << " "; tout << "\n";);
 
     pdecl_manager& m = *this;
     sort * r = p->find(s);
@@ -707,7 +720,7 @@ sort* pdecl_manager::instantiate_datatype(psort_decl* p, symbol const& name, uns
     }
     buffer<parameter> ps;
     ps.push_back(parameter(name));
-    for (unsigned i = 0; i < n; i++)
+    for (unsigned i = 0; i < n; ++i)
         ps.push_back(parameter(s[i]));
     datatype_util util(m.m());
     r = m.m().mk_sort(util.get_family_id(), DATATYPE_SORT, ps.size(), ps.data());
@@ -850,8 +863,13 @@ struct pdecl_manager::app_sort_info : public pdecl_manager::sort_info {
         }
         else {
             ptr_buffer<format> b;
-            for (auto arg : m_args)
-                b.push_back(m.pp(env, arg));
+            for (auto arg : m_args) {
+                // Native indexed sorts such as FiniteField may have no parser
+                // declaration metadata. Use the environment's builtin fallback
+                // instead of passing a null format to the compound sort printer.
+                format * f = m.pp(env, arg);
+                b.push_back(f ? f : env.pp_sort(arg));
+            }
             return mk_seq1(m.m(), b.begin(), b.end(), f2f(), name);
         }
     }
@@ -926,7 +944,7 @@ pdecl_manager::~pdecl_manager() {
     reset_sort_info();
     for (auto const& kv : m_sort2psort) {
         del_decl_core(kv.m_value);
-        TRACE("pdecl_manager", tout << "orphan: " << mk_pp(kv.m_key, m()) << "\n";);
+        TRACE(pdecl_manager, tout << "orphan: " << mk_pp(kv.m_key, m()) << "\n";);
     }
     for (auto* p : m_table) {
         del_decl_core(p);
@@ -970,7 +988,7 @@ pconstructor_decl * pdecl_manager::mk_pconstructor_decl(unsigned num_params,
 }
 
 pdatatype_decl * pdecl_manager::mk_pdatatype_decl(unsigned num_params, symbol const & s, unsigned num, pconstructor_decl * const * cs) {
-    TRACE("datatype", tout << s << " has " << num_params << " parameters\n";);
+    TRACE(datatype, tout << s << " has " << num_params << " parameters\n";);
     return new (a().allocate(sizeof(pdatatype_decl))) pdatatype_decl(m_id_gen.mk(), num_params, *this,
                                                                      s, num, cs);
 }
@@ -1017,7 +1035,7 @@ sort * pdecl_manager::instantiate(psort * p, unsigned num, sort * const * args) 
 
 
 void pdecl_manager::del_decl_core(pdecl * p) {
-    TRACE("pdecl_manager",
+    TRACE(pdecl_manager,
           tout << "del_decl_core:\n";
           if (p->is_psort()) static_cast<psort*>(p)->display(tout);
           else static_cast<psort_decl*>(p)->display(tout);
@@ -1030,7 +1048,7 @@ void pdecl_manager::del_decl_core(pdecl * p) {
 }
 
 void pdecl_manager::del_decl(pdecl * p) {
-    TRACE("pdecl_manager", tout << "del psort "; p->display(tout); tout << "\n";);
+    TRACE(pdecl_manager, tout << "del psort "; p->display(tout); tout << "\n";);
     if (p->is_psort()) {
         psort * _p = static_cast<psort*>(p);
         if (_p->is_sort_wrapper()) {

@@ -325,7 +325,7 @@ extern "C" {
     static bool to_anum_vector(Z3_context c, unsigned n, Z3_ast a[], scoped_anum_vector & as) {
         algebraic_numbers::manager & _am = am(c);
         scoped_anum tmp(_am);
-        for (unsigned i = 0; i < n; i++) {
+        for (unsigned i = 0; i < n; ++i) {
             if (is_rational(c, a[i])) {
                 _am.set(tmp, get_rational(c, a[i]).to_mpq());
                 as.push_back(tmp);
@@ -378,7 +378,7 @@ extern "C" {
         }
         Z3_ast_vector_ref* result = alloc(Z3_ast_vector_ref, *mk_c(c), mk_c(c)->m());
         mk_c(c)->save_object(result);
-        for (unsigned i = 0; i < roots.size(); i++) {
+        for (unsigned i = 0; i < roots.size(); ++i) {
             result->m_ast_vector.push_back(au(c).mk_numeral(_am, roots.get(i), false));
         }
         RETURN_Z3(of_ast_vector(result));
@@ -421,7 +421,10 @@ extern "C" {
         Z3_TRY;
         LOG_Z3_algebraic_get_poly(c, a);
         RESET_ERROR_CODE();
-        CHECK_IS_ALGEBRAIC(a, nullptr);
+        if (!Z3_is_algebraic_number(c, a)) {
+            SET_ERROR_CODE(Z3_INVALID_ARG, nullptr);
+            return nullptr;
+        }
         algebraic_numbers::manager & _am = am(c);
         algebraic_numbers::anum const & av = get_irrational(c, a);
         scoped_mpz_vector coeffs(_am.qm());
@@ -441,10 +444,13 @@ extern "C" {
         Z3_TRY;
         LOG_Z3_algebraic_get_i(c, a);
         RESET_ERROR_CODE();
-        CHECK_IS_ALGEBRAIC(a, 0);
+        if (!Z3_is_algebraic_number(c, a)) {
+            SET_ERROR_CODE(Z3_INVALID_ARG, nullptr);
+            return 0;
+        }
         algebraic_numbers::manager & _am = am(c);
         algebraic_numbers::anum const & av = get_irrational(c, a);
         return _am.get_i(av);
         Z3_CATCH_RETURN(0);
     }
-};
+}

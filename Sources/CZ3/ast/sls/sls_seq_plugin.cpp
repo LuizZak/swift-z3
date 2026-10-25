@@ -103,7 +103,7 @@ namespace sls {
     struct zstring_hash_proc {
         unsigned operator()(zstring const & s) const {
             auto str = s.encode();
-            return string_hash(str.c_str(), static_cast<unsigned>(s.length()), 17);
+            return string_hash(std::string_view(str), 17);
         }
     };
     
@@ -159,9 +159,11 @@ namespace sls {
                 // set e to length of x or
                 // set x to a string of length e
 
-                if (r == 0 || sx.length() == 0)
+                if (r == 0 || sx.length() == 0) {
                     // create lemma: len(x) = 0 <=> x = ""
-                    ctx.add_constraint(m.mk_eq(m.mk_eq(e, a.mk_int(0)), m.mk_eq(x, seq.str.mk_string(""))));
+                    expr_ref len_zero(m.mk_eq(e, a.mk_int(0)), m);
+                    ctx.add_constraint(m.mk_eq(len_zero, m.mk_eq(x, seq.str.mk_string(""))));
+                }
 
                 if (ctx.rand(2) == 0 && update(e, rational(sx.length())))
                     return false;
@@ -172,9 +174,7 @@ namespace sls {
                     return false;
                 if (r > sx.length() && update(x, sx + zstring(random_char())))
                     return false;
-                // This case seems to imply unsat
-                verbose_stream() << "The input might be unsat\n"; // example to trigger: (assert (and (>= (str.len X) 2) (= (str.substr X 0 1) "")))
-                VERIFY(false);
+                // Both updates failed. Treat as unsatisfied and let outer search continue.
                 return false;
             }
 
@@ -198,8 +198,16 @@ namespace sls {
                 return false;
             }
             if (seq.str.is_last_index(e, x, y) && seq.is_string(x->get_sort())) {
-                // TODO
-                NOT_IMPLEMENTED_YET();
+                auto sx = strval0(x);
+                auto sy = strval0(y);
+                rational val_e;
+                if (!a.is_numeral(ctx.get_value(e), val_e))
+                    return false;
+                rational actual(sx.last_indexof(sy));
+                if (val_e == actual)
+                    continue;
+                update(e, actual);
+                return false;
             }
             if (seq.str.is_stoi(e, x) && seq.is_string(x->get_sort())) {
                 auto sx = strval0(x);
@@ -490,6 +498,7 @@ namespace sls {
             case OP_SEQ_MAPI:
             case OP_SEQ_FOLDL:
             case OP_SEQ_FOLDLI:           
+            case OP_SEQ_POWER:
             case OP_RE_DERIVATIVE:
             case OP_STRING_ITOS:
             case OP_STRING_FROM_CODE:
@@ -505,6 +514,7 @@ namespace sls {
             case OP_RE_CONCAT:
             case OP_RE_UNION:
             case OP_RE_DIFF:
+            case OP_RE_XOR:
             case OP_RE_INTERSECT:
             case OP_RE_LOOP:
             case OP_RE_POWER:
@@ -753,7 +763,7 @@ namespace sls {
             for (unsigned j = 1; j <= val_other.length() - i; ++j) {
                 zstring sub = val_other.extract(i, j);
                 if (set.contains(sub))
-                    break;
+                    continue;
                 set.insert(sub);
             }
         }
@@ -906,7 +916,7 @@ namespace sls {
                         m_string_updates.reset();
                         u[i][j] = d[i - 1][j];
                     }
-                    if (d[i][j - 1] < u[i][j] && b.can_add(i - 1)) {
+                    if (d[i][j - 1] < u[i][j] && b.can_add(j - 1)) {
                         m_string_updates.reset();
                         u[i][j] = d[i][j - 1];
                     }
@@ -1279,6 +1289,7 @@ namespace sls {
         case OP_SEQ_MAPI:
         case OP_SEQ_FOLDL:
         case OP_SEQ_FOLDLI:
+        case OP_SEQ_POWER:
 
         case OP_SEQ_TO_RE:
         case OP_RE_PLUS:            
@@ -1288,6 +1299,7 @@ namespace sls {
         case OP_RE_CONCAT:
         case OP_RE_UNION:
         case OP_RE_DIFF:
+        case OP_RE_XOR:
         case OP_RE_INTERSECT:
         case OP_RE_LOOP:
         case OP_RE_POWER:
@@ -1624,13 +1636,13 @@ namespace sls {
 
         if (offset_val.is_neg() || offset_val.get_unsigned() >= r.length()) {
             has_empty = true;
-            for (unsigned i = 0; i < r.length(); i++)
+            for (unsigned i = 0; i < r.length(); ++i)
                 m_int_updates.push_back({ offset, rational(i), 1 });
         }
 
         if (!len_val.is_pos()) {
             has_empty = true;
-            for (unsigned i = 1; i + offset_u < r.length(); i++)
+            for (unsigned i = 1; i + offset_u < r.length(); ++i)
                 m_int_updates.push_back({ len, rational(i), 1 });
         }
 

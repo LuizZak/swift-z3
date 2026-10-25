@@ -29,6 +29,7 @@ Revision History:
 #pragma once
 #include "math/lp/numeric_pair.h"
 #include "util/ext_gcd.h"
+#include <functional>
 namespace lp {
 namespace hnf_calc {
 
@@ -78,39 +79,39 @@ void extended_gcd_minimal_uv(const mpq & a, const mpq & b, mpq & d, mpq & u, mpq
         k -= one_of_type<mpq>();
     }
 
-    lp_assert(v == k * a_over_d + r);
+    SASSERT(v == k * a_over_d + r);
 
     if (is_pos(b)) {
         v = r - a_over_d; //   v -= (k + 1) * a_over_d;
-        lp_assert(- a_over_d < v && v <= zero_of_type<mpq>());
+        SASSERT(- a_over_d < v && v <= zero_of_type<mpq>());
 
         if (is_pos(a)) {
             u += (k + 1) * (b / d);
-            lp_assert( one_of_type<mpq>() <= u && u <= abs(b)/d);
+            SASSERT( one_of_type<mpq>() <= u && u <= abs(b)/d);
         } else {
             u -= (k + 1) * (b / d);
-            lp_assert( one_of_type<mpq>() <= -u && -u <= abs(b)/d);
+            SASSERT( one_of_type<mpq>() <= -u && -u <= abs(b)/d);
         }
     } else {
         v = r; // v -= k * a_over_d;
-        lp_assert(- a_over_d < -v && -v <= zero_of_type<mpq>());
+        SASSERT(- a_over_d < -v && -v <= zero_of_type<mpq>());
         if (is_pos(a)) {
             u += k * (b / d);
-            lp_assert( one_of_type<mpq>() <= u && u <= abs(b)/d);
+            SASSERT( one_of_type<mpq>() <= u && u <= abs(b)/d);
         } else {
             u -= k * (b / d);
-            lp_assert( one_of_type<mpq>() <= -u && -u <= abs(b)/d);
+            SASSERT( one_of_type<mpq>() <= -u && -u <= abs(b)/d);
         }
     }
-    lp_assert(d == u * a + v * b);
+    SASSERT(d == u * a + v * b);
 }
 
 
 
 template <typename M> 
 bool prepare_pivot_for_lower_triangle(M &m, unsigned r) {
-    for (unsigned i = r; i < m.row_count(); i++) {
-        for (unsigned j = r; j < m.column_count(); j++) {
+    for (unsigned i = r; i < m.row_count(); ++i) {
+        for (unsigned j = r; j < m.column_count(); ++j) {
             if (!is_zero(m[i][j])) {
                 if (i != r) {
                     m.transpose_rows(i, r);
@@ -127,17 +128,27 @@ bool prepare_pivot_for_lower_triangle(M &m, unsigned r) {
 
 template <typename M> 
 void pivot_column_non_fractional(M &m, unsigned r, bool & overflow, const mpq & big_number) {
-    lp_assert(!is_zero(m[r][r]));
-    for (unsigned j = r + 1; j < m.column_count(); j++) {
-        for (unsigned i = r + 1; i  < m.row_count(); i++) {            
-            if (
-                (m[i][j] = (r > 0) ? (m[r][r]*m[i][j] - m[i][r]*m[r][j]) / m[r-1][r-1] :
-                                     (m[r][r]*m[i][j] - m[i][r]*m[r][j]))
-                >= big_number) {
+    SASSERT(!is_zero(m[r][r]));
+    // rows <= r are not written below, so these pivot entries are loop-invariant
+    const auto & mrr = m[r][r];
+    const mpq * denom = r > 0 ? &m[r - 1][r - 1] : nullptr;
+    mpq scratch;
+    for (unsigned j = r + 1; j < m.column_count(); ++j) {
+        const auto & mrj = m[r][j];
+        for (unsigned i = r + 1; i < m.row_count(); ++i) {
+            auto & mij = m[i][j];
+            // reuse scratch to avoid allocating fresh bignum temporaries per cell
+            mij *= mrr;
+            scratch = m[i][r];
+            scratch *= mrj;
+            mij -= scratch;
+            if (denom)
+                mij /= *denom;
+            if (mij >= big_number) {
                 overflow = true;
                 return;
             }
-            lp_assert(is_integer(m[i][j]));
+            SASSERT(is_integer(mij));
         }
     }
 }
@@ -146,7 +157,7 @@ void pivot_column_non_fractional(M &m, unsigned r, bool & overflow, const mpq & 
 template <typename M> 
 unsigned to_lower_triangle_non_fractional(M &m, bool & overflow, const mpq& big_number) {
     unsigned i = 0;
-    for (; i < m.row_count(); i++) {
+    for (; i < m.row_count(); ++i) {
         if (!prepare_pivot_for_lower_triangle(m, i)) {
             return i;
         }
@@ -154,7 +165,7 @@ unsigned to_lower_triangle_non_fractional(M &m, bool & overflow, const mpq& big_
         if (overflow)
             return 0;
     }
-    lp_assert(i == m.row_count());
+    SASSERT(i == m.row_count());
     return i; 
 }
 
@@ -163,13 +174,13 @@ template <typename M>
 mpq gcd_of_row_starting_from_diagonal(const M& m, unsigned i) {
     mpq g = zero_of_type<mpq>();
     unsigned j = i;
-    for (; j < m.column_count() && is_zero(g); j++) {
+    for (; j < m.column_count() && is_zero(g); ++j) {
         const auto & t = m[i][j];
         if (!is_zero(t))
             g = abs(t);
     }
-    lp_assert(!is_zero(g));
-    for (; j < m.column_count(); j++) {
+    SASSERT(!is_zero(g));
+    for (; j < m.column_count(); ++j) {
         const auto & t = m[i][j];
         if (!is_zero(t))
             g = gcd(g, t);
@@ -193,10 +204,10 @@ mpq determinant_of_rectangular_matrix(const M& m, svector<unsigned> & basis_rows
     if (rank == 0)
         return one_of_type<mpq>();
 
-    for (unsigned i = 0; i < rank; i++) {
+    for (unsigned i = 0; i < rank; ++i) {
         basis_rows.push_back(m_copy.adjust_row(i));
     }
-    TRACE("hnf_calc", tout << "basis_rows = "; print_vector(basis_rows, tout); m_copy.print(tout, "m_copy = "););
+    TRACE(hnf_calc, tout << "basis_rows = "; print_vector(basis_rows, tout); m_copy.print(tout, "m_copy = "););
     return gcd_of_row_starting_from_diagonal(m_copy, rank - 1);
 }
 } // end of namespace hnf_calc
@@ -221,6 +232,8 @@ class hnf {
     unsigned     m_j;
     mpq          m_R;
     mpq          m_half_R;
+    bool         m_cancelled = false;
+    std::function<bool()> m_cancel_flag;
     mpq mod_R_balanced(const mpq & a) const {
        mpq t = a % m_R;
        return t > m_half_R? t - m_R : (t < - m_half_R? t + m_R : t);
@@ -229,40 +242,40 @@ class hnf {
     mpq mod_R(const mpq & a) const {
        mpq t = a % m_R;
        t = is_neg(t) ? t + m_R : t;       
-       CTRACE("hnf", is_neg(t), tout << "a=" << a << ", m_R= " << m_R << std::endl;);
+       CTRACE(hnf, is_neg(t), tout << "a=" << a << ", m_R= " << m_R << std::endl;);
        return t;
            
     }
 
 #ifdef Z3DEBUG
     void buffer_p_col_i_plus_q_col_j_H(const mpq & p, unsigned i, const mpq & q, unsigned j) {
-        for (unsigned k = i; k < m_m; k++) {
+        for (unsigned k = i; k < m_m; ++k) {
             m_buffer[k] =  p * m_H[k][i] + q * m_H[k][j];
         }
     }
 #endif
     bool zeros_in_column_W_above(unsigned i) {
-        for (unsigned k = 0; k < i; k++)
+        for (unsigned k = 0; k < i; ++k)
             if (!is_zero(m_W[k][i]))
                 return false;
         return true;
     }
     
     void buffer_p_col_i_plus_q_col_j_W_modulo(const mpq & p, const mpq & q) {
-        lp_assert(zeros_in_column_W_above(m_i));
-        for (unsigned k = m_i; k < m_m; k++) {
+        SASSERT(zeros_in_column_W_above(m_i));
+        for (unsigned k = m_i; k < m_m; ++k) {
             m_buffer[k] =  mod_R_balanced(mod_R_balanced(p * m_W[k][m_i]) + mod_R_balanced(q * m_W[k][m_j]));
         }
     }
 #ifdef Z3DEBUG
     void buffer_p_col_i_plus_q_col_j_U(const mpq & p, unsigned i, const mpq & q, unsigned j) {
-        for (unsigned k = 0; k < m_n; k++) {
+        for (unsigned k = 0; k < m_n; ++k) {
             m_buffer[k] = p * m_U[k][i] + q * m_U[k][j];
         }
     }
 
     void pivot_column_i_to_column_j_H(mpq u, unsigned i, mpq v, unsigned j) {
-        lp_assert(is_zero(u * m_H[i][i] + v * m_H[i][j]));
+        SASSERT(is_zero(u * m_H[i][i] + v * m_H[i][j]));
         m_H[i][j] = zero_of_type<mpq>();
         for (unsigned k = i + 1; k < m_m; k ++)
             m_H[k][j] = u * m_H[k][i] + v * m_H[k][j];
@@ -270,7 +283,7 @@ class hnf {
     }
 #endif
     void pivot_column_i_to_column_j_W_modulo(mpq u, mpq v)  {
-        lp_assert(is_zero((u * m_W[m_i][m_i] + v * m_W[m_i][m_j]) % m_R));
+        SASSERT(is_zero((u * m_W[m_i][m_i] + v * m_W[m_i][m_j]) % m_R));
         m_W[m_i][m_j] = zero_of_type<mpq>();
         for (unsigned k = m_i + 1; k < m_m; k ++)
             m_W[k][m_j] = mod_R_balanced(mod_R_balanced(u * m_W[k][m_i]) + mod_R_balanced(v * m_W[k][m_j]));
@@ -284,12 +297,12 @@ class hnf {
     }
 
     void copy_buffer_to_col_i_H(unsigned i) {
-        for (unsigned k = i; k < m_m; k++) {
+        for (unsigned k = i; k < m_m; ++k) {
             m_H[k][i] = m_buffer[k];
         }
     }
     void copy_buffer_to_col_i_U(unsigned i) {
-        for (unsigned k = 0; k < m_n; k++)
+        for (unsigned k = 0; k < m_n; ++k)
             m_U[k][i] = m_buffer[k];
     }
 
@@ -301,17 +314,17 @@ class hnf {
     
     void multiply_U_reverse_from_left_by(unsigned i, unsigned j, const mpq & a, const mpq & b, const mpq & c, const mpq d) {
         // the new i-th row goes to the buffer
-        for (unsigned k = 0; k < m_n; k++) {
+        for (unsigned k = 0; k < m_n; ++k) {
             m_buffer[k] = a * m_U_reverse[i][k] + b * m_U_reverse[j][k];
         }
 
         // calculate the new j-th row in place
-        for (unsigned k = 0; k < m_n; k++) {
+        for (unsigned k = 0; k < m_n; ++k) {
             m_U_reverse[j][k] = c * m_U_reverse[i][k] + d * m_U_reverse[j][k];
         }
 
         // copy the buffer into i-th row
-        for (unsigned k = 0; k < m_n; k++) {
+        for (unsigned k = 0; k < m_n; ++k) {
             m_U_reverse[i][k] = m_buffer[k];
         }
     }
@@ -346,13 +359,13 @@ class hnf {
     
 
     void switch_sign_for_column(unsigned i) {
-        for (unsigned k = i; k < m_m; k++)
+        for (unsigned k = i; k < m_m; ++k)
             m_H[k][i].neg();
-        for (unsigned k = 0; k < m_n; k++)
+        for (unsigned k = 0; k < m_n; ++k)
             m_U[k][i].neg();
 
         // switch sign for the i-th row in the reverse m_U_reverse
-        for (unsigned k = 0; k < m_n; k++)
+        for (unsigned k = 0; k < m_n; ++k)
             m_U_reverse[i][k].neg();
         
     }
@@ -364,15 +377,15 @@ class hnf {
     }
 
     void replace_column_j_by_j_minus_u_col_i_H(unsigned i, unsigned j, const mpq & u) {
-        lp_assert(j < i);
-        for (unsigned k = i; k < m_m; k++) {
+        SASSERT(j < i);
+        for (unsigned k = i; k < m_m; ++k) {
             m_H[k][j] -= u * m_H[k][i];
         }
     }
     void replace_column_j_by_j_minus_u_col_i_U(unsigned i, unsigned j, const mpq & u) {
         
-        lp_assert(j < i);
-        for (unsigned k = 0; k < m_n; k++) {
+        SASSERT(j < i);
+        for (unsigned k = 0; k < m_n; ++k) {
             m_U[k][j] -= u * m_U[k][i];
         }
         // Here we multiply from m_U from the right by the matrix ( 1,  0)
@@ -380,7 +393,7 @@ class hnf {
         // To adjust the reverse we multiply it from the left by (1, 0)
         //                                                       (u, 1)
 
-        for (unsigned k = 0; k < m_n; k++) {
+        for (unsigned k = 0; k < m_n; ++k) {
             m_U_reverse[i][k] += u * m_U_reverse[j][k];
         }
        
@@ -390,7 +403,7 @@ class hnf {
     void work_on_columns_less_than_i_in_the_triangle(unsigned i) {
         const mpq & mii = m_H[i][i];
         if (is_zero(mii)) return;
-        for (unsigned j = 0; j < i; j++) {
+        for (unsigned j = 0; j < i; ++j) {
             const mpq & mij = m_H[i][j];
             if (!is_pos(mij) && - mij < mii)
                 continue;
@@ -401,11 +414,11 @@ class hnf {
     }
     
     void process_row(unsigned i) {
-        for (unsigned j = i + 1; j < m_n; j++) {
+        for (unsigned j = i + 1; j < m_n; ++j) {
             process_row_column(i, j);
         }
         if (i >= m_n) {
-            lp_assert(m_H == m_A_orig * m_U);
+            SASSERT(m_H == m_A_orig * m_U);
             return;
         }
         if (is_neg(m_H[i][i]))
@@ -415,19 +428,19 @@ class hnf {
     }
 
     void calculate() {
-        for (unsigned i = 0; i < m_m; i++) {
+        for (unsigned i = 0; i < m_m; ++i) {
             process_row(i);
         }
     }
 
     void prepare_U_and_U_reverse() {
         m_U = M(m_H.column_count());
-        for (unsigned i = 0; i < m_U.column_count(); i++)
+        for (unsigned i = 0; i < m_U.column_count(); ++i)
             m_U[i][i] = 1;
 
         m_U_reverse = m_U;
         
-        lp_assert(m_H == m_A_orig * m_U);
+        SASSERT(m_H == m_A_orig * m_U);
     }
 
     bool row_is_correct_form(unsigned i) const {
@@ -436,7 +449,7 @@ class hnf {
         const mpq& hii = m_H[i][i];
         if (is_neg(hii))
             return false;
-        for (unsigned j = 0; j < i; j++) {
+        for (unsigned j = 0; j < i; ++j) {
             const mpq & hij = m_H[i][j];
             if (is_pos(hij))
                 return false;
@@ -448,7 +461,7 @@ class hnf {
     }
     
     bool is_correct_form() const {
-        for (unsigned i = 0; i < m_m; i++)
+        for (unsigned i = 0; i < m_m; ++i)
             if (!row_is_correct_form(i))
                 return false;
         return true;
@@ -464,14 +477,14 @@ class hnf {
 
     bool is_correct_final() const {
         if (!is_correct()) {
-            TRACE("hnf_calc",
+            TRACE(hnf_calc,
                   tout << "m_H =            "; m_H.print(tout, 17);
                   tout << "\nm_A_orig * m_U = ";  (m_A_orig * m_U).print(tout, 17);
                   tout << "is_correct() does not hold" << std::endl;);
             return false;
         }
         if (!is_correct_form()) {
-            TRACE("hnf_calc", tout << "is_correct_form() does not hold" << std::endl;);
+            TRACE(hnf_calc, tout << "is_correct_form() does not hold" << std::endl;);
             return false;
         }
         return true;
@@ -483,14 +496,14 @@ public:
 private:
 #endif
     void copy_buffer_to_col_i_W_modulo() {
-        for (unsigned k = m_i; k < m_m; k++) {
+        for (unsigned k = m_i; k < m_m; ++k) {
             m_W[k][m_i] = m_buffer[k];
         }
     }
 
     void replace_column_j_by_j_minus_u_col_i_W(unsigned j, const mpq & u) {
-        lp_assert(j < m_i);
-        for (unsigned k = m_i; k < m_m; k++) {
+        SASSERT(j < m_i);
+        for (unsigned k = m_i; k < m_m; ++k) {
             m_W[k][j] -= u * m_W[k][m_i];
             //  m_W[k][j] = mod_R_balanced(m_W[k][j]);
         }
@@ -501,7 +514,7 @@ private:
         unsigned n = u.column_count();
         if (m != n) return false;
         for (unsigned i = 0; i < m; i ++)
-            for (unsigned j = 0; j < n; j++) {
+            for (unsigned j = 0; j < n; ++j) {
                 if (i == j) {
                     if (one_of_type<mpq>() != u[i][j])
                         return false;
@@ -546,16 +559,16 @@ private:
         if (is_zero(mii))
             mii = d;
 
-        lp_assert(is_pos(mii));
+        SASSERT(is_pos(mii));
 
          // adjust column m_i
-        for (unsigned k = m_i + 1; k < m_m; k++) {
+        for (unsigned k = m_i + 1; k < m_m; ++k) {
             m_W[k][m_i] *= u;
             m_W[k][m_i] = mod_R_balanced(m_W[k][m_i]);
         }
 
-        lp_assert(is_pos(mii));
-        for (unsigned j = 0; j < m_i; j++) {
+        SASSERT(is_pos(mii));
+        for (unsigned j = 0; j < m_i; ++j) {
             const mpq & mij = m_W[m_i][j];
             if (!is_pos(mij) && - mij < mii)
                 continue;
@@ -566,7 +579,7 @@ private:
 
     
     void process_row_modulo() {
-        for (m_j = m_i + 1; m_j < m_n; m_j++) {
+        for (m_j = m_i + 1; m_j < m_n; ++m_j) {
             process_column_in_row_modulo();
         }
         fix_row_under_diagonal_W_modulo();
@@ -574,16 +587,20 @@ private:
     
     void calculate_by_modulo() {
         for (m_i = 0; m_i < m_m; m_i ++) {
+            if (m_cancel_flag && m_cancel_flag()) {
+                m_cancelled = true;
+                return;
+            }
             process_row_modulo();
-            lp_assert(is_pos(m_W[m_i][m_i]));
+            SASSERT(is_pos(m_W[m_i][m_i]));
             m_R /= m_W[m_i][m_i];
-            lp_assert(is_integer(m_R));
+            SASSERT(is_integer(m_R));
             m_half_R = floor(m_R / 2);
         }
     }
     
 public:
-    hnf(M & A, const mpq & d) :
+    hnf(M & A, const mpq & d, std::function<bool()> cancel_flag = nullptr) :
 #ifdef Z3DEBUG
         m_H(A),
         m_A_orig(A),
@@ -594,7 +611,8 @@ public:
         m_n(A.column_count()),
         m_d(d),
         m_R(m_d),
-        m_half_R(floor(m_R / 2))
+        m_half_R(floor(m_R / 2)),
+        m_cancel_flag(cancel_flag)
     {
         if (m_m == 0 || m_n == 0 || is_zero(m_d))
             return;
@@ -605,15 +623,18 @@ public:
 #endif
         calculate_by_modulo();
 #ifdef Z3DEBUG
-        CTRACE("hnf_calc", m_H != m_W,
-               tout << "A = "; m_A_orig.print(tout, 4); tout << std::endl;
-               tout << "H = "; m_H.print(tout, 4);  tout << std::endl;
-               tout << "W = "; m_W.print(tout, 4);  tout << std::endl;);
-        lp_assert (m_H == m_W);
+        if (!m_cancelled) {
+            CTRACE(hnf_calc, m_H != m_W,
+                   tout << "A = "; m_A_orig.print(tout, 4); tout << std::endl;
+                   tout << "H = "; m_H.print(tout, 4);  tout << std::endl;
+                   tout << "W = "; m_W.print(tout, 4);  tout << std::endl;);
+            SASSERT (m_H == m_W);
+        }
 #endif
     }
 
     const M & W() const { return m_W; }
+    bool is_cancelled() const { return m_cancelled; }
     
 };
 

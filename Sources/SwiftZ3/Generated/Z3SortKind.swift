@@ -37,5 +37,9 @@ public extension Z3SortKind {
     
     static let typeVar = Z3_TYPE_VAR
     
+    static let finiteFieldSort = Z3_FINITE_FIELD_SORT
+    
+    static let complexSort = Z3_COMPLEX_SORT
+    
     static let unknownSort = Z3_UNKNOWN_SORT
 }

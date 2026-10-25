@@ -33,7 +33,7 @@ static std::pair<unsigned, bool> space_upto_line_break(ast_manager & m, format *
         return space_upto_line_break(m, to_app(f->get_arg(0)));
     case OP_COMPOSE: 
         r = 0;
-        for (unsigned i = 0; i < f->get_num_args(); i++) {
+        for (unsigned i = 0; i < f->get_num_args(); ++i) {
             std::pair<unsigned, bool> pair = space_upto_line_break(m, to_app(f->get_arg(i)));
             r += pair.first;
             if (pair.second)
@@ -52,7 +52,7 @@ static std::pair<unsigned, bool> space_upto_line_break(ast_manager & m, format *
 
 inline bool fits(ast_manager & m, format * f, unsigned space_left) {
     unsigned s = space_upto_line_break(m, f).first;
-    TRACE("fits", tout << "s: " << s << " space_left " << space_left << "\n";);
+    TRACE(fits, tout << "s: " << s << " space_left " << space_left << "\n";);
     return s <= space_left;
 }
 
@@ -122,7 +122,7 @@ void pp(std::ostream & out, format * f, ast_manager & m, params_ref const & _p) 
             line++;
             if (line < max_num_lines) {
                 out << "\n";
-                for (unsigned i = 0; i < indent; i++) 
+                for (unsigned i = 0; i < indent; ++i) 
                     out << " ";
             }
             else

@@ -122,7 +122,9 @@ public:
   
     expr * form(unsigned i) const { return inconsistent() ? m().mk_false() : m().get(m_forms, i); }
     proof * pr(unsigned i) const { return m().size(m_proofs) > i ? static_cast<proof*>(m().get(m_proofs, i)) : nullptr; }
-    expr_dependency * dep(unsigned i) const { return unsat_core_enabled() ? m().get(m_dependencies, i) : nullptr; }
+    expr_dependency *dep(unsigned i) const {
+        return unsat_core_enabled() && i < m().size(m_dependencies) ? m().get(m_dependencies, i) : nullptr;
+    }
 
     void update(unsigned i, expr * f, proof * pr = nullptr, expr_dependency * dep = nullptr);
 
@@ -165,6 +167,41 @@ public:
     bool is_cnf() const;
 
     goal * translate(ast_translation & translator) const;
+
+    class iterator {
+    public:
+        using value_type = std::tuple<expr*, expr_dependency*, proof*>;
+        using reference = value_type&;
+        using pointer = value_type*;
+        using difference_type = std::ptrdiff_t;
+        using iterator_category = std::forward_iterator_tag;
+
+        iterator(goal const* g, unsigned idx) : m_goal(g), m_idx(idx) {}
+
+        value_type operator*() const {
+            return std::make_tuple(m_goal->form(m_idx), m_goal->dep(m_idx), m_goal->pr(m_idx));
+        }
+
+        iterator& operator++() {
+            ++m_idx;
+            return *this;
+        }
+
+        bool operator==(const iterator& other) const {
+            return m_goal == other.m_goal && m_idx == other.m_idx;
+        }
+
+        bool operator!=(const iterator& other) const {
+            return !(*this == other);
+        }
+
+    private:
+        goal const* m_goal;
+        unsigned m_idx;
+    };
+
+    iterator begin() const { return iterator(this, 0); }
+    iterator end() const { return iterator(this, size()); }
 };
 
 std::ostream & operator<<(std::ostream & out, goal::precision p);
@@ -197,7 +234,7 @@ bool test(goal const & g, Predicate & proc) {
     expr_fast_mark1 visited;
     try {
         unsigned sz = g.size();
-        for (unsigned i = 0; i < sz; i++)
+        for (unsigned i = 0; i < sz; ++i)
             quick_for_each_expr(proc, visited, g.form(i));
     }
     catch (const typename Predicate::found &) {

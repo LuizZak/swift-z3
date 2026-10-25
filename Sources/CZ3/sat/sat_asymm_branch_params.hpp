@@ -1,27 +1,28 @@
-// Automatically generated file
+/*++
+Copyright (c) 2024 Microsoft Corporation
+
+Module Name:
+
+    sat_asymm_branch_params.hpp
+
+Abstract:
+
+    Parameters for the 'sat' module.
+
+--*/
 #pragma once
+
 #include "util/params.h"
 #include "util/gparams.h"
-struct sat_asymm_branch_params {
-  params_ref const & p;
-  params_ref g;
-  sat_asymm_branch_params(params_ref const & _p = params_ref::get_empty()):
-     p(_p), g(gparams::get_module("sat")) {}
-  static void collect_param_descrs(param_descrs & d) {
-    d.insert("asymm_branch", CPK_BOOL, "asymmetric branching", "true","sat");
-    d.insert("asymm_branch.rounds", CPK_UINT, "maximal number of rounds to run asymmetric branch simplifications if progress is made", "2","sat");
-    d.insert("asymm_branch.delay", CPK_UINT, "number of simplification rounds to wait until invoking asymmetric branch simplification", "1","sat");
-    d.insert("asymm_branch.sampled", CPK_BOOL, "use sampling based asymmetric branching based on binary implication graph", "true","sat");
-    d.insert("asymm_branch.limit", CPK_UINT, "approx. maximum number of literals visited during asymmetric branching", "100000000","sat");
-    d.insert("asymm_branch.all", CPK_BOOL, "asymmetric branching on all literals per clause", "false","sat");
-  }
-  /*
-     REG_MODULE_PARAMS('sat', 'sat_asymm_branch_params::collect_param_descrs')
-  */
-  bool asymm_branch() const { return p.get_bool("asymm_branch", g, true); }
-  unsigned asymm_branch_rounds() const { return p.get_uint("asymm_branch.rounds", g, 2u); }
-  unsigned asymm_branch_delay() const { return p.get_uint("asymm_branch.delay", g, 1u); }
-  bool asymm_branch_sampled() const { return p.get_bool("asymm_branch.sampled", g, true); }
-  unsigned asymm_branch_limit() const { return p.get_uint("asymm_branch.limit", g, 100000000u); }
-  bool asymm_branch_all() const { return p.get_bool("asymm_branch.all", g, false); }
-};
+
+#define SAT_ASYMM_BRANCH_PARAMS_LIST(UINT_, BOOL_, DOUBLE_, STRING_, SYMBOL_) \
+  BOOL_(asymm_branch,          "asymm_branch",          true,       "asymmetric branching") \
+  UINT_(asymm_branch_rounds,   "asymm_branch.rounds",   2,          "maximal number of rounds to run asymmetric branch simplifications if progress is made") \
+  UINT_(asymm_branch_delay,    "asymm_branch.delay",    1,          "number of simplification rounds to wait until invoking asymmetric branch simplification") \
+  BOOL_(asymm_branch_sampled,  "asymm_branch.sampled",  true,       "use sampling based asymmetric branching based on binary implication graph") \
+  UINT_(asymm_branch_limit,    "asymm_branch.limit",    100000000,  "approx. maximum number of literals visited during asymmetric branching") \
+  BOOL_(asymm_branch_all,      "asymm_branch.all",      false,      "asymmetric branching on all literals per clause")
+
+Z3_DEFINE_MODULE_PARAMS(sat_asymm_branch_params, "sat", SAT_ASYMM_BRANCH_PARAMS_LIST, nullptr);
+
+#undef SAT_ASYMM_BRANCH_PARAMS_LIST

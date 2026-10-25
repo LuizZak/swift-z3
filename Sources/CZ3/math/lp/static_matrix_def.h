@@ -29,26 +29,28 @@ namespace lp {
 
     inline void addmul(double& r, double a, double b) { r += a*b; }
     inline void addmul(mpq& r, mpq const& a, mpq const& b) { r.addmul(a, b); }
+    inline void mul(double a, double b, double& r) { r = a*b; }
+    inline void mul(mpq const& a, mpq const& b, mpq& r) { mpq::mul(a, b, r); }
 
     template <typename T, typename X>
     void  static_matrix<T, X>::init_row_columns(unsigned m, unsigned n) {
         SASSERT(m_rows.size() == 0 && m_columns.size() == 0);
-        for (unsigned i = 0; i < m; i++) {
+        for (unsigned i = 0; i < m; ++i) {
             m_rows.push_back(row_strip<T>());
         }
-        for (unsigned j = 0; j < n; j++) {
+        for (unsigned j = 0; j < n; ++j) {
             m_columns.push_back(column_strip());
         }
     }
 
 
     template <typename T, typename X> void static_matrix<T, X>:: scan_row_strip_to_work_vector(const row_strip<T> & rvals) {
-        for (unsigned j = 0; j < rvals.size(); j++)
+        for (unsigned j = 0; j < rvals.size(); ++j)
             m_work_vector_of_row_offsets[rvals[j].var()] = j;
     }
 
 
-    template <typename T, typename X> bool static_matrix<T, X>::pivot_row_to_row_given_cell(unsigned i, 
+    template <typename T, typename X> void static_matrix<T, X>::pivot_row_to_row_given_cell(unsigned i, 
                                                                                             column_cell & c, unsigned pivot_col) {
         unsigned ii = c.var();
         SASSERT(i < row_count() && ii < column_count() && i != ii);
@@ -59,35 +61,42 @@ namespace lp {
         scan_row_strip_to_work_vector(rowii);
         unsigned prev_size_ii = static_cast<unsigned>(rowii.size());
         // run over the pivot row and update row ii
+        m_cancelled = 0;
         for (const auto & iv : m_rows[i]) {
             unsigned j = iv.var();
             if (j == pivot_col) continue;
             SASSERT(!is_zero(iv.coeff()));
             int j_offs = m_work_vector_of_row_offsets[j];
-            if (j_offs == -1) { // it is a new element
-                T alv = alpha * iv.coeff();
-                add_new_element(ii, j, alv);
-            }
+            if (j_offs == -1)   // it is a new element, its coefficient is computed in place
+                mul(alpha, iv.coeff(), add_new_element(ii, j));
             else {
-                addmul(rowii[j_offs].coeff(), iv.coeff(), alpha);
+                T& c = rowii[j_offs].coeff();
+                addmul(c, iv.coeff(), alpha);
+                if (is_zero(c))
+                    ++m_cancelled;
             }
         }
         // clean the work vector
-        for (unsigned k = 0; k < prev_size_ii; k++) {
+        for (unsigned k = 0; k < prev_size_ii; ++k) {
             m_work_vector_of_row_offsets[rowii[k].var()] = -1;
         }
 
-        // remove zeroes
-        for (unsigned k = static_cast<unsigned>(rowii.size()); k-- > 0;  ) {
-            if (is_zero(rowii[k].coeff()))
-                remove_element(rowii, rowii[k]);
+        // remove the cancelled cells: only the cells that existed before this update can be
+        // cancelled, the new cells are non-zero, so the scan is skipped unless a cancellation was seen
+        if (m_cancelled > 0) {
+            for (unsigned k = prev_size_ii; k-- > 0 && m_cancelled > 0;  ) {
+                if (is_zero(rowii[k].coeff())) {
+                    remove_element(rowii, rowii[k]);
+                    --m_cancelled;
+                }
+            }
         }
-        return !rowii.empty();
+        SASSERT(!rowii.empty());
     }
 
     
     template <typename T, typename X> void static_matrix<T, X>::add_rows(const mpq& alpha, unsigned i, unsigned k) {
-        lp_assert(i < row_count() && k < row_count() && i != k);
+        SASSERT(i < row_count() && k < row_count() && i != k);
         auto & rowk = m_rows[k];
         scan_row_strip_to_work_vector(rowk);
         unsigned prev_size_k = static_cast<unsigned>(rowk.size());
@@ -95,16 +104,14 @@ namespace lp {
         for (const auto & iv : m_rows[i]) {
             unsigned j = iv.var();
             int j_offs = m_work_vector_of_row_offsets[j];
-            if (j_offs == -1) { // it is a new element
-                T alv = alpha * iv.coeff();
-                add_new_element(k, j, alv);
-            }
+            if (j_offs == -1)   // it is a new element, its coefficient is computed in place
+                mul(alpha, iv.coeff(), add_new_element(k, j));
             else {
                 addmul(rowk[j_offs].coeff(), iv.coeff(), alpha);
             }
         }
         // clean the work vector
-        for (unsigned k = 0; k < prev_size_k; k++) {
+        for (unsigned k = 0; k < prev_size_k; ++k) {
             m_work_vector_of_row_offsets[rowk[k].var()] = -1;
         }
 
@@ -133,16 +140,14 @@ namespace lp {
             if (j == pivot_col) continue;
             SASSERT(!is_zero(iv.coeff()));
             int j_offs = m_work_vector_of_row_offsets[j];
-            if (j_offs == -1) { // it is a new element
-                T alv = alpha * iv.coeff();
-                add_new_element(ii, j, alv);
-            }
+            if (j_offs == -1)   // it is a new element, its coefficient is computed in place
+                mul(alpha, iv.coeff(), add_new_element(ii, j));
             else {
                 addmul(rowii[j_offs].coeff(), iv.coeff(), alpha);
             }
         }
         // clean the work vector
-        for (unsigned k = 0; k < prev_size_ii; k++) {
+        for (unsigned k = 0; k < prev_size_ii; ++k) {
             m_work_vector_of_row_offsets[rowii[k].var()] = -1;
         }
 
@@ -167,15 +172,14 @@ namespace lp {
             int j_offs = m_work_vector_of_row_offsets[j];
             if (j_offs == -1) { // it is a new element
                 add_columns_up_to(j);
-                T alv = alpha * iv.coeff();
-                add_new_element(ii, j, alv);
+                mul(alpha, iv.coeff(), add_new_element(ii, j));
             }
             else {
                 addmul(rowii[j_offs].coeff(), iv.coeff(), alpha);
             }
         }
         // clean the work vector
-        for (unsigned k = 0; k < prev_size_ii; k++) {
+        for (unsigned k = 0; k < prev_size_ii; ++k) {
             m_work_vector_of_row_offsets[rowii[k].var()] = -1;
         }
 
@@ -202,16 +206,14 @@ namespace lp {
             if (j == pivot_col) continue;
             SASSERT(!is_zero(iv.coeff()));
             int j_offs = m_work_vector_of_row_offsets[j];
-            if (j_offs == -1) { // it is a new element
-                T alv = alpha * iv.coeff();
-                add_new_element(ii, j, alv);
-            }
+            if (j_offs == -1)   // it is a new element, its coefficient is computed in place
+                mul(alpha, iv.coeff(), add_new_element(ii, j));
             else {
                 addmul(rowii[j_offs].coeff(), iv.coeff(), alpha);
             }
         }
         // clean the work vector
-        for (unsigned k = 0; k < prev_size_ii; k++) {
+        for (unsigned k = 0; k < prev_size_ii; ++k) {
             m_work_vector_of_row_offsets[rowii[k].var()] = -1;
         }
 
@@ -265,7 +267,7 @@ namespace lp {
     template <typename T, typename X>
     std::set<std::pair<unsigned, unsigned>>  static_matrix<T, X>::get_domain() {
         std::set<std::pair<unsigned, unsigned>> ret;
-        for (unsigned i = 0; i < m_rows.size(); i++) {
+        for (unsigned i = 0; i < m_rows.size(); ++i) {
             for (auto &cell : m_rows[i]) {
                 ret.insert(std::make_pair(i, cell.var()));
             }
@@ -330,7 +332,7 @@ namespace lp {
 #ifdef Z3DEBUG
     template <typename T, typename X> void static_matrix<T, X>::check_consistency() {
         std::unordered_map<std::pair<unsigned, unsigned>, T> by_rows;
-        for (unsigned i = 0; i < m_rows.size(); i++) {
+        for (unsigned i = 0; i < m_rows.size(); ++i) {
             for (auto & t : m_rows[i]) {
                 std::pair<unsigned, unsigned> p(i, t.var());
                 SASSERT(by_rows.find(p) == by_rows.end());
@@ -338,7 +340,7 @@ namespace lp {
             }
         }
         std::unordered_map<std::pair<unsigned, unsigned>, T> by_cols;
-        for (unsigned i = 0; i < m_columns.size(); i++) {
+        for (unsigned i = 0; i < m_columns.size(); ++i) {
             for (auto & t : m_columns[i]) {
                 std::pair<unsigned, unsigned> p(t.var(), i);
                 SASSERT(by_cols.find(p) == by_cols.end());
@@ -384,7 +386,7 @@ namespace lp {
 
     template <typename T, typename X> void static_matrix<T, X>::cross_out_row_from_column(unsigned col, unsigned k) {
         auto & s = m_columns[col];
-        for (unsigned i = 0; i < s.size(); i++) {
+        for (unsigned i = 0; i < s.size(); ++i) {
             if (s[i].var() == k) {
                 s.erase(s.begin() + i);
                 break;
@@ -403,7 +405,7 @@ namespace lp {
 
     template <typename T, typename X> T static_matrix<T, X>::get_balance() const {
         T ret = zero_of_type<T>();
-        for (unsigned i = 0; i < row_count();  i++) {
+        for (unsigned i = 0; i < row_count();  ++i) {
             ret += get_row_balance(i);
         }
         return ret;
@@ -462,17 +464,40 @@ namespace lp {
         column_cell& cs = m_columns[row_el_iv.var()][column_offset];
         unsigned row_offset = cs.offset();
         if (column_offset != column_vals.size() - 1) {
-            auto & cc = column_vals[column_offset] = column_vals.back(); // copy from the tail
+            auto & cc = column_vals[column_offset] = column_vals.back(); // column cells are tiny, a plain copy is optimal
             m_rows[cc.var()][cc.offset()].offset() = column_offset;
         }
     
         if (row_offset != row_vals.size() - 1) {
-            auto & rc = row_vals[row_offset] = row_vals.back(); // copy from the tail
+            row_cell<T> & rc   = row_vals[row_offset];
+            row_cell<T> & tail = row_vals.back();
+            rc.var()    = tail.var();
+            rc.offset() = tail.offset();
+            // Relocating the tail coefficient: a copy allocates a fresh bignum only when the
+            // source (tail) is big, so swap to steal the tail's storage exactly in that case.
+            // When the tail is small the copy never allocates and is cheaper than a swap. See
+            // Z3Prover/bench#3143.
+            if (tail.coeff().is_big())
+                rc.coeff().swap(tail.coeff());
+            else
+                rc.coeff() = tail.coeff();
             m_columns[rc.var()][rc.offset()].offset() = row_offset;
         }
 
         column_vals.pop_back();
         row_vals.pop_back();
+    }
+
+    // appends a cell with a zero coefficient and returns a reference to the coefficient
+    template <typename T, typename X>
+    T& static_matrix<T, X>::add_new_element(unsigned row, unsigned col) {
+        auto & row_vals = m_rows[row];
+        auto & col_vals = m_columns[col];
+        unsigned row_el_offs = static_cast<unsigned>(row_vals.size());
+        unsigned col_el_offs = static_cast<unsigned>(col_vals.size());
+        row_vals.emplace_back(col, col_el_offs);
+        col_vals.push_back(column_cell(row, row_el_offs));
+        return row_vals.back().coeff();
     }
 
     template <typename T, typename X>

@@ -26,6 +26,8 @@ Revision History:
 #include "util/buffer.h"
 #include "util/symbol_table.h"
 #include "util/obj_hashtable.h"
+#include "util/dictionary.h"
+#include "util/manage_warnings.h"
 
 
 enum sort_kind {
@@ -38,6 +40,7 @@ enum op_kind {
     OP_DT_IS,
     OP_DT_ACCESSOR,        
     OP_DT_UPDATE_FIELD,
+    OP_DT_SUBTERM,
     LAST_DT_OP
 };
 
@@ -47,6 +50,22 @@ namespace datatype {
     class def;
     class accessor;
     class constructor;
+    class subterm;
+
+    class subterm {
+        symbol    m_name;
+        sort_ref  m_range;
+        def*      m_def = nullptr;
+    public:
+        subterm(ast_manager& m, symbol const& n, sort* r) : m_name(n), m_range(r, m) {}
+        sort* range() const { return m_range; }
+        symbol const& name() const { return m_name; }
+        func_decl_ref instantiate(sort_ref_vector const& ps) const;
+        func_decl_ref instantiate(sort* dt) const;
+        util& u() const;
+        void attach(def* d) { m_def = d; }
+        def const& get_def() const;
+    };
  
 
     class accessor {
@@ -153,7 +172,7 @@ namespace datatype {
             size* subst(obj_map<sort, size*>& S) override;
             sort_size eval(obj_map<sort, sort_size> const& S) override { return S[m_param]; }
         };
-    };
+    }
 
     class def {
         ast_manager&            m;
@@ -164,6 +183,8 @@ namespace datatype {
         sort_ref_vector         m_params;
         mutable sort_ref        m_sort;
         ptr_vector<constructor> m_constructors;
+        mutable dictionary<constructor*> m_name2constructor;
+        std::optional<subterm>       m_subterm;
     public:
         def(ast_manager& m, util& u, symbol const& n, unsigned class_id, unsigned num_params, sort * const* params):
             m(m),
@@ -183,6 +204,10 @@ namespace datatype {
             m_constructors.push_back(c);
             c->attach(this);
         }
+        void attach_subterm(symbol const& n, sort* range) {
+            m_subterm = subterm(m, n, range);
+            m_subterm->attach(this);
+        }
         symbol const& name() const { return m_name; }
         unsigned id() const { return m_class_id; }
         sort_ref instantiate(sort_ref_vector const& ps) const;
@@ -195,6 +220,33 @@ namespace datatype {
         util& u() const { return m_util; }
         param_size::size* sort_size() { return m_sort_size; }
         void set_sort_size(param_size::size* p) { auto* q = m_sort_size;  m_sort_size = p; if (p) p->inc_ref(); if (q) q->dec_ref(); m_sort = nullptr; }
+        constructor* get_constructor_by_name(func_decl* con) const {
+            symbol const& name = con->get_name();
+            constructor* result = nullptr;
+            
+            // For small datatypes (< 10 constructors), use linear search instead of hash table
+            if (m_constructors.size() < 10) {
+                for (constructor* c : m_constructors) {
+                    if (c->name() == name) {
+                        result = c;
+                        break;
+                    }
+                }
+            } else {
+                // Lazy initialization of name-to-constructor map for O(1) lookups
+                if (m_name2constructor.empty() && !m_constructors.empty()) {
+                    for (constructor* c : m_constructors) {
+                        m_name2constructor.insert(c->name(), c);
+                    }
+                }
+                m_name2constructor.find(name, result);
+            }
+            
+            SASSERT(result); // Post-condition: get_constructor_by_name returns a non-null result
+            return result;
+        }
+        bool has_subterm() const { return m_subterm.has_value(); }
+        subterm const& get_subterm() const { return *m_subterm; }
         def* translate(ast_translation& tr, util& u);
     };
 
@@ -266,6 +318,7 @@ namespace datatype {
 
 
             obj_map<sort, ptr_vector<func_decl>*>       m_datatype2constructors;
+            obj_map<sort, func_decl*>                   m_datatype2subterm;
             obj_map<sort, cnstr_depth>                  m_datatype2nonrec_constructor;
             obj_map<func_decl, ptr_vector<func_decl>*>  m_constructor2accessors;
             obj_map<func_decl, func_decl*>              m_constructor2recognizer;
@@ -294,6 +347,16 @@ namespace datatype {
                 unsigned arity, sort * const * domain, sort * range);
 
             func_decl * mk_accessor(
+                unsigned num_parameters, parameter const * parameters, 
+                unsigned arity, sort * const * domain, sort * range);
+
+            /**
+             *  \brief declares a subterm predicate 
+             * 
+             *  Subterms have the signature `sort -> sort -> bool` and are only
+             *  supported for non-mutually recursive datatypes
+            */
+            func_decl * mk_subterm(
                 unsigned num_parameters, parameter const * parameters, 
                 unsigned arity, sort * const * domain, sort * range);
 
@@ -352,6 +415,8 @@ namespace datatype {
         bool is_is(func_decl * f) const { return is_decl_of(f, fid(), OP_DT_IS); }
         bool is_accessor(func_decl * f) const { return is_decl_of(f, fid(), OP_DT_ACCESSOR); }
         bool is_update_field(func_decl * f) const { return is_decl_of(f, fid(), OP_DT_UPDATE_FIELD); }
+        bool is_subterm_predicate(func_decl * f) const { return is_decl_of(f, fid(), OP_DT_SUBTERM); }
+        bool is_subterm_predicate(expr* e) const { return is_app(e) && is_subterm_predicate(to_app(e)->get_decl()); }
         bool is_constructor(app const * f) const { return is_app_of(f, fid(), OP_DT_CONSTRUCTOR); }
         bool is_constructor(expr const * e) const { return is_app(e) && is_constructor(to_app(e)); }
         bool is_recognizer0(app const* f) const { return is_app_of(f, fid(), OP_DT_RECOGNISER);} 
@@ -360,12 +425,17 @@ namespace datatype {
         bool is_recognizer(expr const * f) const { return is_app(f) && (is_recognizer0(to_app(f)) || is_is(to_app(f))); }
         bool is_considered_uninterpreted(func_decl * f, unsigned n, expr* const* args);
 
+        START_DISABLE_EXTRA_SEMI_WARNING;
         MATCH_UNARY(is_recognizer);
+        END_DISABLE_WARNING;
         bool is_accessor(expr const* e) const { return is_app(e) && is_app_of(to_app(e), fid(), OP_DT_ACCESSOR); }
+        START_DISABLE_EXTRA_SEMI_WARNING;
         MATCH_UNARY(is_accessor);
+        END_DISABLE_WARNING;
         bool is_update_field(expr * f) const { return is_app(f) && is_app_of(to_app(f), fid(), OP_DT_UPDATE_FIELD); }
         app* mk_is(func_decl * c, expr *f);
         ptr_vector<func_decl> const * get_datatype_constructors(sort * ty);
+        func_decl * get_datatype_subterm(sort * ty);
         unsigned get_datatype_num_constructors(sort * ty);
         unsigned get_datatype_num_parameter_sorts(sort * ty);
         sort*  get_datatype_parameter_sort(sort * ty, unsigned idx);
@@ -400,7 +470,7 @@ namespace datatype {
         sort_ref mk_tuple_datatype(svector<std::pair<symbol, sort*>> const& elems, symbol const& name, symbol const& test, func_decl_ref& tup, func_decl_ref_vector& accs);
     };
 
-};
+}
 
 typedef datatype::accessor accessor_decl;
 typedef datatype::constructor constructor_decl;
@@ -441,7 +511,7 @@ inline constructor_decl * mk_constructor_decl(symbol const & n, symbol const & r
 
 
 // Remark: the datatype becomes the owner of the constructor_decls
-datatype_decl * mk_datatype_decl(datatype_util& u, symbol const & n, unsigned num_params, sort*const* params, unsigned num_constructors, constructor_decl * const * cs);
+datatype_decl * mk_datatype_decl(datatype_util& u, symbol const & n, unsigned num_params, sort*const* params, unsigned num_constructors, constructor_decl * const * cs, symbol const& subterm_name = symbol::null);
 inline void del_datatype_decl(datatype_decl * d) {}
 inline void del_datatype_decls(unsigned num, datatype_decl * const * ds) {}
 

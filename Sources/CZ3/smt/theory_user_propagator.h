@@ -88,6 +88,7 @@ namespace smt {
         lbool                  m_next_split_phase = l_undef;
         vector<expr_ref_vector> m_clauses_to_replay;
         unsigned                m_replay_qhead = 0;
+        obj_hashtable<expr>   m_add_expr_fresh;
 
         expr* var2expr(theory_var v) { return m_var2expr.get(v); }
         theory_var expr2var(expr* e) { check_defined(e); return m_expr2var[e->get_id()]; }
@@ -107,7 +108,6 @@ namespace smt {
 
     public:
         theory_user_propagator(context& ctx);
-        
         ~theory_user_propagator() override;
 
         /*
@@ -132,6 +132,7 @@ namespace smt {
         void register_diseq(user_propagator::eq_eh_t& diseq_eh) { m_diseq_eh = diseq_eh; }
         void register_created(user_propagator::created_eh_t& created_eh) { m_created_eh = created_eh; }
         void register_decide(user_propagator::decide_eh_t& decide_eh) { m_decide_eh = decide_eh; }
+        void register_on_binding(user_propagator::binding_eh_t& binding_eh);
 
         bool has_fixed() const { return (bool)m_fixed_eh; }
         
@@ -151,7 +152,7 @@ namespace smt {
         void new_diseq_eh(theory_var v1, theory_var v2) override { if (m_diseq_eh) force_push(), m_diseq_eh(m_user_context, this, var2expr(v1), var2expr(v2)); }
         bool use_diseqs() const override { return ((bool)m_diseq_eh); }
         bool build_models() const override { return false; }
-        final_check_status final_check_eh() override;
+        final_check_status final_check_eh(unsigned) override;
         void reset_eh() override {}
         void assign_eh(bool_var v, bool is_true) override { }
         void init_search_eh() override {}
@@ -166,4 +167,4 @@ namespace smt {
         void propagate() override; 
         void display(std::ostream& out) const override {}
 };
-};
+}

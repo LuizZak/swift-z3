@@ -23,6 +23,7 @@ Author:
 #include "opt/opt_context.h"
 #include "opt/maxsmt.h"
 #include "opt/maxlex.h"
+#include <tuple>
 
 namespace opt {
 
@@ -45,7 +46,8 @@ namespace opt {
 
         struct cmp_soft {
             bool operator()(soft const& s1, soft const& s2) const {
-                return s1.weight > s2.weight;
+                return std::tuple<rational const&, unsigned>{s1.weight, s1.s->get_id()} >
+                       std::tuple<rational const&, unsigned>{s2.weight, s2.s->get_id()};
             }
         };
 
@@ -133,7 +135,7 @@ namespace opt {
             model_ref mdl;
             s().get_model(mdl);            
             if (mdl) {
-                TRACE("opt", tout << *mdl << "\n";);
+                TRACE(opt, tout << *mdl << "\n";);
                 for (auto & soft : m_soft) {
                     if (!mdl->is_true(soft.s)) {
                         update_bounds();

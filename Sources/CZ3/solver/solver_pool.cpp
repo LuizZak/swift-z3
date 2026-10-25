@@ -83,7 +83,7 @@ public:
     void pop_params() override {m_base->pop_params();}
     
     void collect_param_descrs(param_descrs & r) override { m_base->collect_param_descrs(r); }
-    void collect_statistics(statistics & st) const override { m_base->collect_statistics(st); }
+    void collect_statistics_core(statistics & st) const override { m_base->collect_statistics(st); }
     unsigned get_num_assertions() const override { return m_base->get_num_assertions(); }
     expr * get_assertion(unsigned idx) const override { return m_base->get_assertion(idx); }
 
@@ -287,7 +287,7 @@ private:
                         lbool last_status, double last_time) {
         std::string file_name = mk_file_name();
         std::ofstream out(file_name);
-        STRACE("spacer.ind_gen", tout << "Dumping benchmark to " << file_name << "\n";);
+        STRACE(spacer_ind_gen, tout << "Dumping benchmark to " << file_name << "\n";);
         if (!out) {
             IF_VERBOSE(0, verbose_stream() << "could not open file " << file_name << " for output\n");
             return;
@@ -399,7 +399,7 @@ solver* solver_pool::mk_solver() {
     }
     else {
         solver* s = m_solvers[(m_current_pool++) % m_num_pools];
-        base_solver = dynamic_cast<pool_solver*>(s)->base_solver();
+        base_solver = static_cast<pool_solver*>(s)->base_solver();
     }
     std::stringstream name;
     name << "vsolver#" << m_solvers.size();
@@ -412,7 +412,7 @@ solver* solver_pool::mk_solver() {
 void solver_pool::reset_solver(solver* s) {
     pool_solver* ps = dynamic_cast<pool_solver*>(s);
     SASSERT(ps);
-    if (ps) ps->reset();
+    ps->reset();
 }
 
 void solver_pool::refresh(solver* base_solver) {

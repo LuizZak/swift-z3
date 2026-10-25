@@ -18,7 +18,9 @@ Revision History:
 --*/
 #pragma once
 
+#include <atomic>
 #include "ast/quantifier_stat.h"
+#include "ast/simplifiers/dependent_expr_state.h"
 #include "smt/smt_clause.h"
 #include "smt/smt_setup.h"
 #include "smt/smt_enode.h"
@@ -44,6 +46,7 @@ Revision History:
 #include "util/ref.h"
 #include "util/timer.h"
 #include "util/statistics.h"
+#include "util/map.h"
 #include "smt/fingerprints.h"
 #include "smt/proto_model/proto_model.h"
 #include "smt/theory_user_propagator.h"
@@ -62,9 +65,13 @@ namespace smt {
 
     class model_generator;
     class context;
+    class kernel;
 
-    struct cancel_exception : public std::exception {
-        char const * what() const noexcept override { return "smt-canceled"; }
+    // Hash table for storing enode -> generation mappings
+    typedef ptr_addr_map<enode, unsigned> enode_generation_table;
+
+    struct oom_exception : public z3_error {
+        oom_exception() : z3_error(ERR_MEMOUT) {}
     };
 
     struct enode_pp {
@@ -83,6 +90,7 @@ namespace smt {
         friend class model_generator;
         friend class lookahead;
         friend class parallel;
+        friend class kernel;
     public:
         statistics                  m_stats;
 
@@ -100,6 +108,7 @@ namespace smt {
         setup                       m_setup;
         unsigned                    m_relevancy_lvl;
         timer                       m_timer;
+        region                      m_region;
         asserted_formulas           m_asserted_formulas;
         th_rewriter                 m_rewriter;
         scoped_ptr<quantifier_manager>   m_qmanager;
@@ -112,7 +121,6 @@ namespace smt {
         progress_callback *         m_progress_callback;
         unsigned                    m_next_progress_sample;
         clause_proof                m_clause_proof;
-        region                      m_region;
         fingerprint_set             m_fingerprints;
 
         expr_ref_vector             m_b_internalized_stack; // stack of the boolean expressions already internalized.
@@ -120,7 +128,6 @@ namespace smt {
         // enodes. Examples: boolean expression nested in an
         // uninterpreted function.
         expr_ref_vector             m_e_internalized_stack; // stack of the expressions already internalized as enodes.
-        quantifier_ref_vector       m_l_internalized_stack;
 
         ptr_vector<justification>   m_justifications;
 
@@ -131,6 +138,12 @@ namespace smt {
         unsigned                    m_par_index = 0;
         bool                        m_internalizing_assertions = false;
         lbool                       m_internal_completed = l_undef;
+
+        scoped_ptr<dependent_expr_simplifier> m_simplifier;
+        scoped_ptr<base_dependent_expr_state> m_fmls;
+
+        svector<double> m_lit_scores[2];
+        svector<unsigned> m_birthdate;
 
 
         // -----------------------------------
@@ -147,6 +160,8 @@ namespace smt {
         vector<enode_vector>        m_decl2enodes;  // decl -> enode (for decls with arity > 0)
         enode_vector                m_empty_vector;
         cg_table                    m_cg_table;
+        enode_generation_table      m_sticky_generation_updates;
+        vector<std::pair<enode*, unsigned>>      m_r1_parent_generations; // temporary field used to cache generations between remove_parents_from_cg_table and reinsert_parents_into_cg_table
         struct new_eq {
             enode *                 m_lhs;
             enode *                 m_rhs;
@@ -263,6 +278,7 @@ namespace smt {
         // ----------------------------------
         vector<std::pair<expr_ref, expr_ref>> m_values;
         void initialize_value(expr* var, expr* value);
+        void initialize_values();
 
 
         // -----------------------------------
@@ -280,6 +296,10 @@ namespace smt {
         }
 
         smt_params & get_fparams() {
+            return m_fparams;
+        }
+
+        smt_params const& get_fparams() const {
             return m_fparams;
         }
 
@@ -304,7 +324,9 @@ namespace smt {
             return relevancy_lvl() > 0;
         }
 
-        unsigned relevancy_lvl() const;
+        unsigned relevancy_lvl() const {
+            return std::min(m_relevancy_lvl, m_fparams.m_relevancy_lvl);
+        }
 
         enode * get_enode(expr const * n) const {
             SASSERT(e_internalized(n));
@@ -443,6 +465,8 @@ namespace smt {
         svector<double> const & get_activity_vector() const { return m_activity; }
 
         double get_activity(bool_var v) const { return m_activity[v]; }
+        unsigned get_num_assignments() const { return m_stats.m_num_assignments; }
+        unsigned get_birthdate(bool_var v) const { return m_birthdate[v]; }
 
         void set_activity(bool_var v, double act) { m_activity[v] = act; }
 
@@ -529,6 +553,8 @@ namespace smt {
             return m_scope_lvl == m_search_lvl;
         }
 
+        void pop_to_search_level() { pop_to_search_lvl(); }
+
         bool tracking_assumptions() const {
             return !m_assumptions.empty() && m_search_lvl > m_base_lvl;
         }
@@ -596,6 +622,26 @@ namespace smt {
             return m_qmanager->get_generation(q);
         }
 
+        unsigned get_generation(enode * e) const  {
+            // We don't support patterns with equality so there is no need to track generations for them.
+            if (e->is_eq())
+                return 0;
+
+            return get_cg_root(e)->m_generation;
+        }
+
+        unsigned get_max_generation(unsigned num_enodes, enode * const * enodes) {
+            unsigned max = 0;
+            for (unsigned i = 0; i < num_enodes; ++i) {
+                unsigned curr = get_generation(enodes[i]);
+                if (curr > max)
+                    max = curr;
+            }
+            return max;
+        }
+
+        void set_generation(enode * e, unsigned generation);
+
         /**
            \brief Return true if the logical context internalized universal quantifiers.
         */
@@ -610,8 +656,8 @@ namespace smt {
             return m_asserted_formulas.has_quantifiers();
         }
 
-        fingerprint * add_fingerprint(void * data, unsigned data_hash, unsigned num_args, enode * const * args, expr* def = nullptr) {
-            return m_fingerprints.insert(data, data_hash, num_args, args, def);
+        fingerprint * add_fingerprint(void * data, unsigned data_hash, unsigned num_args, enode * const * args) {
+            return m_fingerprints.insert(data, data_hash, num_args, args);
         }
 
         theory_id get_var_theory(bool_var v) const {
@@ -636,7 +682,6 @@ namespace smt {
         //
         // -----------------------------------
     protected:
-        typedef ptr_vector<trail >   trail_stack;
         trail_stack                           m_trail_stack;
 #ifdef Z3DEBUG
         bool                                  m_trail_enabled { true };
@@ -646,11 +691,15 @@ namespace smt {
         template<typename TrailObject>
         void push_trail(const TrailObject & obj) {
             SASSERT(m_trail_enabled);
-            m_trail_stack.push_back(new (m_region) TrailObject(obj));
+            m_trail_stack.push(obj);
         }
 
         void push_trail_ptr(trail * ptr) {
-            m_trail_stack.push_back(ptr);
+            m_trail_stack.push_ptr(ptr);
+        }
+
+        trail_stack& get_trail_stack() {
+            return m_trail_stack;
         }
 
     protected:
@@ -660,7 +709,6 @@ namespace smt {
         unsigned                    m_search_lvl { 0 }; // It is greater than m_base_lvl when assumptions are used.  Otherwise, it is equals to m_base_lvl
         struct scope {
             unsigned                m_assigned_literals_lim;
-            unsigned                m_trail_stack_lim;
             unsigned                m_aux_clauses_lim;
             unsigned                m_justifications_lim;
             unsigned                m_units_to_reassert_lim;
@@ -679,8 +727,6 @@ namespace smt {
         unsigned pop_scope_core(unsigned num_scopes);
 
         void pop_scope(unsigned num_scopes);
-
-        void undo_trail_stack(unsigned old_size);
 
         void unassign_vars(unsigned old_lim);
 
@@ -775,6 +821,13 @@ namespace smt {
             return get_bdata(get_bool_var(n));
         }
 
+        void update_generation(enode * n);
+
+        void update_generation(expr * e) {
+            if (is_app(e) && e_internalized(e))
+                update_generation(get_enode(to_app(e)));
+        }
+
         typedef std::pair<expr *, bool> expr_bool_pair;
 
         void ts_visit_child(expr * n, bool gate_ctx, svector<expr_bool_pair> & todo, bool & visited);
@@ -853,18 +906,8 @@ namespace smt {
         mk_enode_trail   m_mk_enode_trail;
         void undo_mk_enode();
 
-        friend class mk_lambda_trail;
-        class mk_lambda_trail : public trail {
-            context& ctx;
-        public:
-            mk_lambda_trail(context& ctx) :ctx(ctx) {}
-            void undo() override { ctx.undo_mk_lambda(); }
-        };
-        mk_lambda_trail   m_mk_lambda_trail;
-        void undo_mk_lambda();
 
-
-        void apply_sort_cnstr(app * term, enode * e);
+        void apply_sort_cnstr(expr * term, enode * e);
 
         bool simplify_aux_clause_literals(unsigned & num_lits, literal * lits, literal_buffer & simp_lits);
 
@@ -904,6 +947,8 @@ namespace smt {
 
         void add_or_rel_watches(app * n);
 
+        void add_implies_rel_watches(app* n);
+
         void add_ite_rel_watches(app * n);
 
         void mk_not_cnstr(app * n);
@@ -911,6 +956,8 @@ namespace smt {
         void mk_and_cnstr(app * n);
 
         void mk_or_cnstr(app * n);
+
+        void mk_implies_cnstr(app* n);
 
         void mk_iff_cnstr(app * n, bool sign);
 
@@ -937,6 +984,8 @@ namespace smt {
         void internalize(expr* const* exprs, unsigned num_exprs, bool gate_ctx);
 
         void internalize(expr * n, bool gate_ctx, unsigned generation);
+
+        enode *non_ground_internalize(expr *e);
 
         clause * mk_clause(unsigned num_lits, literal * lits, justification * j, clause_kind k = CLS_AUX, clause_del_eh * del_eh = nullptr);
 
@@ -1004,13 +1053,13 @@ namespace smt {
 
         bool_var mk_bool_var(expr * n);
 
-        enode * mk_enode(app * n, bool suppress_args, bool merge_tf, bool cgc_enabled);
+        enode * mk_enode(expr * n, bool suppress_args, bool merge_tf, bool cgc_enabled);
 
         void attach_th_var(enode * n, theory * th, theory_var v);
 
         template<typename Justification>
         justification * mk_justification(Justification const & j) {
-            justification * js = new (m_region) Justification(j);
+            justification * js = new (get_region()) Justification(j);
             SASSERT(js->in_region());
             if (js->has_del_eh())
                 m_justifications.push_back(js);
@@ -1037,6 +1086,7 @@ namespace smt {
         unsigned           m_luby_idx;
         double             m_agility;
         unsigned           m_lemma_gc_threshold;
+        bool               m_has_research_theories = false;
 
         void assign_core(literal l, b_justification j, bool decision = false);
         void trace_assign(literal l, b_justification j, bool decision) const;
@@ -1092,8 +1142,12 @@ namespace smt {
 
         bool contains_instance(quantifier * q, unsigned num_bindings, enode * const * bindings);
 
-        bool add_instance(quantifier * q, app * pat, unsigned num_bindings, enode * const * bindings, expr* def, unsigned max_generation,
-                          unsigned min_top_generation, unsigned max_top_generation, vector<std::tuple<enode *, enode*>> & used_enodes /*gives the equalities used for the pattern match, see mam.cpp for more info*/);
+        // true if a theory that can request a re-search (should_research) is registered:
+        // currently the recursive-function and sequence theories.
+        bool has_research_theories() const { return m_has_research_theories; }
+
+        bool add_instance(quantifier * q, app * pat, unsigned num_bindings, enode * const * bindings, 
+            unsigned max_generation, unsigned min_top_generation, unsigned max_top_generation, vector<std::tuple<enode *, enode*>> & used_enodes /*gives the equalities used for the pattern match, see mam.cpp for more info*/, bool mbqi_instance = false);
 
         void set_global_generation(unsigned generation) { m_generation = generation; }
 
@@ -1111,11 +1165,15 @@ namespace smt {
         void push_new_th_diseq(theory_id th, theory_var lhs, theory_var rhs);
 
         friend class add_eq_trail;
-
+        friend class merge_cgc_generations_trail;
 
         void remove_parents_from_cg_table(enode * r1);
 
         void reinsert_parents_into_cg_table(enode * r1, enode * r2, enode * n1, enode * n2, eq_justification js);
+
+        void merge_cgc_generations(enode * e1, unsigned e1_generation, enode * e2);
+
+        void set_generation_sticky(enode * e, unsigned generation);
 
         void invert_trans(enode * n);
 
@@ -1127,13 +1185,17 @@ namespace smt {
 
         void propagate_bool_enode_assignment_core(enode * source, enode * target);
 
+        void undo_merge_cgc_generations(enode * e1, unsigned e1_generation, enode * e2, unsigned e2_generation);
+
+        void apply_sticky_updates(enode * e1, unsigned e1_generation, enode * e2, unsigned e2_generation);
+
         void undo_add_eq(enode * r1, enode * n1, unsigned r2_num_parents);
 
         void restore_theory_vars(enode * r2, enode * r1);
 
         void push_eq(enode * lhs, enode * rhs, eq_justification const & js) {
             if (lhs->get_root() != rhs->get_root()) {
-                SASSERT(lhs->get_expr()->get_sort() == rhs->get_expr()->get_sort());
+                SASSERT(lhs->get_sort() == rhs->get_sort());
                 m_eq_propagation_queue.push_back(new_eq(lhs, rhs, js));
             }
         }
@@ -1173,7 +1235,22 @@ namespace smt {
 
         static bool is_eq(enode const * n1, enode const * n2) { return n1->get_root() == n2->get_root(); }
 
+        enode * get_cg_root(enode * n) const {
+            if (!n->uses_cg_table())
+                return n;
+            // Fast path: if e is already the congruence root, avoid table lookup.
+            // This is important for performance, since get_cg_root is called on every generation lookup.
+            if (n->is_cgr())
+                return n;
+            auto r = m_cg_table.find(n);
+            return r ? r : n;
+        }
+
         bool is_diseq(enode * n1, enode * n2) const;
+
+        // Check disequality using congruence and equality atoms, ignoring distinct root values.
+        // Array extensionality uses this to avoid suppressing its witness.
+        bool is_diseq_no_value_check(enode * n1, enode * n2) const;
 
         bool is_diseq_slow(enode * n1, enode * n2) const;
 
@@ -1184,6 +1261,8 @@ namespace smt {
         bool guess(bool_var var, lbool phase);
 
     protected:
+        bool is_diseq_core(enode * n1, enode * n2, bool check_distinct_root_values) const;
+
         bool m_has_case_split = true;
         bool decide();
 
@@ -1201,7 +1280,7 @@ namespace smt {
             if (act > ACTIVITY_LIMIT)
                 rescale_bool_var_activity();
             m_case_split_queue->activity_increased_eh(v);
-            TRACE("case_split", tout << "v" << v << " " << m_bvar_inc << " -> " << act << "\n";);
+            TRACE(case_split, tout << "v" << v << " " << m_bvar_inc << " -> " << act << "\n";);
         }
 
     protected:
@@ -1220,7 +1299,7 @@ namespace smt {
            \brief Return true if the give clause is justifying some literal.
         */
         bool is_justifying(clause * cls) const {
-            for (unsigned i = 0; i < 2; i++) {
+            for (unsigned i = 0; i < 2; ++i) {
                 b_justification js;
                 js = get_justification((*cls)[i].var());
                 if (js.get_kind() == b_justification::CLAUSE && js.get_clause() == cls)
@@ -1287,6 +1366,8 @@ namespace smt {
         void forget_phase_of_vars_in_current_level();
 
         virtual bool resolve_conflict();
+
+        void add_scores(unsigned n, literal const *lits);
 
 
         // -----------------------------------
@@ -1685,6 +1766,8 @@ namespace smt {
 
         lbool setup_and_check(bool reset_cancel = true);
 
+        void setup_for_parallel();
+
         void reduce_assertions();
 
         bool resource_limits_exceeded();
@@ -1708,9 +1791,18 @@ namespace smt {
         void internalize_proxies(expr_ref_vector const& asms, vector<std::pair<expr*,expr_ref>>& asm2proxy);
 
         void internalize_instance(expr * body, proof * pr, unsigned generation) {
+            if (inconsistent())
+                return;
             internalize_assertion(body, pr, generation);
-            if (relevancy())
+            if (relevancy()) {
+                // if the instantiation creates a conflict, we backtrack immediately.
+                // to retain the conflict clause being relevant we mark it here.
+                // if the instantiation does not create a conflict, default relevancy propagation applies.
+                //if (inconsistent() && is_app(body)) 
+                //    for (auto arg: *to_app(body)) mark_as_relevant(arg);
+                
                 m_case_split_queue->internalize_instance_eh(body, generation);
+            }
         }
 
         unsigned get_unsat_core_size() const {
@@ -1810,6 +1902,14 @@ namespace smt {
             m_user_propagator->register_decide(r);
         }
 
+        void user_propagate_register_on_binding(user_propagator::binding_eh_t& t) {
+            m_user_propagator->register_on_binding(t);
+        }
+
+        void register_on_binding(std::function<bool(quantifier* q, expr* inst)>& f) {
+            m_qmanager->register_on_binding(f);
+        }
+
         void user_propagate_initialize_value(expr* var, expr* value);
 
         bool watches_fixed(enode* n) const;
@@ -1892,6 +1992,4 @@ namespace smt {
 
     std::ostream& operator<<(std::ostream& out, enode_pp const& p);
 
-};
-
-
+}

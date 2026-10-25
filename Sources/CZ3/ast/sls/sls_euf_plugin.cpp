@@ -33,8 +33,6 @@ namespace sls {
         m_values(8U, value_hash(*this), value_eq(*this)) {
         m_fid = user_sort_family_id;
     }
-    
-    euf_plugin::~euf_plugin() {}
 
     void euf_plugin::initialize() {
     }
@@ -88,14 +86,14 @@ namespace sls {
         g.explain<size_t>(explain, nullptr);
         g.end_explain();
         double reward = -1;
-        TRACE("euf",
+        TRACE(euf,
             for (auto p : explain) {
                 sat::literal l = to_literal(p);
                 tout << l << " " << mk_pp(ctx.atom(l.var()), m) << " " << ctx.is_unit(l) << "\n";
             });
         for (auto p : explain) {
             sat::literal l = to_literal(p);
-            CTRACE("euf", !ctx.is_true(l), tout << "not true " << l << "\n"; ctx.display(tout););
+            CTRACE(euf, !ctx.is_true(l), tout << "not true " << l << "\n"; ctx.display(tout););
             SASSERT(ctx.is_true(l));
 
             if (ctx.is_unit(l))
@@ -133,7 +131,7 @@ namespace sls {
             return;
 
         auto block = [&](euf::enode* a, euf::enode* b) {
-            TRACE("euf", tout << "block " << m_g->bpp(a) << " != " << m_g->bpp(b) << "\n");
+            TRACE(euf, tout << "block " << m_g->bpp(a) << " != " << m_g->bpp(b) << "\n");
             if (a->get_root() != b->get_root())
                 return;
             ptr_vector<size_t> explain;
@@ -197,7 +195,7 @@ namespace sls {
             g.mk(m.mk_false(), 0, 0, nullptr);
         // check for conflict with disequalities during propagation
         if (merge_eqs) {
-            TRACE("euf", tout << "root literals " << ctx.root_literals() << "\n");
+            TRACE(euf, tout << "root literals " << ctx.root_literals() << "\n");
             for (auto lit : ctx.root_literals()) {
                 if (!ctx.is_true(lit))
                     lit.neg();
@@ -289,27 +287,36 @@ namespace sls {
                 if (m.is_eq(e)) {
                     a = g.find(to_app(e)->get_arg(0));
                     b = g.find(to_app(e)->get_arg(1));
-                }
-                if (lit.sign() && m.is_eq(e)) {
-                    if (a->get_root() == b->get_root()) {
-                        IF_VERBOSE(0, verbose_stream() << "not disequal " << lit << " " << mk_pp(e, m) << "\n");
-                        ctx.display(verbose_stream());
-                        UNREACHABLE();
+                    if (lit.sign()) {
+                        if (a && b && a->get_root() == b->get_root()) {
+                            IF_VERBOSE(0, verbose_stream() << "not disequal " << lit << " " << mk_pp(e, m) << "\n");
+                            ctx.display(verbose_stream());
+                            UNREACHABLE();
+                        }
+                    }
+                    else {
+                        if (a && b && a->get_root() != b->get_root()) {
+                            IF_VERBOSE(0, verbose_stream() << "not equal " << lit << " " << mk_pp(e, m) << "\n");
+                            //UNREACHABLE();
+                        }
                     }
                 }
-                else if (!lit.sign() && m.is_eq(e)) {
-                    if (a->get_root() != b->get_root()) {
-                        IF_VERBOSE(0, verbose_stream() << "not equal " << lit << " " << mk_pp(e, m) << "\n");
-                        //UNREACHABLE();
+                else if (to_app(e)->get_family_id() != basic_family_id) {
+                    auto* ne = g.find(e);
+                    if (lit.sign()) {
+                        auto* nf = g.find(m.mk_false());
+                        if (ne && nf && ne->get_root() != nf->get_root()) {
+                            IF_VERBOSE(0, verbose_stream() << "not false " << lit << " " << mk_pp(e, m) << "\n");
+                            //UNREACHABLE();
+                        }
                     }
-                }
-                else if (to_app(e)->get_family_id() != basic_family_id && lit.sign() && g.find(e)->get_root() != g.find(m.mk_false())->get_root()) {
-                    IF_VERBOSE(0, verbose_stream() << "not alse " << lit << " " << mk_pp(e, m) << "\n");
-                    //UNREACHABLE();
-                }
-                else if (to_app(e)->get_family_id() != basic_family_id && !lit.sign() && g.find(e)->get_root() != g.find(m.mk_true())->get_root()) {
-                    IF_VERBOSE(0, verbose_stream() << "not true " << lit << " " << mk_pp(e, m) << "\n");
-                    //UNREACHABLE();
+                    else {
+                        auto* nt = g.find(m.mk_true());
+                        if (ne && nt && ne->get_root() != nt->get_root()) {
+                            IF_VERBOSE(0, verbose_stream() << "not true " << lit << " " << mk_pp(e, m) << "\n");
+                            //UNREACHABLE();
+                        }
+                    }
                 }
             
         }

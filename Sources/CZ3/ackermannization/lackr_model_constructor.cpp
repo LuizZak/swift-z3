@@ -47,7 +47,7 @@ public:
     //
     bool check() {
         bool retv = true;
-        for (unsigned i = 0; i < m_abstr_model->get_num_constants(); i++) {
+        for (unsigned i = 0; i < m_abstr_model->get_num_constants(); ++i) {
             func_decl * const c = m_abstr_model->get_constant(i);
             app * const  _term = m_info->find_term(c);
             expr * const term  = _term ? _term : m.mk_const(c);
@@ -58,13 +58,13 @@ public:
     
     
     void make_model(model_ref& destination) {
-        for (unsigned i = 0; i < m_abstr_model->get_num_uninterpreted_sorts(); i++) {
+        for (unsigned i = 0; i < m_abstr_model->get_num_uninterpreted_sorts(); ++i) {
             sort * const s = m_abstr_model->get_uninterpreted_sort(i);
             ptr_vector<expr> u = m_abstr_model->get_universe(s);
             destination->register_usort(s, u.size(), u.data());
         }
         
-        for (unsigned i = 0; i < m_abstr_model->get_num_functions(); i++) {
+        for (unsigned i = 0; i < m_abstr_model->get_num_functions(); ++i) {
             func_decl * const fd = m_abstr_model->get_function(i);
             func_interp * const fi = m_abstr_model->get_func_interp(fd);
             destination->register_decl(fd, fi);
@@ -199,12 +199,12 @@ private:
         for (unsigned i = 0; i < num; ++i) {
             expr * val = nullptr;
             const bool b = eval_cached(to_app(args[i]), val); // TODO: OK conversion to_app?
-            CTRACE("model_constructor", m_conflicts.empty() && !b, tout << "fail arg val(\n" << mk_ismt2_pp(args[i], m, 2) << '\n'; );
+            CTRACE(model_constructor, m_conflicts.empty() && !b, tout << "fail arg val(\n" << mk_ismt2_pp(args[i], m, 2) << '\n'; );
             if (!b) {
                 // bailing out because args eval failed previously
                 return false;
             }
-            TRACE("model_constructor", tout <<
+            TRACE(model_constructor, tout <<
                   "arg val " << i << "(\n" << mk_ismt2_pp(args[i], m, 2)
                   << " : " << mk_ismt2_pp(val, m, 2) << '\n'; );
             SASSERT(b);
@@ -233,21 +233,21 @@ private:
     bool mk_value(app * a) {
         if (is_val(a))
             return true; // skip numerals
-        TRACE("model_constructor", tout << "mk_value(\n" << mk_ismt2_pp(a, m, 2) << ")\n";);
+        TRACE(model_constructor, tout << "mk_value(\n" << mk_ismt2_pp(a, m, 2) << ")\n";);
         SASSERT(!m_app2val.contains(a));
         expr_ref result(m);
         if (!evaluate(a, result))
             return false;
-        TRACE("model_constructor",
+        TRACE(model_constructor,
               tout << "map term(\n" << mk_ismt2_pp(a, m, 2) << "\n->"
               << mk_ismt2_pp(result.get(), m, 2)<< ")\n"; );
-        CTRACE("model_constructor",
+        CTRACE(model_constructor,
                !is_val(result.get()),
                tout << "eval didn't create a constant \n" << mk_ismt2_pp(a, m, 2) << " " << mk_ismt2_pp(result, m, 2) << "\n";
                );
         m_app2val.insert(a, result.get()); // memoize
         m_pinned.push_back(a);
-        m_pinned.push_back(result);
+        m_pinned.push_back(std::move(result));
         return true;
     }
     
@@ -284,7 +284,7 @@ private:
             SASSERT(vi.source_term);
             const bool ok =  vi.value == value;
             if (!ok) {
-                TRACE("model_constructor",
+                TRACE(model_constructor,
                       tout << "already mapped by(\n" << mk_ismt2_pp(vi.source_term, m, 2) << "\n->"
                       << mk_ismt2_pp(vi.value, m, 2) << ")\n"; );
                 m_conflicts.push_back(std::make_pair(a, vi.source_term));
@@ -315,7 +315,7 @@ private:
         expr_ref term(m);
         term = m.mk_app(a->get_decl(), num, values.data());
         m_evaluator->operator() (term, result);
-        TRACE("model_constructor",
+        TRACE(model_constructor,
               tout << "eval(\n" << mk_ismt2_pp(term.get(), m, 2) << "\n->"
               << mk_ismt2_pp(result.get(), m, 2) << ")\n"; );
         return;

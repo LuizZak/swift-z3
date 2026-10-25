@@ -19,6 +19,7 @@ Notes:
 --*/
 
 #include <typeinfo>
+#include <numeric>
 #include "smt/theory_pb.h"
 #include "smt/smt_context.h"
 #include "smt/smt_kernel.h"
@@ -251,7 +252,7 @@ namespace smt {
         context& ctx = th.get_context();
         unsigned sz = size();
         unsigned bound = k();
-        TRACE("pb", th.display(tout << "assign: " << m_lit << " " << ~alit << " " << bound << "\n", *this, true););
+        TRACE(pb, th.display(tout << "assign: " << m_lit << " " << ~alit << " " << bound << "\n", *this, true););
 
         SASSERT(0 < bound && bound < sz);
         SASSERT(ctx.get_assignment(alit) == l_false);
@@ -273,7 +274,7 @@ namespace smt {
         for (unsigned i = bound + 1; i < sz; ++i) {
             literal lit2 = lit(i);
             if (ctx.get_assignment(lit2) != l_false) {
-                TRACE("pb", tout << "swap " << lit2 << "\n";);
+                TRACE(pb, tout << "swap " << lit2 << "\n";);
                 std::swap(m_args[index], m_args[i]);
                 th.watch_literal(lit2, this);
                 return l_undef;
@@ -282,12 +283,12 @@ namespace smt {
 
         // conflict
         if (bound != index && ctx.get_assignment(lit(bound)) == l_false) {
-            TRACE("pb", tout << "conflict " << lit(bound) << " " << alit << "\n";);
+            TRACE(pb, tout << "conflict " << lit(bound) << " " << alit << "\n";);
             set_conflict(th, alit);
             return l_false;
         }
 
-        TRACE("pb", tout << "no swap " << index << " " << alit << "\n";);
+        TRACE(pb, tout << "no swap " << index << " " << alit << "\n";);
         // there are no literals to swap with,
         // prepare for unit propagation by swapping the false literal into 
         // position bound. Then literals in positions 0..bound-1 have to be
@@ -548,11 +549,11 @@ namespace smt {
         c->prune();
         c->post_prune();
 
-        TRACE("pb", display(tout, *c); tout << " := " << lit << " " << is_true << "\n";);        
+        TRACE(pb, display(tout, *c); tout << " := " << lit << " " << is_true << "\n";);        
         switch (is_true) {
         case l_false: 
             lit.neg();
-            // fall-through
+            Z3_fallthrough;
         case l_true: 
             ctx.mk_th_axiom(get_id(), 1, &lit);
             return true;
@@ -586,7 +587,7 @@ namespace smt {
         init_watch(abv);
         m_var_infos[abv].m_ineq = c.detach();
         m_ineqs_trail.push_back(abv);
-        TRACE("pb", display(tout, *c););
+        TRACE(pb, display(tout, *c););
         return true;
     }
 
@@ -624,7 +625,7 @@ namespace smt {
             app_ref tmp(m), fml(m);
             tmp = pb.mk_fresh_bool();
             fml = m.mk_iff(tmp, arg);
-            TRACE("pb", tout << "create proxy " << fml << "\n";);
+            TRACE(pb, tout << "create proxy " << fml << "\n";);
             ctx.internalize(fml, false);
             SASSERT(ctx.b_internalized(tmp));
             bv = ctx.get_bool_var(tmp);
@@ -947,7 +948,7 @@ namespace smt {
         }
         c.inc_propagations(*this);
         m_stats.m_num_propagations++;
-        TRACE("pb", tout << "#prop: " << c.num_propagations() << " - " << c.lit() << " => " << l << "\n";
+        TRACE(pb, tout << "#prop: " << c.num_propagations() << " - " << c.lit() << " => " << l << "\n";
               display(tout, c, true) << "\n";);
         SASSERT(validate_unit_propagation(c));
         ctx.assign(l, ctx.mk_justification(card_justification(c, l, get_id())));
@@ -985,8 +986,8 @@ namespace smt {
         UNREACHABLE();
     }
     
-    final_check_status theory_pb::final_check_eh() {
-        TRACE("pb", display(tout););
+    final_check_status theory_pb::final_check_eh(unsigned level) {
+        TRACE(pb, display(tout););
         DEBUG_CODE(validate_final_check(););
         return FC_DONE;
     }
@@ -995,7 +996,7 @@ namespace smt {
         ptr_vector<ineq>* ineqs = nullptr;
         literal nlit(v, is_true);
         init_watch(v);
-        TRACE("pb", tout << "assign: " << ~nlit << "\n";);
+        TRACE(pb, tout << "assign: " << ~nlit << "\n";);
         ineqs = m_var_infos[v].m_lit_watch[nlit.sign()];
         if (ineqs != nullptr) {
             for (unsigned i = 0; i < ineqs->size(); ++i) {
@@ -1133,7 +1134,7 @@ namespace smt {
             }
         }
 
-        TRACE("pb", 
+        TRACE(pb, 
               tout << "assign: " << c.lit() << "\n";
               display(tout, c); );
 
@@ -1245,7 +1246,7 @@ namespace smt {
             //
         }
 
-        TRACE("pb", 
+        TRACE(pb, 
               tout << "assign: " << literal(v,!is_true) << "\n";
               display(tout, c); );
 
@@ -1280,7 +1281,7 @@ namespace smt {
                 ctx.literal2expr(lits[i], tmp);
                 es.push_back(tmp);
             }
-            tmp = m.mk_or(es.size(), es.data());
+            tmp = m.mk_or(es);
             bool_var v = ctx.b_internalized(tmp)?ctx.get_bool_var(tmp):ctx.mk_bool_var(tmp);
             return literal(v);
         }
@@ -1292,7 +1293,7 @@ namespace smt {
                 ctx.literal2expr(lits[i], tmp);
                 es.push_back(tmp);
             }
-            tmp = m.mk_and(es.size(), es.data());
+            tmp = m.mk_and(es);
             bool_var v = ctx.b_internalized(tmp)?ctx.get_bool_var(tmp):ctx.mk_bool_var(tmp);
             return literal(v);
         }
@@ -1497,7 +1498,7 @@ namespace smt {
     void theory_pb::add_assign(ineq& c, literal_vector const& lits, literal l) {
         inc_propagations(c);
         m_stats.m_num_propagations++;
-        TRACE("pb", tout << "#prop:" << c.m_num_propagations << " - " << lits;
+        TRACE(pb, tout << "#prop:" << c.m_num_propagations << " - " << lits;
               tout << " => " << l << "\n";
               display(tout, c, true););
 
@@ -1512,7 +1513,7 @@ namespace smt {
     void theory_pb::add_clause(ineq& c, literal_vector const& lits) {
         inc_propagations(c);
         m_stats.m_num_conflicts++;
-        TRACE("pb", tout << "#prop:" << c.m_num_propagations << " - " << lits << "\n"; 
+        TRACE(pb, tout << "#prop:" << c.m_num_propagations << " - " << lits << "\n"; 
               display(tout, c, true);); 
         justification* js = nullptr;
         if (proofs_enabled()) {                                         
@@ -1624,12 +1625,14 @@ namespace smt {
                 literal lit = cls.get_literal(i);
                 args.push_back(literal2expr(lit));
             }
-            result = m.mk_or(args.size(), args.data());
+            result = m.mk_or(args);
             break;
         }
-        case b_justification::BIN_CLAUSE:
-            result = m.mk_or(literal2expr(conseq), literal2expr(~js.get_literal()));
+        case b_justification::BIN_CLAUSE: {
+            app_ref consequent = literal2expr(conseq);
+            result = m.mk_or(consequent, literal2expr(~js.get_literal()));
             break;
+        }
         case b_justification::AXIOM:
             break;
         case b_justification::JUSTIFICATION: {
@@ -1644,8 +1647,6 @@ namespace smt {
             }            
             break;
         }
-        default:
-            break;
         }
         return result;
     }
@@ -1673,7 +1674,7 @@ namespace smt {
      */
     literal theory_pb::get_asserting_literal(literal p) {
         unsigned lvl = 0;
-        TRACE("pb", tout << p << " " << ctx.get_assignment(p) << "\n";);
+        TRACE(pb, tout << p << " " << ctx.get_assignment(p) << "\n";);
 
         if (ctx.get_assignment(p) == l_false && get_abs_coeff(p.var()) != 0 && p == literal(p.var(), get_coeff(p.var()) < 0)) {
             return p;
@@ -1788,7 +1789,7 @@ namespace smt {
                 g = static_cast<unsigned>(coeff);
             }
             else {
-                g = u_gcd(g, static_cast<unsigned>(coeff));
+                g = std::gcd(g, static_cast<unsigned>(coeff));
             }
         }
         if (g >= 2) {
@@ -1797,7 +1798,7 @@ namespace smt {
                 m_coeffs[v] /= static_cast<int>(g);                
             }
             m_bound = (m_bound + g - 1) / g;
-            TRACE("pb", display_resolved_lemma(tout << "cut\n"););
+            TRACE(pb, display_resolved_lemma(tout << "cut\n"););
         }
     }
 
@@ -1807,7 +1808,7 @@ namespace smt {
 
     bool theory_pb::resolve_conflict(card& c, literal_vector const& confl) {
        
-        TRACE("pb", display(tout << "resolve conflict\n", c, true); );
+        TRACE(pb, display(tout << "resolve conflict\n", c, true); );
 
         bool_var v;
         m_conflict_lvl = 0;
@@ -1851,7 +1852,7 @@ namespace smt {
 
         while (m_num_marks > 0) {
 
-            TRACE("pb", tout << "conseq: " << conseq << "\n");
+            TRACE(pb, tout << "conseq: " << conseq << "\n");
             v = conseq.var();
 
             int offset = get_abs_coeff(v);
@@ -1869,7 +1870,7 @@ namespace smt {
 
             js = ctx.get_justification(v);
 
-            TRACE("pb", 
+            TRACE(pb, 
                   display_resolved_lemma(tout << conseq << "\n");
                   ctx.display(tout, js););
 
@@ -1889,13 +1890,13 @@ namespace smt {
                 clause& cls = *js.get_clause();
                 justification* cjs = cls.get_justification();
                 unsigned num_lits = cls.get_num_literals();
-                CTRACE("pb", cjs, tout << (typeid(smt::unit_resolution_justification) == typeid(*cjs)) << "\n");
+                CTRACE(pb, cjs, tout << (typeid(smt::unit_resolution_justification) == typeid(*cjs)) << "\n");
                 if (cjs && typeid(smt::unit_resolution_justification) == typeid(*cjs)) {
                     clear_marks();
                     return false;
                 }
                 else if (cjs && !is_proof_justification(*cjs)) {                    
-                    TRACE("pb", tout << "not processing justification over: " << conseq << " " << typeid(*cjs).name() << "\n";);
+                    TRACE(pb, tout << "not processing justification over: " << conseq << " " << typeid(*cjs).name() << "\n";);
                     break;
                 }
                 if (cls.get_literal(0) == conseq) {
@@ -1908,7 +1909,7 @@ namespace smt {
                 for (unsigned i = 2; i < num_lits; ++i) {
                     process_antecedent(cls.get_literal(i), offset);
                 }
-                TRACE("pb", tout << literal_vector(cls.get_num_literals(), cls.begin()) << "\n";);
+                TRACE(pb, tout << literal_vector(cls.get_num_literals(), cls.begin()) << "\n";);
                 break;                
             }
             case b_justification::BIN_CLAUSE:
@@ -1926,7 +1927,7 @@ namespace smt {
                     pbj = dynamic_cast<card_justification*>(j);
                 }
                 if (pbj == nullptr) {
-                    TRACE("pb", tout << "skip justification for " << conseq << "\n";);
+                    TRACE(pb, tout << "skip justification for " << conseq << "\n";);
                     bound = 0;
                     // this is possible when conseq is an assumption.
                     // The justification of conseq is itself, 
@@ -1941,8 +1942,6 @@ namespace smt {
                 
                 break;
             }
-            default:
-                UNREACHABLE();
             }            
             m_bound += offset * bound;
 
@@ -1975,7 +1974,7 @@ namespace smt {
         }
         SASSERT(validate_lemma());
 
-        TRACE("pb", display_resolved_lemma(tout << "done\n"););
+        TRACE(pb, display_resolved_lemma(tout << "done\n"););
         
 
         normalize_active_coeffs();
@@ -2016,7 +2015,7 @@ namespace smt {
         ++m_stats.m_num_resolves;
 
         SASSERT(validate_antecedents(m_antecedents));
-        TRACE("pb", tout << "assign " << m_antecedents << " ==> " << alit << "\n";);
+        TRACE(pb, tout << "assign " << m_antecedents << " ==> " << alit << "\n";);
         ctx.assign(alit, ctx.mk_justification(theory_propagation_justification(get_id(), ctx, m_antecedents.size(), m_antecedents.data(), alit, 0, nullptr)));
 
         DEBUG_CODE(
@@ -2025,7 +2024,7 @@ namespace smt {
             for (literal lit : m_antecedents) {
                 args.push_back(literal2expr(lit));
             }
-            B = m.mk_not(m.mk_and(args.size(), args.data()));
+            B = m.mk_not(m.mk_and(args));
             validate_implies(A, B); );
         return true;
     }
@@ -2082,7 +2081,7 @@ namespace smt {
                 sum += c.coeff(i);
             }
         }
-        CTRACE("pb", (sum >= c.k()),
+        CTRACE(pb, (sum >= c.k()),
                display(tout << "invalid assign" , c, true);
                for (literal lit : lits) tout << lit << " ";
                tout << " => " << l << "\n";);
@@ -2090,7 +2089,7 @@ namespace smt {
     }
 
     void theory_pb::validate_final_check() {
-        TRACE("pb", tout << "validate " << m_var_infos.size() << "\n";);
+        TRACE(pb, tout << "validate " << m_var_infos.size() << "\n";);
         for (auto & vi : m_var_infos) {
             if (vi.m_ineq) {
                 validate_final_check(*vi.m_ineq);
@@ -2103,11 +2102,11 @@ namespace smt {
 
     void theory_pb::validate_final_check(card& c) {
         if (ctx.get_assignment(c.lit()) == l_undef) {
-            TRACE("pb", display(tout << "is undef ", c, true););
+            TRACE(pb, display(tout << "is undef ", c, true););
             return;
         }
         if (!ctx.is_relevant(c.lit())) {
-            TRACE("pb", display(tout << "not relevant ", c, true););
+            TRACE(pb, display(tout << "not relevant ", c, true););
             return;
         }
 
@@ -2116,6 +2115,7 @@ namespace smt {
             switch(ctx.get_assignment(c.lit(i))) {
             case l_true:
                 ++sum;
+                Z3_fallthrough;
             case l_undef:
                 ++maxsum;
                 break;
@@ -2123,7 +2123,7 @@ namespace smt {
                 break;
             }
         }
-        TRACE("pb_verbose", display(tout << "validate: ", c, true);
+        TRACE(pb_verbose, display(tout << "validate: ", c, true);
               tout << "sum: " << sum << " " << maxsum << " ";
               tout << ctx.get_assignment(c.lit()) << "\n";);
 
@@ -2135,11 +2135,11 @@ namespace smt {
     void theory_pb::validate_final_check(ineq& c) {
 
         if (ctx.get_assignment(c.lit()) == l_undef) {
-            TRACE("pb", tout << c.lit() << " is undef\n";);
+            TRACE(pb, tout << c.lit() << " is undef\n";);
             return;
         }
         if (!ctx.is_relevant(c.lit())) {
-            TRACE("pb", tout << c.lit() << " is not relevant\n";);
+            TRACE(pb, tout << c.lit() << " is not relevant\n";);
             return;
         }
         numeral sum = numeral::zero(), maxsum = numeral::zero();
@@ -2147,6 +2147,7 @@ namespace smt {
             switch(ctx.get_assignment(c.lit(i))) {
             case l_true:
                 sum += c.coeff(i);
+                Z3_fallthrough;
             case l_undef:
                 maxsum += c.coeff(i);
                 break;
@@ -2154,7 +2155,7 @@ namespace smt {
                 break;
             }
         }
-        TRACE("pb", display(tout << "validate: ", c, true);
+        TRACE(pb, display(tout << "validate: ", c, true);
               tout << "sum: " << sum << " " << maxsum << " ";
               tout << ctx.get_assignment(c.lit()) << "\n";
               ctx.display(tout);
@@ -2367,11 +2368,10 @@ namespace smt {
     }
 
     model_value_proc * theory_pb::mk_value(enode * n, model_generator & mg) {
-        app* a = n->get_expr();
+        auto a = n->get_app();
         pb_model_value_proc* p = alloc(pb_model_value_proc, a);
-        for (unsigned i = 0; i < a->get_num_args(); ++i) {
-            p->add(ctx.get_enode(a->get_arg(i)));
-        }
+        for (auto arg : *a)
+            p->add(ctx.get_enode(arg));      
         return p;
     }
 

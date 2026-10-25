@@ -62,7 +62,7 @@ struct pull_quant::imp {
             bool found_quantifier = false;
             bool forall_children = false;
             
-            for (unsigned i = 0; i < num_children; i++) {
+            for (unsigned i = 0; i < num_children; ++i) {
                 expr * child = children[i];
                 if (is_quantifier(child) && !is_lambda(child)) {
                     
@@ -98,14 +98,14 @@ struct pull_quant::imp {
                 expr_ref          adjusted_child(m);
                 unsigned          num_decls = var_sorts.size();
                 unsigned          shift_amount = 0;
-                TRACE("pull_quant", tout << "Result num decls:" << num_decls << "\n";);
-                for (unsigned i = 0; i < num_children; i++) {
+                TRACE(pull_quant, tout << "Result num decls:" << num_decls << "\n";);
+                for (unsigned i = 0; i < num_children; ++i) {
                     expr * child = children[i];
                     if (!is_quantifier(child)) {
                         // increment the free variables in child by num_decls because
                         // child will be in the scope of num_decls bound variables.
                         m_shift(child, num_decls, adjusted_child);
-                        TRACE("pull_quant", tout << "shifted by: " << num_decls << "\n" << 
+                        TRACE(pull_quant, tout << "shifted by: " << num_decls << "\n" << 
                               mk_pp(child, m) << "\n---->\n" << mk_pp(adjusted_child, m) << "\n";);
                     }
                     else {
@@ -127,7 +127,7 @@ struct pull_quant::imp {
                                 num_decls - nested_q->get_num_decls(), // shift1  (shift by this amount if var idx >= bound)
                                 shift_amount,                          // shift2  (shift by this amount if var idx < bound)
                                 adjusted_child);
-                        TRACE("pull_quant", tout << "shifted  bound: " << nested_q->get_num_decls() << " shift1: " << shift_amount <<
+                        TRACE(pull_quant, tout << "shifted  bound: " << nested_q->get_num_decls() << " shift1: " << shift_amount <<
                               " shift2: " << (num_decls - nested_q->get_num_decls()) << "\n" << mk_pp(nested_q->get_expr(), m) << 
                               "\n---->\n" << mk_pp(adjusted_child, m) << "\n";);
                         shift_amount += nested_q->get_num_decls();
@@ -188,7 +188,7 @@ struct pull_quant::imp {
 				 var_names.data(),
 				 nested_q->get_expr(),
 				 std::min(q->get_weight(), nested_q->get_weight()),
-				 m.is_lambda_def(q) ? symbol("pulled-lambda") : q->get_qid());
+				 q->get_qid());
         }
 
         void pull_quant1(quantifier * q, expr * new_expr, expr_ref & result) {

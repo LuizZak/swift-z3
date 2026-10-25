@@ -44,11 +44,11 @@ namespace sat {
         report(bcd& f):f(f) {}
         ~report() {
             IF_VERBOSE(1, verbose_stream() << "Decomposed set " << f.m_L.size() << " rest: " << f.m_R.size() << "\n";);
-            TRACE("sat",
+            TRACE(sat,
                   tout << "Decomposed set " << f.m_L.size() << "\n";
-                  for (bclause b : f.m_L) tout << b.lit << ": " << *b.cls << "\n";
+                  for (const bclause& b : f.m_L) tout << b.lit << ": " << *b.cls << "\n";
                   tout << "Remainder " << f.m_R.size() << "\n";
-                  for (bclause b : f.m_R) tout << b.lit << ": " << *b.cls << "\n";);            
+                  for (const bclause& b : f.m_R) tout << b.lit << ": " << *b.cls << "\n";);            
         }
     };
 
@@ -66,7 +66,7 @@ namespace sat {
         report _report(*this);
         pure_decompose();
         post_decompose();
-        for (bclause bc : m_L) {
+        for (const bclause& bc : m_L) {
             if (bc.cls->size() == 2) 
                 bins.push_back(bin_clause((*bc.cls)[0], (*bc.cls)[1]));
             else 
@@ -83,14 +83,14 @@ namespace sat {
         }
         bin_clauses bc;
         s.collect_bin_clauses(bc, false, false); // exclude roots.
-        for (auto b : bc) {
+        for (const auto& b : bc) {
             literal lits[2] = { b.first, b.second };
             clause* cls = s.cls_allocator().mk_clause(2, lits, false);
             ul.insert(*cls);
             m_bin_clauses.push_back(cls);
             register_clause(cls);
         }
-        TRACE("sat", for (clause* cls : m_clauses) if (cls) tout << *cls << "\n";);
+        TRACE(sat, for (clause* cls : m_clauses) if (cls) tout << *cls << "\n";);
     }
 
     void bcd::register_clause(clause* cls) {
@@ -128,7 +128,7 @@ namespace sat {
         }
         m_L.append(tmpL);
         m_R.append(tmpR);
-        TRACE("bcd", tout << lit << " " << "pos: " << tmpL.size() << " " << "neg: " << tmpR.size() << "\n";);
+        TRACE(bcd, tout << lit << " " << "pos: " << tmpL.size() << " " << "neg: " << tmpR.size() << "\n";);
     }
     
     void bcd::pure_decompose(use_list& ul, literal lit, svector<bclause>& clauses) {
@@ -148,7 +148,7 @@ namespace sat {
         m_marked.resize(2*s.num_vars(), false);
         use_list ul;
         ul.init(s.num_vars());
-        for (bclause bc : m_L) {
+        for (const bclause& bc : m_L) {
             ul.insert(*bc.cls);
         }
 
@@ -201,7 +201,7 @@ namespace sat {
         m_new_L.push_back(bclause(cls0[0], &cls0));
         bool removed = false;
         reset_removed();
-        for (bclause bc : m_L) {
+        for (const bclause& bc : m_L) {
             literal lit = find_blocked(ul, *bc.cls);
             if (lit == null_literal) {
                 live_clauses.push_back(bc);
@@ -215,7 +215,7 @@ namespace sat {
         while (removed) {
             removed = false;
             unsigned j = 0;
-            for (bclause bc : live_clauses) {
+            for (const bclause& bc : live_clauses) {
                 literal lit = find_blocked(ul, *bc.cls);
                 if (lit == null_literal) {
                     live_clauses[j++] = bc;
@@ -239,7 +239,7 @@ namespace sat {
     }
 
     literal bcd::find_blocked(use_list& ul, clause const& cls) {
-        TRACE("bcd", tout << cls << "\n";);
+        TRACE(bcd, tout << cls << "\n";);
 
         for (literal lit : cls) {            
             m_marked[(~lit).index()] = true;
@@ -247,7 +247,7 @@ namespace sat {
         literal result = null_literal;
         for (literal lit : cls) {
             if (is_blocked(ul, lit)) {
-                TRACE("bcd", tout << "is blocked " << lit << " : " << cls << "\n";);
+                TRACE(bcd, tout << "is blocked " << lit << " : " << cls << "\n";);
                 result = lit;
                 break;
             }
@@ -277,11 +277,8 @@ namespace sat {
 
     void bcd::init_rbits() {
         m_rbits.reset();        
-        for (unsigned i = 0; i < s.num_vars(); ++i) {
-            uint64_t lo = s.rand()() + (s.rand()() << 16ull);
-            uint64_t hi = s.rand()() + (s.rand()() << 16ull);
-            m_rbits.push_back(lo + (hi << 32ull));
-        }
+        for (unsigned i = 0; i < s.num_vars(); ++i)
+            m_rbits.push_back(s.rand().next_uint64());
     }
     
     uint64_t bcd::eval_clause(clause const& cls) const {
@@ -342,7 +339,7 @@ namespace sat {
             }
         }
         IF_VERBOSE(0, verbose_stream() << "num merge: " << num_merge << "\n");
-        TRACE("sat", uf.display(tout););
+        TRACE(sat, uf.display(tout););
     }
 
     void bcd::cleanup() {
@@ -353,4 +350,4 @@ namespace sat {
         m_R.reset();
     }
 
-};
+}

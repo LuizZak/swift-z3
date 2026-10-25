@@ -19,6 +19,7 @@ Notes:
 #pragma once
 
 #include "util/rational.h"
+#include "util/manage_warnings.h"
 #include "util/mpq.h"
 #include "math/polynomial/polynomial.h"
 #include "util/z3_exception.h"
@@ -168,6 +169,19 @@ namespace algebraic_numbers {
                        q_n(x2v(y_1), ..., x2v(y_n))x^n + ... + q_1(x2v(y_1), ..., x2v(y_n))*x + q_0
         */
         void isolate_roots(polynomial_ref const & p, polynomial::var2anum const & x2v, numeral_vector & roots);
+
+        /**
+           \brief Isolate the closest real roots of a multivariate polynomial p around the rational point s.
+
+           The method behaves like isolate_roots(p, x2v, roots) but only returns:
+           - the last root r such that r <= s (if it exists), and
+           - the first root r such that r >  s (if it exists),
+           or a single root if s itself is a root.
+
+           The returned roots are sorted increasingly. The associated 1-based root indices
+           (with respect to the full increasing root list) are stored in \c indices.
+        */
+        void isolate_roots_closest(polynomial_ref const & p, polynomial::var2anum const & x2v, mpq const & s, numeral_vector & roots, svector<unsigned> & indices);
 
         /**
            \brief Isolate the roots of the given polynomial, and compute its sign between them.
@@ -322,6 +336,26 @@ namespace algebraic_numbers {
         void get_upper(numeral const & a, rational & l, unsigned precision);
 
         /**
+           \brief Copy the stored isolating interval without refinement.
+
+           Numbers stored as rationals return l == u == a. Otherwise, the
+           existing bounds are returned without imposing an interval width.
+        */
+        void get_interval(numeral const & a, mpq & l, mpq & u);
+        void get_interval(numeral const & a, rational & l, rational & u);
+
+        /**
+           \brief Store in (l, u) an isolating interval for \c a of the given precision.
+
+           Both bounds are produced by a single refinement. Calling get_lower and
+           get_upper instead costs twice as much: each one refines an interval to
+           \c precision and then throws away the bound it was not asked for, and the
+           refinement is done on a copy, so nothing is cached between the two calls.
+        */
+        void get_interval(numeral const & a, mpq & l, mpq & u, unsigned precision);
+        void get_interval(numeral const & a, rational & l, rational & u, unsigned precision);
+
+        /**
            \brief Display algebraic number as a rational if is_rational(n)
            Otherwise, display it as an interval.
         */
@@ -346,6 +380,12 @@ namespace algebraic_numbers {
         std::ostream& display_root_smt2(std::ostream & out, numeral const & a) const;
 
         /**
+           \brief Display algebraic number using an SMT-RAT style root expression: (root p i x)
+           where the final argument denotes the variable bound to this root.
+        */
+        std::ostream& display_root_smtrat(std::ostream & out, numeral const & a, char const* var_name) const;
+
+        /**
            \brief Display algebraic number in Mathematica format.
         */
         std::ostream& display_mathematica(std::ostream & out, numeral const & a) const;
@@ -362,13 +402,24 @@ namespace algebraic_numbers {
 
     
 
-    class anum {   
+    class anum {
         enum anum_kind { BASIC = 0, ROOT };
         void* m_cell;
     public:
         anum() :m_cell(nullptr) {}
         anum(basic_cell* cell) :m_cell(TAG(void*, cell, BASIC)) { }
         anum(algebraic_cell * cell):m_cell(TAG(void*, cell, ROOT)) {  }
+
+        // Move nulls the source so std::sort's inner shifts stay alias-free
+        // if the comparator throws between moves (avoids a later double-free).
+        anum(anum const &) = default;
+        anum & operator=(anum const &) = default;
+        anum(anum && other) noexcept : m_cell(other.m_cell) { other.m_cell = nullptr; }
+        anum & operator=(anum && other) noexcept {
+            m_cell = other.m_cell;
+            other.m_cell = nullptr;
+            return *this;
+        }
 
         bool is_basic() const { return GET_TAG(m_cell) == BASIC; }
         basic_cell * to_basic() const { SASSERT(is_basic()); return UNTAG(basic_cell*, m_cell); }
@@ -380,7 +431,7 @@ namespace algebraic_numbers {
         anum& operator=(basic_cell* cell) { SASSERT(is_null());  m_cell = TAG(void*, cell, BASIC); return *this; }
         anum& operator=(algebraic_cell* cell) { SASSERT(is_null());  m_cell = TAG(void*, cell, ROOT); return *this; }
     };
-};
+}
 
 typedef algebraic_numbers::manager anum_manager;
 typedef algebraic_numbers::manager::numeral anum;
@@ -401,12 +452,14 @@ AN_MK_COMPARISON_CORE(EXTERNAL, INTERNAL, int)     \
 AN_MK_COMPARISON_CORE(EXTERNAL, INTERNAL, mpz)     \
 AN_MK_COMPARISON_CORE(EXTERNAL, INTERNAL, mpq)
 
+START_DISABLE_EXTRA_SEMI_WARNING;
 AN_MK_COMPARISON(operator==, eq);
 AN_MK_COMPARISON(operator!=, neq);
 AN_MK_COMPARISON(operator<,  lt);
 AN_MK_COMPARISON(operator<=, le);
 AN_MK_COMPARISON(operator>,  gt);
 AN_MK_COMPARISON(operator>=, ge);
+END_DISABLE_WARNING;
 
 #undef AN_MK_COMPARISON
 #undef AN_MK_COMPARISON_CORE
@@ -495,4 +548,3 @@ inline std::ostream & operator<<(std::ostream & out, interval_pp const & n) {
     n.m.display_interval(out, n.n);
     return out;
 }
-

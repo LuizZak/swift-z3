@@ -86,8 +86,9 @@ namespace nlsat {
         case justification::DECISION: return out << "decision";
         case justification::CLAUSE: return out << "clause";
         case justification::LAZY: return out << "lazy";
-        default: return out << "??";
         }
+        UNREACHABLE();
+        return out;
     }
     
     const justification null_justification;
@@ -106,5 +107,4 @@ namespace nlsat {
             a.deallocate(obj_sz, ptr);
         }
     }
-};
-
+}

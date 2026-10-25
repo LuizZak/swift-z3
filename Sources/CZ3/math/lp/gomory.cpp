@@ -57,9 +57,79 @@ struct create_cut {
             m_ex->push_back(ci);
     }
 
+    void capture_evidence() {
+        if (!lia.lra.dep_manager().proofs_enabled())
+            return;
+        auto* proof = lia.lra.dep_manager().derive(m_dep, [&] {
+            evidence_manager::recipe r;
+            r.kind = evidence_manager::rule::gomory;
+            r.conclusion.lhs = m_t.coeffs_as_vector();
+            r.conclusion.kind = GE;
+            r.conclusion.rhs = impq(m_k);
+            r.pivot = m_inf_col;
+            for (auto const& p : m_row) {
+                unsigned j = p.var();
+                r.equation.lhs.push_back({p.coeff(), j});
+                if (j == m_inf_col)
+                    continue;
+                evidence_manager::column_bounds bounds{j};
+                if (column_is_fixed(j) || ((!is_int(j) || !p.coeff().is_int()) && at_lower(j))) {
+                    bounds.lower = r.premises.size();
+                    r.premises.push_back({column_lower_bound_constraint(j), mpq(1)});
+                }
+                if (column_is_fixed(j) || ((!is_int(j) || !p.coeff().is_int()) && !at_lower(j))) {
+                    bounds.upper = r.premises.size();
+                    r.premises.push_back({column_upper_bound_constraint(j), mpq(1)});
+                }
+                if (bounds.lower != UINT_MAX || bounds.upper != UINT_MAX)
+                    r.bounds.push_back(bounds);
+            }
+            return r;
+        });
+        m_dep = proof;
+        if (m_t.is_empty())
+            proof = lia.lra.dep_manager().derive(proof, [&] {
+                evidence_manager::recipe r;
+                r.kind = evidence_manager::rule::linear;
+                r.conclusion.contradiction = true;
+                r.premises.push_back({m_dep, mpq(1)});
+                return r;
+            });
+        m_ex->set_evidence(proof);
+    }
+
+    u_dependency* polarity_evidence(u_dependency* support, bool lower, mpq const& value) {
+        if (!lia.lra.dep_manager().proofs_enabled())
+            return support;
+        auto* linear = lia.lra.dep_manager().derive(support, [&] {
+            evidence_manager::recipe r;
+            r.kind = evidence_manager::rule::linear;
+            r.conclusion.lhs.push_back({mpq(1), m_inf_col});
+            r.conclusion.kind = lower ? GE : LE;
+            for (auto const& p : m_row) {
+                if (p.var() == m_inf_col)
+                    continue;
+                bool use_lower = lower != p.coeff().is_pos();
+                auto* dep = use_lower ? column_lower_bound_constraint(p.var()) : column_upper_bound_constraint(p.var());
+                r.premises.push_back({dep, abs(p.coeff())});
+                r.conclusion.rhs -= p.coeff() * (use_lower ? lower_bound(p.var()) : upper_bound(p.var()));
+            }
+            return r;
+        });
+        return lia.lra.dep_manager().derive(support, [&] {
+            evidence_manager::recipe r;
+            r.kind = evidence_manager::rule::integer_tighten;
+            r.conclusion.lhs.push_back({mpq(1), m_inf_col});
+            r.conclusion.kind = lower ? GE : LE;
+            r.conclusion.rhs = impq(value);
+            r.premises.push_back({linear, mpq(1)});
+            return r;
+        });
+    }
+
     void int_case_in_gomory_cut(unsigned j) {
-        lp_assert(is_int(j) && m_fj.is_pos());
-        TRACE("gomory_cut_detail", 
+        SASSERT(is_int(j) && m_fj.is_pos());
+        TRACE(gomory_cut_detail, 
               tout << " k = " << m_k;
               tout << ", fj: " << m_fj << ", ";
               tout << (at_lower(j)?"at_lower":"at_upper")<< std::endl;
@@ -68,20 +138,20 @@ struct create_cut {
         if (at_lower(j)) {
             // here we have the product of new_a*(xj - lb(j)), so new_a*lb(j) is added to m_k
             new_a = m_fj <= m_one_minus_f ? m_fj / m_one_minus_f : ((1 - m_fj) / m_f);
-            lp_assert(new_a.is_pos());
+            SASSERT(new_a.is_pos());
             m_k.addmul(new_a, lower_bound(j).x);   
             push_explanation(column_lower_bound_constraint(j));         
         }
         else {
-            lp_assert(at_upper(j));
+            SASSERT(at_upper(j));
             // here we have the expression  new_a*(xj - ub), so new_a*ub(j) is added to m_k
             new_a = - (m_fj <= m_f ? m_fj / m_f  : ((1 - m_fj) / m_one_minus_f));
-            lp_assert(new_a.is_neg());
+            SASSERT(new_a.is_neg());
             m_k.addmul(new_a, upper_bound(j).x);
             push_explanation(column_upper_bound_constraint(j));
         }        
         m_t.add_monomial(new_a, j);
-        TRACE("gomory_cut_detail", tout << "new_a = " << new_a << ", k = " << m_k << "\n";);
+        TRACE(gomory_cut_detail, tout << "new_a = " << new_a << ", k = " << m_k << "\n";);
         if (numerator(new_a) > m_big_number)
             m_found_big = true;
     }
@@ -93,7 +163,7 @@ struct create_cut {
     }
 
     void real_case_in_gomory_cut(const mpq & a, unsigned j) {
-        TRACE("gomory_cut_detail_real", tout << "j = " << j << ", a = " << a << ", m_k = " << m_k << "\n";);
+        TRACE(gomory_cut_detail_real, tout << "j = " << j << ", a = " << a << ", m_k = " << m_k << "\n";);
         mpq new_a;
         if (at_lower(j)) {
             if (a.is_pos()) { 
@@ -111,7 +181,7 @@ struct create_cut {
             push_explanation(column_lower_bound_constraint(j));
         }
         else {
-            lp_assert(at_upper(j));
+            SASSERT(at_upper(j));
             if (a.is_pos()) {
                 // the delta is works again m_f
                 new_a =  - a / m_f;
@@ -126,7 +196,7 @@ struct create_cut {
             push_explanation(column_upper_bound_constraint(j));
         }
         m_t.add_monomial(new_a, j);
-        TRACE("gomory_cut_detail_real", tout << "add " << new_a << "*v" << j << ", k: " << m_k << "\n";
+        TRACE(gomory_cut_detail_real, tout << "add " << new_a << "*v" << j << ", k: " << m_k << "\n";
               tout << "m_t =  "; lia.lra.print_term(m_t, tout) << "\nk: " << m_k << "\n";);
         
         if (numerator(new_a) > m_big_number)
@@ -134,7 +204,13 @@ struct create_cut {
     }
 
     lia_move report_conflict_from_gomory_cut() {
-        lp_assert(m_k.is_pos());
+        SASSERT(m_k.is_pos());
+        if (lia.lra.dep_manager().proofs_enabled()) {
+            m_dep = nullptr;
+            for (auto c : *m_ex)
+                m_dep = lia.lra.join_deps(lia.lra.dep_manager().mk_leaf(c.ci()), m_dep);
+            capture_evidence();
+        }
         // conflict 0 >= k where k is positive
         return lia_move::conflict;
     }
@@ -204,7 +280,7 @@ struct create_cut {
             else if (at_lower(j)) 
                 dump_lower_bound_expl(out, j);
             else {
-                lp_assert(at_upper(j));
+                SASSERT(at_upper(j));
                 dump_upper_bound_expl(out, j);
             }
         }
@@ -245,7 +321,7 @@ public:
     }
 
     lia_move cut() {
-        TRACE("gomory_cut", dump(tout););
+        TRACE(gomory_cut, dump(tout););
         // If m_polarity is MAX, then
         // the row constraints the base variable to be at the maximum,
         // MIN - at the minimum,
@@ -257,9 +333,9 @@ public:
         m_t.clear();
         m_ex->clear();
         m_found_big = false;
-        TRACE("gomory_cut_detail", tout << "m_f: " << m_f << ", ";
+        TRACE(gomory_cut_detail, tout << "m_f: " << m_f << ", ";
               tout << "1 - m_f: " << 1 - m_f << ", get_value(m_inf_col).x - m_f = " << get_value(m_inf_col).x - m_f << "\n";);
-        lp_assert(m_f.is_pos() && (get_value(m_inf_col).x - m_f).is_int());  
+        SASSERT(m_f.is_pos() && (get_value(m_inf_col).x - m_f).is_int());  
         auto set_polarity_for_int = [&](const mpq & a, lpvar j) {
             if (a.is_pos()) {
                 if (at_lower(j))
@@ -319,13 +395,14 @@ public:
         if (m_t.is_empty()) {
             return report_conflict_from_gomory_cut();
         }
-        TRACE("gomory_cut", print_linear_combination_of_column_indices_only(m_t.coeffs_as_vector(), tout << "gomory cut: "); tout << " >= " << m_k << std::endl;);
+        TRACE(gomory_cut, print_linear_combination_of_column_indices_only(m_t.coeffs_as_vector(), tout << "gomory cut: "); tout << " >= " << m_k << std::endl;);
         
         m_dep = nullptr;
         for (auto c : *m_ex) 
          	m_dep = lia.lra.join_deps(lia.lra.dep_manager().mk_leaf(c.ci()), m_dep);
+        capture_evidence();
 
-        TRACE("gomory_cut_detail", dump_cut_and_constraints_as_smt_lemma(tout);
+        TRACE(gomory_cut_detail, dump_cut_and_constraints_as_smt_lemma(tout);
               lia.lra.display(tout));
         SASSERT(lia.current_solution_is_inf_on_cut());
               
@@ -363,7 +440,7 @@ public:
             if (p.coeff().is_int() && lia.column_is_int(j) && lia.get_value(j).is_int()) continue;
             
             if ( !lia.at_bound(j) || lia.get_value(j).y != 0) {
-                TRACE("gomory_cut", tout << "row is not gomory cut target:\n";
+                TRACE(gomory_cut, tout << "row is not gomory cut target:\n";
                       lia.display_column(tout, j);
                       tout << "infinitesimal: " << !(lia.get_value(j).y ==0) << "\n";);
                 return false;
@@ -516,9 +593,11 @@ public:
             }
             SASSERT(test_row_polarity(lia, row, j) == cc.m_polarity);
             if (cc.m_polarity == row_polarity::MAX) 
-                lra.update_column_type_and_bound(j, lp::lconstraint_kind::LE, floor(lra.get_column_value(j).x), add_deps(cc.m_dep, row, j));
+                lra.update_column_type_and_bound(j, lp::lconstraint_kind::LE, floor(lra.get_column_value(j).x),
+                                                cc.polarity_evidence(add_deps(cc.m_dep, row, j), false, floor(lra.get_column_value(j).x)));
             else if (cc.m_polarity == row_polarity::MIN)
-                lra.update_column_type_and_bound(j, lp::lconstraint_kind::GE, ceil(lra.get_column_value(j).x), add_deps(cc.m_dep, row, j));
+                lra.update_column_type_and_bound(j, lp::lconstraint_kind::GE, ceil(lra.get_column_value(j).x),
+                                                cc.polarity_evidence(add_deps(cc.m_dep, row, j), true, ceil(lra.get_column_value(j).x)));
             
             if (!is_small_cut(lia.get_term())) {
                 big_cuts.push_back({cc.m_t, cc.m_k, cc.m_dep});

@@ -19,7 +19,7 @@ Revision History:
 #pragma once
 
 #include "smt/theory_array_base.h"
-#include "smt/params/theory_array_params.h"
+#include "params/theory_array_params.h"
 #include "util/union_find.h"
 
 namespace smt {
@@ -28,7 +28,8 @@ namespace smt {
         unsigned   m_num_axiom1, m_num_axiom2a, m_num_axiom2b, m_num_extensionality, m_num_eq_splits;
         unsigned   m_num_map_axiom, m_num_default_map_axiom;
         unsigned   m_num_select_const_axiom, m_num_default_store_axiom, m_num_default_const_axiom, m_num_default_as_array_axiom;
-        unsigned   m_num_select_as_array_axiom, m_num_default_lambda_axiom;
+        unsigned   m_num_select_as_array_axiom, m_num_default_lambda_axiom, m_num_choice_axiom;
+        unsigned   m_num_select_lambda_axiom;
         void reset() { memset(this, 0, sizeof(theory_array_stats)); }
         theory_array_stats() { reset(); }
     };
@@ -59,10 +60,10 @@ namespace smt {
         void apply_sort_cnstr(enode * n, sort * s) override;
         void new_eq_eh(theory_var v1, theory_var v2) override;
         void new_diseq_eh(theory_var v1, theory_var v2) override;
-        void relevant_eh(app * n) override;
+        void relevant_eh(expr * n) override;
         void push_scope_eh() override;
         void pop_scope_eh(unsigned num_scopes) override;
-        final_check_status final_check_eh() override;
+        final_check_status final_check_eh(unsigned) override;
         void reset_eh() override;
         void init_search_eh() override;
 
@@ -90,6 +91,8 @@ namespace smt {
         
         virtual final_check_status assert_delayed_axioms();
         final_check_status mk_interface_eqs_at_final_check();
+        bool has_large_domain(app *array_term, rational& domain_size);
+        bool has_unitary_domain(app *array_term);
 
         static void display_ids(std::ostream & out, unsigned n, enode * const * v);
     public:
@@ -111,6 +114,5 @@ namespace smt {
         ptr_vector<enode> const& parent_selects(enode* n) { return m_var_data[find(n->get_root()->get_th_var(get_id()))]->m_parent_selects; }
     };
 
-};
-
+}
 

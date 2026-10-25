@@ -20,12 +20,14 @@ Notes:
 #include "util/gparams.h"
 #include "ast/for_each_expr.h"
 #include "ast/ast_pp.h"
+#include "ast/ast_translation.h"
 #include "ast/bv_decl_plugin.h"
 #include "ast/pb_decl_plugin.h"
 #include "ast/ast_smt_pp.h"
 #include "ast/ast_pp_util.h"
 #include "ast/ast_ll_pp.h"
 #include "ast/display_dimacs.h"
+#include "ast/occurs.h"
 #include "model/model_smt2_pp.h"
 #include "tactic/goal.h"
 #include "tactic/tactic.h"
@@ -43,8 +45,12 @@ Notes:
 #include "ackermannization/ackermannize_bv_tactic.h"
 #include "sat/sat_solver/inc_sat_solver.h"
 #include "params/sat_params.hpp"
+#include "solver/tactic2solver.h"
+#include "nlsat/tactic/qfnra_nlsat_tactic.h"
 #include "opt/opt_context.h"
 #include "opt/opt_solver.h"
+#include "opt/opt_nlsat.h"
+#include "opt/opt_pareto_solver.h"
 #include "opt/opt_params.hpp"
 
 
@@ -152,6 +158,57 @@ namespace opt {
 
     context::~context() {
         reset_maxsmts();
+    }
+
+    context* context::translate(ast_manager& target_m) {
+        // Create AST translator
+        ast_translation translator(m, target_m);
+        
+        // Create new context in target manager
+        context* result = alloc(context, target_m);
+        
+        // Copy parameters
+        result->updt_params(m_params);
+        
+        // Set logic
+        if (m_logic != symbol::null) {
+            result->set_logic(m_logic);
+        }
+        
+        // Translate hard constraints from scoped state
+        for (expr* e : m_scoped_state.m_hard) {
+            result->add_hard_constraint(translator(e));
+        }
+        
+        // Translate objectives
+        for (auto const& obj : m_scoped_state.m_objectives) {
+            if (obj.m_type == O_MAXIMIZE || obj.m_type == O_MINIMIZE) {
+                // Translate maximize/minimize objectives
+                app_ref translated_term(to_app(translator(obj.m_term.get())), target_m);
+                result->add_objective(translated_term, obj.m_type == O_MAXIMIZE);
+            }
+            else if (obj.m_type == O_MAXSMT) {
+                // Translate soft constraints for MaxSMT objectives
+                for (unsigned i = 0; i < obj.m_terms.size(); ++i) {
+                    result->add_soft_constraint(
+                        translator(obj.m_terms.get(i)),
+                        obj.m_weights[i],
+                        obj.m_id
+                    );
+                }
+            }
+        }
+        
+        // Copy configuration flags
+        result->m_enable_sat = m_enable_sat;
+        result->m_enable_sls = m_enable_sls;
+        result->m_is_clausal = m_is_clausal;
+        result->m_pp_neat = m_pp_neat;
+        result->m_pp_wcnf = m_pp_wcnf;
+        result->m_incremental = m_incremental;
+        result->m_maxsat_engine = m_maxsat_engine;
+        
+        return result;
     }
 
     void context::reset_maxsmts() {
@@ -300,6 +357,7 @@ namespace opt {
         import_scoped_state(); 
         expr_ref_vector asms(_asms);
         asms.append(m_scoped_state.m_asms);
+        m_has_assumptions = !asms.empty();
         normalize(asms);
         if (m_hard_constraints.size() == 1 && m.is_false(m_hard_constraints.get(0))) {
             return l_false;
@@ -315,6 +373,11 @@ namespace opt {
             m_model_converter->convert_initialize_value(m_scoped_state.m_values);
         for (auto & [var, value] : m_scoped_state.m_values) 
             s.user_propagate_initialize_value(var, value);
+        if (m_preferred) {
+            auto p = m_preferred;
+            s.user_propagate_init(p, p->push_eh, p->pop_eh, p->fresh_eh);
+            s.user_propagate_register_decide(p->decide_eh);
+        }
         
         opt_params optp(m_params);
         symbol pri = optp.priority();
@@ -323,7 +386,7 @@ namespace opt {
         
         lbool is_sat = s.check_sat(asms.size(), asms.data());
 
-        TRACE("opt", s.display(tout << "initial search result: " << is_sat << "\n");); 
+        TRACE(opt, s.display(tout << "initial search result: " << is_sat << "\n");); 
         if (is_sat != l_false) {
             s.get_model(m_model);
             s.get_labels(m_labels);
@@ -333,7 +396,7 @@ namespace opt {
             }
         }        
         if (is_sat != l_true) {
-            TRACE("opt", tout << m_hard_constraints << " " << asms << "\n";);            
+            TRACE(opt, tout << m_hard_constraints << " " << asms << "\n";);            
             if (!asms.empty()) {
                 s.get_unsat_core(m_core);
             }
@@ -341,7 +404,7 @@ namespace opt {
         }
         s.assert_expr(asms);
         IF_VERBOSE(1, verbose_stream() << "(optimize:sat)\n");
-        TRACE("opt", model_smt2_pp(tout, m, *m_model, 0););
+        TRACE(opt, model_smt2_pp(tout, m, *m_model, 0););
         m_optsmt.setup(*m_opt_solver.get());
         update_lower();
         
@@ -389,7 +452,7 @@ namespace opt {
 
     void context::fix_model(model_ref& mdl) {
         if (mdl && !m_model_fixed.contains(mdl.get())) {
-            TRACE("opt", m_fm->display(tout << "fix-model\n");
+            TRACE(opt, m_fm->display(tout << "fix-model\n");
                   tout << *mdl << "\n";
                   if (m_model_converter) m_model_converter->display(tout););
             (*m_fm)(mdl);
@@ -400,6 +463,7 @@ namespace opt {
 
     void context::set_model(model_ref& m) { 
         m_model = m;
+        m_model_available = true;
         opt_params optp(m_params);
         symbol prefix = optp.solution_prefix();
         bool model2console = optp.dump_models();
@@ -432,11 +496,13 @@ namespace opt {
 
 
     void context::get_model_core(model_ref& mdl) {
+        if (!m_model_available)
+            throw default_exception("model is not available");
         mdl = m_model;
-        CTRACE("opt", mdl, tout << *mdl;);
+        CTRACE(opt, mdl, tout << *mdl;);
         fix_model(mdl);
         if (mdl) mdl->set_model_completion(true);
-        CTRACE("opt", mdl, tout << *mdl;);
+        CTRACE(opt, mdl, tout << *mdl;);
     }
 
     void context::get_box_model(model_ref& mdl, unsigned index) {
@@ -456,14 +522,48 @@ namespace opt {
 
 
     lbool context::execute_min_max(unsigned index, bool committed, bool scoped, bool is_max) {
+        // Bounds before optimization come from the initial model, which the
+        // core checked against the quantified constraints (update_lower in
+        // optimize()). The theory-level push below does not instantiate
+        // quantifiers, so an "unbounded" verdict from it is not trustworthy.
+        inf_eps lower0 = m_optsmt.get_lower(index).rational_bound();
+        inf_eps upper0 = m_optsmt.get_upper(index).rational_bound();
         if (scoped) get_solver().push();            
         lbool result = m_optsmt.lex(index, is_max);
+        if (result == l_true && m_optsmt.is_unbounded(index, is_max) && contains_quantifiers()) {
+            // Give up on this objective: keep the initial model and its
+            // bounds and answer unknown, rather than throwing and leaving
+            // 'oo' behind for get-objectives to report.
+            if (scoped) get_solver().pop(1);
+            m_optsmt.update_lower(index, lower0);
+            m_optsmt.update_upper(index, upper0);
+            warning_msg("unbounded objectives on quantified constraints is not supported");
+            return l_undef;
+        }
+        if (result == l_true && m_optsmt.has_open_bound(index)) {
+            if (committed && m_objectives.size() > 1) {
+                // A later lex objective cannot be optimized by fixing the
+                // earlier objective to an unattainable real value.
+                m_opt_solver->set_reason_unknown("later lexicographic objectives after an unattained nonlinear optimum are not supported");
+                result = l_undef;
+            }
+            // A single objective also requests a commitment, but there is
+            // no following objective and no real assignment at this limit.
+            committed = false;
+        }
         if (result == l_true) { m_optsmt.get_model(m_model, m_labels); SASSERT(m_model); }
+        if (result == l_undef) {
+            // best model found so far, e.g. the lower end of a reported interval.
+            model_ref mdl;
+            svector<symbol> labels;
+            m_optsmt.get_model(mdl, labels);
+            if (mdl) {
+                m_model = mdl;
+                m_labels = labels;
+            }
+        }
         if (scoped) get_solver().pop(1);        
         if (result == l_true && committed) m_optsmt.commit_assignment(index);
-        if (result == l_true && m_optsmt.is_unbounded(index, is_max) && contains_quantifiers()) {
-            throw default_exception("unbounded objectives on quantified constraints is not supported");
-        }
         return result;
     }
     
@@ -486,8 +586,9 @@ namespace opt {
         case O_MAXIMIZE: return execute_min_max(obj.m_index, committed, scoped, true);
         case O_MINIMIZE: return execute_min_max(obj.m_index, committed, scoped, false);
         case O_MAXSMT: return execute_maxsat(obj.m_id, committed, scoped);
-        default: UNREACHABLE(); return l_undef;
         }
+        UNREACHABLE();
+        return l_undef;
     }
     
     /**
@@ -513,10 +614,12 @@ namespace opt {
             objective const& o = m_objectives[i];
             bool is_last = i + 1 == sz;            
             r = execute(o, i + 1 < sz, sc && !is_last);
-            if (r == l_true && o.m_type == O_MINIMIZE && !get_lower_as_num(i).is_finite()) {
-                return r;
-            }
-            if (r == l_true && o.m_type == O_MAXIMIZE && !get_upper_as_num(i).is_finite()) {
+            bool unbounded =
+                (o.m_type == O_MINIMIZE && !get_lower_value(i).is_finite()) ||
+                (o.m_type == O_MAXIMIZE && !get_upper_value(i).is_finite());
+            if (r == l_true && unbounded) {
+                if (!is_last)
+                    r = execute_lex_after_unbounded(i);
                 return r;
             }
             if (r == l_true && i + 1 < sz) {
@@ -527,10 +630,41 @@ namespace opt {
         return r;
     }    
 
+    // Objective unbounded_index has no finite optimum. Each later arithmetic
+    // objective takes the limit of its optima as that objective grows without
+    // bound. A determined limit is committed before the next objective; an
+    // objective left with an interval ends the search, and the later
+    // objectives keep their unrestricted intervals.
+    lbool context::execute_lex_after_unbounded(unsigned unbounded_index) {
+        unsigned sz = m_objectives.size();
+        unsigned u = m_objectives[unbounded_index].m_index;
+        for (unsigned j = unbounded_index + 1; j < sz; ++j) {
+            objective const& o = m_objectives[j];
+            if (o.m_type == O_MAXSMT)
+                return l_true;
+            lbool r = m_optsmt.lex_after_unbounded(u, o.m_index, o.m_type == O_MAXIMIZE);
+            model_ref mdl;
+            svector<symbol> labels;
+            m_optsmt.get_model(mdl, labels);
+            if (mdl) {
+                m_model = mdl;
+                m_labels = labels;
+            }
+            if (r != l_true)
+                return r;
+            if (j + 1 < sz) {
+                if (get_lower_value(j) != get_upper_value(j))
+                    return l_true;
+                m_optsmt.commit_assignment(o.m_index);
+            }
+        }
+        return l_true;
+    }
+
     lbool context::execute_box() {
         if (m_box_index < m_box_models.size()) {
             m_model = m_box_models[m_box_index];
-            CTRACE("opt", m_model, tout << *m_model << "\n";);
+            CTRACE(opt, m_model, tout << *m_model << "\n";);
             ++m_box_index;           
             return l_true;
         }
@@ -562,7 +696,7 @@ namespace opt {
         }
         if (r == l_true && !m_box_models.empty()) {
             m_model = m_box_models[0];
-            CTRACE("opt", m_model, tout << *m_model << "\n";);
+            CTRACE(opt, m_model, tout << *m_model << "\n";);
         }
         return r;
     }
@@ -589,8 +723,26 @@ namespace opt {
         switch (obj.m_type) {
         case O_MINIMIZE:
             is_ge = !is_ge;
+            Z3_fallthrough;
         case O_MAXIMIZE:
             val = (*mdl)(obj.m_term);
+            if (m_pareto_exact_comparison && m_arith.is_irrational_algebraic_numeral(val)) {
+                // The nlsat-backed Pareto solver (mk_pareto_solver) decides
+                // atoms over algebraic numerals, so compare the objective
+                // against its exact model value.
+                result = is_ge ? mk_ge(obj.m_term, val) : mk_ge(val, obj.m_term);
+                break;
+            }
+            // The model may pin the objective to an irrational algebraic
+            // value v. The smt backend does not internalize an irrational
+            // algebraic numeral (it reports the term unsupported and answers
+            // unknown), so replace v by an endpoint of a rational isolating
+            // interval l < v < u: l in term >= v, u in term <= v. The
+            // weakened atom holds in the current model, and its negation
+            // (term < l, resp. term > u) implies term < v (resp. term > v),
+            // a strict improvement.
+            if (!is_numeral(val, k) && model_value_bound(m_arith, val, is_ge, k))
+                val = m_arith.mk_numeral(k, false);
             if (is_numeral(val, k)) {
                 if (is_ge) {
                     result = mk_ge(obj.m_term, val);
@@ -600,6 +752,11 @@ namespace opt {
                 }
             }
             else {
+                // The model value is neither a numeral nor an irrational
+                // algebraic number; the trivial constraint silently weakens
+                // the Pareto dominance test.
+                IF_VERBOSE(5, verbose_stream() << "(opt.pareto :unhandled-objective-value "
+                           << val << ")\n");
                 result = m.mk_true();
             }
             break;
@@ -615,7 +772,7 @@ namespace opt {
                     k += obj.m_weights[i];
                 }
                 else {
-                    TRACE("opt", tout << (*mdl)(obj.m_terms[i]) << "\n";);
+                    TRACE(opt, tout << (*mdl)(obj.m_terms[i]) << "\n";);
                 }
             }
             if (is_ge) {
@@ -627,7 +784,7 @@ namespace opt {
             break;
         }
         }
-        TRACE("opt", 
+        TRACE(opt, 
               tout << (is_ge?">= ":"<= ") << k << "\n";
               display_objective(tout, obj);
               tout << "\n";
@@ -646,24 +803,68 @@ namespace opt {
         return result;
     }
 
-    void context::yield() {
+    void context::publish_pareto_result() {
         SASSERT (m_pareto);
         m_pareto->get_model(m_model, m_labels);
         update_bound(true);
         update_bound(false);
-        TRACE("opt", model_smt2_pp(tout, m, *m_model.get(), 0););
+        TRACE(opt, model_smt2_pp(tout, m, *m_model.get(), 0););
     }
 
-    lbool context::execute_pareto() {        
+    // Pick the solver the GIA loop runs on. On a pure NRA problem the
+    // dominance and blocking constraints go to an nlsat-backed solver:
+    // nlsat decides atoms over irrational algebraic numerals, which the
+    // smt core reports unsupported at internalization, so mk_cmp can
+    // compare an objective against its exact model value instead of a
+    // rounded isolating-interval endpoint (opt.pareto_nlsat to disable).
+    solver* context::mk_pareto_solver() {
+        opt_params optp(m_params);
+        m_pareto_exact_comparison = false;
+        if (!optp.pareto_nlsat() || m_has_assumptions)
+            return m_solver.get();
+        expr_ref_vector terms(m_hard_constraints);
+        for (objective const& obj : m_objectives) {
+            if (obj.m_type != O_MAXIMIZE && obj.m_type != O_MINIMIZE)
+                return m_solver.get();
+            if (!m_arith.is_real(obj.m_term))
+                return m_solver.get();
+            if (!in_nra_fragment(m, m_arith, m_hard_constraints, obj.m_term))
+                return m_solver.get();
+            terms.push_back(obj.m_term);
+        }
+        solver* s;
+        bool reuse_nlsat_solver = optp.pareto_nlsat_reuse() && can_reuse_nlsat_solver(terms);
+        if (reuse_nlsat_solver)
+            s = mk_pareto_nlsat_solver(m, m_params);
+        else {
+            tactic_ref t = mk_qfnra_nlsat_tactic(m, m_params);
+            s = mk_tactic2solver(m, t.get(), m_params);
+        }
+        for (expr* f : m_hard_constraints)
+            s->assert_expr(f);
+        m_pareto_exact_comparison = true;
+        IF_VERBOSE(2, verbose_stream() << "(opt.pareto :solver " << (reuse_nlsat_solver ? "incremental-nlsat" : "qfnra-nlsat") << ")\n");
+        return s;
+    }
+
+    lbool context::execute_pareto() {
         if (!m_pareto) {
-            set_pareto(alloc(gia_pareto, m, *this, m_solver.get(), m_params));
+            m_pareto_unknown.clear();
+            set_pareto(alloc(gia_pareto, m, *this, mk_pareto_solver(), m_params));
         }
         lbool is_sat = (*(m_pareto.get()))();
         if (is_sat != l_true) {
+            if (is_sat == l_undef)
+                m_pareto_unknown = m_pareto->reason_unknown();
+            if (m_pareto_exact_comparison) {
+                statistics stats;
+                m_pareto->collect_statistics(stats);
+                add_statistics(stats);
+            }
             set_pareto(nullptr);
         }
         if (is_sat == l_true) {
-            yield();
+            publish_pareto_result();
         }
         return is_sat;
     }
@@ -673,6 +874,8 @@ namespace opt {
         if (!m.inc()) {
             return Z3_CANCELED_MSG;
         }
+        if (!m_pareto_unknown.empty())
+            return m_pareto_unknown;
         if (m_solver.get()) {
             return m_solver->reason_unknown();
         }
@@ -683,11 +886,12 @@ namespace opt {
         for (unsigned i = 0; i < m_objectives.size(); ++i) {
             objective const& obj = m_objectives[i];
             display_objective(out, obj);
+            auto [lower, upper] = b[i];
             if (obj.m_type == O_MAXIMIZE) {
-                out << " |-> [" << b[i].first << ":" << b[i].second << "]\n";
+                out << " |-> [" << lower << ":" << upper << "]\n";
             }
             else {
-                out << " |-> [" << -b[i].second << ":" << -b[i].first << "]\n";
+                out << " |-> [" << -upper << ":" << -lower << "]\n";
             }
         }        
     }
@@ -709,8 +913,7 @@ namespace opt {
         opt_params p(m_params);        
         if (p.optsmt_engine() == symbol("symba") ||
             p.optsmt_engine() == symbol("farkas")) {
-            auto str = std::to_string((unsigned)(arith_solver_id::AS_OPTINF));
-            gparams::set("smt.arith.solver", str.c_str());
+            m_params.set_uint("arith.solver", static_cast<unsigned>(arith_solver_id::AS_OPTINF));
         }
     }
 
@@ -739,7 +942,8 @@ namespace opt {
         if (!is_maxsat_query())
             return;
 
-        if (m_maxsat_engine != symbol("maxres") &&
+        if (m_maxsat_engine != symbol("maxres") && 
+            m_maxsat_engine != symbol("maxresw") &&
             m_maxsat_engine != symbol("rc2") &&
             m_maxsat_engine != symbol("rc2tot") &&
             m_maxsat_engine != symbol("rc2bin") &&
@@ -811,7 +1015,7 @@ namespace opt {
                     quick_for_each_expr(proc, visited, ms[j]);
             }
             unsigned sz = get_solver().get_num_assertions();
-            for (unsigned i = 0; i < sz; i++) 
+            for (unsigned i = 0; i < sz; ++i) 
                 quick_for_each_expr(proc, visited, get_solver().get_assertion(i));
             for (expr* f : m_hard_constraints) 
                 quick_for_each_expr(proc, visited, f);
@@ -870,6 +1074,8 @@ namespace opt {
         m_model_converter = nullptr;
         to_fmls(fmls);
         simplify_fmls(fmls, asms);
+        while (asms.empty() && simplify_min_max_of_sums(fmls))
+            simplify_fmls(fmls, asms);
         from_fmls(fmls);
     }
 
@@ -883,8 +1089,10 @@ namespace opt {
             g->assert_expr(fml);
         for (expr * a : asms) 
             g->assert_expr(a, a);
+        params_ref som_params(m_params);
+        som_params.set_bool("som", true);
         tactic_ref tac0 = 
-            and_then(mk_simplify_tactic(m, m_params), 
+            and_then(mk_simplify_tactic(m, som_params), 
                      mk_propagate_values_tactic(m),
                      m_incremental ? mk_skip_tactic() : mk_solve_eqs_tactic(m),
                      mk_simplify_tactic(m));   
@@ -910,12 +1118,12 @@ namespace opt {
             set_simplify(tac0.get());
         }
         goal_ref_buffer result;
-        TRACE("opt", g->display(tout););
+        TRACE(opt, g->display(tout););
         (*m_simplify)(g, result); 
         SASSERT(result.size() == 1);
         goal* r = result[0];
         m_model_converter = r->mc();
-        CTRACE("opt", r->mc(), r->mc()->display(tout););
+        CTRACE(opt, r->mc(), r->mc()->display(tout););
         fmls.reset();
         expr_ref tmp(m);
         for (unsigned i = 0; i < r->size(); ++i) {
@@ -934,7 +1142,7 @@ namespace opt {
             else if (is_objective(r->form(i)))
                 fmls.push_back(r->form(i));
             else
-                fmls.push_back(m.mk_implies(mk_and(m, deps.size(), deps.data()), r->form(i)));
+                fmls.push_back(m.mk_implies(mk_and(m, deps), r->form(i)));
         }        
         if (r->inconsistent()) {
             ptr_vector<expr> core_elems;
@@ -966,6 +1174,122 @@ namespace opt {
             return true;
         }
         return false;
+    }
+
+    bool context::simplify_min_max_of_sums(expr_ref_vector& fmls) {
+        bool simplified = false;
+        bool progress = true;
+        while (progress) {
+            progress = false;
+            for (auto f : fmls) {
+                if (is_min_max_of_sums(f, fmls)) {
+                    progress = true;
+                    simplified = true;
+                    break;
+                }
+            }                
+        }
+        return simplified;
+    }
+
+    bool context::is_min_max_of_sums(expr* fml, expr_ref_vector& fmls) {
+        app_ref term(m);        
+        expr_ref orig_term(m);
+        unsigned index = 0;
+        bool is_max = is_maximize(fml, term, orig_term, index);
+        bool is_min = !is_max && is_minimize(fml, term, orig_term, index);
+        if (!is_max && !is_min)
+            return false;
+        if (!is_uninterp(term)) // this can be generalized to summations
+            return false;
+        ptr_vector<expr> _fmls(fmls.size(), fmls.data());
+        expr_mark mark;
+        mark_occurs(_fmls, term, mark);
+        unsigned max_cardinality = 0, min_cardinality = UINT_MAX;
+        expr_ref_vector cardinalities(m);
+        arith_util a(m);
+        expr *x = nullptr, *y = nullptr, *cnd = nullptr, *th = nullptr, *el = nullptr;
+        rational n;
+        auto is_zero_one = [&](expr *t) -> bool {
+            return m.is_ite(t, cnd, th, el) && a.is_numeral(th, n) && 
+                    (n == 1 || n == 0) && a.is_numeral(el, n) &&
+                    (n == 1 || n == 0);
+        };
+        auto is_lower_bound = [&](expr *f) {
+            // TODO pattern match against a.is_ge(f, y, x) too or something more general
+            if (!a.is_le(f, x, y))
+                return false;
+            if (x != term)
+                return false;
+            if (mark.is_marked(y))
+                return false;
+            bool is_zo = is_zero_one(y);
+            if (!a.is_add(y) && !is_zo)
+                return false;
+            if (!is_zo && !all_of(*to_app(y), is_zero_one))
+                return false;
+            cardinalities.push_back(y);
+            max_cardinality = std::max(max_cardinality, is_zo ? 1 : to_app(y)->get_num_args());
+            min_cardinality = std::min(min_cardinality, is_zo ? 1 : to_app(y)->get_num_args());
+            return true;
+        };
+        auto is_upper_bound = [&](expr *f) {
+            if (!a.is_ge(f, x, y))
+                return false;
+            if (x != term)
+                return false;
+            bool is_zo = is_zero_one(y);
+            if (!is_zo && !a.is_add(y))
+                return false;
+            if (!is_zo && !all_of(*to_app(y), is_zero_one))
+                return false;
+            cardinalities.push_back(x);
+            max_cardinality = std::max(max_cardinality, is_zo ? 1 : to_app(x)->get_num_args());
+            min_cardinality = std::min(min_cardinality, is_zo ? 1 : to_app(y)->get_num_args());
+            return true;
+        };
+
+        for (auto f : fmls) {
+            if (fml == f)
+                continue;
+            if (!mark.is_marked(f))
+                continue;
+            if (is_max && is_lower_bound(f))
+                continue;
+            if (!is_max && is_upper_bound(f))
+                continue;            
+            return false;
+        }
+        if (min_cardinality == UINT_MAX)
+            return false;
+        expr_ref_vector new_fmls(m);
+        expr_ref_vector soft(m);
+        for (unsigned k = 1; k <= min_cardinality; ++k) {
+            auto p_k = m.mk_fresh_const("p", m.mk_bool_sort());
+            expr_ref one(a.mk_int(1), m);
+            soft.push_back(m.mk_ite(p_k, one, a.mk_int(0)));
+            for (auto c : cardinalities)
+                // p_k => c >= k
+                if (is_max)
+                    new_fmls.push_back(m.mk_implies(p_k, a.mk_ge(c, a.mk_int(k))));
+                // c >= k => p_k
+                else
+                    new_fmls.push_back(m.mk_implies(a.mk_ge(c, a.mk_int(k)), p_k));
+        }
+        // min x | x >= c_i, min sum p_k : /\_i c_i >= k => p_k
+        // max x | x <= c_i, max sum p_k : /\_i p_k => c_i >= k 
+        app_ref sum(a.mk_add(soft.size(), soft.data()), m);
+        if (is_max)
+            new_fmls.push_back(mk_maximize(index, sum));
+        else
+            new_fmls.push_back(mk_minimize(index, sum));
+        unsigned j = 0;
+        for (auto f : fmls) 
+            if (!mark.is_marked(f))
+                fmls[j++] = f;
+        fmls.shrink(j);
+        fmls.append(new_fmls);
+        return true;
     }
 
     bool context::is_maxsat(expr* fml, expr_ref_vector& terms, 
@@ -1009,8 +1333,10 @@ namespace opt {
         offset = rational::zero();
         bool is_max = is_maximize(fml, term, orig_term, index);
         bool is_min = !is_max && is_minimize(fml, term, orig_term, index);
+        if (!is_max && !is_min)
+            return false;
         if (is_min && get_pb_sum(term, terms, weights, offset)) {
-            TRACE("opt", tout << "try to convert minimization\n" << mk_pp(term, m) << "\n";);
+            TRACE(opt, tout << "try to convert minimization\n" << mk_pp(term, m) << "\n";);
             // minimize 2*x + 3*y 
             // <=>
             // (assert-soft (not x) 2)
@@ -1025,7 +1351,7 @@ namespace opt {
                     terms[i] = mk_not(m, terms[i].get());
                 }
             }
-            TRACE("opt", 
+            TRACE(opt, 
                   tout << "Convert minimization " << orig_term << "\n";
                   tout << "to maxsat: " << term << "\n";
                   for (unsigned i = 0; i < weights.size(); ++i) {
@@ -1039,7 +1365,7 @@ namespace opt {
             return true;
         }
         if (is_max && get_pb_sum(term, terms, weights, offset)) {
-            TRACE("opt", tout << "try to convert maximization " << mk_pp(term, m) << "\n";);
+            TRACE(opt, tout << "try to convert maximization " << mk_pp(term, m) << "\n";);
             // maximize 2*x + 3*y - z 
             // <=>
             // (assert-soft x 2)
@@ -1093,7 +1419,6 @@ namespace opt {
         case O_MAXIMIZE: name = "maximize"; break;
         case O_MINIMIZE: name = "minimize"; break;
         case O_MAXSMT: name = "maxsat"; break;
-        default: break;
         }
         func_decl* f = m.mk_fresh_func_decl(name,"", domain.size(), domain.data(), m.mk_bool_sort());
         m_objective_fns.insert(f, index);
@@ -1117,7 +1442,7 @@ namespace opt {
     }
 
     void context::from_fmls(expr_ref_vector const& fmls) {
-        TRACE("opt", tout << fmls << "\n";);
+        TRACE(opt, tout << fmls << "\n";);
         m_hard_constraints.reset();
         for (expr * fml : fmls) {
             app_ref tr(m);
@@ -1147,7 +1472,7 @@ namespace opt {
                 obj.m_weights.append(weights);
                 obj.m_adjust_value.set_offset(offset);
                 obj.m_adjust_value.set_negate(neg);
-                TRACE("opt", tout << "maxsat: " << neg << " " << id << " offset: " << offset << "\n";
+                TRACE(opt, tout << "maxsat: " << neg << " " << id << " offset: " << offset << "\n";
                       tout << terms << "\n";);
             }
             else if (is_maximize(fml, tr, orig_term, index)) {
@@ -1160,6 +1485,7 @@ namespace opt {
                 m_objectives[index].m_adjust_value.set_negate(true);
             }
             else {
+
                 m_hard_constraints.push_back(fml);
             }
         }
@@ -1203,20 +1529,21 @@ namespace opt {
         expr_ref val(m);
         model_ref mdl = md->copy();
         fix_model(mdl);
+        mdl->set_model_completion(true);
         val = (*mdl)(term);
         unsigned bvsz;
         if (!m_arith.is_numeral(val, r) && !m_bv.is_numeral(val, r, bvsz)) {
-            TRACE("opt", tout << "model does not evaluate objective to a value but instead " << val << "\n";
+            TRACE(opt, tout << "model does not evaluate objective to a value but instead " << val << "\n";
                   tout << *mdl << "\n";
                   );
             return false;
         }
         if (r != v) {
-            TRACE("opt", tout << "Out of bounds: " << term << " " << val << " != " << v << "\n";);
+            TRACE(opt, tout << "Out of bounds: " << term << " " << val << " != " << v << "\n";);
             return false;
         }
         else {
-            TRACE("opt", tout << "validated: " << term << " = " << val << "\n";);
+            TRACE(opt, tout << "validated: " << term << " = " << val << "\n";);
         }
         return true;
     }
@@ -1236,7 +1563,7 @@ namespace opt {
             term = m_arith.mk_add(args.size(), args.data());
         }
         else if (m.is_ite(term) || !is_mul_const(term)) {
-            TRACE("opt", tout << "Purifying " << term << "\n";);
+            TRACE(opt, tout << "Purifying " << term << "\n";);
             term = purify(fm, term);
         }
         if (fm) {
@@ -1309,7 +1636,7 @@ namespace opt {
                 break;
             }
         }
-        TRACE("opt", tout << fmls << "\n";);
+        TRACE(opt, tout << fmls << "\n";);
     }
 
     void context::internalize() {
@@ -1346,10 +1673,18 @@ namespace opt {
             switch(obj.m_type) {
             case O_MINIMIZE: {
                 val = (*m_model)(obj.m_term);
-                TRACE("opt", tout << obj.m_term << " " << val << "\n";);
-                if (is_numeral(val, r)) {
+                TRACE(opt, tout << obj.m_term << " " << val << "\n";);
+                // The model value v may be irrational algebraic. Substitute
+                // an endpoint of a rational isolating interval l < v < u,
+                // with the side chosen so that the bound survives
+                // adjust_value: negation reverses order (x <= v iff
+                // -x >= -v), so when adjust_value negates the term the
+                // requested side flips.
+                // model_value_bound also accepts plain arithmetic numerals;
+                // the second check backstops bit-vector objective values.
+                if (model_value_bound(m_arith, val, is_lower != obj.m_adjust_value.get_negate(), r) || m_bv.is_numeral(val, r)) {
                     inf_eps val = inf_eps(obj.m_adjust_value(r));
-                    TRACE("opt", tout << "adjusted value: " << val << "\n";);
+                    TRACE(opt, tout << "adjusted value: " << val << "\n";);
                     if (is_lower) {
                         m_optsmt.update_lower(obj.m_index, val);
                     }
@@ -1361,10 +1696,10 @@ namespace opt {
             }
             case O_MAXIMIZE: {
                 val = (*m_model)(obj.m_term);
-                TRACE("opt", tout << obj.m_term << " " << val << "\n";);
-                if (is_numeral(val, r)) {
+                TRACE(opt, tout << obj.m_term << " " << val << "\n";);
+                if (model_value_bound(m_arith, val, is_lower != obj.m_adjust_value.get_negate(), r) || m_bv.is_numeral(val, r)) {
                     inf_eps val = inf_eps(obj.m_adjust_value(r));
-                    TRACE("opt", tout << "adjusted value: " << val << "\n";);
+                    TRACE(opt, tout << "adjusted value: " << val << "\n";);
                     if (is_lower) {
                         m_optsmt.update_lower(obj.m_index, val);
                     }
@@ -1377,7 +1712,7 @@ namespace opt {
             case O_MAXSMT: {
                 for (unsigned j = 0; j < obj.m_terms.size(); ++j) {
                     val = (*m_model)(obj.m_terms[j]);
-                    TRACE("opt", tout << mk_pp(obj.m_terms[j], m) << " " << val << "\n";);
+                    TRACE(opt, tout << mk_pp(obj.m_terms[j], m) << " " << val << "\n";);
                     if (!m.is_true(val)) 
                         r += obj.m_weights[j];
                 }
@@ -1385,11 +1720,11 @@ namespace opt {
                 maxsmt& ms = *m_maxsmts.find(obj.m_id);
                 if (is_lower) {
                     ms.update_upper(r);
-                    TRACE("opt", tout << "update upper from " << r << " to " << ms.get_upper() << "\n";);           
+                    TRACE(opt, tout << "update upper from " << r << " to " << ms.get_upper() << "\n";);           
                 }
                 else {
                     ms.update_lower(r);
-                    TRACE("opt", tout << "update lower from " << r << " to " << ms.get_lower() << "\n";);           
+                    TRACE(opt, tout << "update lower from " << r << " to " << ms.get_lower() << "\n";);           
                 }
                 break;
             }
@@ -1427,11 +1762,18 @@ namespace opt {
             objective const& obj = m_scoped_state.m_objectives[i];
             out << " (";
             display_objective(out, obj);
-            if (get_lower_as_num(i) != get_upper_as_num(i)) {
-                out << "  (interval " << get_lower(i) << " " << get_upper(i) << ")";
+            objective_value lower = get_lower_value(i);
+            objective_value upper = get_upper_value(i);
+            if (lower != upper) {
+                out << "  (interval " << lower.to_expr() << " " << upper.to_expr() << ")";
+            }
+            else if (lower.exact_finite() && !lower.has_infinitesimal()) {
+                // Keep the attained numeral's original SMT-LIB sort, while
+                // the bound APIs retain their integral-rational normalization.
+                out << " " << expr_ref(lower.exact_finite(), m);
             }
             else {
-                out << " " << get_lower(i);
+                out << " " << lower.to_expr();
             }
             out << ")\n";
         }
@@ -1453,91 +1795,46 @@ namespace opt {
         }
     }
 
-    inf_eps context::get_lower_as_num(unsigned idx) {
+    objective_value context::get_lower_value(unsigned idx) {
         if (idx >= m_objectives.size()) {
             throw default_exception("index out of bounds"); 
         }
         objective const& obj = m_objectives[idx];
         switch(obj.m_type) {
         case O_MAXSMT: 
-            return inf_eps(m_maxsmts.find(obj.m_id)->get_lower());
+            return objective_value(m, inf_eps(m_maxsmts.find(obj.m_id)->get_lower()));
         case O_MINIMIZE:
             return obj.m_adjust_value(m_optsmt.get_upper(obj.m_index));
         case O_MAXIMIZE: 
             return obj.m_adjust_value(m_optsmt.get_lower(obj.m_index));
-        default:
-            UNREACHABLE();
-            return inf_eps();
         }        
+        UNREACHABLE();
+        return objective_value(m);
     }
 
-    inf_eps context::get_upper_as_num(unsigned idx) {
+    objective_value context::get_upper_value(unsigned idx) {
         if (idx >= m_objectives.size()) {
             throw default_exception("index out of bounds"); 
         }
         objective const& obj = m_objectives[idx];
         switch(obj.m_type) {
         case O_MAXSMT: 
-            return inf_eps(m_maxsmts.find(obj.m_id)->get_upper());
+            return objective_value(m, inf_eps(m_maxsmts.find(obj.m_id)->get_upper()));
         case O_MINIMIZE:
             return obj.m_adjust_value(m_optsmt.get_lower(obj.m_index));
         case O_MAXIMIZE: 
             return obj.m_adjust_value(m_optsmt.get_upper(obj.m_index));
-        default:
-            UNREACHABLE();
-            return inf_eps();
         }
+        UNREACHABLE();
+        return objective_value(m);
     }
 
     expr_ref context::get_lower(unsigned idx) {
-        return to_expr(get_lower_as_num(idx));
+        return get_lower_value(idx).to_expr();
     }
 
     expr_ref context::get_upper(unsigned idx) {
-        return to_expr(get_upper_as_num(idx));
-    }
-
-    void context::to_exprs(inf_eps const& n, expr_ref_vector& es) {
-        rational inf = n.get_infinity();
-        rational r   = n.get_rational();
-        rational eps = n.get_infinitesimal();
-        es.push_back(m_arith.mk_numeral(inf, inf.is_int()));
-        es.push_back(m_arith.mk_numeral(r, r.is_int()));
-        es.push_back(m_arith.mk_numeral(eps, eps.is_int()));
-    }
-
-    expr_ref context::to_expr(inf_eps const& n) {
-        rational inf = n.get_infinity();
-        rational r   = n.get_rational();
-        rational eps = n.get_infinitesimal();
-        expr_ref_vector args(m);
-        bool is_int = eps.is_zero() && r.is_int();
-        if (!inf.is_zero()) {
-            expr* oo = m.mk_const(symbol("oo"), is_int ? m_arith.mk_int() : m_arith.mk_real());
-            if (inf.is_one()) {
-                args.push_back(oo);
-            }
-            else {
-                args.push_back(m_arith.mk_mul(m_arith.mk_numeral(inf, is_int), oo));
-            }
-        }
-        if (!r.is_zero()) {
-            args.push_back(m_arith.mk_numeral(r, is_int));
-        }
-        if (!eps.is_zero()) {
-            expr* ep = m.mk_const(symbol("epsilon"), m_arith.mk_real());
-            if (eps.is_one()) {
-                args.push_back(ep);
-            }
-            else {
-                args.push_back(m_arith.mk_mul(m_arith.mk_numeral(eps, is_int), ep));
-            }
-        }
-        switch(args.size()) {
-        case 0: return expr_ref(m_arith.mk_numeral(rational(0), true), m);
-        case 1: return expr_ref(args[0].get(), m);
-        default: return expr_ref(m_arith.mk_add(args.size(), args.data()), m);
-        }
+        return get_upper_value(idx).to_expr();
     }
        
     void context::set_simplify(tactic* tac) {
@@ -1546,12 +1843,14 @@ namespace opt {
 
     void context::clear_state() {
         m_pareto = nullptr;
+        m_pareto_unknown.clear();
         m_pareto1 = false;
         m_box_index = UINT_MAX;
         m_box_models.reset();
         m_model.reset();
         m_model_fixed.reset();
         m_core.reset();
+        m_model_available = false;
     }
 
     void context::set_pareto(pareto_base* p) {
@@ -1559,21 +1858,22 @@ namespace opt {
         m_pareto1 = p != nullptr;
     }
 
-    void context::collect_statistics(statistics& stats) const {
+    void context::collect_statistics_core(statistics& stats) const {
         if (m_solver) 
             m_solver->collect_statistics(stats);
+        if (m_pareto && m_pareto_exact_comparison)
+            m_pareto->collect_statistics(stats);
         if (m_simplify) 
             m_simplify->collect_statistics(stats);        
         for (auto const& kv : m_maxsmts) 
             kv.m_value->collect_statistics(stats);
         get_memory_statistics(stats);
         get_rlimit_statistics(m.limit(), stats);
-        if (m_qmax) 
-            m_qmax->collect_statistics(stats);
     }
 
     void context::collect_param_descrs(param_descrs & r) {
         opt_params::collect_param_descrs(r);
+        smt::kernel::collect_param_descrs(r);
         insert_timeout(r);
         insert_ctrl_c(r);
     }
@@ -1654,9 +1954,6 @@ namespace opt {
             case O_MAXSMT: 
                 visitor.collect(obj.m_terms);
                 break;
-            default: 
-                UNREACHABLE();
-                break;
             }
         }
 
@@ -1699,9 +1996,6 @@ namespace opt {
                     out << ")\n";
                 }
                 break;
-            default: 
-                UNREACHABLE();
-                break;
             }
         }        
         if (is_internal && mc) {
@@ -1737,7 +2031,7 @@ namespace opt {
 
     void context::validate_maxsat(symbol const& id) {
         maxsmt& ms = *m_maxsmts.find(id);
-        TRACE("opt", tout << "Validate: " << id << "\n";);
+        TRACE(opt, tout << "Validate: " << id << "\n";);
         for (objective const& obj : m_objectives) {
             if (obj.m_id == id && obj.m_type == O_MAXSMT) {        
                 SASSERT(obj.m_type == O_MAXSMT);
@@ -1752,7 +2046,7 @@ namespace opt {
                 }
                 value = obj.m_adjust_value(value);
                 rational value0 = ms.get_lower();
-                TRACE("opt", tout << "value " << value << " " << value0 << "\n";);
+                TRACE(opt, tout << "value " << value << " " << value0 << "\n";);
                 // TBD is this correct? SASSERT(value == value0);
             }
         }
@@ -1778,59 +2072,11 @@ namespace opt {
                 }
                 maxsmt& ms = *m_maxsmts.find(obj.m_id);
                 rational value0 = ms.get_lower();
-                TRACE("opt", tout << "value " << value << " other " << value0 << "\n";);
+                TRACE(opt, tout << "value " << value << " other " << value0 << "\n";);
                 // TBD SASSERT(value0 == value);
                 break;
             }
             }       
         } 
-    }
-
-    bool context::is_qsat_opt() {
-        if (m_objectives.size() != 1) {
-            return false;
-        }
-        if (m_objectives[0].m_type != O_MAXIMIZE && 
-            m_objectives[0].m_type != O_MINIMIZE) {
-            return false;
-        }
-        if (!m_arith.is_real(m_objectives[0].m_term)) {
-            return false;
-        }
-        for (expr* fml : m_hard_constraints) {
-            if (has_quantifiers(fml)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    lbool context::run_qsat_opt() {
-        SASSERT(is_qsat_opt());
-        objective const& obj = m_objectives[0];
-        app_ref term(obj.m_term);
-        if (obj.m_type == O_MINIMIZE) {
-            term = m_arith.mk_uminus(term);
-        }
-        inf_eps value;
-        m_qmax = alloc(qe::qmax, m, m_params);
-        lbool result = (*m_qmax)(m_hard_constraints, term, value, m_model);
-        if (result != l_undef && obj.m_type == O_MINIMIZE) {
-            value.neg();
-        }
-        m_optsmt.setup(*m_opt_solver.get());
-        if (result == l_undef) {
-            if (obj.m_type == O_MINIMIZE) {
-                m_optsmt.update_upper(obj.m_index, value);
-            }
-            else {
-                m_optsmt.update_lower(obj.m_index, value);
-            }
-        }
-        else {
-            m_optsmt.update_lower(obj.m_index, value);
-            m_optsmt.update_upper(obj.m_index, value);
-        }
-        return result;
     }
 }

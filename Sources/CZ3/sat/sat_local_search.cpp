@@ -261,7 +261,7 @@ namespace sat {
     void local_search::verify_constraint(constraint const& c) const {
         uint64_t value = constraint_value(c);
         IF_VERBOSE(11, display(verbose_stream() << "verify ", c););
-        TRACE("sat", display(verbose_stream() << "verify ", c););
+        TRACE(sat, display(verbose_stream() << "verify ", c););
         if (c.m_k < value) {
             IF_VERBOSE(0, display(verbose_stream() << "violated constraint: ", c) << "value: " << value << "\n";);
         }
@@ -492,14 +492,14 @@ namespace sat {
             return l_false;
         walksat();
 
-        TRACE("sat", tout << m_units << "\n";);
+        TRACE(sat, tout << m_units << "\n";);
         // remove unit clauses
         for (unsigned i = m_units.size(); i-- > num_units; ) {
             m_vars[m_units[i]].m_unit = false;
         }
         m_units.shrink(num_units); 
 
-        TRACE("sat", display(tout););
+        TRACE(sat, display(tout););
 
         lbool result;
         if (m_is_unsat) {
@@ -566,7 +566,6 @@ namespace sat {
         bool_var v = null_bool_var;
         unsigned num_unsat = m_unsat_stack.size();
         constraint const& c = m_constraints[m_unsat_stack[m_rand() % num_unsat]];
-        bool is_core = m_unsat_stack.size() <= 10;
         if (m_rand() % 10000 <= m_noise) {
             // take this branch with 98% probability.
             // find the first one, to fast break the rest    
@@ -668,9 +667,6 @@ namespace sat {
             goto reflip;
         }
 
-        if (false && is_core && c.m_k < constraint_value(c)) {
-            goto reflip;
-        }
     }
 
     void local_search::flip_walksat(bool_var flipvar) {
@@ -715,7 +711,7 @@ namespace sat {
 
         m_max_steps = std::min(static_cast<unsigned>(20 * num_vars()), static_cast<unsigned>(1 << 17)); // cut steps off at 100K
         
-        TRACE("sat", 
+        TRACE(sat, 
               tout << "seed:\t" << m_config.random_seed() << '\n';
               tout << "best_known_value:\t" << m_config.best_known_value() << '\n';
               tout << "max_steps:\t" << m_max_steps << '\n';

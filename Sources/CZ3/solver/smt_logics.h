@@ -20,13 +20,17 @@ Revision History:
 
 class smt_logics {
 public:
+    static bool logic_is_ff(symbol const& s) { return s == "QF_FF" || s == "QF_FFA"; }
+    static bool logic_has_ff(symbol const& s) { return logic_is_ff(s) || logic_is_all(s); }
     static bool supported_logic(symbol const & s);
     static bool logic_has_reals_only(symbol const& l);       
-    static bool logic_is_all(symbol const& s) { return s == "ALL"; }
+    static bool logic_is_all(symbol const& s) { return s == "ALL" || s == "HO_ALL"; }
+    static bool logic_has_transcendental(symbol const& s);
     static bool logic_has_uf(symbol const& s);
     static bool logic_has_arith(symbol const & s);
     static bool logic_has_bv(symbol const & s);
     static bool logic_has_array(symbol const & s);
+    static bool logic_has_finite_sets(symbol const &s);
     static bool logic_has_seq(symbol const & s);
     static bool logic_has_str(symbol const & s);
     static bool logic_has_fpa(symbol const & s);

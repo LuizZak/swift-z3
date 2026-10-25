@@ -24,7 +24,7 @@ Revision History:
 #include "smt/theory_recfun.h"
 
 
-#define TRACEFN(x) TRACE("recfun", tout << x << '\n';)
+#define TRACEFN(x) TRACE(recfun, tout << x << '\n';)
 
 namespace smt {
 
@@ -48,7 +48,7 @@ namespace smt {
     }
 
     bool theory_recfun::internalize_atom(app * atom, bool gate_ctx) {
-        TRACE("recfun", tout << mk_pp(atom, m) << " " << u().has_defs() << "\n");
+        TRACE(recfun, tout << mk_pp(atom, m) << " " << u().has_defs() << "\n");
         if (!u().has_defs()) {
 //            if (u().is_defined(atom)) 
 //                throw default_exception("recursive atom definition is out of scope");
@@ -99,7 +99,7 @@ namespace smt {
      * then case-expand `n`. If it's a macro we can also immediately
      * body-expand it.
      */
-    void theory_recfun::relevant_eh(app * n) {
+    void theory_recfun::relevant_eh(expr * n) {
         SASSERT(ctx.relevancy());
         // TRACEFN("relevant_eh: (defined) " <<  u().is_defined(n) << " " << mk_pp(n, m));        
         if (u().is_defined(n) && u().has_defs()) 
@@ -136,7 +136,8 @@ namespace smt {
         if (m_qhead == m_propagation_queue.size())
             return;
         ctx.push_trail(value_trail<unsigned>(m_qhead));
-        for (; m_qhead < m_propagation_queue.size() && !ctx.inconsistent(); ++m_qhead) {
+        // Yield to the context's resource checks before processing newly queued expansions.
+        for (unsigned end = m_propagation_queue.size(); m_qhead < end && !ctx.inconsistent(); ++m_qhead) {
             auto& p = *m_propagation_queue[m_qhead];
             if (p.is_guard()) 
                 activate_guard(p.guard(), *m_guard2pending[p.guard()]);
@@ -161,9 +162,8 @@ namespace smt {
      */
     void theory_recfun::disable_guard(expr* guard, expr_ref_vector const& guards) {
         SASSERT(!is_enabled_guard(guard));
-        app_ref dlimit = m_util.mk_num_rounds_pred(m_num_rounds);
         expr_ref_vector core(m);
-        core.push_back(dlimit);
+        core.push_back(m_util.mk_num_rounds_pred(m_num_rounds));
         core.push_back(guard);
         if (!m_guard2pending.contains(guard)) {
             m_disabled_guards.push_back(guard);
@@ -225,7 +225,6 @@ namespace smt {
         recfun::vars const & vars,
         expr_ref_vector const & args,
         expr * e) {
-        SASSERT(is_standard_order(vars));
         var_subst subst(m, true);
         expr_ref new_body = subst(e, args);
         ctx.get_rewriter()(new_body); // simplify
@@ -243,9 +242,26 @@ namespace smt {
         return lit;
     }
 
+
+    // lambdas are quantifier nodes, but they are first-class array terms for the
+    // solver; only forall/exists need to be tunnelled through a fresh Boolean.
+    static bool has_real_quantifiers(expr* e) {
+        if (!has_quantifiers(e))
+            return false;
+        struct proc {
+            bool m_found = false;
+            void operator()(quantifier* q) { if (!is_lambda(q)) m_found = true; }
+            void operator()(app*) {}
+            void operator()(var*) {}
+        };
+        proc p;
+        for_each_expr(p, e);
+        return p.m_found;
+    }
+
     literal theory_recfun::mk_eq_lit(expr* l, expr* r) {
         literal lit;
-        if (has_quantifiers(l) || has_quantifiers(r)) {
+        if (has_real_quantifiers(l) || has_real_quantifiers(r)) {
             expr_ref eq1(m.mk_eq(l, r), m);
             expr_ref fn(m.mk_fresh_const("rec-eq", m.mk_bool_sort()), m);
             expr_ref eq(m.mk_eq(fn, eq1), m);
@@ -377,12 +393,11 @@ namespace smt {
         recfun::def & d = *e.m_cdef->get_def();
         auto & vars = d.get_vars();
         auto & args = e.m_args;
-        SASSERT(is_standard_order(vars));
         unsigned depth = get_depth(e.m_pred);
         expr_ref lhs(u().mk_fun_defined(d, args), m);
         expr_ref rhs = apply_args(depth, vars, args, e.m_cdef->get_rhs());
-        if (has_quantifiers(rhs)) {
-            expr_ref fn(m.mk_fresh_const("rec-eq", m.mk_bool_sort()), m);
+        if (has_real_quantifiers(rhs)) {
+            expr_ref fn(m.mk_fresh_const("rec-eq", rhs->get_sort()), m);
             expr_ref eq(m.mk_eq(fn, rhs), m);
             ctx.assert_expr(eq);
             ctx.internalize_assertions();
@@ -407,7 +422,7 @@ namespace smt {
         ctx.mk_th_axiom(get_id(), clause);
     }
     
-    final_check_status theory_recfun::final_check_eh() {
+    final_check_status theory_recfun::final_check_eh(unsigned level) {
         if (can_propagate()) {
             TRACEFN("final\n");
             propagate();
@@ -420,7 +435,7 @@ namespace smt {
         if (u().has_rec_defs() || !m_disabled_guards.empty()) {
             app_ref dlimit = m_util.mk_num_rounds_pred(m_num_rounds);
             TRACEFN("add_theory_assumption " << dlimit);
-            assumptions.push_back(dlimit);
+            assumptions.push_back(std::move(dlimit));
             for (expr* e : m_disabled_guards)
                 assumptions.push_back(m.mk_not(e));
         }

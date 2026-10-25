@@ -20,7 +20,7 @@ Author:
 #include "sat/smt/euf_solver.h"
 
 
-#define TRACEFN(x) TRACE("recfun", tout << x << '\n';)
+#define TRACEFN(x) TRACE(recfun, tout << x << '\n';)
 
 
 namespace recfun {
@@ -139,9 +139,8 @@ namespace recfun {
      */
     void solver::disable_guard(expr* guard, expr_ref_vector const& guards) {
         SASSERT(!is_enabled_guard(guard));
-        app_ref dlimit = m_util.mk_num_rounds_pred(m_num_rounds);
         expr_ref_vector core(m);
-        core.push_back(dlimit);
+        core.push_back(m_util.mk_num_rounds_pred(m_num_rounds));
         core.push_back(guard);
         if (!m_guard2pending.contains(guard)) {
             m_disabled_guards.push_back(guard);
@@ -213,7 +212,8 @@ namespace recfun {
         if (m_qhead == m_propagation_queue.size())
             return false;
         ctx.push(value_trail<unsigned>(m_qhead));
-        for (; m_qhead < m_propagation_queue.size() && !s().inconsistent(); ++m_qhead) {
+        // Yield to the context's resource checks before processing newly queued expansions.
+        for (unsigned end = m_propagation_queue.size(); m_qhead < end && !s().inconsistent(); ++m_qhead) {
             auto& p = *m_propagation_queue[m_qhead];
             if (p.is_guard()) 
                 assert_guard(p.guard(), *m_guard2pending[p.guard()]);
@@ -236,7 +236,7 @@ namespace recfun {
         force_push();
         SASSERT(m.is_bool(e));
         if (!visit_rec(m, e, sign, root)) {
-            TRACE("array", tout << mk_pp(e, m) << "\n";);
+            TRACE(array, tout << mk_pp(e, m) << "\n";);
             return sat::null_literal;
         }
         auto lit = expr2literal(e);

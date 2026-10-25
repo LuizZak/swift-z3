@@ -25,6 +25,7 @@ Notes:
 #include "ast/arith_decl_plugin.h"
 #include "ast/bv_decl_plugin.h"
 #include "model/model_macro_solver.h"
+#include "model/arith_value_order.h"
 #include "sat/smt/q_model_fixer.h"
 #include "sat/smt/q_solver.h"
 #include "sat/smt/euf_solver.h"
@@ -32,20 +33,11 @@ Notes:
 
 namespace q {
 
-    template<typename U>
-    static bool lt(U const& u, expr* x, expr* y) {
-        rational v1, v2;
-        if (u.is_numeral(x, v1) && u.is_numeral(y, v2))
-            return v1 < v2;
-        else
-            return x->get_id() < y->get_id();
-    }
-
     class arith_projection : public projection_function {
         arith_util   a;
     public:
         arith_projection(ast_manager& m) : projection_function(m), a(m) {}
-        bool operator()(expr* e1, expr* e2) const override { return lt(a, e1, e2); }
+        bool operator()(expr* e1, expr* e2) const override { return arith_value_order(a)(e1, e2); }
         expr* mk_lt(expr* x, expr* y) override { return a.mk_lt(x, y); }
     };
 
@@ -53,7 +45,12 @@ namespace q {
         bv_util bvu;
     public:
         ubv_projection(ast_manager& m) : projection_function(m), bvu(m) {}
-        bool operator()(expr* e1, expr* e2) const override { return lt(bvu, e1, e2); }
+        bool operator()(expr* e1, expr* e2) const override {
+            rational v1, v2;
+            if (bvu.is_numeral(e1, v1) && bvu.is_numeral(e2, v2))
+                return v1 < v2;
+            return e1->get_id() < e2->get_id();
+        }
         expr* mk_lt(expr* x, expr* y) override { return m.mk_not(bvu.mk_ule(y, x)); }
     };
 
@@ -70,7 +67,7 @@ namespace q {
         if (univ.empty())
             return;
 
-        TRACE("q", tout << "start: " << mdl << "\n";);
+        TRACE(q, tout << "start: " << mdl << "\n";);
         m_dependencies.reset();
         m_projection_data.reset();
         m_projection_pinned.reset();
@@ -96,7 +93,7 @@ namespace q {
             if (fi->is_partial())
                 fi->set_else(mdl.get_some_value(f->get_range()));
 	}
-        TRACE("q", tout << "end: " << mdl << "\n";);
+        TRACE(q, tout << "end: " << mdl << "\n";);
     }
 
     quantifier_macro_info* model_fixer::operator()(quantifier* q) {
@@ -195,7 +192,14 @@ namespace q {
             bool operator()(expr* a, expr* b) const { return (*p)(a, b); }
         };
         lt _lt(proj);
-        std::sort(values.data(), values.data() + values.size(), _lt);
+        arith_util a(m);
+        // These values are cut points for numeric interval tests below.
+        if (a.is_int_real(srt)) {
+            if (!arith_value_order(a).sort(values.size(), values.data()))
+                return expr_ref(m.mk_var(idx, srt), m);
+        }
+        else
+            std::sort(values.data(), values.data() + values.size(), _lt);
         unsigned j = 0;
         for (unsigned i = 0; i < values.size(); ++i)
             if (i == 0 || values.get(i - 1) != values.get(i))
@@ -252,7 +256,7 @@ namespace q {
     expr* model_fixer::invert_app(app* t, expr* value) {
         euf::enode* r = nullptr;
         auto& v2r = ctx.values2root();
-        TRACE("q",
+        TRACE(q,
               tout << "invert-app " << mk_pp(t, m) << " =\n" << mk_pp(value, m) << "\n";
               if (v2r.find(value, r)) 
                   tout << "inverse " << mk_pp(r->get_expr(), m) << "\n";
@@ -273,7 +277,7 @@ namespace q {
     */
 
     void model_fixer::invert_arg(app* t, unsigned i, expr* value, expr_ref_vector& lits) {
-        TRACE("q", tout << "invert-arg " << mk_pp(t, m) << " " << i << " " << mk_pp(value, m) << "\n";);
+        TRACE(q, tout << "invert-arg " << mk_pp(t, m) << " " << i << " " << mk_pp(value, m) << "\n";);
         auto const* md = get_projection_data(t->get_decl(), i);
         if (!md)
             return;
@@ -284,6 +288,13 @@ namespace q {
         unsigned sz = md->values.size();
         if (sz <= 1)
             return;
+
+        arith_util a(m);
+        if (a.is_int_real(value) && !arith_value_order(a).is_supported(value)) {
+            // Without an exact ordering, fix the argument instead of guessing its interval.
+            lits.push_back(m.mk_eq(t->get_arg(i), value));
+            return;
+        }
 
         //
         // md->values are sorted
@@ -326,7 +337,7 @@ namespace q {
     * restrict arg_i of t := f(...,arg_i,...) to be one of terms from the ground instantiations of f.
     */
     expr_ref model_fixer::restrict_arg(app* t, unsigned i) {
-        TRACE("q", tout << "restrict-arg " << mk_pp(t, m) << " " << i << "\n";);
+        TRACE(q, tout << "restrict-arg " << mk_pp(t, m) << " " << i << "\n";);
         auto const* md = get_projection_data(t->get_decl(), i);
         if (!md)
             return expr_ref(m.mk_true(), m);

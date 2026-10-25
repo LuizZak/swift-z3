@@ -204,6 +204,11 @@ sort * fpa_decl_plugin::mk_float_sort(unsigned ebits, unsigned sbits) {
         m_manager->raise_exception("minimum number of exponent bits is 2");
     if (ebits > 63)
         m_manager->raise_exception("maximum number of exponent bits is 63");
+    if (sbits > MPF_MAX_SBITS) {
+        std::stringstream strm;
+        strm << "maximum number of significand bits is " << MPF_MAX_SBITS;
+        m_manager->raise_exception(strm.str());
+    }
 
     parameter ps[2] = { parameter(ebits), parameter(sbits) };
     sort_size sz;
@@ -1010,7 +1015,7 @@ bool fpa_util::contains_floats(ast * a) {
         if (contains_floats(aa->get_decl()))
             return true;
         else
-            for (unsigned i = 0; i < aa->get_num_args(); i++)
+            for (unsigned i = 0; i < aa->get_num_args(); ++i)
                 if (contains_floats(aa->get_arg(i)))
                     return true;
         break;
@@ -1020,10 +1025,10 @@ bool fpa_util::contains_floats(ast * a) {
         break;
     case AST_QUANTIFIER: {
         quantifier * q = to_quantifier(a);
-        for (unsigned i = 0; i < q->get_num_children(); i++)
+        for (unsigned i = 0; i < q->get_num_children(); ++i)
             if (contains_floats(q->get_child(i)))
                 return true;
-        for (unsigned i = 0; i < q->get_num_decls(); i++)
+        for (unsigned i = 0; i < q->get_num_decls(); ++i)
             if (contains_floats(q->get_decl_sort(i)))
                 return true;
         if (contains_floats(q->get_expr()))
@@ -1035,7 +1040,7 @@ bool fpa_util::contains_floats(ast * a) {
         if (is_float(s) || is_rm(s))
             return true;
         else {
-            for (unsigned i = 0; i < s->get_num_parameters(); i++) {
+            for (unsigned i = 0; i < s->get_num_parameters(); ++i) {
                 parameter const & pi = s->get_parameter(i);
                 if (pi.is_ast() && contains_floats(pi.get_ast()))
                     return true;
@@ -1045,27 +1050,25 @@ bool fpa_util::contains_floats(ast * a) {
     }
     case AST_FUNC_DECL: {
         func_decl * f = to_func_decl(a);
-        for (unsigned i = 0; i < f->get_arity(); i++)
+        for (unsigned i = 0; i < f->get_arity(); ++i)
             if (contains_floats(f->get_domain(i)))
                 return true;
         if (contains_floats(f->get_range()))
             return true;
-        for (unsigned i = 0; i < f->get_num_parameters(); i++) {
+        for (unsigned i = 0; i < f->get_num_parameters(); ++i) {
             parameter const & pi = f->get_parameter(i);
             if (pi.is_ast() && contains_floats(pi.get_ast()))
                 return true;
         }
         break;
     }
-    default:
-        UNREACHABLE();
     }
 
     return false;
 }
 
 bool fpa_util::is_considered_uninterpreted(func_decl * f, unsigned n, expr* const* args) {
-    TRACE("fpa_util", expr_ref t(m().mk_app(f, n, args), m()); tout << mk_ismt2_pp(t, m()) << std::endl; );
+    TRACE(fpa_util, expr_ref t(m().mk_app(f, n, args), m()); tout << mk_ismt2_pp(t, m()) << std::endl; );
 
     family_id ffid = plugin().get_family_id();
     if (f->get_family_id() != ffid)
@@ -1091,6 +1094,13 @@ bool fpa_util::is_considered_uninterpreted(func_decl * f, unsigned n, expr* cons
         scoped_mpf sv(fm());
         if (!is_rm_numeral(rm, rmv) || !is_numeral(x, sv)) return false;
         if (is_nan(x) || is_inf(x)) return true;
+        // A finite value whose (unbiased) binary exponent is at least bv_sz has
+        // magnitude >= 2^bv_sz, so it cannot fit into a bv_sz-bit signed or
+        // unsigned integer and the conversion is unspecified. Detect this here to
+        // avoid calling to_sbv_mpq, which rejects exponents that do not fit into
+        // an int (throwing "exponents over 31 bits are not supported").
+        if (plugin().fm().exp(sv) >= (mpf_exp_t)bv_sz)
+            return true;
         unsynch_mpq_manager& mpqm = plugin().fm().mpq_manager();
         scoped_mpq r(mpqm);
         plugin().fm().to_sbv_mpq(rmv, sv, r);

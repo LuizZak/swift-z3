@@ -96,7 +96,7 @@ namespace smt {
                 else {
                     result = m_th.u().mk_numeral(0, s);
                 }
-                TRACE("theory_dl", tout << mk_pp(result, m_th.m()) << "\n";);
+                TRACE(theory_dl, tout << mk_pp(result, m_th.m()) << "\n";);
                 return result;
             }        
         };
@@ -114,7 +114,7 @@ namespace smt {
         char const * get_name() const override { return "datalog"; }
 
         bool internalize_atom(app * atom, bool gate_ctx) override {
-            TRACE("theory_dl", tout << mk_pp(atom, m()) << "\n";);
+            TRACE(theory_dl, tout << mk_pp(atom, m()) << "\n";);
             if (ctx.b_internalized(atom)) {
                 return true;
             }
@@ -136,7 +136,7 @@ namespace smt {
         }
 
         bool internalize_term(app * term) override {
-            TRACE("theory_dl", tout << mk_pp(term, m()) << "\n";);
+            TRACE(theory_dl, tout << mk_pp(term, m()) << "\n";);
             if (u().is_finite_sort(term)) {
                 return mk_rep(term);
             }
@@ -166,20 +166,20 @@ namespace smt {
         }
 
         void apply_sort_cnstr(enode * n, sort * s) override {
-            app* term = n->get_expr();
+            auto term = n->get_expr();
             if (u().is_finite_sort(term)) {
                 mk_rep(term);
             }
         }
 
         
-        void relevant_eh(app * n) override {
+        void relevant_eh(expr * n) override {
             if (u().is_finite_sort(n)) {
                 sort* s = n->get_sort();
                 func_decl* r, *v;
                 get_rep(s, r, v);
                 
-                if (n->get_decl() != v) {
+                if (is_app(n) && to_app(n)->get_decl() != v) {
                     expr* rep = m().mk_app(r, n);
                     uint64_t vl;
                     if (u().is_numeral_ext(n, vl)) {
@@ -214,11 +214,12 @@ namespace smt {
             }
         }
 
-        bool mk_rep(app* n) {
-            unsigned num_args = n->get_num_args();
+        bool mk_rep(expr* n) {
+
             enode * e = nullptr;
-            for (unsigned i = 0; i < num_args; i++) {
-                ctx.internalize(n->get_arg(i), false);
+            if (is_app(n)) {
+                for (auto arg : *to_app(n))
+                    ctx.internalize(arg, false);
             }
             if (ctx.e_internalized(n)) {
                 e = ctx.get_enode(n);
@@ -229,7 +230,7 @@ namespace smt {
             if (is_attached_to_var(e)) {
                 return false;
             }
-            TRACE("theory_dl", tout << mk_pp(n, m()) << "\n";);
+            TRACE(theory_dl, tout << mk_pp(n, m()) << "\n";);
             theory_var var = mk_var(e);
             ctx.attach_th_var(e, this, var);
             return true;
@@ -240,10 +241,10 @@ namespace smt {
         }
 
         app* max_value(sort* s) {
-            uint64_t sz;
-            VERIFY(u().try_get_size(s, sz));
-            SASSERT(sz > 0);
-            return mk_bv_constant(sz-1, s);
+            auto sz = u().try_get_size(s);
+            VERIFY(sz);
+            SASSERT(*sz > 0);
+            return mk_bv_constant(*sz-1, s);
         }
 
         void mk_lt(app* x, app* y) {
@@ -252,7 +253,10 @@ namespace smt {
             get_rep(s, r, v);
             app_ref lt(m()), le(m());
             lt = u().mk_lt(x,y);
-            le = b().mk_ule(m().mk_app(r,y),m().mk_app(r,x)); 
+            {
+                app_ref ry(m().mk_app(r, y), m());
+                le = b().mk_ule(ry, m().mk_app(r, x));
+            }
             if (m().has_trace_stream()) {
                 app_ref body(m());
                 body = m().mk_eq(lt, le);
@@ -272,7 +276,7 @@ namespace smt {
         }
 
         void assert_cnstr(expr* e) {
-            TRACE("theory_dl", tout << mk_pp(e, m()) << "\n";);
+            TRACE(theory_dl, tout << mk_pp(e, m()) << "\n";);
             if (m().has_trace_stream()) log_axiom_instantiation(e);
             ctx.internalize(e, false);
             if (m().has_trace_stream()) m().trace_stream() << "[end-of-instance]\n";
@@ -290,4 +294,4 @@ namespace smt {
 
     theory* mk_theory_dl(context& ctx) { return alloc(theory_dl, ctx); }
 
-};
+}

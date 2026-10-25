@@ -201,7 +201,7 @@ namespace datalog {
     }
 
     void relation_manager::register_relation_plugin_impl(relation_plugin * plugin) {
-        TRACE("dl", tout << "register: " << plugin->get_name() << "\n";);
+        TRACE(dl, tout << "register: " << plugin->get_name() << "\n";);
         m_relation_plugins.push_back(plugin);
         plugin->initialize(get_next_relation_fid(*plugin));
         if (plugin->get_name() == get_context().default_relation()) {
@@ -299,7 +299,7 @@ namespace datalog {
     bool relation_manager::is_non_explanation(relation_signature const& s) const {
         dl_decl_util & decl_util = get_context().get_decl_util();
         unsigned n = s.size();
-        for(unsigned i = 0; i < n; i++) {
+        for(unsigned i = 0; i < n; ++i) {
             if(decl_util.is_rule_sort(s[i])) {
                 return false;
             }
@@ -336,7 +336,7 @@ namespace datalog {
 
         //If there is no plugin to handle the signature, we just create an empty product relation and
         //stuff will be added to it by later operations.
-        TRACE("dl", s.output(get_context().get_manager(), tout << "empty product relation"); tout << "\n";);
+        TRACE(dl, s.output(get_context().get_manager(), tout << "empty product relation"); tout << "\n";);
         return product_relation_plugin::get_plugin(*this).mk_empty(s);
     }
 
@@ -400,7 +400,11 @@ namespace datalog {
     }
 
     bool relation_manager::relation_sort_to_table(const relation_sort & from, table_sort & to) {
-        return get_context().get_decl_util().try_get_size(from, to);
+        if (auto size = get_context().get_decl_util().try_get_size(from)) {
+            to = *size;
+            return true;
+        }
+        return false;
     }
 
     void relation_manager::from_predicate(func_decl * pred, unsigned arg_index, relation_sort & result) {
@@ -410,7 +414,7 @@ namespace datalog {
     void relation_manager::from_predicate(func_decl * pred, relation_signature & result) {
         result.reset();
         unsigned arg_num=pred->get_arity();
-        for(unsigned i=0;i<arg_num; i++) {
+        for(unsigned i=0;i<arg_num; ++i) {
             relation_sort rel_srt;
             from_predicate(pred, i, rel_srt);
             result.push_back(rel_srt);
@@ -421,7 +425,7 @@ namespace datalog {
     bool relation_manager::relation_signature_to_table(const relation_signature & from, table_signature & to) {
         unsigned n=from.size();
         to.resize(n);
-        for(unsigned i=0; i<n; i++) {
+        for(unsigned i=0; i<n; ++i) {
             if(!relation_sort_to_table(from[i], to[i])) {
                 return false;
             }
@@ -434,7 +438,7 @@ namespace datalog {
         SASSERT(s.size()==from.size());
         unsigned n=from.size();
         to.resize(n);
-        for(unsigned i=0;i<n;i++) {
+        for(unsigned i=0;i<n;++i) {
             relation_to_table(s[i], from[i], to[i]);
         }
     }
@@ -444,7 +448,7 @@ namespace datalog {
             SASSERT(s.size()==from.size());
             unsigned n=from.size();
             to.resize(n);
-            for(unsigned i=0;i<n;i++) {
+            for(unsigned i=0;i<n;++i) {
                 table_to_relation(s[i], from[i], to[i]);
             }
     }
@@ -532,7 +536,7 @@ namespace datalog {
     class relation_manager::empty_signature_relation_join_fn : public relation_join_fn {
     public:
         relation_base * operator()(const relation_base & r1, const relation_base & r2) override {
-            TRACE("dl", tout << r1.get_plugin().get_name() << " " << r2.get_plugin().get_name() << "\n";);
+            TRACE(dl, tout << r1.get_plugin().get_name() << " " << r2.get_plugin().get_name() << "\n";);
             if(r1.get_signature().empty()) {
                 if(r1.empty()) {
                     return r2.get_manager().mk_empty_relation(r2.get_signature(), r2.get_kind());
@@ -739,7 +743,7 @@ namespace datalog {
         if(!res && delta && &tgt.get_plugin()!=&delta->get_plugin() && &src.get_plugin()!=&delta->get_plugin()) {
             res = delta->get_plugin().mk_union_fn(tgt, src, delta);
         }
-        // TRACE("dl", tout << src.get_plugin().get_name() << " " << tgt.get_plugin().get_name() << " " << (res?"created":"not created") << "\n";); 
+        // TRACE(dl, tout << src.get_plugin().get_name() << " " << tgt.get_plugin().get_name() << " " << (res?"created":"not created") << "\n";); 
         return res;
     }
 
@@ -781,7 +785,7 @@ namespace datalog {
             : m_filter(filter), m_project(project) {}
 
         relation_base * operator()(const relation_base & t1) override {
-            TRACE("dl", tout << t1.get_plugin().get_name() << "\n";);
+            TRACE(dl, tout << t1.get_plugin().get_name() << "\n";);
             scoped_rel<relation_base> aux = t1.clone();
             (*m_filter)(*aux);
             relation_base * res = (*m_project)(*aux);
@@ -818,7 +822,7 @@ namespace datalog {
 
         void operator()(relation_base & tgt, const relation_base & intersected_obj) override {
             scoped_rel<relation_base> filtered_rel = (*m_join_fun)(tgt, intersected_obj);
-            TRACE("dl", 
+            TRACE(dl, 
                   tgt.display(tout << "tgt:\n"); 
                   intersected_obj.display(tout << "intersected:\n");
                   filtered_rel->display(tout << "filtered:\n");
@@ -828,9 +832,9 @@ namespace datalog {
                 tgt.swap(*filtered_rel);
             }
             tgt.reset();
-            TRACE("dl", tgt.display(tout << "target reset:\n"); );
+            TRACE(dl, tgt.display(tout << "target reset:\n"); );
             (*m_union_fun)(tgt, *filtered_rel);
-            TRACE("dl", tgt.display(tout << "intersected target:\n"); );
+            TRACE(dl, tgt.display(tout << "intersected target:\n"); );
         }
 
     };
@@ -838,7 +842,7 @@ namespace datalog {
     relation_intersection_filter_fn * relation_manager::try_mk_default_filter_by_intersection_fn(
             const relation_base & tgt, const relation_base & src, unsigned joined_col_cnt, 
             const unsigned * tgt_cols, const unsigned * src_cols) {
-        TRACE("dl_verbose", tout << tgt.get_plugin().get_name() << "\n";);
+        TRACE(dl_verbose, tout << tgt.get_plugin().get_name() << "\n";);
         unsigned_vector join_removed_cols;
         add_sequence(tgt.get_signature().size(), src.get_signature().size(), join_removed_cols);
         scoped_rel<relation_join_fn> join_fun = mk_join_project_fn(tgt, src, joined_col_cnt, tgt_cols, src_cols,
@@ -866,7 +870,7 @@ namespace datalog {
 
     relation_intersection_filter_fn * relation_manager::mk_filter_by_intersection_fn(const relation_base & t, 
             const relation_base & src, unsigned joined_col_cnt, const unsigned * t_cols, const unsigned * src_cols) {
-        TRACE("dl_verbose", tout << t.get_plugin().get_name() << "\n";);
+        TRACE(dl_verbose, tout << t.get_plugin().get_name() << "\n";);
         relation_intersection_filter_fn * res = t.get_plugin().mk_filter_by_intersection_fn(t, src, joined_col_cnt, 
             t_cols, src_cols);
         if(!res && &t.get_plugin()!=&src.get_plugin()) {
@@ -880,7 +884,7 @@ namespace datalog {
 
     relation_intersection_filter_fn * relation_manager::mk_filter_by_intersection_fn(const relation_base & tgt, 
             const relation_base & src) {
-        TRACE("dl_verbose", tout << tgt.get_plugin().get_name() << "\n";);
+        TRACE(dl_verbose, tout << tgt.get_plugin().get_name() << "\n";);
         SASSERT(tgt.get_signature()==src.get_signature());
         unsigned sz = tgt.get_signature().size();
         unsigned_vector cols;
@@ -892,7 +896,7 @@ namespace datalog {
     relation_intersection_filter_fn * relation_manager::mk_filter_by_negation_fn(const relation_base & t, 
             const relation_base & negated_obj, unsigned joined_col_cnt, 
             const unsigned * t_cols, const unsigned * negated_cols) { 
-        TRACE("dl", tout << t.get_plugin().get_name() << "\n";);
+        TRACE(dl, tout << t.get_plugin().get_name() << "\n";);
         relation_intersection_filter_fn * res = t.get_plugin().mk_filter_by_negation_fn(t, negated_obj, joined_col_cnt, 
             t_cols, negated_cols);
         if(!res && &t.get_plugin()!=&negated_obj.get_plugin()) {
@@ -937,21 +941,14 @@ namespace datalog {
             unsigned t1first_func = t1.get_signature().first_functional();
             unsigned t2first_func = t2.get_signature().first_functional();
 
-            table_base::iterator els1it = t1.begin();
-            table_base::iterator els1end = t1.end();
-            table_base::iterator els2end = t2.end();
-
             table_fact acc;
 
-            for(; els1it!=els1end; ++els1it) {
-                const table_base::row_interface & row1 = *els1it;
+            for (const table_base::row_interface& row1 : t1) {
 
-                table_base::iterator els2it = t2.begin();
-                for(; els2it!=els2end; ++els2it) {
-                    const table_base::row_interface & row2 = *els2it;
+                for (const table_base::row_interface& row2 : t2) {
 
                     bool match=true;
-                    for(unsigned i=0; i<m_col_cnt; i++) {
+                    for(unsigned i=0; i<m_col_cnt; ++i) {
                         if(row1[m_cols1[i]]!=row2[m_cols2[i]]) {
                             match=false;
                             break;
@@ -962,16 +959,16 @@ namespace datalog {
                     }
 
                     acc.reset();
-                    for(unsigned i=0; i<t1first_func; i++) {
+                    for(unsigned i=0; i<t1first_func; ++i) {
                         acc.push_back(row1[i]);
                     }
-                    for(unsigned i=0; i<t2first_func; i++) {
+                    for(unsigned i=0; i<t2first_func; ++i) {
                         acc.push_back(row2[i]);
                     }
-                    for(unsigned i=t1first_func; i<t1cols; i++) {
+                    for(unsigned i=t1first_func; i<t1cols; ++i) {
                         acc.push_back(row1[i]);
                     }
-                    for(unsigned i=t2first_func; i<t2cols; i++) {
+                    for(unsigned i=t2first_func; i<t2cols; ++i) {
                         acc.push_back(row2[i]);
                     }
                     res->add_fact(acc);
@@ -1269,7 +1266,7 @@ namespace datalog {
 
         bool should_remove(const table_fact & f) const override {
             table_element val=f[m_identical_cols[0]];
-            for(unsigned i=1; i<m_col_cnt; i++) {
+            for(unsigned i=1; i<m_col_cnt; ++i) {
                 if(f[m_identical_cols[i]]!=val) {
                     return true;
                 }
@@ -1491,10 +1488,7 @@ namespace datalog {
 
         bool should_remove(const table_fact & f) const override {
             if(!m_all_neg_bound || m_overlap) {
-                table_base::iterator nit = m_negated_table->begin();
-                table_base::iterator nend = m_negated_table->end();
-                for(; nit!=nend; ++nit) {
-                    const table_base::row_interface & nrow = *nit;
+                for (const table_base::row_interface& nrow : *m_negated_table) {
                     if(bindings_match(nrow, f)) {
                         return true;
                     }
@@ -1552,7 +1546,7 @@ namespace datalog {
             : m_filter(filter), m_project(project) {}
 
         table_base * operator()(const table_base & t1) override {
-            TRACE("dl", tout << t1.get_plugin().get_name() << "\n";);
+            TRACE(dl, tout << t1.get_plugin().get_name() << "\n";);
             scoped_rel<table_base> aux = t1.clone();
             (*m_filter)(*aux);
             return (*m_project)(*aux);
@@ -1644,7 +1638,7 @@ namespace datalog {
         virtual void modify_fact(table_fact & f) const {
             unsigned ofs=1;
             unsigned r_i=1;
-            for(unsigned i=m_removed_cols[0]+1; i<m_inp_col_cnt; i++) {
+            for(unsigned i=m_removed_cols[0]+1; i<m_inp_col_cnt; ++i) {
                 if(r_i!=m_removed_col_cnt && m_removed_cols[r_i]==i) {
                     r_i++;
                     ofs++;
@@ -1656,13 +1650,13 @@ namespace datalog {
             f.resize(m_result_col_cnt);
         }
 
-        void mk_project(table_base::iterator& it)  {
+        void mk_project(const table_base::row_interface& row)  {
             for (unsigned i = 0, j = 0, r_i = 0; i < m_inp_col_cnt; ++i) {
                 if (r_i < m_removed_col_cnt && m_removed_cols[r_i] == i) {
                     ++r_i;
                 }
                 else {
-                    m_row[j] = m_former_row[j] = (*it)[i];
+                    m_row[j] = m_former_row[j] = row[i];
                     ++j;
                 }
             }
@@ -1674,9 +1668,8 @@ namespace datalog {
             SASSERT(plugin.can_handle_signature(res_sign));
             table_base * res = plugin.mk_empty(res_sign);
 
-            table_base::iterator it = t.begin(), end = t.end();
-            for (; it != end; ++it) {
-                mk_project(it);
+            for (const table_base::row_interface& row : t) {
+                mk_project(row);
                 if (!res->suggest_fact(m_former_row)) {
                     (*m_reducer)(m_former_row.data()+m_res_first_functional, m_row.data()+m_res_first_functional);
                     res->ensure_fact(m_former_row);
@@ -1696,5 +1689,5 @@ namespace datalog {
         return res;
     }
 
-};
+}
 

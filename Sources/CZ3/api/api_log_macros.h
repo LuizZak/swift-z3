@@ -1,6 +1,6 @@
 // Automatically generated file
 #include"api/z3.h"
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__clang__)
 #define _Z3_UNUSED __attribute__((unused))
 #else
 #define _Z3_UNUSED
@@ -31,6 +31,8 @@ void log_Z3_mk_context_rc(Z3_config a0);
 #define LOG_Z3_mk_context_rc(_ARG0) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_context_rc(_ARG0); }
 void log_Z3_del_context(Z3_context a0);
 #define LOG_Z3_del_context(_ARG0) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_del_context(_ARG0); }
+void log_Z3_set_proof_check_callback(Z3_context a0, void* a1, Z3_proof_check_eh* a2);
+#define LOG_Z3_set_proof_check_callback(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_set_proof_check_callback(_ARG0, _ARG1, _ARG2); }
 void log_Z3_inc_ref(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_inc_ref(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_inc_ref(_ARG0, _ARG1); }
 void log_Z3_dec_ref(Z3_context a0, Z3_ast a1);
@@ -89,20 +91,40 @@ void log_Z3_mk_int_sort(Z3_context a0);
 #define LOG_Z3_mk_int_sort(_ARG0) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_int_sort(_ARG0); }
 void log_Z3_mk_real_sort(Z3_context a0);
 #define LOG_Z3_mk_real_sort(_ARG0) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_real_sort(_ARG0); }
+void log_Z3_mk_complex_sort(Z3_context a0);
+#define LOG_Z3_mk_complex_sort(_ARG0) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_complex_sort(_ARG0); }
+void log_Z3_mk_complex(Z3_context a0, Z3_ast a1, Z3_ast a2);
+#define LOG_Z3_mk_complex(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_complex(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_real_part(Z3_context a0, Z3_ast a1);
+#define LOG_Z3_mk_real_part(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_real_part(_ARG0, _ARG1); }
+void log_Z3_mk_imag_part(Z3_context a0, Z3_ast a1);
+#define LOG_Z3_mk_imag_part(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_imag_part(_ARG0, _ARG1); }
 void log_Z3_mk_bv_sort(Z3_context a0, unsigned a1);
 #define LOG_Z3_mk_bv_sort(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_bv_sort(_ARG0, _ARG1); }
 void log_Z3_mk_finite_domain_sort(Z3_context a0, Z3_symbol a1, uint64_t a2);
 #define LOG_Z3_mk_finite_domain_sort(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_domain_sort(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_finite_field_sort(Z3_context a0, Z3_string a1);
+#define LOG_Z3_mk_finite_field_sort(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_field_sort(_ARG0, _ARG1); }
+void log_Z3_get_finite_field_sort_size(Z3_context a0, Z3_sort a1);
+#define LOG_Z3_get_finite_field_sort_size(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_finite_field_sort_size(_ARG0, _ARG1); }
+void log_Z3_mk_ff_add(Z3_context a0, unsigned a1, Z3_ast const * a2);
+#define LOG_Z3_mk_ff_add(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_ff_add(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_ff_mul(Z3_context a0, unsigned a1, Z3_ast const * a2);
+#define LOG_Z3_mk_ff_mul(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_ff_mul(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_ff_neg(Z3_context a0, Z3_ast a1);
+#define LOG_Z3_mk_ff_neg(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_ff_neg(_ARG0, _ARG1); }
+void log_Z3_mk_ff_bitsum(Z3_context a0, unsigned a1, Z3_ast const * a2);
+#define LOG_Z3_mk_ff_bitsum(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_ff_bitsum(_ARG0, _ARG1, _ARG2); }
 void log_Z3_mk_array_sort(Z3_context a0, Z3_sort a1, Z3_sort a2);
 #define LOG_Z3_mk_array_sort(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_array_sort(_ARG0, _ARG1, _ARG2); }
 void log_Z3_mk_array_sort_n(Z3_context a0, unsigned a1, Z3_sort const * a2, Z3_sort a3);
 #define LOG_Z3_mk_array_sort_n(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_array_sort_n(_ARG0, _ARG1, _ARG2, _ARG3); }
 void log_Z3_mk_tuple_sort(Z3_context a0, Z3_symbol a1, unsigned a2, Z3_symbol const * a3, Z3_sort const * a4, Z3_func_decl* a5, Z3_func_decl* a6);
 #define LOG_Z3_mk_tuple_sort(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5, _ARG6) z3_log_ctx _LOG_CTX; Z3_func_decl* _Z3_UNUSED Z3ARG5 = 0; unsigned _Z3_UNUSED Z3ARG2 = 0; Z3_func_decl* _Z3_UNUSED Z3ARG6 = 0; if (_LOG_CTX.enabled()) { log_Z3_mk_tuple_sort(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5, _ARG6); Z3ARG5 = _ARG5; Z3ARG2 = _ARG2; Z3ARG6 = _ARG6; }
-#define RETURN_Z3_mk_tuple_sort(Z3RES) if (_LOG_CTX.enabled()) { SetR(Z3RES); SetO((Z3ARG5 == 0 ? 0 : *Z3ARG5), 5); for (unsigned i = 0; i < Z3ARG2; i++) { SetAO(Z3ARG6[i], 6, i); } } return Z3RES
+#define RETURN_Z3_mk_tuple_sort(Z3RES) if (_LOG_CTX.enabled()) { SetR(Z3RES); SetO((Z3ARG5 == 0 ? 0 : *Z3ARG5), 5); for (unsigned i = 0; i < Z3ARG2; ++i) { SetAO(Z3ARG6[i], 6, i); } } return Z3RES
 void log_Z3_mk_enumeration_sort(Z3_context a0, Z3_symbol a1, unsigned a2, Z3_symbol const * a3, Z3_func_decl* a4, Z3_func_decl* a5);
 #define LOG_Z3_mk_enumeration_sort(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5) z3_log_ctx _LOG_CTX; unsigned _Z3_UNUSED Z3ARG2 = 0; Z3_func_decl* _Z3_UNUSED Z3ARG4 = 0; Z3_func_decl* _Z3_UNUSED Z3ARG5 = 0; if (_LOG_CTX.enabled()) { log_Z3_mk_enumeration_sort(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5); Z3ARG2 = _ARG2; Z3ARG4 = _ARG4; Z3ARG5 = _ARG5; }
-#define RETURN_Z3_mk_enumeration_sort(Z3RES) if (_LOG_CTX.enabled()) { SetR(Z3RES); for (unsigned i = 0; i < Z3ARG2; i++) { SetAO(Z3ARG4[i], 4, i); } for (unsigned i = 0; i < Z3ARG2; i++) { SetAO(Z3ARG5[i], 5, i); } } return Z3RES
+#define RETURN_Z3_mk_enumeration_sort(Z3RES) if (_LOG_CTX.enabled()) { SetR(Z3RES); for (unsigned i = 0; i < Z3ARG2; ++i) { SetAO(Z3ARG4[i], 4, i); } for (unsigned i = 0; i < Z3ARG2; ++i) { SetAO(Z3ARG5[i], 5, i); } } return Z3RES
 void log_Z3_mk_list_sort(Z3_context a0, Z3_symbol a1, Z3_sort a2, Z3_func_decl* a3, Z3_func_decl* a4, Z3_func_decl* a5, Z3_func_decl* a6, Z3_func_decl* a7, Z3_func_decl* a8);
 #define LOG_Z3_mk_list_sort(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5, _ARG6, _ARG7, _ARG8) z3_log_ctx _LOG_CTX; Z3_func_decl* _Z3_UNUSED Z3ARG3 = 0; Z3_func_decl* _Z3_UNUSED Z3ARG4 = 0; Z3_func_decl* _Z3_UNUSED Z3ARG5 = 0; Z3_func_decl* _Z3_UNUSED Z3ARG6 = 0; Z3_func_decl* _Z3_UNUSED Z3ARG7 = 0; Z3_func_decl* _Z3_UNUSED Z3ARG8 = 0; if (_LOG_CTX.enabled()) { log_Z3_mk_list_sort(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5, _ARG6, _ARG7, _ARG8); Z3ARG3 = _ARG3; Z3ARG4 = _ARG4; Z3ARG5 = _ARG5; Z3ARG6 = _ARG6; Z3ARG7 = _ARG7; Z3ARG8 = _ARG8; }
 #define RETURN_Z3_mk_list_sort(Z3RES) if (_LOG_CTX.enabled()) { SetR(Z3RES); SetO((Z3ARG3 == 0 ? 0 : *Z3ARG3), 3); SetO((Z3ARG4 == 0 ? 0 : *Z3ARG4), 4); SetO((Z3ARG5 == 0 ? 0 : *Z3ARG5), 5); SetO((Z3ARG6 == 0 ? 0 : *Z3ARG6), 6); SetO((Z3ARG7 == 0 ? 0 : *Z3ARG7), 7); SetO((Z3ARG8 == 0 ? 0 : *Z3ARG8), 8); } return Z3RES
@@ -114,19 +136,22 @@ void log_Z3_del_constructor(Z3_context a0, Z3_constructor a1);
 #define LOG_Z3_del_constructor(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_del_constructor(_ARG0, _ARG1); }
 void log_Z3_mk_datatype(Z3_context a0, Z3_symbol a1, unsigned a2, Z3_constructor* a3);
 #define LOG_Z3_mk_datatype(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; unsigned _Z3_UNUSED Z3ARG2 = 0; Z3_constructor* _Z3_UNUSED Z3ARG3 = 0; if (_LOG_CTX.enabled()) { log_Z3_mk_datatype(_ARG0, _ARG1, _ARG2, _ARG3); Z3ARG2 = _ARG2; Z3ARG3 = _ARG3; }
-#define RETURN_Z3_mk_datatype(Z3RES) if (_LOG_CTX.enabled()) { SetR(Z3RES); for (unsigned i = 0; i < Z3ARG2; i++) { SetAO(Z3ARG3[i], 3, i); } } return Z3RES
-void log_Z3_mk_datatype_sort(Z3_context a0, Z3_symbol a1);
-#define LOG_Z3_mk_datatype_sort(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_datatype_sort(_ARG0, _ARG1); }
+#define RETURN_Z3_mk_datatype(Z3RES) if (_LOG_CTX.enabled()) { SetR(Z3RES); for (unsigned i = 0; i < Z3ARG2; ++i) { SetAO(Z3ARG3[i], 3, i); } } return Z3RES
+void log_Z3_mk_polymorphic_datatype(Z3_context a0, Z3_symbol a1, unsigned a2, Z3_sort const * a3, unsigned a4, Z3_constructor* a5);
+#define LOG_Z3_mk_polymorphic_datatype(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5) z3_log_ctx _LOG_CTX; unsigned _Z3_UNUSED Z3ARG4 = 0; Z3_constructor* _Z3_UNUSED Z3ARG5 = 0; if (_LOG_CTX.enabled()) { log_Z3_mk_polymorphic_datatype(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5); Z3ARG4 = _ARG4; Z3ARG5 = _ARG5; }
+#define RETURN_Z3_mk_polymorphic_datatype(Z3RES) if (_LOG_CTX.enabled()) { SetR(Z3RES); for (unsigned i = 0; i < Z3ARG4; ++i) { SetAO(Z3ARG5[i], 5, i); } } return Z3RES
+void log_Z3_mk_datatype_sort(Z3_context a0, Z3_symbol a1, unsigned a2, Z3_sort const * a3);
+#define LOG_Z3_mk_datatype_sort(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_datatype_sort(_ARG0, _ARG1, _ARG2, _ARG3); }
 void log_Z3_mk_constructor_list(Z3_context a0, unsigned a1, Z3_constructor const * a2);
 #define LOG_Z3_mk_constructor_list(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_constructor_list(_ARG0, _ARG1, _ARG2); }
 void log_Z3_del_constructor_list(Z3_context a0, Z3_constructor_list a1);
 #define LOG_Z3_del_constructor_list(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_del_constructor_list(_ARG0, _ARG1); }
 void log_Z3_mk_datatypes(Z3_context a0, unsigned a1, Z3_symbol const * a2, Z3_sort* a3, Z3_constructor_list* a4);
 #define LOG_Z3_mk_datatypes(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4) z3_log_ctx _LOG_CTX; unsigned _Z3_UNUSED Z3ARG1 = 0; Z3_sort* _Z3_UNUSED Z3ARG3 = 0; Z3_constructor_list* _Z3_UNUSED Z3ARG4 = 0; if (_LOG_CTX.enabled()) { log_Z3_mk_datatypes(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4); Z3ARG1 = _ARG1; Z3ARG3 = _ARG3; Z3ARG4 = _ARG4; }
-#define RETURN_Z3_mk_datatypes if (_LOG_CTX.enabled()) { for (unsigned i = 0; i < Z3ARG1; i++) { SetAO(Z3ARG3[i], 3, i); } for (unsigned i = 0; i < Z3ARG1; i++) { SetAO(Z3ARG4[i], 4, i); } } return
+#define RETURN_Z3_mk_datatypes if (_LOG_CTX.enabled()) { for (unsigned i = 0; i < Z3ARG1; ++i) { SetAO(Z3ARG3[i], 3, i); } for (unsigned i = 0; i < Z3ARG1; ++i) { SetAO(Z3ARG4[i], 4, i); } } return
 void log_Z3_query_constructor(Z3_context a0, Z3_constructor a1, unsigned a2, Z3_func_decl* a3, Z3_func_decl* a4, Z3_func_decl* a5);
 #define LOG_Z3_query_constructor(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5) z3_log_ctx _LOG_CTX; Z3_func_decl* _Z3_UNUSED Z3ARG3 = 0; Z3_func_decl* _Z3_UNUSED Z3ARG4 = 0; unsigned _Z3_UNUSED Z3ARG2 = 0; Z3_func_decl* _Z3_UNUSED Z3ARG5 = 0; if (_LOG_CTX.enabled()) { log_Z3_query_constructor(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5); Z3ARG3 = _ARG3; Z3ARG4 = _ARG4; Z3ARG2 = _ARG2; Z3ARG5 = _ARG5; }
-#define RETURN_Z3_query_constructor if (_LOG_CTX.enabled()) { SetO((Z3ARG3 == 0 ? 0 : *Z3ARG3), 3); SetO((Z3ARG4 == 0 ? 0 : *Z3ARG4), 4); for (unsigned i = 0; i < Z3ARG2; i++) { SetAO(Z3ARG5[i], 5, i); } } return
+#define RETURN_Z3_query_constructor if (_LOG_CTX.enabled()) { SetO((Z3ARG3 == 0 ? 0 : *Z3ARG3), 3); SetO((Z3ARG4 == 0 ? 0 : *Z3ARG4), 4); for (unsigned i = 0; i < Z3ARG2; ++i) { SetAO(Z3ARG5[i], 5, i); } } return
 void log_Z3_mk_func_decl(Z3_context a0, Z3_symbol a1, unsigned a2, Z3_sort const * a3, Z3_sort a4);
 #define LOG_Z3_mk_func_decl(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_func_decl(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4); }
 void log_Z3_mk_app(Z3_context a0, Z3_func_decl a1, unsigned a2, Z3_ast const * a3);
@@ -311,8 +336,6 @@ void log_Z3_mk_array_default(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_mk_array_default(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_array_default(_ARG0, _ARG1); }
 void log_Z3_mk_as_array(Z3_context a0, Z3_func_decl a1);
 #define LOG_Z3_mk_as_array(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_as_array(_ARG0, _ARG1); }
-void log_Z3_mk_set_has_size(Z3_context a0, Z3_ast a1, Z3_ast a2);
-#define LOG_Z3_mk_set_has_size(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_set_has_size(_ARG0, _ARG1, _ARG2); }
 void log_Z3_mk_set_sort(Z3_context a0, Z3_sort a1);
 #define LOG_Z3_mk_set_sort(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_set_sort(_ARG0, _ARG1); }
 void log_Z3_mk_empty_set(Z3_context a0, Z3_sort a1);
@@ -337,6 +360,34 @@ void log_Z3_mk_set_subset(Z3_context a0, Z3_ast a1, Z3_ast a2);
 #define LOG_Z3_mk_set_subset(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_set_subset(_ARG0, _ARG1, _ARG2); }
 void log_Z3_mk_array_ext(Z3_context a0, Z3_ast a1, Z3_ast a2);
 #define LOG_Z3_mk_array_ext(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_array_ext(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_finite_set_sort(Z3_context a0, Z3_sort a1);
+#define LOG_Z3_mk_finite_set_sort(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_set_sort(_ARG0, _ARG1); }
+void log_Z3_is_finite_set_sort(Z3_context a0, Z3_sort a1);
+#define LOG_Z3_is_finite_set_sort(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_is_finite_set_sort(_ARG0, _ARG1); }
+void log_Z3_get_finite_set_sort_basis(Z3_context a0, Z3_sort a1);
+#define LOG_Z3_get_finite_set_sort_basis(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_finite_set_sort_basis(_ARG0, _ARG1); }
+void log_Z3_mk_finite_set_empty(Z3_context a0, Z3_sort a1);
+#define LOG_Z3_mk_finite_set_empty(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_set_empty(_ARG0, _ARG1); }
+void log_Z3_mk_finite_set_singleton(Z3_context a0, Z3_ast a1);
+#define LOG_Z3_mk_finite_set_singleton(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_set_singleton(_ARG0, _ARG1); }
+void log_Z3_mk_finite_set_union(Z3_context a0, Z3_ast a1, Z3_ast a2);
+#define LOG_Z3_mk_finite_set_union(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_set_union(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_finite_set_intersect(Z3_context a0, Z3_ast a1, Z3_ast a2);
+#define LOG_Z3_mk_finite_set_intersect(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_set_intersect(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_finite_set_difference(Z3_context a0, Z3_ast a1, Z3_ast a2);
+#define LOG_Z3_mk_finite_set_difference(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_set_difference(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_finite_set_member(Z3_context a0, Z3_ast a1, Z3_ast a2);
+#define LOG_Z3_mk_finite_set_member(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_set_member(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_finite_set_size(Z3_context a0, Z3_ast a1);
+#define LOG_Z3_mk_finite_set_size(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_set_size(_ARG0, _ARG1); }
+void log_Z3_mk_finite_set_subset(Z3_context a0, Z3_ast a1, Z3_ast a2);
+#define LOG_Z3_mk_finite_set_subset(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_set_subset(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_finite_set_map(Z3_context a0, Z3_ast a1, Z3_ast a2);
+#define LOG_Z3_mk_finite_set_map(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_set_map(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_finite_set_filter(Z3_context a0, Z3_ast a1, Z3_ast a2);
+#define LOG_Z3_mk_finite_set_filter(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_set_filter(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_finite_set_range(Z3_context a0, Z3_ast a1, Z3_ast a2);
+#define LOG_Z3_mk_finite_set_range(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_finite_set_range(_ARG0, _ARG1, _ARG2); }
 void log_Z3_mk_numeral(Z3_context a0, Z3_string a1, Z3_sort a2);
 #define LOG_Z3_mk_numeral(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_numeral(_ARG0, _ARG1, _ARG2); }
 void log_Z3_mk_real(Z3_context a0, int a1, int a2);
@@ -409,10 +460,18 @@ void log_Z3_mk_seq_extract(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3);
 #define LOG_Z3_mk_seq_extract(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_seq_extract(_ARG0, _ARG1, _ARG2, _ARG3); }
 void log_Z3_mk_seq_replace(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3);
 #define LOG_Z3_mk_seq_replace(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_seq_replace(_ARG0, _ARG1, _ARG2, _ARG3); }
+void log_Z3_mk_seq_replace_all(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3);
+#define LOG_Z3_mk_seq_replace_all(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_seq_replace_all(_ARG0, _ARG1, _ARG2, _ARG3); }
+void log_Z3_mk_seq_replace_re(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3);
+#define LOG_Z3_mk_seq_replace_re(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_seq_replace_re(_ARG0, _ARG1, _ARG2, _ARG3); }
+void log_Z3_mk_seq_replace_re_all(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3);
+#define LOG_Z3_mk_seq_replace_re_all(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_seq_replace_re_all(_ARG0, _ARG1, _ARG2, _ARG3); }
 void log_Z3_mk_seq_at(Z3_context a0, Z3_ast a1, Z3_ast a2);
 #define LOG_Z3_mk_seq_at(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_seq_at(_ARG0, _ARG1, _ARG2); }
 void log_Z3_mk_seq_nth(Z3_context a0, Z3_ast a1, Z3_ast a2);
 #define LOG_Z3_mk_seq_nth(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_seq_nth(_ARG0, _ARG1, _ARG2); }
+void log_Z3_mk_seq_power(Z3_context a0, Z3_ast a1, Z3_ast a2);
+#define LOG_Z3_mk_seq_power(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_seq_power(_ARG0, _ARG1, _ARG2); }
 void log_Z3_mk_seq_length(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_mk_seq_length(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_seq_length(_ARG0, _ARG1); }
 void log_Z3_mk_seq_index(Z3_context a0, Z3_ast a1, Z3_ast a2, Z3_ast a3);
@@ -537,6 +596,8 @@ void log_Z3_get_bv_sort_size(Z3_context a0, Z3_sort a1);
 #define LOG_Z3_get_bv_sort_size(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_bv_sort_size(_ARG0, _ARG1); }
 void log_Z3_get_finite_domain_sort_size(Z3_context a0, Z3_sort a1, uint64_t* a2);
 #define LOG_Z3_get_finite_domain_sort_size(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_finite_domain_sort_size(_ARG0, _ARG1, _ARG2); }
+void log_Z3_get_array_arity(Z3_context a0, Z3_sort a1);
+#define LOG_Z3_get_array_arity(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_array_arity(_ARG0, _ARG1); }
 void log_Z3_get_array_sort_domain(Z3_context a0, Z3_sort a1);
 #define LOG_Z3_get_array_sort_domain(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_array_sort_domain(_ARG0, _ARG1); }
 void log_Z3_get_array_sort_domain_n(Z3_context a0, Z3_sort a1, unsigned a2);
@@ -549,6 +610,8 @@ void log_Z3_get_tuple_sort_num_fields(Z3_context a0, Z3_sort a1);
 #define LOG_Z3_get_tuple_sort_num_fields(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_tuple_sort_num_fields(_ARG0, _ARG1); }
 void log_Z3_get_tuple_sort_field_decl(Z3_context a0, Z3_sort a1, unsigned a2);
 #define LOG_Z3_get_tuple_sort_field_decl(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_tuple_sort_field_decl(_ARG0, _ARG1, _ARG2); }
+void log_Z3_is_recursive_datatype_sort(Z3_context a0, Z3_sort a1);
+#define LOG_Z3_is_recursive_datatype_sort(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_is_recursive_datatype_sort(_ARG0, _ARG1); }
 void log_Z3_get_datatype_sort_num_constructors(Z3_context a0, Z3_sort a1);
 #define LOG_Z3_get_datatype_sort_num_constructors(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_get_datatype_sort_num_constructors(_ARG0, _ARG1); }
 void log_Z3_get_datatype_sort_constructor(Z3_context a0, Z3_sort a1, unsigned a2);
@@ -1036,7 +1099,7 @@ void log_Z3_solver_get_trail(Z3_context a0, Z3_solver a1);
 #define LOG_Z3_solver_get_trail(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_trail(_ARG0, _ARG1); }
 void log_Z3_solver_get_non_units(Z3_context a0, Z3_solver a1);
 #define LOG_Z3_solver_get_non_units(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_non_units(_ARG0, _ARG1); }
-void log_Z3_solver_get_levels(Z3_context a0, Z3_solver a1, Z3_ast_vector a2, unsigned a3, unsigned const * a4);
+void log_Z3_solver_get_levels(Z3_context a0, Z3_solver a1, Z3_ast_vector a2, unsigned a3, unsigned* a4);
 #define LOG_Z3_solver_get_levels(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_get_levels(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4); }
 void log_Z3_solver_congruence_root(Z3_context a0, Z3_solver a1, Z3_ast a2);
 #define LOG_Z3_solver_congruence_root(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_congruence_root(_ARG0, _ARG1, _ARG2); }
@@ -1062,6 +1125,8 @@ void log_Z3_solver_propagate_created(Z3_context a0, Z3_solver a1, Z3_created_eh*
 #define LOG_Z3_solver_propagate_created(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_propagate_created(_ARG0, _ARG1, _ARG2); }
 void log_Z3_solver_propagate_decide(Z3_context a0, Z3_solver a1, Z3_decide_eh* a2);
 #define LOG_Z3_solver_propagate_decide(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_propagate_decide(_ARG0, _ARG1, _ARG2); }
+void log_Z3_solver_propagate_on_binding(Z3_context a0, Z3_solver a1, Z3_on_binding_eh* a2);
+#define LOG_Z3_solver_propagate_on_binding(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_propagate_on_binding(_ARG0, _ARG1, _ARG2); }
 void log_Z3_solver_next_split(Z3_context a0, Z3_solver_callback a1, Z3_ast a2, unsigned a3, Z3_lbool a4);
 #define LOG_Z3_solver_next_split(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_solver_next_split(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4); }
 void log_Z3_solver_propagate_declare(Z3_context a0, Z3_symbol a1, unsigned a2, Z3_sort const * a3, Z3_sort a4);
@@ -1218,7 +1283,7 @@ void log_Z3_rcf_mk_infinitesimal(Z3_context a0);
 #define LOG_Z3_rcf_mk_infinitesimal(_ARG0) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_rcf_mk_infinitesimal(_ARG0); }
 void log_Z3_rcf_mk_roots(Z3_context a0, unsigned a1, Z3_rcf_num const * a2, Z3_rcf_num* a3);
 #define LOG_Z3_rcf_mk_roots(_ARG0, _ARG1, _ARG2, _ARG3) z3_log_ctx _LOG_CTX; unsigned _Z3_UNUSED Z3ARG1 = 0; Z3_rcf_num* _Z3_UNUSED Z3ARG3 = 0; if (_LOG_CTX.enabled()) { log_Z3_rcf_mk_roots(_ARG0, _ARG1, _ARG2, _ARG3); Z3ARG1 = _ARG1; Z3ARG3 = _ARG3; }
-#define RETURN_Z3_rcf_mk_roots if (_LOG_CTX.enabled()) { for (unsigned i = 0; i < Z3ARG1; i++) { SetAO(Z3ARG3[i], 3, i); } } return
+#define RETURN_Z3_rcf_mk_roots if (_LOG_CTX.enabled()) { for (unsigned i = 0; i < Z3ARG1; ++i) { SetAO(Z3ARG3[i], 3, i); } } return
 void log_Z3_rcf_add(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num a2);
 #define LOG_Z3_rcf_add(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_rcf_add(_ARG0, _ARG1, _ARG2); }
 void log_Z3_rcf_sub(Z3_context a0, Z3_rcf_num a1, Z3_rcf_num a2);
@@ -1270,7 +1335,7 @@ void log_Z3_rcf_num_coefficients(Z3_context a0, Z3_rcf_num a1);
 #define LOG_Z3_rcf_num_coefficients(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_rcf_num_coefficients(_ARG0, _ARG1); }
 void log_Z3_rcf_coefficient(Z3_context a0, Z3_rcf_num a1, unsigned a2);
 #define LOG_Z3_rcf_coefficient(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_rcf_coefficient(_ARG0, _ARG1, _ARG2); }
-void log_Z3_rcf_interval(Z3_context a0, Z3_rcf_num a1, int* a2, int* a3, Z3_rcf_num* a4, int* a5, int* a6, Z3_rcf_num* a7);
+void log_Z3_rcf_interval(Z3_context a0, Z3_rcf_num a1, bool* a2, bool* a3, Z3_rcf_num* a4, bool* a5, bool* a6, Z3_rcf_num* a7);
 #define LOG_Z3_rcf_interval(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5, _ARG6, _ARG7) z3_log_ctx _LOG_CTX; Z3_rcf_num* _Z3_UNUSED Z3ARG4 = 0; Z3_rcf_num* _Z3_UNUSED Z3ARG7 = 0; if (_LOG_CTX.enabled()) { log_Z3_rcf_interval(_ARG0, _ARG1, _ARG2, _ARG3, _ARG4, _ARG5, _ARG6, _ARG7); Z3ARG4 = _ARG4; Z3ARG7 = _ARG7; }
 #define RETURN_Z3_rcf_interval if (_LOG_CTX.enabled()) { SetO((Z3ARG4 == 0 ? 0 : *Z3ARG4), 4); SetO((Z3ARG7 == 0 ? 0 : *Z3ARG7), 7); } return
 void log_Z3_rcf_num_sign_conditions(Z3_context a0, Z3_rcf_num a1);
@@ -1387,6 +1452,8 @@ void log_Z3_optimize_get_assertions(Z3_context a0, Z3_optimize a1);
 #define LOG_Z3_optimize_get_assertions(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_optimize_get_assertions(_ARG0, _ARG1); }
 void log_Z3_optimize_get_objectives(Z3_context a0, Z3_optimize a1);
 #define LOG_Z3_optimize_get_objectives(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_optimize_get_objectives(_ARG0, _ARG1); }
+void log_Z3_optimize_translate(Z3_context a0, Z3_optimize a1, Z3_context a2);
+#define LOG_Z3_optimize_translate(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_optimize_translate(_ARG0, _ARG1, _ARG2); }
 void log_Z3_mk_fpa_rounding_mode_sort(Z3_context a0);
 #define LOG_Z3_mk_fpa_rounding_mode_sort(_ARG0) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_mk_fpa_rounding_mode_sort(_ARG0); }
 void log_Z3_mk_fpa_round_nearest_ties_to_even(Z3_context a0);
@@ -1513,6 +1580,8 @@ void log_Z3_fpa_get_ebits(Z3_context a0, Z3_sort a1);
 #define LOG_Z3_fpa_get_ebits(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_fpa_get_ebits(_ARG0, _ARG1); }
 void log_Z3_fpa_get_sbits(Z3_context a0, Z3_sort a1);
 #define LOG_Z3_fpa_get_sbits(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_fpa_get_sbits(_ARG0, _ARG1); }
+void log_Z3_fpa_is_numeral(Z3_context a0, Z3_ast a1);
+#define LOG_Z3_fpa_is_numeral(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_fpa_is_numeral(_ARG0, _ARG1); }
 void log_Z3_fpa_is_numeral_nan(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_fpa_is_numeral_nan(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_fpa_is_numeral_nan(_ARG0, _ARG1); }
 void log_Z3_fpa_is_numeral_inf(Z3_context a0, Z3_ast a1);
@@ -1531,7 +1600,7 @@ void log_Z3_fpa_get_numeral_sign_bv(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_fpa_get_numeral_sign_bv(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_fpa_get_numeral_sign_bv(_ARG0, _ARG1); }
 void log_Z3_fpa_get_numeral_significand_bv(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_fpa_get_numeral_significand_bv(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_fpa_get_numeral_significand_bv(_ARG0, _ARG1); }
-void log_Z3_fpa_get_numeral_sign(Z3_context a0, Z3_ast a1, int* a2);
+void log_Z3_fpa_get_numeral_sign(Z3_context a0, Z3_ast a1, bool* a2);
 #define LOG_Z3_fpa_get_numeral_sign(_ARG0, _ARG1, _ARG2) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_fpa_get_numeral_sign(_ARG0, _ARG1, _ARG2); }
 void log_Z3_fpa_get_numeral_significand_string(Z3_context a0, Z3_ast a1);
 #define LOG_Z3_fpa_get_numeral_significand_string(_ARG0, _ARG1) z3_log_ctx _LOG_CTX; if (_LOG_CTX.enabled()) { log_Z3_fpa_get_numeral_significand_string(_ARG0, _ARG1); }

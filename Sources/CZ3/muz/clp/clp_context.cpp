@@ -175,7 +175,7 @@ namespace datalog {
                     switch(search(depth-1, index+1)) {
                     case l_undef:
                         status = l_undef;
-                        // fallthrough
+                        Z3_fallthrough;
                     case l_false:
                         m_goals.resize(num_goals);   
                         break;
@@ -184,7 +184,6 @@ namespace datalog {
                     }
                     break;
                 case l_undef:
-                    status = l_undef;
                     throw default_exception("undef");
                 }
                 m_solver.pop(1);
@@ -222,4 +221,4 @@ namespace datalog {
         return m_imp->get_answer();
     }
 
-};
+}

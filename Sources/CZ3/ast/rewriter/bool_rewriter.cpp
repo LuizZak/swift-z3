@@ -19,6 +19,7 @@ Notes:
 #include "ast/rewriter/bool_rewriter.h"
 #include "params/bool_rewriter_params.hpp"
 #include "ast/rewriter/rewriter_def.h"
+#include "ast/rewriter/expr_safe_replace.h"
 #include "ast/ast_lt.h"
 #include "ast/for_each_expr.h"
 #include <algorithm>
@@ -76,7 +77,7 @@ br_status bool_rewriter::mk_app_core(func_decl * f, unsigned num_args, expr * co
 
 void bool_rewriter::mk_and_as_or(unsigned num_args, expr * const * args, expr_ref & result) {
     expr_ref_buffer new_args(m());
-    for (unsigned i = 0; i < num_args; i++) {
+    for (unsigned i = 0; i < num_args; ++i) {
         expr_ref tmp(m());
         mk_not(args[i], tmp);
         new_args.push_back(tmp);
@@ -93,7 +94,7 @@ br_status bool_rewriter::mk_nflat_and_core(unsigned num_args, expr * const * arg
     expr_fast_mark2 pos_lits;
     expr* atom = nullptr;
 
-    for (unsigned i = 0; i < num_args; i++) {
+    for (unsigned i = 0; i < num_args; ++i) {
         expr * arg  = args[i];
         if (m().is_true(arg)) {
             s = true;
@@ -156,7 +157,7 @@ br_status bool_rewriter::mk_nflat_and_core(unsigned num_args, expr * const * arg
 
 br_status bool_rewriter::mk_flat_and_core(unsigned num_args, expr * const * args, expr_ref & result) {
     unsigned i;
-    for (i = 0; i < num_args; i++) {
+    for (i = 0; i < num_args; ++i) {
         if (m().is_and(args[i]))
             break;
     }
@@ -164,7 +165,7 @@ br_status bool_rewriter::mk_flat_and_core(unsigned num_args, expr * const * args
         // has nested ANDs
         ptr_buffer<expr> flat_args;
         flat_args.append(i, args);
-        for (; i < num_args; i++) {
+        for (; i < num_args; ++i) {
             expr * arg = args[i];
             // Remark: all rewrites are depth 1.
             if (m().is_and(arg)) {
@@ -188,7 +189,7 @@ br_status bool_rewriter::mk_nflat_or_core(unsigned num_args, expr * const * args
     expr_fast_mark1 neg_lits;
     expr_fast_mark2 pos_lits;
     expr* prev = nullptr;
-    for (unsigned i = 0; i < num_args; i++) {
+    for (unsigned i = 0; i < num_args; ++i) {
         expr * arg  = args[i];
         if (m().is_true(arg)) {
             neg_lits.reset();
@@ -284,7 +285,7 @@ br_status bool_rewriter::mk_nflat_or_core(unsigned num_args, expr * const * args
 
 br_status bool_rewriter::mk_flat_or_core(unsigned num_args, expr * const * args, expr_ref & result) {
     unsigned i;
-    for (i = 0; i < num_args; i++) {
+    for (i = 0; i < num_args; ++i) {
         if (m().is_or(args[i]))
             break;
     }
@@ -294,7 +295,7 @@ br_status bool_rewriter::mk_flat_or_core(unsigned num_args, expr * const * args,
         // has nested ORs
         ptr_buffer<expr> flat_args;
         flat_args.append(i, args);
-        for (; i < num_args; i++) {
+        for (; i < num_args; ++i) {
             expr * arg = args[i];
             // Remark: all rewrites are depth 1.
             if (m().is_or(arg)) {
@@ -339,7 +340,7 @@ bool bool_rewriter::simp_nested_not_or(unsigned num_args, expr * const * args,
     ptr_buffer<expr> new_args;
     bool simp = false;
     m_local_ctx_cost += num_args;
-    for (unsigned i = 0; i < num_args; i++) {
+    for (unsigned i = 0; i < num_args; ++i) {
         expr * arg = args[i];
         if (neg_lits.is_marked(arg)) {
             result = m().mk_false();
@@ -590,7 +591,7 @@ bool bool_rewriter::local_ctx_simp(unsigned num_args, expr * const * args, expr_
 #endif
 
         if (forward) {
-            for (unsigned i = 0; i < num_args; i++) {
+            for (unsigned i = 0; i < num_args; ++i) {
                 PROCESS_ARG();
             }
             forward = false;
@@ -680,7 +681,43 @@ br_status bool_rewriter::try_ite_value(app * ite, app * val, expr_ref & result) 
         return BR_REWRITE2;
     }
 
+    result = simplify_eq_ite(val, ite);
+    if (result) 
+        return BR_REWRITE_FULL;            
+
     return BR_FAILED;
+}
+
+// check that all leaves are disjoint.
+expr_ref bool_rewriter::simplify_eq_ite(expr* value, expr* ite) {
+    SASSERT(m().is_value(value));
+    SASSERT(m().is_ite(ite));
+    expr* c = nullptr, * t = nullptr, * e = nullptr;
+    auto& todo = m_todo1;
+    todo.reset();
+    todo.push_back(ite);
+    bool is_disjoint = true;
+    while (!todo.empty()) {
+        expr* arg = todo.back();
+        todo.pop_back();
+        if (m_marked.is_marked(arg))
+            continue;
+        m_marked.mark(arg, true);
+        if (m().is_value(arg) && m().are_distinct(arg, value))
+            continue;
+        if (m().is_ite(arg, c, t, e)) {
+            if (!m_marked.is_marked(t)) 
+                todo.push_back(t);
+            if (!m_marked.is_marked(e))
+                todo.push_back(e);
+            continue;
+        }
+        is_disjoint = false;
+        break;
+    }
+    m_marked.reset();
+    todo.reset();
+    return expr_ref(is_disjoint ? m().mk_false() : nullptr, m());    
 }
 
 
@@ -733,21 +770,22 @@ br_status bool_rewriter::mk_eq_core(expr * lhs, expr * rhs, expr_ref & result) {
         expr* c2, * t2, * e2;
         if (m().is_ite(lhs) && m().is_value(rhs)) {
             r = try_ite_value(to_app(lhs), to_app(rhs), result);
-            CTRACE("try_ite_value", r != BR_FAILED,
+            CTRACE(try_ite_value, r != BR_FAILED,
                    tout << mk_bounded_pp(lhs, m()) << "\n" << mk_bounded_pp(rhs, m()) << "\n--->\n" << mk_bounded_pp(result, m()) << "\n";);
         }
         else if (m().is_ite(rhs) && m().is_value(lhs)) {
             r = try_ite_value(to_app(rhs), to_app(lhs), result);
-            CTRACE("try_ite_value", r != BR_FAILED,
+            CTRACE(try_ite_value, r != BR_FAILED,
                    tout << mk_bounded_pp(lhs, m()) << "\n" << mk_bounded_pp(rhs, m()) << "\n--->\n" << mk_bounded_pp(result, m()) << "\n";);
         }
         else if (m().is_ite(lhs, c1, t1, e1) && m().is_ite(rhs, c2, t2, e2) &&
             m().is_value(t1) && m().is_value(e1) && m().is_value(t2) && m().is_value(e2)) {
             expr_ref_vector args(m());
             args.push_back(m().mk_or(c1, c2, m().mk_eq(e1, e2)));
-            args.push_back(m().mk_or(m().mk_not(c1), m().mk_not(c2), m().mk_eq(t1, t2)));
-            args.push_back(m().mk_or(m().mk_not(c1), c2, m().mk_eq(t1, e2)));
-            args.push_back(m().mk_or(c1, m().mk_not(c2), m().mk_eq(e1, t2)));
+            auto nc1 = m().mk_not(c1); auto nc2 = m().mk_not(c2);
+            args.push_back(m().mk_or(nc1, nc2, m().mk_eq(t1, t2)));
+            args.push_back(m().mk_or(nc1, c2, m().mk_eq(t1, e2)));
+            args.push_back(m().mk_or(c1, nc2, m().mk_eq(e1, t2)));            
             result = m().mk_and(args);
             return BR_REWRITE_FULL;
         }
@@ -831,7 +869,7 @@ br_status bool_rewriter::mk_distinct_core(unsigned num_args, expr * const * args
 
     expr_fast_mark1 visited;
     bool all_value = true, all_diff = true;
-    for (unsigned i = 0; i < num_args; i++) {
+    for (unsigned i = 0; i < num_args; ++i) {
         expr * arg = args[i];
         if (visited.is_marked(arg)) {
             result = m().mk_false();
@@ -865,8 +903,8 @@ br_status bool_rewriter::mk_distinct_core(unsigned num_args, expr * const * args
 
     if (m_blast_distinct && num_args < m_blast_distinct_threshold) {
         expr_ref_vector new_diseqs(m());
-        for (unsigned i = 0; i < num_args; i++) {
-            for (unsigned j = i + 1; j < num_args; j++)
+        for (unsigned i = 0; i < num_args; ++i) {
+            for (unsigned j = i + 1; j < num_args; ++j)
                 new_diseqs.push_back(m().mk_not(m().mk_eq(args[i], args[j])));
         }
         result = m().mk_and(new_diseqs);
@@ -1145,6 +1183,32 @@ void bool_rewriter::mk_ge2(expr* a, expr* b, expr* c, expr_ref& r) {
         mk_and(b, c, i3);
         mk_or(i1, i2, i3, r);
     }
+}
+
+
+bool bool_rewriter::decompose_ite(expr *r, expr_ref &c, expr_ref &th, expr_ref &el) {
+    expr *cond = nullptr, *r1 = nullptr, *r2 = nullptr;
+    if (m().is_ite(r, cond, r1, r2)) {
+        c = cond;
+        th = r1;
+        el = r2;
+        return true;
+    }
+    for (expr *e : subterms::ground(expr_ref(r, m()))) {
+        if (m().is_ite(e, cond, r1, r2)) {
+            m_rep1.reset();
+            m_rep2.reset();
+            m_rep1.insert(e, r1);
+            m_rep2.insert(e, r2);
+            c = cond;
+            th = r;
+            el = r;
+            m_rep1(th);
+            m_rep2(el);
+            return true;
+        }
+    }
+    return false;
 }
 
 

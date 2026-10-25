@@ -78,7 +78,7 @@ namespace opt {
         }       
         pb_util pb(m);
         tmp = pb.mk_ge(weights.size(), weights.data(), fmls.data(), k);
-        TRACE("opt", tout << "cost: " << cost << "\n" << tmp << "\n";);
+        TRACE(opt, tout << "cost: " << cost << "\n" << tmp << "\n";);
         s().assert_expr(tmp);
     }
 
@@ -100,7 +100,7 @@ namespace opt {
         m_c.add_offset(m_index, lower);
         m_upper -= lower;
         
-        TRACE("opt", 
+        TRACE(opt, 
               tout << "lower " << lower << " upper: " << m_upper << " assignments: ";
               for (soft& s : m_soft) tout << (s.is_true()?"T":"F");              
               tout << "\n";);
@@ -184,9 +184,11 @@ namespace opt {
         opt_params optp(m_params);
         symbol const& maxsat_engine = m_c.maxsat_engine();
         IF_VERBOSE(1, verbose_stream() << "(maxsmt)\n";);
-        TRACE("opt_verbose", s().display(tout << "maxsmt\n") << "\n";);
+        TRACE(opt_verbose, s().display(tout << "maxsmt\n") << "\n";);
         if (!committed && optp.maxlex_enable() && is_maxlex(m_soft)) 
             m_msolver = mk_maxlex(m_c, m_index, m_soft);            
+        else if (maxsat_engine == symbol("maxresw"))
+            m_msolver = mk_maxresw(m_c, m_index, m_soft);
         else if (m_soft.empty() || maxsat_engine == symbol("maxres") || maxsat_engine == symbol::null)             
             m_msolver = mk_maxres(m_c, m_index, m_soft);            
         else if (maxsat_engine == symbol("maxres-bin"))             
@@ -293,7 +295,7 @@ namespace opt {
     }
 
     void maxsmt::add(expr* f, rational const& w) {
-        TRACE("opt", tout << mk_pp(f, m) << " weight: " << w << "\n";);
+        TRACE(opt, tout << mk_pp(f, m) << " weight: " << w << "\n";);
         SASSERT(m.is_bool(f));
         SASSERT(w.is_pos());
         unsigned index = 0;
@@ -378,12 +380,12 @@ namespace opt {
         params_ref& params() override { return m_params; }
         void enable_sls(bool force) override { } // no op
         symbol const& maxsat_engine() const override { return m_maxsat_engine; }
-        void get_base_model(model_ref& _m) override { _m = m_model; };  
+        void get_base_model(model_ref& _m) override { _m = m_model; }  
         smt::context& smt_context() override { 
             throw default_exception("stand-alone maxsat context does not support wmax"); 
         }
         unsigned num_objectives() override { return 1; }
-        bool verify_model(unsigned id, model* mdl, rational const& v) override { return true; };
+        bool verify_model(unsigned id, model* mdl, rational const& v) override { return true; }
         void set_model(model_ref& _m) override { m_model = _m; }
         void model_updated(model* mdl) override { } // no-op
         rational adjust(unsigned id, rational const& r) override {
@@ -417,4 +419,4 @@ namespace opt {
         }
         return r;
     }
-};
+}

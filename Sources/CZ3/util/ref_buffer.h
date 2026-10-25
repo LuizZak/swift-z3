@@ -18,6 +18,7 @@ Revision History:
 --*/
 #pragma once
 
+#include <span>
 #include "util/buffer.h"
 #include "util/obj_ref.h"
 #include "util/ref_vector.h"
@@ -42,6 +43,11 @@ protected:
             dec_ref(*it);
     }
 
+    void dec_all_ref() {
+        for (T* elem : m_buffer)
+            dec_ref(elem);
+    }
+
 public:
     typedef T * data_t;
 
@@ -50,7 +56,7 @@ public:
     }
 
     ~ref_buffer_core() {
-        dec_range_ref(m_buffer.begin(), m_buffer.end());
+        dec_all_ref();
     }
 
     void push_back(T * n) {
@@ -105,19 +111,24 @@ public:
     }
 
     void reset() {
-        dec_range_ref(m_buffer.begin(), m_buffer.end());
+        dec_all_ref();
         m_buffer.reset();
     }
 
     void finalize() {
-        dec_range_ref(m_buffer.begin(), m_buffer.end());
+        dec_all_ref();
         m_buffer.finalize();
     }        
 
-    void append(unsigned n, T * const * elems) {
-        for (unsigned i = 0; i < n; i++) {
-            push_back(elems[i]);
+    void append(std::span<T * const> elems) {
+        for (auto elem : elems) {
+            push_back(elem);
         }
+    }
+
+    // Backward compatibility overload
+    void append(unsigned n, T * const * elems) {
+        append(std::span<T * const>(elems, n));
     }
 
     void append(ref_buffer_core const & other) {
@@ -168,7 +179,9 @@ public:
         super(ref_manager_wrapper<T, TManager>(other.m_manager)) {
         SASSERT(this->m_buffer.size() == 0);
         append(other);
-    }        
+    }
+
+    ref_buffer &operator=(const ref_buffer &) = default;
 };
 
 /**
@@ -178,4 +191,3 @@ template<typename T, unsigned INITIAL_SIZE=16>
 class sref_buffer : public ref_buffer_core<T, ref_unmanaged_wrapper<T>, INITIAL_SIZE> {
 public:
 };
-

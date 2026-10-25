@@ -173,7 +173,7 @@ namespace opt {
 
     void lns::relax_cores() {
         if (!m_cores.empty() && m_cores_are_valid) {
-            std::sort(m_cores.begin(), m_cores.end(), [&](expr_ref_vector const& a, expr_ref_vector const& b) { return a.size() < b.size(); });
+            std::sort(m_cores.begin(), m_cores.end(), core_lt{});
             vector<expr_ref_vector> new_cores;
             for (auto const& c : m_cores) {
                 bool in_core = false;
@@ -217,7 +217,7 @@ namespace opt {
             case l_undef:
                 break;
             case l_false:
-                TRACE("opt", tout << "pruned " << mk_bounded_pp(unprocessed(i), m) << "\n";);
+                TRACE(opt, tout << "pruned " << mk_bounded_pp(unprocessed(i), m) << "\n";);
                 m_hardened.push_back(m.mk_not(unprocessed(i)));
                 for (unsigned k = i; k + 1 < m_unprocessed.size(); ++k) 
                     m_unprocessed[k] = unprocessed(k + 1);
@@ -231,7 +231,7 @@ namespace opt {
                         if (j <= i)
                             ++offset;
                         ++m_num_improves;                        
-                        TRACE("opt", tout << "improved " << mk_bounded_pp(unprocessed(j), m) << "\n";);
+                        TRACE(opt, tout << "improved " << mk_bounded_pp(unprocessed(j), m) << "\n";);
                         m_hardened.push_back(unprocessed(j));
                         ++num_improved;
                     }
@@ -262,11 +262,11 @@ namespace opt {
             bool all_assumed = true;            
             for (expr* c : core) 
                 all_assumed &= m_is_assumption.is_marked(c);
-            IF_VERBOSE(2, verbose_stream() << "core " << all_assumed << " - " << core.size() << "\n");
+            IF_VERBOSE(5, verbose_stream() << "core " << all_assumed << " - " << core.size() << "\n");
             if (all_assumed) 
                 m_cores.push_back(core);            
         }
         return r;
     } 
 
-};
+}

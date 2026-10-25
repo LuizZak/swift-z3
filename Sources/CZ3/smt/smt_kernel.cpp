@@ -21,7 +21,7 @@ Revision History:
 #include "smt/smt_lookahead.h"
 #include "ast/ast_smt2_pp.h"
 #include "ast/ast_util.h"
-#include "smt/params/smt_params_helper.hpp"
+#include "params/smt_params_helper.hpp"
 
 namespace smt {
 
@@ -43,7 +43,7 @@ namespace smt {
             // TODO: it will be replaced with assertion_stack.display
             unsigned num = m_kernel.get_num_asserted_formulas();
             out << "(kernel";
-            for (unsigned i = 0; i < num; i++) {
+            for (unsigned i = 0; i < num; ++i) {
                 expr* f = m_kernel.get_asserted_formula(i);
                 out << "\n  " << mk_ismt2_pp(f, m(), 2);
             }
@@ -127,7 +127,7 @@ namespace smt {
 
     lbool kernel::check(unsigned num_assumptions, expr * const * assumptions) {
         lbool r = m_imp->m_kernel.check(num_assumptions, assumptions);
-        TRACE("smt_kernel", tout << "check result: " << r << "\n";);
+        TRACE(smt_kernel, tout << "check result: " << r << "\n";);
         return r;
     }
 
@@ -280,7 +280,19 @@ namespace smt {
         smt_params_helper::collect_param_descrs(d);
     }
 
+    void kernel::pop_to_base_level() {
+        m_imp->m_kernel.pop_to_base_lvl();
+    }
+
+    void kernel::set_preprocess(bool f) {
+        m_imp->m_kernel.get_fparams().m_preprocess = f;
+    }
+
     context & kernel::get_context() {
+        return m_imp->m_kernel;
+    }
+
+    context const& kernel::get_context() const {
         return m_imp->m_kernel;
     }
 
@@ -306,6 +318,10 @@ namespace smt {
 
     void kernel::user_propagate_register_fixed(user_propagator::fixed_eh_t& fixed_eh) {
         m_imp->m_kernel.user_propagate_register_fixed(fixed_eh);
+    }
+
+    void kernel::user_propagate_register_on_binding(user_propagator::binding_eh_t& on_binding) {
+        m_imp->m_kernel.user_propagate_register_on_binding(on_binding);
     }
     
     void kernel::user_propagate_register_final(user_propagator::final_eh_t& final_eh) {
@@ -336,4 +352,4 @@ namespace smt {
         m_imp->m_kernel.user_propagate_initialize_value(var, value);
     }
 
-};
+}

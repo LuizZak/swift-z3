@@ -18,13 +18,14 @@ Author:
 #include "ast/simplifiers/model_reconstruction_trail.h"
 #include "ast/simplifiers/dependent_expr_state.h"
 #include "ast/converters/generic_model_converter.h"
+#include "ast/ast_translation.h"
 
 
 void model_reconstruction_trail::add_vars(expr* e, ast_mark& free_vars) {
     for (expr* t : subterms::all(expr_ref(e, m))) {
         if (is_app(t) && is_uninterp(t)) {            
             func_decl* f = to_app(t)->get_decl();
-            TRACE("simplifier", tout << "add var " << f->get_name() << "\n");
+            TRACE(simplifier, tout << "add var " << f->get_name() << "\n");
             free_vars.mark(f, true);
             if (m_model_vars.is_marked(f))
                 m_intersects_with_model = true;
@@ -40,18 +41,18 @@ void model_reconstruction_trail::replay(unsigned qhead, expr_ref_vector& assumpt
 
     if (m_trail.empty())
         return;
-    if (qhead == st.qtail())
+    if (qhead == st.qtail() && assumptions.empty())
         return;
 
     ast_mark free_vars;
     m_intersects_with_model = false;
-    scoped_ptr<expr_replacer> rp = mk_default_expr_replacer(m, false);
+    scoped_ptr<expr_replacer> rp = mk_default_expr_replacer(m, st.proofs_enabled());
     for (unsigned i = qhead; i < st.qtail(); ++i)        
         add_vars(st[i], free_vars);
     for (expr* a : assumptions)
         add_vars(a, free_vars);
 
-    TRACE("simplifier",
+    TRACE(simplifier,
         tout << "intersects " << m_intersects_with_model << "\n";
         for (unsigned i = qhead; i < st.qtail(); ++i)
             tout << mk_bounded_pp(st[i].fml(), m) << "\n";
@@ -61,7 +62,7 @@ void model_reconstruction_trail::replay(unsigned qhead, expr_ref_vector& assumpt
         return;
 
     for (auto& t : m_trail) {
-        TRACE("simplifier", tout << " active " << t->m_active << " hide " << t->is_hide() << " intersects " << t->intersects(free_vars) << " loose " << t->is_loose() << "\n");
+        TRACE(simplifier, tout << " active " << t->m_active << " hide " << t->is_hide() << " intersects " << t->intersects(free_vars) << " loose " << t->is_loose() << "\n");
         if (!t->m_active)
             continue;
 
@@ -75,14 +76,36 @@ void model_reconstruction_trail::replay(unsigned qhead, expr_ref_vector& assumpt
         // loose entries that intersect with free vars are deleted from the trail
         // and their removed formulas are added to the resulting constraints.
 
-        if (t->is_loose() && !t->is_def() && t->is_subst()) {
+        // Caller assumptions do not carry proof converters. Restore proved
+        // equalities instead of silently changing an assumption's meaning.
+        if (t->is_loose_subst() || (st.proofs_enabled() && !assumptions.empty() && t->is_subst())) {
             for (auto const& [k, v] : t->m_subst->sub()) {
                 add_vars(v, free_vars);
-                st.add(dependent_expr(m, m.mk_eq(k, v), nullptr, nullptr));
+                proof* pr = nullptr;
+                expr_dependency* dep = nullptr;
+                if (st.proofs_enabled()) {
+                    expr* value = nullptr;
+                    if (!t->m_subst->find(k, value, pr, dep) || !pr)
+                        throw default_exception("cannot replay a substitution without its proof");
+                }
+                st.add(dependent_expr(m, m.mk_eq(k, v), pr, dep));
             }
+            m_trail_stack.push(value_trail(t->m_active));
             t->m_active = false;
             continue;
         }
+        
+        if (t->is_loose_constraint()) {                
+            for (auto r : t->m_removed) {
+                add_vars(r, free_vars);
+                TRACE(simplifier, tout << "replay removed " << r << "\n");
+                st.add(r);
+            }
+            m_trail_stack.push(value_trail(t->m_active));
+            t->m_active = false;
+            continue;
+        }
+
 
         bool all_const = true;
         for (auto const& [d, def, dep] : t->m_defs) 
@@ -91,7 +114,7 @@ void model_reconstruction_trail::replay(unsigned qhead, expr_ref_vector& assumpt
         if (t->is_loose() && (!t->is_def() || !all_const || t->is_subst())) {
             for (auto r : t->m_removed) {
                 add_vars(r, free_vars);
-                TRACE("simplifier", tout << "replay removed " << r << "\n");
+                TRACE(simplifier, tout << "replay removed " << r << "\n");
                 st.add(r);
             }
             m_trail_stack.push(value_trail(t->m_active));
@@ -100,6 +123,8 @@ void model_reconstruction_trail::replay(unsigned qhead, expr_ref_vector& assumpt
         }        
         
         if (t->is_def()) {
+            if (st.proofs_enabled())
+                throw default_exception("cannot replay a macro definition without its proof");
             macro_replacer mrp(m);
             for (auto const& [d, def, dep] : t->m_defs) {
                 app_ref head(m);
@@ -108,7 +133,7 @@ void model_reconstruction_trail::replay(unsigned qhead, expr_ref_vector& assumpt
                     args.push_back(m.mk_var(i, d->get_domain(i)));
                 head = m.mk_app(d, args);
                 mrp.insert(head, def, dep);
-                TRACE("simplifier", tout << mk_pp(d, m) << " " << mk_pp(def,m) << " " << "\n");
+                TRACE(simplifier, tout << mk_pp(d, m) << " " << mk_pp(def,m) << " " << "\n");
                 dependent_expr de(m, def, nullptr, dep);
                 add_vars(de, free_vars);
             }
@@ -118,7 +143,7 @@ void model_reconstruction_trail::replay(unsigned qhead, expr_ref_vector& assumpt
                 expr_ref g(m);
                 expr_dependency_ref dep2(m);
                 mrp(f, dep1, g, dep2);
-                CTRACE("simplifier", f != g, tout << "updated " << mk_pp(g, m) << "\n");
+                CTRACE(simplifier, f != g, tout << "updated " << mk_pp(g, m) << "\n");
                 if (f != g)
                     st.update(i, dependent_expr(m, g, nullptr, dep2));
             }
@@ -147,7 +172,10 @@ void model_reconstruction_trail::replay(unsigned qhead, expr_ref_vector& assumpt
         expr_ref_vector trail(m);
         for (unsigned i = qhead; i < st.qtail(); ++i) {
             auto [f, p, dep1] = st[i]();
-            auto [g, dep2] = rp->replace_with_dep(f);
+            expr_ref g(m);
+            proof_ref rewrite_pr(m);
+            expr_dependency_ref dep2(m);
+            (*rp)(f, g, rewrite_pr, dep2);
             if (dep1) {
                 dep_exprs.reset();
                 trail.reset();
@@ -163,8 +191,14 @@ void model_reconstruction_trail::replay(unsigned qhead, expr_ref_vector& assumpt
                 if (!trail.empty()) 
                     dep1 = m.mk_join(dep_exprs.size(), dep_exprs.data());                
             }
-            dependent_expr d(m, g, nullptr, m.mk_join(dep1, dep2));
-            CTRACE("simplifier", f != g, tout << "updated " << mk_pp(g, m) << "\n");
+            proof_ref pr(p, m);
+            if (st.proofs_enabled() && f != g) {
+                if (!pr || !rewrite_pr)
+                    throw default_exception("cannot replay an assertion substitution without its proof");
+                pr = m.mk_modus_ponens(pr, rewrite_pr);
+            }
+            dependent_expr d(m, g, pr, m.mk_join(dep1, dep2));
+            CTRACE(simplifier, f != g, tout << "updated " << mk_pp(g, m) << "\n");
             add_vars(d, free_vars);
             st.update(i, d);
         }
@@ -178,7 +212,7 @@ void model_reconstruction_trail::replay(unsigned qhead, expr_ref_vector& assumpt
         }        
     }
 
-    TRACE("simplifier", st.display(tout));
+    TRACE(simplifier, st.display(tout));
 }
 
 /**
@@ -207,7 +241,7 @@ void model_reconstruction_trail::append(generic_model_converter& mc) {
                 mc.add(v, def);
         }
     }
-    TRACE("simplifier", display(tout); mc.display(tout));
+    TRACE(simplifier, display(tout); mc.display(tout));
 }
 
 
@@ -230,4 +264,38 @@ std::ostream& model_reconstruction_trail::display(std::ostream& out) const {
             out << "rm: " << d << "\n";
     }
     return out;
+}
+void model_reconstruction_trail::translate(model_reconstruction_trail const& src, ast_translation& tr) {
+    SASSERT(m_trail.empty());
+    expr_dependency_translation dep_tr(tr);
+    for (entry* e : src.m_trail) {
+        vector<dependent_expr> removed;
+        for (dependent_expr const& d : e->m_removed)
+            removed.push_back(dependent_expr(tr, d));
+        if (e->is_hide()) {
+            hide(tr(e->m_decl.get()));
+        }
+        else if (e->is_def()) {
+            vector<std::tuple<func_decl_ref, expr_ref, expr_dependency_ref>> defs;
+            for (auto const& [f, def, dep] : e->m_defs)
+                defs.push_back({
+                    func_decl_ref(tr(f.get()), m),
+                    expr_ref(tr(def.get()), m),
+                    expr_dependency_ref(dep_tr(dep.get()), m)
+                });
+            push(defs, removed);
+        }
+        else {
+            auto* subst = alloc(expr_substitution, m, e->m_subst->unsat_core_enabled(), e->m_subst->proofs_enabled());
+            for (auto const& [k, v] : e->m_subst->sub()) {
+                proof* pr = nullptr;
+                expr_dependency* dep = nullptr;
+                expr* value = nullptr;
+                VERIFY(e->m_subst->find(k, value, pr, dep));
+                subst->insert(tr(k), tr(value), tr(pr), dep_tr(dep));
+            }
+            push(subst, removed, e->is_loose_constraint());
+        }
+        m_trail.back()->m_active = e->m_active;
+    }
 }

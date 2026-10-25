@@ -25,7 +25,7 @@ Notes:
 
 namespace pb {
     class solver;
-};
+}
 
 namespace sat {
 
@@ -57,7 +57,6 @@ namespace sat {
         case lookahead_mode::searching:  return out << "searching";
         case lookahead_mode::lookahead1: return out << "lookahead1";
         case lookahead_mode::lookahead2: return out << "lookahead2";
-        default: break;
         }
         return out;
     }
@@ -116,15 +115,13 @@ namespace sat {
         };
 
         struct prefix {
-            unsigned m_prefix;
-            unsigned m_length;
-            prefix(): m_prefix(0), m_length(0) {}            
+            unsigned m_prefix = 0;
+            unsigned m_length = 0;
         };
 
         struct lit_info {
-            double     m_lookahead_reward;
-            unsigned  m_double_lookahead;
-            lit_info(): m_lookahead_reward(0), m_double_lookahead(0) {}
+            double     m_lookahead_reward = 0;
+            unsigned  m_double_lookahead = 0;
         };
 
         struct stats {
@@ -438,7 +435,7 @@ namespace sat {
         void set_min(literal v, literal u) { m_dfs[v.index()].m_min = u; }
         void set_rank(literal v, unsigned r) { m_dfs[v.index()].m_rank = r; }
         void set_height(literal v, unsigned h) { m_dfs[v.index()].m_height = h; }
-        void set_parent(literal v, literal p) { TRACE("scc", tout << v << " <- " << p << "\n";); m_dfs[v.index()].m_parent = p; }
+        void set_parent(literal v, literal p) { TRACE(scc, tout << v << " <- " << p << "\n";); m_dfs[v.index()].m_parent = p; }
         void set_vcomp(literal v, literal u) { m_dfs[v.index()].m_vcomp = u; }
         void get_scc(literal v);
         void activate_scc(literal l);
@@ -532,7 +529,7 @@ namespace sat {
 
         unsigned do_double(literal l, unsigned& base);
         unsigned double_look(literal l, unsigned& base);
-        void set_conflict() { TRACE("sat", tout << "conflict\n";); m_inconsistent = true; }
+        void set_conflict() { TRACE(sat, tout << "conflict\n";); m_inconsistent = true; }
         bool inconsistent() const { return m_inconsistent; }
 
         unsigned scope_lvl() const { return m_trail_lim.size(); }

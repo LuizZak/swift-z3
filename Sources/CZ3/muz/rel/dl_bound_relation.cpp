@@ -149,7 +149,7 @@ namespace datalog {
             m_is_widen(is_widen) {            
         }
         void operator()(relation_base & _r, const relation_base & _src, relation_base * _delta) override {
-            TRACE("bound_relation", _r.display(tout << "dst:\n"); _src.display(tout  << "src:\n"););
+            TRACE(bound_relation, _r.display(tout << "dst:\n"); _src.display(tout  << "src:\n"););
             get(_r).mk_union(get(_src), get(_delta), m_is_widen);
         }
     };
@@ -161,9 +161,9 @@ namespace datalog {
             m_is_widen(is_widen) {            
         }
         void operator()(relation_base & _r, const relation_base & _src, relation_base * _delta) override {
-            TRACE("bound_relation", _r.display(tout << "dst:\n"); _src.display(tout  << "src:\n"););   
+            TRACE(bound_relation, _r.display(tout << "dst:\n"); _src.display(tout  << "src:\n"););   
             get(_r).mk_union_i(get_interval_relation(_src), get(_delta), m_is_widen);
-            TRACE("bound_relation", _r.display(tout << "dst':\n"););
+            TRACE(bound_relation, _r.display(tout << "dst':\n"););
         }
     };
     
@@ -343,7 +343,7 @@ namespace datalog {
         //  
 
         void operator()(relation_base& t) override {
-            TRACE("dl", tout << mk_pp(m_cond, m_cond.get_manager()) << "\n"; t.display(tout););
+            TRACE(dl, tout << mk_pp(m_cond, m_cond.get_manager()) << "\n"; t.display(tout););
             bound_relation& r = get(t);
             switch(m_kind) {
             case K_FALSE:
@@ -363,11 +363,8 @@ namespace datalog {
             case LE_VAR:
                 r.mk_le(m_vars[0], m_vars[1]);
                 break;
-            default:
-                UNREACHABLE();
-                break;
             }    
-            TRACE("dl", t.display(tout << "result\n"););   
+            TRACE(dl, t.display(tout << "result\n"););   
         }
 
         bool supports_attachment(relation_base& t) override {
@@ -392,30 +389,13 @@ namespace datalog {
         if (t.lt.empty() && t.le.empty()) {
             return;
         }
-        uint_set::iterator it = t.lt.begin(), end = t.lt.end();
         unsigned_vector ltv, lev;
-        for (; it != end; ++it) {
-            ltv.push_back(renaming[*it]);
+        for (unsigned idx : t.lt) {
+            ltv.push_back(renaming[idx]);
         }
-        it = t.le.begin(), end = t.le.end();
-        for (; it != end; ++it) {
-            lev.push_back(renaming[*it]);
+        for (unsigned idx : t.le) {
+            lev.push_back(renaming[idx]);
         }
-        TRACE("dl", 
-              tout << "project: ";
-              for (unsigned i = 0; i < renaming.size(); ++i) 
-                  if (renaming[i] == UINT_MAX) tout << i << " ";
-              tout << ": ";
-              it = t.lt.begin(); end = t.lt.end();
-              for (; it != end; ++it) tout << *it << " ";
-              tout << " le ";
-              it = t.le.begin(); end = t.le.end();
-              for (; it != end; ++it) tout << *it << " ";
-              tout << " => ";
-              for (unsigned i = 0; i < ltv.size(); ++i) tout << ltv[i] << " ";
-              tout << " le ";
-              for (unsigned i = 0; i < lev.size(); ++i) tout << lev[i] << " ";
-              tout << "\n";);
         t.lt.reset();
         for (unsigned i = 0; i < ltv.size(); ++i) {
             t.lt.insert(ltv[i]);
@@ -486,9 +466,7 @@ namespace datalog {
     void bound_relation::mk_rename_elem(uint_set2& t, unsigned col_cnt, unsigned const* cycle) {
         // [ 0 -> 2 -> 3 -> 0]
         if (col_cnt == 0) return;
-        unsigned col1, col2;
-        col1 = find(cycle[0]);
-        col2 = find(cycle[col_cnt-1]);
+        unsigned col1, col2 = find(cycle[col_cnt-1]);
         bool has_col2_lt = t.lt.contains(col2);
         t.lt.remove(col2);
         bool has_col2_le = t.le.contains(col2);
@@ -525,9 +503,8 @@ namespace datalog {
     }
 
     void bound_relation::normalize(uint_set const& src, uint_set& dst) const {
-        uint_set::iterator it = src.begin(), end = src.end();
-        for (; it != end; ++it) {
-            dst.insert(find(*it));
+        for (unsigned idx : src) {
+            dst.insert(find(idx));
         }
     }
     void bound_relation::normalize(uint_set2 const& src, uint_set2& dst) const {
@@ -551,13 +528,11 @@ namespace datalog {
                 continue;
             }
             uint_set2& src = (*m_elems)[j];
-            uint_set::iterator it = src.lt.begin(), end = src.lt.end();
-            for(; it != end; ++it) {
-                m_todo.push_back(std::make_pair(*it, true));
+            for (unsigned idx : src.lt) {
+                m_todo.push_back(std::make_pair(idx, true));
             }
-            it = src.le.begin(), end = src.le.end();
-            for(; it != end; ++it) {
-                m_todo.push_back(std::make_pair(*it, strict));
+            for (unsigned idx : src.le) {
+                m_todo.push_back(std::make_pair(idx, strict));
             }
             if (strict) {
                 dst.lt.insert(j);
@@ -628,18 +603,16 @@ namespace datalog {
                 s.le.reset();
                 continue;
             }
-            uint_set::iterator it = s.lt.begin(), end = s.lt.end();
-            for(; it != end; ++it) {
-                ext_numeral const& hi = src[*it].inf();
+            for (unsigned idx : s.lt) {
+                ext_numeral const& hi = src[idx].inf();
                 if (hi.is_infinite() || lo.to_rational() >= hi.to_rational()) {
-                    s.lt.remove(*it);
+                    s.lt.remove(idx);
                 }
             }            
-            it = s.le.begin(), end = s.le.end();
-            for(; it != end; ++it) {
-                ext_numeral const& hi = src[*it].inf();
+            for (unsigned idx : s.le) {
+                ext_numeral const& hi = src[idx].inf();
                 if (hi.is_infinite() || lo.to_rational() > hi.to_rational()) {
-                    s.le.remove(*it);
+                    s.le.remove(idx);
                 }
             }            
         }
@@ -658,17 +631,21 @@ namespace datalog {
         relation_signature const& sig = get_signature();
         for (unsigned i = 0; i < sig.size(); ++i) {
             if (i != find(i)) {
-                conjs.push_back(m.mk_eq(m.mk_var(i, sig[i]), m.mk_var(find(i), sig[find(i)])));
+                expr_ref lhs(m.mk_var(i, sig[i]), m);
+                expr_ref rhs(m.mk_var(find(i), sig[find(i)]), m);
+                conjs.push_back(m.mk_eq(lhs, rhs));
                 continue;
             }
             uint_set2 const& upper = (*this)[i];
-            uint_set::iterator it = upper.lt.begin(), end = upper.lt.end();
-            for (; it != end; ++it) {
-                conjs.push_back(arith.mk_lt(m.mk_var(i, sig[i]), m.mk_var(*it, sig[*it])));
+            for (unsigned idx : upper.lt) {
+                expr_ref lhs(m.mk_var(i, sig[i]), m);
+                expr_ref rhs(m.mk_var(idx, sig[idx]), m);
+                conjs.push_back(arith.mk_lt(lhs, rhs));
             }
-            it = upper.le.begin(), end = upper.le.end();
-            for (; it != end; ++it) {
-                conjs.push_back(arith.mk_le(m.mk_var(i, sig[i]), m.mk_var(*it, sig[*it])));
+            for (unsigned idx : upper.le) {
+                expr_ref lhs(m.mk_var(i, sig[i]), m);
+                expr_ref rhs(m.mk_var(idx, sig[idx]), m);
+                conjs.push_back(arith.mk_le(lhs, rhs));
             }
         }
         bsimp.mk_and(conjs.size(), conjs.data(), fml);
@@ -676,19 +653,17 @@ namespace datalog {
 
 
     void bound_relation::display_index(unsigned i, uint_set2 const& src, std::ostream & out) const {
-        uint_set::iterator it = src.lt.begin(), end = src.lt.end();
         out << "#" << i;
         if (!src.lt.empty()) {
             out << " < ";
-            for(; it != end; ++it) {
-                out << *it << " ";
+            for (unsigned idx : src.lt) {
+                out << idx << " ";
             }
         }
         if (!src.le.empty()) {
-            it = src.le.begin(), end = src.le.end();
             out << " <= ";
-            for(; it != end; ++it) {
-                out << *it << " ";
+            for (unsigned idx : src.le) {
+                out << idx << " ";
             }
         }
         if (src.lt.empty() && src.le.empty()) {
@@ -702,6 +677,5 @@ namespace datalog {
     }
 
 
-};
-
+}
 

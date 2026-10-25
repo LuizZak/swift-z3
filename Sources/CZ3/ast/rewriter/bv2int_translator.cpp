@@ -66,8 +66,6 @@ void bv2int_translator::ensure_translated(expr* e) {
         if (!is_app(e))
             continue;
         app* a = to_app(e);
-        if (m.is_bool(e) && a->get_family_id() != bv.get_family_id())
-            continue;
         for (auto arg : *a)
             if (!visited.is_marked(arg) && !m_translate.get(arg->get_id(), nullptr)) {
                 visited.mark(arg);
@@ -90,7 +88,7 @@ void bv2int_translator::translate_expr(expr* e) {
         translate_var(to_var(e));
     else {
         app* ap = to_app(e);
-        if (m_is_plugin && ap->get_family_id() == basic_family_id && m.is_bool(ap)) {
+        if (m_is_plugin && m.is_bool(ap) && ap->get_family_id() != bv.get_family_id()) {
             set_translated(e, e);
             return;
         }
@@ -164,7 +162,7 @@ void bv2int_translator::translate_app(app* e) {
         expr* r = m.mk_app(f, m_args);
         if (has_bv_sort) {
             ctx.push(push_back_vector(m_vars));
-            r = bv.mk_bv2int(r);
+            r = bv.mk_ubv2int(r);
         }
         set_translated(e, r);
         return;
@@ -188,7 +186,9 @@ expr_ref bv2int_translator::mk_le(expr* x, expr* y) {
         return expr_ref(a.mk_le(x, y), m);
     if (a.is_numeral(x))
         return expr_ref(a.mk_ge(y, x), m);
-    return expr_ref(a.mk_le(a.mk_sub(x, y), a.mk_numeral(rational(0), x->get_sort())), m);
+    auto _seq0 = a.mk_sub(x, y);
+    auto _seq1 = a.mk_numeral(rational(0), x->get_sort());
+    return expr_ref(a.mk_le(_seq0, _seq1), m);
 }
 
 expr_ref bv2int_translator::mk_lt(expr* x, expr* y) {
@@ -213,16 +213,15 @@ void bv2int_translator::translate_bv(app* e) {
     auto rotate_left = [&](unsigned n) {
         auto sz = bv.get_bv_size(e);
         n = n % sz;
-        expr* r = arg(0);
+        expr_ref r(arg(0), m);
         if (n != 0 && sz != 1) {
             // r[sz - n - 1 : 0] ++ r[sz - 1 : sz - n]
-            // r * 2^(sz - n) + (r div 2^n) mod 2^(sz - n)???
-            // r * A + (r div B) mod A
-            auto N = bv_size(e);
-            auto A = rational::power_of_two(sz - n);
-            auto B = rational::power_of_two(n);
+            // r * 2^n + (r div 2^(sz - n)) mod 2^n
+            auto A = rational::power_of_two(n);
+            auto B = rational::power_of_two(sz - n);
             auto hi = mul(r, a.mk_int(A));
-            auto lo = amod(e, a.mk_idiv(umod(e, 0), a.mk_int(B)), A);
+            expr_ref normalized(umod(e, 0), m);
+            auto lo = amod(e, a.mk_idiv(normalized, a.mk_int(B)), A);
             r = add(hi, lo);
         }
         return r;
@@ -241,38 +240,54 @@ void bv2int_translator::translate_bv(app* e) {
     case OP_BMUL:
         r = a.mk_mul(args);
         break;
-    case OP_ULEQ:
+    case OP_ULEQ: {
         bv_expr = e->get_arg(0);
-        r = mk_le(umod(bv_expr, 0), umod(bv_expr, 1));
+        expr_ref x(umod(bv_expr, 0), m);
+        r = mk_le(x, umod(bv_expr, 1));
         break;
-    case OP_UGEQ:
+    }
+    case OP_UGEQ: {
         bv_expr = e->get_arg(0);
-        r = mk_ge(umod(bv_expr, 0), umod(bv_expr, 1));
+        expr_ref x(umod(bv_expr, 0), m);
+        r = mk_ge(x, umod(bv_expr, 1));
         break;
-    case OP_ULT:
+    }
+    case OP_ULT: {
         bv_expr = e->get_arg(0);
-        r = mk_lt(umod(bv_expr, 0), umod(bv_expr, 1));
+        expr_ref x(umod(bv_expr, 0), m);
+        r = mk_lt(x, umod(bv_expr, 1));
         break;
-    case OP_UGT:
+    }
+    case OP_UGT: {
         bv_expr = e->get_arg(0);
-        r = mk_gt(umod(bv_expr, 0), umod(bv_expr, 1));
+        expr_ref x(umod(bv_expr, 0), m);
+        r = mk_gt(x, umod(bv_expr, 1));
         break;
-    case OP_SLEQ:
+    }
+    case OP_SLEQ: {
         bv_expr = e->get_arg(0);
-        r = mk_le(smod(bv_expr, 0), smod(bv_expr, 1));
+        expr_ref x(smod(bv_expr, 0), m);
+        r = mk_le(x, smod(bv_expr, 1));
         break;
-    case OP_SGEQ:
+    }
+    case OP_SGEQ: {
         bv_expr = e->get_arg(0);
-        r = mk_ge(smod(bv_expr, 0), smod(bv_expr, 1));
+        expr_ref x(smod(bv_expr, 0), m);
+        r = mk_ge(x, smod(bv_expr, 1));
         break;
-    case OP_SLT:
+    }
+    case OP_SLT: {
         bv_expr = e->get_arg(0);
-        r = mk_lt(smod(bv_expr, 0), smod(bv_expr, 1));
+        expr_ref x(smod(bv_expr, 0), m);
+        r = mk_lt(x, smod(bv_expr, 1));
         break;
-    case OP_SGT:
+    }
+    case OP_SGT: {
         bv_expr = e->get_arg(0);
-        r = mk_gt(smod(bv_expr, 0), smod(bv_expr, 1));
+        expr_ref x(smod(bv_expr, 0), m);
+        r = mk_gt(x, smod(bv_expr, 1));
         break;
+    }
     case OP_BNEG:
         r = a.mk_uminus(arg(0));
         break;
@@ -317,12 +332,15 @@ void bv2int_translator::translate_bv(app* e) {
     case OP_BUDIV:
     case OP_BUDIV_I: {
         expr* x = umod(e, 0), * y = umod(e, 1);
-        r = if_eq(y, 0, a.mk_int(-1), a.mk_idiv(x, y));
+        expr_ref minus_one(a.mk_int(-1), m);
+        r = if_eq(y, 0, minus_one, a.mk_idiv(x, y));
         break;
     }
     case OP_BUMUL_NO_OVFL: {
         bv_expr = e->get_arg(0);
-        r = mk_lt(mul(umod(bv_expr, 0), umod(bv_expr, 1)), a.mk_int(bv_size(bv_expr)));
+        expr_ref x(umod(bv_expr, 0), m);
+        expr_ref product = mul(x, umod(bv_expr, 1));
+        r = mk_lt(product, a.mk_int(bv_size(bv_expr)));
         break;
     }
     case OP_BSHL: {
@@ -340,7 +358,7 @@ void bv2int_translator::translate_bv(app* e) {
         r = bnot(arg(0));
         break;
     case OP_BLSHR:
-        if (!a.is_numeral(arg(0)) && !a.is_numeral(arg(1)))
+        if (!m_is_plugin && !a.is_numeral(arg(0)) && !a.is_numeral(arg(1)))
             r = a.mk_lshr(bv.get_bv_size(e), arg(0), arg(1));
         else {
             expr* x = arg(0), * y = umod(e, 1);
@@ -351,7 +369,7 @@ void bv2int_translator::translate_bv(app* e) {
         }
         break;
     case OP_BASHR:
-        if (!a.is_numeral(arg(1)))
+        if (!m_is_plugin && !a.is_numeral(arg(1)))
             r = a.mk_ashr(bv.get_bv_size(e), arg(0), arg(1));
         else {
 
@@ -364,7 +382,11 @@ void bv2int_translator::translate_bv(app* e) {
             rational N = bv_size(e);
             expr* x = umod(e, 0), * y = umod(e, 1);
             expr* signx = a.mk_ge(x, a.mk_int(N / 2));
-            r = m.mk_ite(signx, a.mk_int(-1), a.mk_int(0));
+            {
+                auto _seq367_0 = a.mk_int(-1);
+                auto _seq367_1 = a.mk_int(0);
+                r = m.mk_ite(signx, _seq367_0, _seq367_1);
+            }
             IF_VERBOSE(4, verbose_stream() << "ashr " << mk_bounded_pp(e, m) << " " << bv.get_bv_size(e) << "\n");
             for (unsigned i = 0; i < sz; ++i) {
                 expr* d = a.mk_idiv(x, a.mk_int(rational::power_of_two(i)));
@@ -378,8 +400,10 @@ void bv2int_translator::translate_bv(app* e) {
         // p | q := (p + q) - band(p, q)
         IF_VERBOSE(4, verbose_stream() << "bor " << mk_bounded_pp(e, m) << " " << bv.get_bv_size(e) << "\n");
         r = arg(0);
-        for (unsigned i = 1; i < args.size(); ++i)
-            r = a.mk_sub(add(r, arg(i)), a.mk_band(bv.get_bv_size(e), r, arg(i)));
+        for (unsigned i = 1; i < args.size(); ++i) {
+            expr_ref sum = add(r, arg(i));
+            r = a.mk_sub(sum, a.mk_band(bv.get_bv_size(e), r, arg(i)));
+        }
         break;
     case OP_BNAND:
         r = bnot(band(args));
@@ -396,7 +420,9 @@ void bv2int_translator::translate_bv(app* e) {
         r = arg(0);
         for (unsigned i = 1; i < args.size(); ++i) {
             expr* q = arg(i);
-            r = a.mk_sub(add(r, q), mul(a.mk_int(2), a.mk_band(sz, r, q)));
+            expr_ref sum = add(r, q);
+            expr_ref two(a.mk_int(2), m);
+            r = a.mk_sub(sum, mul(two, a.mk_band(sz, r, q)));
         }
         if (e->get_decl_kind() == OP_BXNOR)
             r = bnot(r);
@@ -422,16 +448,25 @@ void bv2int_translator::translate_bv(app* e) {
     case OP_INT2BV:
         m_int2bv.push_back(e);
         ctx.push(push_back_vector(m_int2bv));
-        r = arg(0);
+        // Normalize the integer argument to [0, 2^N) so that bitwise operations
+        // on int_to_bv produce correct results when the argument is negative or
+        // otherwise outside the valid range.
+        r = umod(e, 0);
         break;
-    case OP_BV2INT:
+    case OP_UBV2INT:
         m_bv2int.push_back(e);
         ctx.push(push_back_vector(m_bv2int));
         r = umod(e->get_arg(0), 0);
         break;
     case OP_BCOMP:
         bv_expr = e->get_arg(0);
-        r = m.mk_ite(m.mk_eq(umod(bv_expr, 0), umod(bv_expr, 1)), a.mk_int(1), a.mk_int(0));
+        {
+            expr_ref x(umod(bv_expr, 0), m);
+            auto _seq434_0 = m.mk_eq(x, umod(bv_expr, 1));
+            auto _seq434_1 = a.mk_int(1);
+            auto _seq434_2 = a.mk_int(0);
+            r = m.mk_ite(_seq434_0, _seq434_1, _seq434_2);
+        }
         break;
     case OP_BSMOD_I:
     case OP_BSMOD: {
@@ -447,9 +482,21 @@ void bv2int_translator::translate_bv(app* e) {
         // x >= 0, y < 0 ->  y + u
         // x >= 0, y >= 0 ->  u
         r = a.mk_uminus(u);
-        r = m.mk_ite(m.mk_and(m.mk_not(signx), signy), add(u, y), r);
-        r = m.mk_ite(m.mk_and(signx, m.mk_not(signy)), a.mk_sub(y, u), r);
-        r = m.mk_ite(m.mk_and(m.mk_not(signx), m.mk_not(signy)), u, r);
+        {
+            expr_ref condition(m.mk_and(m.mk_not(signx), signy), m);
+            expr_ref sum = add(u, y);
+            r = m.mk_ite(condition, sum, r);
+        }
+        {
+            auto _seq451_0 = m.mk_and(signx, m.mk_not(signy));
+            auto _seq451_1 = a.mk_sub(y, u);
+            r = m.mk_ite(_seq451_0, _seq451_1, r);
+        }
+        {
+            auto _seq0 = m.mk_not(signx);
+            auto _seq1 = m.mk_not(signy);
+            r = m.mk_ite(m.mk_and(_seq0, _seq1), u, r);
+        }
         r = if_eq(u, 0, a.mk_int(0), r);
         r = if_eq(y, 0, x, r);
         break;
@@ -471,8 +518,16 @@ void bv2int_translator::translate_bv(app* e) {
         x = m.mk_ite(signx, a.mk_sub(a.mk_int(N), x), x);
         y = m.mk_ite(signy, a.mk_sub(a.mk_int(N), y), y);
         expr* d = a.mk_idiv(x, y);
-        r = m.mk_ite(m.mk_iff(signx, signy), d, a.mk_uminus(d));
-        r = if_eq(y, 0, m.mk_ite(signx, a.mk_int(1), a.mk_int(-1)), r);
+        {
+            auto _seq474_0 = m.mk_iff(signx, signy);
+            auto _seq474_1 = a.mk_uminus(d);
+            r = m.mk_ite(_seq474_0, d, _seq474_1);
+        }
+        {
+            auto _seq0 = a.mk_int(1);
+            auto _seq1 = a.mk_int(-1);
+            r = if_eq(y, 0, m.mk_ite(signx, _seq0, _seq1), r);
+        }
         break;
     }
     case OP_BSREM_I:
@@ -486,7 +541,11 @@ void bv2int_translator::translate_bv(app* e) {
         expr* absx = m.mk_ite(signx, a.mk_sub(a.mk_int(N), x), x);
         expr* absy = m.mk_ite(signy, a.mk_sub(a.mk_int(N), y), y);
         expr* d = a.mk_idiv(absx, absy);
-        d = m.mk_ite(m.mk_iff(signx, signy), d, a.mk_uminus(d));
+        {
+            auto _seq489_0 = m.mk_iff(signx, signy);
+            auto _seq489_1 = a.mk_uminus(d);
+            d = m.mk_ite(_seq489_0, d, _seq489_1);
+        }
         r = a.mk_sub(x, mul(d, y));
         r = if_eq(y, 0, x, r);
         break;
@@ -498,13 +557,14 @@ void bv2int_translator::translate_bv(app* e) {
     }
     case OP_ROTATE_RIGHT: {
         unsigned sz = bv.get_bv_size(e);
-        auto n = e->get_parameter(0).get_int();
+        auto n = e->get_parameter(0).get_int() % sz;
         r = rotate_left(sz - n);
         break;
     }
     case OP_EXT_ROTATE_LEFT: {
         unsigned sz = bv.get_bv_size(e);
-        expr* y = umod(e, 1);
+        expr_ref y(umod(e, 1), m);
+        y = a.mk_mod(y, a.mk_int(sz));
         r = a.mk_int(0);
         for (unsigned i = 0; i < sz; ++i)
             r = if_eq(y, i, rotate_left(i), r);
@@ -512,7 +572,8 @@ void bv2int_translator::translate_bv(app* e) {
     }
     case OP_EXT_ROTATE_RIGHT: {
         unsigned sz = bv.get_bv_size(e);
-        expr* y = umod(e, 1);
+        expr_ref y(umod(e, 1), m);
+        y = a.mk_mod(y, a.mk_int(sz));
         r = a.mk_int(0);
         for (unsigned i = 0; i < sz; ++i)
             r = if_eq(y, i, rotate_left(sz - i), r);
@@ -530,13 +591,17 @@ void bv2int_translator::translate_bv(app* e) {
     }
     case OP_BREDOR: {
         r = umod(e->get_arg(0), 0);
-        r = m.mk_not(m.mk_eq(r, a.mk_int(0)));
+        expr_ref zero(a.mk_int(0), m);
+        expr_ref is_zero(m.mk_eq(r, zero), m);
+        r = m.mk_ite(is_zero, zero, a.mk_int(1));
         break;
     }
     case OP_BREDAND: {
         rational N = bv_size(e->get_arg(0));
         r = umod(e->get_arg(0), 0);
-        r = m.mk_not(m.mk_eq(r, a.mk_int(N - 1)));
+        expr_ref all_ones(m.mk_eq(r, a.mk_int(N - 1)), m);
+        expr_ref one(a.mk_int(1), m);
+        r = m.mk_ite(all_ones, one, a.mk_int(0));
         break;
     }
     default:
@@ -566,11 +631,13 @@ void bv2int_translator::translate_basic(app* e) {
             rational N = rational::power_of_two(bv.get_bv_size(bv_expr));
             if (a.is_numeral(arg(0)) || a.is_numeral(arg(1)) ||
                 is_bounded(arg(0), N) || is_bounded(arg(1), N)) {
-                set_translated(e, m.mk_eq(umod(bv_expr, 0), umod(bv_expr, 1)));
+                expr_ref x(umod(bv_expr, 0), m);
+                set_translated(e, m.mk_eq(x, umod(bv_expr, 1)));
             }
             else {
                 m_args[0] = a.mk_sub(arg(0), arg(1));
-                set_translated(e, m.mk_eq(umod(bv_expr, 0), a.mk_int(0)));
+                expr_ref normalized(umod(bv_expr, 0), m);
+                set_translated(e, m.mk_eq(normalized, a.mk_int(0)));
             }
         }
         else
@@ -660,11 +727,16 @@ expr_ref bv2int_translator::add(expr* x, expr* y) {
 expr* bv2int_translator::amod(expr* bv_expr, expr* x, rational const& N) {
     rational v;
     expr* r = nullptr, * c = nullptr, * t = nullptr, * e = nullptr;
-    if (m.is_ite(x, c, t, e))
-        r = m.mk_ite(c, amod(bv_expr, t, N), amod(bv_expr, e, N));
+    if (m.is_ite(x, c, t, e)) {
+        expr_ref then_value(amod(bv_expr, t, N), m);
+        r = m.mk_ite(c, then_value, amod(bv_expr, e, N));
+    }
     else if (a.is_idiv(x, t, e) && a.is_numeral(t, v) && 0 <= v && v < N && is_non_negative(bv_expr, e))
         r = x;
     else if (a.is_mod(x, t, e) && a.is_numeral(t, v) && 0 <= v && v < N)
+        r = x;
+    else if (a.is_mod(x, t, e) && a.is_numeral(e, v) && v == N)
+        // mod(t, N) is already in [0, N); no need to wrap it again.
         r = x;
     else if (a.is_numeral(x, v))
         r = a.mk_int(mod(v, N));
@@ -684,10 +756,11 @@ void bv2int_translator::translate_eq(expr* e) {
         ensure_translated(y);
         m_args.reset();
         m_args.push_back(a.mk_sub(translated(x), translated(y)));
-        set_translated(e, m.mk_eq(umod(x, 0), a.mk_int(0)));
+        expr_ref normalized(umod(x, 0), m);
+        set_translated(e, m.mk_eq(normalized, a.mk_int(0)));
     }
     m_preds.push_back(e);
-    TRACE("bv", tout << mk_pp(e, m) << " " << mk_pp(translated(e), m) << "\n");
+    TRACE(bv, tout << mk_pp(e, m) << " " << mk_pp(translated(e), m) << "\n");
     ctx.push(push_back_vector(m_preds));
 
 }

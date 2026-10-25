@@ -68,7 +68,7 @@ class normalize_bounds_tactic : public tactic {
         
         bool has_lowers() {
             for (auto* e : m_bm) {
-                TRACE("normalize_bounds_tactic", 
+                TRACE(normalize_bounds_tactic, 
                       rational val; bool strict;
                       tout << mk_ismt2_pp(e, m) << " has_lower: " << m_bm.has_lower(e, val, strict) << " val: " << val << "\n";);
                 if (is_target(e))
@@ -119,7 +119,7 @@ class normalize_bounds_tactic : public tactic {
             m_rw.set_substitution(&subst);
             expr_ref   new_curr(m);
             
-            for (unsigned idx = 0; !in->inconsistent() && idx < in->size(); idx++) {
+            for (unsigned idx = 0; !in->inconsistent() && idx < in->size(); ++idx) {
                 expr * curr = in->form(idx);
                 proof_ref  new_pr(m);
                 m_rw(curr, new_curr, new_pr);
@@ -129,7 +129,7 @@ class normalize_bounds_tactic : public tactic {
                 }
                 in->update(idx, new_curr, new_pr, in->dep(idx));
             }
-            TRACE("normalize_bounds_tactic", in->display(tout););
+            TRACE(normalize_bounds_tactic, in->display(tout););
             in->inc_depth();
             result.push_back(in.get());
         }

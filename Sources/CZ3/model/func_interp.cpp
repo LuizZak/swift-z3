@@ -28,10 +28,10 @@ func_entry::func_entry(ast_manager & m, unsigned arity, expr * const * args, exp
     m_result(result) {
     //SASSERT(is_ground(result));
     m.inc_ref(result);
-    for (unsigned i = 0; i < arity; i++) {
+    for (unsigned i = 0; i < arity; ++i) {
         expr * arg = args[i];
         //SASSERT(is_ground(arg));
-        if (!m.is_value(arg))
+        if (arg && !m.is_value(arg))
             m_args_are_values = false;
         m.inc_ref(arg);
         m_args[i] = arg;
@@ -53,7 +53,7 @@ void func_entry::set_result(ast_manager & m, expr * r) {
 
 bool func_entry::eq_args(ast_manager & m, unsigned arity, expr * const * args) const {
     unsigned i = 0;
-    for (; i < arity; i++) {
+    for (; i < arity; ++i) {
         if (!m.are_equal(m_args[i], args[i]))
             return false;
     }
@@ -61,7 +61,7 @@ bool func_entry::eq_args(ast_manager & m, unsigned arity, expr * const * args) c
 }
 
 void func_entry::deallocate(ast_manager & m, unsigned arity) {
-    for (unsigned i = 0; i < arity; i++) {
+    for (unsigned i = 0; i < arity; ++i) {
         m.dec_ref(m_args[i]);
     }
     m.dec_ref(m_result);
@@ -80,12 +80,16 @@ func_interp::func_interp(ast_manager & m, unsigned arity):
 }
 
 func_interp::~func_interp() {
+    dealloc(m_entry_table);
     for (func_entry* curr : m_entries) {
         curr->deallocate(m(), m_arity);
     }
     m().dec_ref(m_else);
     m().dec_ref(m_interp);
     m().dec_ref(m_array_interp);
+
+    if (m_key)
+        m_key->deallocate(m(), m_arity);
 }
 
 func_interp * func_interp::copy() const {
@@ -119,7 +123,7 @@ bool func_interp::is_fi_entry_expr(expr * e, ptr_vector<expr> & args) {
         return false;
 
     args.resize(m_arity);
-    for (unsigned i = 0; i < m_arity; i++) {
+    for (unsigned i = 0; i < m_arity; ++i) {
         expr * ci = (m_arity == 1 && i == 0) ? c : to_app(c)->get_arg(i);
 
         if (!m().is_eq(ci, a0, a1)) 
@@ -142,7 +146,7 @@ void func_interp::set_else(expr * e) {
 
     reset_interp_cache();
 
-    TRACE("func_interp", tout << "set_else: " << expr_ref(e, m()) << "\n";);
+    TRACE(func_interp, tout << "set_else: " << expr_ref(e, m()) << "\n";);
 
     ptr_vector<expr> args;
     while (e && is_fi_entry_expr(e, args)) {
@@ -177,6 +181,18 @@ bool func_interp::is_constant() const {
    args_are_values to true if for all entries e e.args_are_values() is true.
 */
 func_entry * func_interp::get_entry(expr * const * args) const {
+    if (m_entry_table) {
+        for (unsigned i = 0; i < m_arity; ++i)
+            m_key->m_args[i] = args[i];
+        func_entry * entry = nullptr;
+        bool found = m_entry_table->find(m_key, entry);
+        for (unsigned i = 0; i < m_arity; ++i)
+            m_key->m_args[i] = nullptr;
+        if (found)
+            return entry;
+        else
+            return nullptr;
+    }
     for (func_entry* curr : m_entries) {
         if (curr->eq_args(m(), m_arity, args))
             return curr;
@@ -196,15 +212,15 @@ void func_interp::insert_entry(expr * const * args, expr * r) {
 
 void func_interp::insert_new_entry(expr * const * args, expr * r) {
     reset_interp_cache();
-    CTRACE("func_interp_bug", get_entry(args) != 0,
+    CTRACE(func_interp_bug, get_entry(args) != 0,
            tout << "Old: " << mk_ismt2_pp(get_entry(args)->m_result, m()) << "\n";
            tout << "Args:";
-           for (unsigned i = 0; i < m_arity; i++) {
+           for (unsigned i = 0; i < m_arity; ++i) {
                tout << mk_ismt2_pp(get_entry(args)->get_arg(i), m()) << "\n";
            }
            tout << "New: " << mk_ismt2_pp(r, m()) << "\n";
            tout << "Args:";
-           for (unsigned i = 0; i < m_arity; i++) {
+           for (unsigned i = 0; i < m_arity; ++i) {
                tout << mk_ismt2_pp(args[i], m()) << "\n";
            }
            tout << "Old: " << mk_ismt2_pp(get_entry(args)->get_result(), m()) << "\n";
@@ -214,10 +230,27 @@ void func_interp::insert_new_entry(expr * const * args, expr * r) {
     if (!new_entry->args_are_values())
         m_args_are_values = false;
     m_entries.push_back(new_entry);
+    if (!m_entry_table && m_entries.size() > 500) {
+        init_table();
+ 
+        ptr_vector<expr> null_args;
+        null_args.resize(m_arity, nullptr);
+        m_key = func_entry::mk(m(), m_arity, null_args.data(), nullptr);
+    }
+    else if (m_entry_table) 
+        m_entry_table->insert(new_entry);    
+}
+
+void func_interp::init_table() {
+    m_entry_table = alloc(entry_table, 1024, func_entry_hash(m_arity), func_entry_eq(m_arity));
+    for (func_entry *curr : m_entries)
+        m_entry_table->insert(curr);
 }
 
 void func_interp::del_entry(unsigned idx) {
     auto* e = m_entries[idx];
+    if (m_entry_table) 
+        m_entry_table->remove(e);    
     m_entries[idx] = m_entries.back();
     m_entries.pop_back();
     e->deallocate(m(), m_arity);
@@ -278,6 +311,12 @@ void func_interp::compress() {
     if (j < m_entries.size()) {
         reset_interp_cache();
         m_entries.shrink(j);
+        if (m_entry_table) {
+            dealloc(m_entry_table);
+            m_entry_table = nullptr;
+            if (m_entries.size() > 500) 
+                init_table();            
+        }
     }
     // other compression, if else is a default branch.
     // or function encode identity.
@@ -344,10 +383,10 @@ expr * func_interp::get_interp_core() const {
         if (m_else == curr->get_result()) 
             continue;
         if (vars.empty()) 
-            for (unsigned i = 0; i < m_arity; i++)                 
+            for (unsigned i = 0; i < m_arity; ++i)                 
                 vars.push_back(m().mk_var(i, curr->get_arg(i)->get_sort()));
         ptr_buffer<expr> eqs;
-        for (unsigned i = 0; i < m_arity; i++) {
+        for (unsigned i = 0; i < m_arity; ++i) {
             eqs.push_back(m().mk_eq(vars[i], curr->get_arg(i)));
         }
         SASSERT(eqs.size() == m_arity);
@@ -378,7 +417,7 @@ expr_ref func_interp::get_array_interp_core(func_decl * f) const {
     bool ground = is_ground(m_else);
     for (func_entry * curr : m_entries) {
         ground &= is_ground(curr->get_result());
-        for (unsigned i = 0; i < m_arity; i++) 
+        for (unsigned i = 0; i < m_arity; ++i) 
             ground &= is_ground(curr->get_arg(i));        
     }
     if (!ground) {
@@ -410,7 +449,7 @@ expr_ref func_interp::get_array_interp_core(func_decl * f) const {
         }
         args.reset();
         args.push_back(r);        
-        for (unsigned i = 0; i < m_arity; i++) {
+        for (unsigned i = 0; i < m_arity; ++i) {
             args.push_back(curr->get_arg(i));
         }
         args.push_back(res);
@@ -447,7 +486,7 @@ func_interp * func_interp::translate(ast_translation & translator) const {
 
     for (func_entry * curr : m_entries) {
         ptr_buffer<expr> new_args;
-        for (unsigned i = 0; i < m_arity; i++)
+        for (unsigned i = 0; i < m_arity; ++i)
             new_args.push_back(translator(curr->get_arg(i)));
         new_fi->insert_new_entry(new_args.data(), translator(curr->get_result()));
     }

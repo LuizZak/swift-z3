@@ -26,16 +26,17 @@ Revision History:
 --*/
 #pragma once
 
+#include "util/manage_warnings.h"
 #include "util/mpq.h"
 #include "util/rational.h"
 #include "util/vector.h"
 
 class mpbq {
-    mpz      m_num;
-    unsigned m_k;    // we don't need mpz here. 2^(2^32-1) is a huge number, we will not even be able to convert the mpbq into an mpq
+    mpz      m_num = 0;
+    unsigned m_k = 0;    // we don't need mpz here. 2^(2^32-1) is a huge number, we will not even be able to convert the mpbq into an mpq
     friend class mpbq_manager;
 public:
-    mpbq():m_num(0), m_k(0) {}
+    mpbq() = default;
     mpbq(int v):m_num(v), m_k(0) {}
     mpbq(int v, unsigned k):m_num(v), m_k(k) {}
     mpz const & numerator() const { return m_num; }
@@ -328,12 +329,14 @@ inline bool EXTERNAL(scoped_mpbq const & a, TYPE const & b) {   \
 MPBQ_MK_COMPARISON_CORE(EXTERNAL, INTERNAL, int)     \
 MPBQ_MK_COMPARISON_CORE(EXTERNAL, INTERNAL, mpz)     \
 
+START_DISABLE_EXTRA_SEMI_WARNING;
 MPBQ_MK_COMPARISON(operator==, eq);
 MPBQ_MK_COMPARISON(operator!=, neq);
 MPBQ_MK_COMPARISON(operator<,  lt);
 MPBQ_MK_COMPARISON(operator<=, le);
 MPBQ_MK_COMPARISON(operator>,  gt);
 MPBQ_MK_COMPARISON(operator>=, ge);
+END_DISABLE_WARNING;
 
 #undef MPBQ_MK_COMPARISON
 #undef MPBQ_MK_COMPARISON_CORE

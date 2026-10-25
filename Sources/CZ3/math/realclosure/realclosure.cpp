@@ -689,7 +689,7 @@ namespace realclosure {
         template<typename T>
         void restore_saved_intervals(ptr_vector<T> & to_restore) {
             unsigned sz = to_restore.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 T * v = to_restore[i];
                 set_interval(v->m_interval, *(v->m_old_interval));
                 bqim().del(*(v->m_old_interval));
@@ -772,7 +772,7 @@ namespace realclosure {
         }
 
         void finalize(array<polynomial> & ps) {
-            for (unsigned i = 0; i < ps.size(); i++)
+            for (unsigned i = 0; i < ps.size(); ++i)
                 reset_p(ps[i]);
             ps.finalize(allocator());
         }
@@ -783,7 +783,7 @@ namespace realclosure {
 
         void del_sign_conditions(unsigned sz, sign_condition * const * to_delete) {
             ptr_buffer<sign_condition> all_to_delete;
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 sign_condition * sc = to_delete[i];
                 while (sc && sc->m_mark == false) {
                     sc->m_mark = true;
@@ -791,7 +791,7 @@ namespace realclosure {
                     sc = sc->m_prev;
                 }
             }
-            for (unsigned i = 0; i < all_to_delete.size(); i++) {
+            for (unsigned i = 0; i < all_to_delete.size(); ++i) {
                 del_sign_condition(all_to_delete[i]);
             }
         }
@@ -863,7 +863,7 @@ namespace realclosure {
         }
 
         void inc_ref(unsigned sz, value * const * p) {
-            for (unsigned i = 0; i < sz; i++)
+            for (unsigned i = 0; i < sz; ++i)
                 inc_ref(p[i]);
         }
 
@@ -877,7 +877,7 @@ namespace realclosure {
         }
 
         void dec_ref(unsigned sz, value * const * p) {
-            for (unsigned i = 0; i < sz; i++)
+            for (unsigned i = 0; i < sz; ++i)
                 dec_ref(p[i]);
         }
 
@@ -887,7 +887,7 @@ namespace realclosure {
         }
 
         void del(numeral_vector & v) {
-            for (unsigned i = 0; i < v.size(); i++)
+            for (unsigned i = 0; i < v.size(); ++i)
                 del(v[i]);
         }
 
@@ -1021,7 +1021,7 @@ namespace realclosure {
         }
 
         static bool is_rational_function(numeral const & a) {
-            return is_rational_function(a.m_value);
+            return !is_zero(a) && is_rational_function(a.m_value);
         }
 
         static rational_function_value * to_rational_function(numeral const & a) {
@@ -1087,10 +1087,9 @@ namespace realclosure {
             case extension::TRANSCENDENTAL: return false;
             case extension::INFINITESIMAL:  return true;
             case extension::ALGEBRAIC:      return to_algebraic(ext)->depends_on_infinitesimals();
-            default:
-                UNREACHABLE();
-                return false;
             }
+            UNREACHABLE();
+            return false;
         }
 
         /**
@@ -1104,7 +1103,7 @@ namespace realclosure {
         }
 
         bool depends_on_infinitesimals(unsigned sz, value * const * p) const {
-            for (unsigned i = 0; i < sz; i++)
+            for (unsigned i = 0; i < sz; ++i)
                 if (depends_on_infinitesimals(p[i]))
                     return true;
             return false;
@@ -1300,7 +1299,7 @@ namespace realclosure {
             t->m_k++;
             t->m_proc(t->m_k, qim(), i);
             int m = magnitude(i);
-            TRACE("rcf_transcendental",
+            TRACE(rcf_transcendental,
                   tout << "refine_transcendental_interval rational: " << m << "\nrational interval: ";
                   qim().display(tout, i); tout << std::endl;);
             unsigned k;
@@ -1318,7 +1317,7 @@ namespace realclosure {
 
         void refine_transcendental_interval(transcendental * t, unsigned prec) {
             while (!check_precision(t->interval(), prec)) {
-                TRACE("rcf_transcendental", tout << "refine_transcendental_interval: " << magnitude(t->interval()) << std::endl;);
+                TRACE(rcf_transcendental, tout << "refine_transcendental_interval: " << magnitude(t->interval()) << std::endl;);
                 checkpoint();
                 save_interval_if_too_small(t, prec);
                 refine_transcendental_interval(t);
@@ -1466,7 +1465,7 @@ namespace realclosure {
             if (!abs_lower_magnitude(interval(p[n-1]), lc_mag))
                 return false;
             N = -static_cast<int>(m_ini_precision);
-            for (unsigned k = 2; k <= n; k++) {
+            for (unsigned k = 2; k <= n; ++k) {
                 value * a = p[n - k];
                 if (!is_zero(a) && sign(a) != lc_sign) {
                     int a_mag;
@@ -1512,7 +1511,7 @@ namespace realclosure {
             if (!abs_lower_magnitude(aux, lc_mag))
                 return false;
             N = -static_cast<int>(m_ini_precision);
-            for (unsigned k = 2; k <= n; k++) {
+            for (unsigned k = 2; k <= n; ++k) {
                 value * a = as[n - k];
                 if (!is_zero(a)) {
                     neg_root_adjust(interval(as[n-k]), n-k, aux);
@@ -1590,7 +1589,7 @@ namespace realclosure {
             derivative(n, p, p_prime);
             ds.push(p_prime.size(), p_prime.data());
             SASSERT(n >= 3);
-            for (unsigned i = 0; i < n - 2; i++) {
+            for (unsigned i = 0; i < n - 2; ++i) {
                 SASSERT(ds.size() > 0);
                 unsigned prev = ds.size() - 1;
                 n = ds.size(prev);
@@ -1675,7 +1674,7 @@ namespace realclosure {
                                   // Output values
                                   int & q_eq_0, int & q_gt_0, int & q_lt_0,
                                   value_ref_buffer & q2) {
-            TRACE("rcf_count_signs",
+            TRACE(rcf_count_signs,
                   tout << "p: "; display_poly(tout, p_sz, p); tout << "\n";
                   tout << "q: "; display_poly(tout, q_sz, q); tout << "\n";);
             SASSERT(num_roots > 0);
@@ -1710,7 +1709,7 @@ namespace realclosure {
                           ) {
             SASSERT(taqrs.size() == prs.size());
             new_taqrs.reset(); new_prs.reset();
-            for (unsigned i = 0; i < taqrs.size(); i++) {
+            for (unsigned i = 0; i < taqrs.size(); ++i) {
                 // Add prs * 1
                 new_taqrs.push_back(taqrs[i]);
                 new_prs.push(prs.size(i), prs.coeffs(i));
@@ -1776,7 +1775,7 @@ namespace realclosure {
         void set_array_p(array<polynomial> & ps, scoped_polynomial_seq const & prs) {
             unsigned sz = prs.size();
             ps.set(allocator(), sz, polynomial());
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 unsigned pi_sz     = prs.size(i);
                 value * const * pi = prs.coeffs(i);
                 set_p(ps[i], pi_sz, pi);
@@ -1989,14 +1988,14 @@ namespace realclosure {
                 SASSERT(M_s.m() == M_s.n());
                 SASSERT(M_s.m() == taqrs.size());
                 SASSERT(M_s.m() == scs.size());
-                TRACE("rcf_sign_det",
+                TRACE(rcf_sign_det,
                       tout << M_s;
-                      for (unsigned j = 0; j < scs.size(); j++) {
+                      for (unsigned j = 0; j < scs.size(); ++j) {
                           display_sign_conditions(tout, scs[j]);
                           tout << " = " << taqrs[j] << "\n";
                       }
                       tout << "qs:\n";
-                      for (unsigned j = 0; j < qs.size(); j++) {
+                      for (unsigned j = 0; j < qs.size(); ++j) {
                           display_poly(tout, qs.size(j), qs.coeffs(j)); tout << "\n";
                       });
                 // We keep executing this loop until we have only one root for each sign condition in scs.
@@ -2007,7 +2006,7 @@ namespace realclosure {
                 int q_eq_0, q_gt_0, q_lt_0;
                 value_ref_buffer q2(*this);
                 count_signs_at_zeros(p_sz, p, q_sz, q, iso_interval, num_roots, q_eq_0, q_gt_0, q_lt_0, q2);
-                TRACE("rcf_sign_det",
+                TRACE(rcf_sign_det,
                       tout << "q: "; display_poly(tout, q_sz, q); tout << "\n";
                       tout << "#(q == 0): " << q_eq_0 << ", #(q > 0): " << q_gt_0 << ", #(q < 0): " << q_lt_0 << "\n";);
                 scoped_mpz_matrix M(mm());
@@ -2028,9 +2027,9 @@ namespace realclosure {
                 // Solve
                 //    new_M_s * sc_cardinalities = new_taqrs
                 VERIFY(mm().solve(new_M_s, sc_cardinalities.data(), new_taqrs.data()));
-                TRACE("rcf_sign_det", tout << "solution: "; for (unsigned i = 0; i < sc_cardinalities.size(); i++) { tout << sc_cardinalities[i] << " "; } tout << "\n";);
+                TRACE(rcf_sign_det, tout << "solution: "; for (unsigned i = 0; i < sc_cardinalities.size(); ++i) { tout << sc_cardinalities[i] << " "; } tout << "\n";);
                 // The solution must contain only positive values <= num_roots
-                DEBUG_CODE(for (unsigned j = 0; j < sc_cardinalities.size(); j++) { SASSERT(0 <= sc_cardinalities[j] && sc_cardinalities[j] <= num_roots); });
+                DEBUG_CODE(for (unsigned j = 0; j < sc_cardinalities.size(); ++j) { SASSERT(0 <= sc_cardinalities[j] && sc_cardinalities[j] <= num_roots); });
                 // We should keep q only if it discriminated something.
                 // That is,
                 //   If !use_q2,   then There is an i s.t. sc_cardinalities[2*i] > 0 && sc_cardinalities[2*i] > 0
@@ -2051,7 +2050,7 @@ namespace realclosure {
                 while (j < sc_cardinalities.size()) {
                     sign_condition * sc = scs[k];
                     k++;
-                    for (unsigned s = 0; s < step_sz; s++) {
+                    for (unsigned s = 0; s < step_sz; ++s) {
                         // Remark: the second row of M contains the sign for q
                         if (sc_cardinalities[j] > 0) {
                             new_scs.push_back(mk_sign_condition(q_idx, M.get_int(1, s), sc));
@@ -2074,7 +2073,7 @@ namespace realclosure {
                 // Update taqrs and prs
                 prs.reset();
                 taqrs.reset();
-                for (unsigned j = 0; j < new_num_rows; j++) {
+                for (unsigned j = 0; j < new_num_rows; ++j) {
                     unsigned rid = new_row_idxs[j];
                     prs.push(new_prs.size(rid), new_prs.coeffs(rid));
                     taqrs.push_back(new_taqrs[rid]);
@@ -2085,25 +2084,25 @@ namespace realclosure {
                     break;
                 }
             }
-            TRACE("rcf_sign_det",
+            TRACE(rcf_sign_det,
                   tout << "Final state\n";
                   display_poly(tout, p_sz, p); tout << "\n";
                   tout << M_s;
-                  for (unsigned j = 0; j < scs.size(); j++) {
+                  for (unsigned j = 0; j < scs.size(); ++j) {
                       display_sign_conditions(tout, scs[j]);
                       tout << " = " << taqrs[j] << "\n";
                   }
                   tout << "qs:\n";
-                  for (unsigned j = 0; j < qs.size(); j++) {
+                  for (unsigned j = 0; j < qs.size(); ++j) {
                       display_poly(tout, qs.size(j), qs.coeffs(j)); tout << "\n";
                   }
                   tout << "prs:\n";
-                  for (unsigned j = 0; j < prs.size(); j++) {
+                  for (unsigned j = 0; j < prs.size(); ++j) {
                       display_poly(tout, prs.size(j), prs.coeffs(j)); tout << "\n";
                   });
             SASSERT(M_s.n() == M_s.m()); SASSERT(M_s.n() == static_cast<unsigned>(num_roots));
             sign_det * sd = mk_sign_det(M_s, prs, taqrs, qs, scs);
-            for (unsigned idx = 0; idx < static_cast<unsigned>(num_roots); idx++) {
+            for (unsigned idx = 0; idx < static_cast<unsigned>(num_roots); ++idx) {
                 add_root(p_sz, p, interval, iso_interval, sd, idx, roots);
             }
         }
@@ -2115,7 +2114,7 @@ namespace realclosure {
             SASSERT(n >= 2);
             SASSERT(!is_zero(p[0]));
             SASSERT(!is_zero(p[n-1]));
-            for (unsigned i = 1; i < n - 1; i++) {
+            for (unsigned i = 1; i < n - 1; ++i) {
                 if (!is_zero(p[i]))
                     return false;
             }
@@ -2284,7 +2283,7 @@ namespace realclosure {
             bool has_neg_upper = neg_root_upper_bound(n, p, neg_upper_N);
             bool has_pos_lower = pos_root_lower_bound(n, p, pos_lower_N);
             bool has_pos_upper = pos_root_upper_bound(n, p, pos_upper_N);
-            TRACE("rcf_isolate",
+            TRACE(rcf_isolate,
                   display_poly(tout, n, p); tout << "\n";
                   if (has_neg_lower) tout << "-2^" << neg_lower_N; else tout << "-oo";
                   tout << " < neg-roots < ";
@@ -2302,7 +2301,7 @@ namespace realclosure {
             int num_sv_plus_inf  = sign_variations_at_plus_inf(seq);
             int num_neg_roots    = num_sv_minus_inf - num_sv_zero;
             int num_pos_roots    = num_sv_zero      - num_sv_plus_inf;
-            TRACE("rcf_isolate",
+            TRACE(rcf_isolate,
                   tout << "num_neg_roots: " << num_neg_roots << "\n";
                   tout << "num_pos_roots: " << num_pos_roots << "\n";);
             scoped_mpbqi pos_interval(bqim());
@@ -2392,7 +2391,7 @@ namespace realclosure {
            \brief Root isolation for polynomials where 0 is not a root.
         */
         void nz_isolate_roots(unsigned n, value * const * p, numeral_vector & roots) {
-            TRACE("rcf_isolate",
+            TRACE(rcf_isolate,
                   tout << "nz_isolate_roots\n";
                   display_poly(tout, n, p); tout << "\n";);
             if (m_clean_denominators) {
@@ -2410,7 +2409,7 @@ namespace realclosure {
            \brief Root isolation entry point.
         */
         void isolate_roots(unsigned n, numeral const * p, numeral_vector & roots) {
-            TRACE("rcf_isolate_bug", tout << "isolate_roots: "; for (unsigned i = 0; i < n; i++) { display(tout, p[i]); tout << " "; } tout << "\n";);
+            TRACE(rcf_isolate_bug, tout << "isolate_roots: "; for (unsigned i = 0; i < n; ++i) { display(tout, p[i]); tout << " "; } tout << "\n";);
             SASSERT(n > 0);
             SASSERT(!is_zero(p[n-1]));
             if (n == 1) {
@@ -2418,14 +2417,14 @@ namespace realclosure {
                 return;
             }
             unsigned i = 0;
-            for (; i < n; i++) {
+            for (; i < n; ++i) {
                 if (!is_zero(p[i]))
                     break;
             }
             SASSERT(i < n);
             SASSERT(!is_zero(p[i]));
-            ptr_buffer<value> nz_p;
-            for (; i < n; i++)
+            ptr_vector<value> nz_p;
+            for (; i < n; ++i)
                 nz_p.push_back(p[i].m_value);
             nz_isolate_roots(nz_p.size(), nz_p.data(), roots);
             if (nz_p.size() < n) {
@@ -2489,10 +2488,9 @@ namespace realclosure {
                 case extension::TRANSCENDENTAL: return false;
                 case extension::INFINITESIMAL:  return false;
                 case extension::ALGEBRAIC: return is_algebraic_int(a);
-                default:
-                    UNREACHABLE();
-                    return false;
                 }
+                UNREACHABLE();
+                return false;
             }
         }
 
@@ -2521,7 +2519,7 @@ namespace realclosure {
            \brief Return true if a is a rational.
         */
         bool is_rational(numeral const & a) {
-            return a.m_value->is_rational();
+            return is_zero(a) || a.m_value->is_rational();
         }
 
 
@@ -2705,13 +2703,13 @@ namespace realclosure {
             value_ref a_i(*this);
             unsigned min = std::min(sz1, sz2);
             unsigned i = 0;
-            for (; i < min; i++) {
+            for (; i < min; ++i) {
                 add(p1[i], p2[i], a_i);
                 r.push_back(a_i);
             }
-            for (; i < sz1; i++)
+            for (; i < sz1; ++i)
                 r.push_back(p1[i]);
-            for (; i < sz2; i++)
+            for (; i < sz2; ++i)
                 r.push_back(p2[i]);
             SASSERT(r.size() == std::max(sz1, sz2));
             adjust_size(r);
@@ -2741,13 +2739,13 @@ namespace realclosure {
             value_ref a_i(*this);
             unsigned min = std::min(sz1, sz2);
             unsigned i = 0;
-            for (; i < min; i++) {
+            for (; i < min; ++i) {
                 sub(p1[i], p2[i], a_i);
                 r.push_back(a_i);
             }
-            for (; i < sz1; i++)
+            for (; i < sz1; ++i)
                 r.push_back(p1[i]);
-            for (; i < sz2; i++) {
+            for (; i < sz2; ++i) {
                 neg(p2[i], a_i);
                 r.push_back(a_i);
             }
@@ -2778,7 +2776,7 @@ namespace realclosure {
             if (a == nullptr)
                 return;
             value_ref a_i(*this);
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 mul(a, p[i], a_i);
                 r.push_back(a_i);
             }
@@ -2798,11 +2796,11 @@ namespace realclosure {
                 std::swap(p1, p2);
             }
             value_ref tmp(*this);
-            for (unsigned i = 0; i < sz1; i++) {
+            for (unsigned i = 0; i < sz1; ++i) {
                 checkpoint();
                 if (p1[i] == nullptr)
                     continue;
-                for (unsigned j = 0; j < sz2; j++) {
+                for (unsigned j = 0; j < sz2; ++j) {
                     // r[i+j] <- r[i+j] + p1[i]*p2[j]
                     mul(p1[i], p2[j], tmp);
                     add(r[i+j], tmp, tmp);
@@ -2821,7 +2819,7 @@ namespace realclosure {
                 return;
             value_ref a_i(*this);
             unsigned sz = p.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 div(p[i], a, a_i);
                 p.set(i, a_i);
             }
@@ -2864,7 +2862,7 @@ namespace realclosure {
                         // q[m_n] <- q[m_n] + r[sz1 - 1]/b_n
                         add(q[m_n], ratio, aux);
                         q.set(m_n, aux);
-                        for (unsigned i = 0; i < sz2 - 1; i++) {
+                        for (unsigned i = 0; i < sz2 - 1; ++i) {
                             // r[i + m_n] <- r[i + m_n] - ratio * p2[i]
                             mul(ratio, p2[i], aux);
                             sub(r[i + m_n], aux, aux);
@@ -2891,7 +2889,7 @@ namespace realclosure {
         void div(unsigned sz, value * const * p, value * a, value_ref_buffer & r) {
             r.reset();
             value_ref a_i(*this);
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 div(p[i], a, a_i);
                 r.push_back(a_i);
             }
@@ -2903,7 +2901,7 @@ namespace realclosure {
         void rem(unsigned sz1, value * const * p1, unsigned sz2, value * const * p2, value_ref_buffer & r) {
             SASSERT(p1 != r.data());
             SASSERT(p2 != r.data());
-            TRACE("rcf_rem",
+            TRACE(rcf_rem,
                   tout << "rem\n";
                   display_poly(tout, sz1, p1); tout << "\n";
                   display_poly(tout, sz2, p2); tout << "\n";);
@@ -2922,12 +2920,12 @@ namespace realclosure {
                 checkpoint();
                 sz1 = r.size();
                 if (sz1 < sz2) {
-                    TRACE("rcf_rem", tout << "rem result\n"; display_poly(tout, r.size(), r.data()); tout << "\n";);
+                    TRACE(rcf_rem, tout << "rem result\n"; display_poly(tout, r.size(), r.data()); tout << "\n";);
                     return;
                 }
                 unsigned m_n = sz1 - sz2;
                 div(r[sz1 - 1], b_n, ratio);
-                for (unsigned i = 0; i < sz2 - 1; i++) {
+                for (unsigned i = 0; i < sz2 - 1; ++i) {
                     mul(ratio, p2[i], new_a);
                     sub(r[i + m_n], new_a, new_a);
                     r.set(i + m_n, new_a);
@@ -2947,7 +2945,7 @@ namespace realclosure {
         void prem(unsigned sz1, value * const * p1, unsigned sz2, value * const * p2, unsigned & d, value_ref_buffer & r) {
             SASSERT(p1 != r.data());
             SASSERT(p2 != r.data());
-            TRACE("rcf_prem",
+            TRACE(rcf_prem,
                   tout << "prem\n";
                   display_poly(tout, sz1, p1); tout << "\n";
                   display_poly(tout, sz2, p2); tout << "\n";);
@@ -2967,7 +2965,7 @@ namespace realclosure {
                 checkpoint();
                 sz1 = r.size();
                 if (sz1 < sz2) {
-                    TRACE("rcf_prem", tout << "prem result\n"; display_poly(tout, r.size(), r.data()); tout << "\n";);
+                    TRACE(rcf_prem, tout << "prem result\n"; display_poly(tout, r.size(), r.data()); tout << "\n";);
                     return;
                 }
                 unsigned m_n = sz1 - sz2;
@@ -2977,14 +2975,14 @@ namespace realclosure {
                 a_m = r[sz1 - 1];
                 // don't need to update position sz1 - 1, since it will become 0
                 if (!is_rational_one(b_n)) {
-                    for (unsigned i = 0; i < sz1 - 1; i++) {
+                    for (unsigned i = 0; i < sz1 - 1; ++i) {
                         mul(r[i], b_n, new_a);
                         r.set(i, new_a);
                     }
                 }
                 // buffer: a_m * x^m + b_n * a_{m-1} * x^{m-1} + ... + b_n * a_0
                 // don't need to process i = sz2 - 1, because r[sz1 - 1] will become 0.
-                for (unsigned i = 0; i < sz2 - 1; i++) {
+                for (unsigned i = 0; i < sz2 - 1; ++i) {
                     mul(a_m, p2[i], new_a);
                     sub(r[i + m_n], new_a, new_a);
                     r.set(i + m_n, new_a);
@@ -3006,7 +3004,7 @@ namespace realclosure {
             SASSERT(p != r.data());
             r.reset();
             value_ref a_i(*this);
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 neg(p[i], a_i);
                 r.push_back(a_i);
             }
@@ -3018,7 +3016,7 @@ namespace realclosure {
         void neg(value_ref_buffer & r) {
             value_ref a_i(*this);
             unsigned sz = r.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 neg(r[i], a_i);
                 r.set(i, a_i);
             }
@@ -3030,7 +3028,7 @@ namespace realclosure {
         void neg(polynomial & p) {
             value_ref a_i(*this);
             unsigned sz = p.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 neg(p[i], a_i);
                 inc_ref(a_i.get());
                 dec_ref(p[i]);
@@ -3106,7 +3104,7 @@ namespace realclosure {
         bool struct_eq(unsigned sz_a, value * const * p_a, unsigned sz_b, value * const * p_b) const {
             if (sz_a != sz_b)
                 return false;
-            for (unsigned i = 0; i < sz_a; i++) {
+            for (unsigned i = 0; i < sz_a; ++i) {
                 if (!struct_eq(p_a[i], p_b[i]))
                     return false;
             }
@@ -3148,7 +3146,7 @@ namespace realclosure {
            \brief See comment at has_clean_denominators(value * a)
          */
         bool has_clean_denominators(unsigned sz, value * const * p) const {
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 if (!has_clean_denominators(p[i]))
                     return false;
             }
@@ -3170,7 +3168,7 @@ namespace realclosure {
         */
         void clean_denominators_core(value * a, value_ref & p, value_ref & q) {
             INC_DEPTH();
-            TRACE("rcf_clean", tout << "clean_denominators_core [" << m_exec_depth << "]\na: "; display(tout, a, false); tout << "\n";);
+            TRACE(rcf_clean, tout << "clean_denominators_core [" << m_exec_depth << "]\na: "; display(tout, a, false); tout << "\n";);
             p.reset(); q.reset();
             if (a == nullptr) {
                 p = a;
@@ -3218,7 +3216,7 @@ namespace realclosure {
             value_ref_buffer nums(*this), dens(*this);
             value_ref a_n(*this), a_d(*this);
             bool all_one = true;
-            for (unsigned i = 0; i < p_sz; i++) {
+            for (unsigned i = 0; i < p_sz; ++i) {
                 if (p[i]) {
                     clean_denominators_core(p[i], a_n, a_d);
                     nums.push_back(a_n);
@@ -3243,7 +3241,7 @@ namespace realclosure {
                 bool found_z = false;
                 SASSERT(nums.size() == p_sz);
                 SASSERT(dens.size() == p_sz);
-                for (unsigned i = 0; i < p_sz; i++) {
+                for (unsigned i = 0; i < p_sz; ++i) {
                     if (!dens[i])
                         continue;
                     if (is_nz_rational(dens[i])) {
@@ -3278,7 +3276,7 @@ namespace realclosure {
                 d = lcm;
                 value_ref_buffer multipliers(*this);
                 value_ref m(*this);
-                for (unsigned i = 0; i < p_sz; i++) {
+                for (unsigned i = 0; i < p_sz; ++i) {
                     if (!nums[i]) {
                         norm_p.push_back(nullptr);
                     }
@@ -3297,8 +3295,8 @@ namespace realclosure {
                             is_z = true;
                         }
                         bool found_lt_eq = false;
-                        for (unsigned j = 0; j < p_sz; j++) {
-                            TRACE("rcf_clean_bug", tout << "j: " << j << " "; display(tout, m, false); tout << "\n";);
+                        for (unsigned j = 0; j < p_sz; ++j) {
+                            TRACE(rcf_clean_bug, tout << "j: " << j << " "; display(tout, m, false); tout << "\n";);
                             if (!dens[j])
                                 continue;
                             if (i != j && !is_nz_rational(dens[j])) {
@@ -3429,7 +3427,7 @@ namespace realclosure {
             }
         }
 
-        bool get_interval(numeral const & a, int & lower_is_inf, int & lower_is_open, numeral & lower, int & upper_is_inf, int & upper_is_open, numeral & upper)
+        bool get_interval(numeral const & a, bool & lower_is_inf, bool & lower_is_open, numeral & lower, bool & upper_is_inf, bool & upper_is_open, numeral & upper)
         {
             if (!is_algebraic(a))
                 return false;
@@ -3448,16 +3446,23 @@ namespace realclosure {
             return true;
         }
 
-        unsigned get_sign_condition_size(numeral const &a, unsigned i) {
-            algebraic * ext = to_algebraic(to_rational_function(a)->ext());
+        sign_condition* get_ith_sign_condition(algebraic* ext, unsigned i) {
             const sign_det * sdt = ext->sdt();
             if (!sdt)
-                return 0;
+                return nullptr;
             sign_condition * sc = sdt->sc(ext->sc_idx());
-            while (i) {
-                if (sc) sc = sc->prev();
+            while (i && sc) {
+                sc = sc->prev();
                 i--;
             }
+            return sc;
+        }
+
+        unsigned get_sign_condition_size(numeral const &a, unsigned i) {
+            algebraic * ext = to_algebraic(to_rational_function(a)->ext());
+            sign_condition * sc = get_ith_sign_condition(ext, i);
+            if (!sc)
+                return 0;
             return ext->sdt()->qs()[sc->qidx()].size();
         }
 
@@ -3466,14 +3471,9 @@ namespace realclosure {
             if (!is_algebraic(a))
                 return 0;
             algebraic * ext = to_algebraic(to_rational_function(a)->ext());
-            const sign_det * sdt = ext->sdt();
-            if (!sdt)
+            sign_condition * sc = get_ith_sign_condition(ext, i);
+            if (!sc)
                 return 0;
-            sign_condition * sc = sdt->sc(ext->sc_idx());
-            while (i) {
-                if (sc) sc = sc->prev();
-                i--;
-            }
             const polynomial & q = ext->sdt()->qs()[sc->qidx()];
             return q.size();
         }
@@ -3483,14 +3483,9 @@ namespace realclosure {
             if (!is_algebraic(a))
                 return numeral();
             algebraic * ext = to_algebraic(to_rational_function(a)->ext());
-            const sign_det * sdt = ext->sdt();
-            if (!sdt)
+            sign_condition * sc = get_ith_sign_condition(ext, i);
+            if (!sc)
                 return numeral();
-            sign_condition * sc = sdt->sc(ext->sc_idx());
-            while (i) {
-                if (sc) sc = sc->prev();
-                i--;
-            }
             const polynomial & q = ext->sdt()->qs()[sc->qidx()];
             if (j >= q.size())
                 return numeral();
@@ -3547,7 +3542,7 @@ namespace realclosure {
                 return false;
             }
             else {
-                for (unsigned i = 0; i < p_sz; i++) {
+                for (unsigned i = 0; i < p_sz; ++i) {
                     if (p[i]) {
                         if (!gcd_int_coeffs(p[i], g))
                             return false;
@@ -3574,7 +3569,7 @@ namespace realclosure {
             if (gcd_int_coeffs(p.size(), p.data(), g) && !qm().is_one(g)) {
                 SASSERT(qm().is_pos(g));
                 value_ref a(*this);
-                for (unsigned i = 0; i < p.size(); i++) {
+                for (unsigned i = 0; i < p.size(); ++i) {
                     if (p[i]) {
                         a = p[i];
                         p.set(i, nullptr);
@@ -3608,7 +3603,7 @@ namespace realclosure {
                 value_ref_buffer new_ais(*this);
                 value_ref ai(*this);
                 polynomial const & p = rf->num();
-                for (unsigned i = 0; i < p.size(); i++) {
+                for (unsigned i = 0; i < p.size(); ++i) {
                     if (p[i]) {
                         ai = p[i];
                         exact_div_z(ai, b);
@@ -3649,7 +3644,7 @@ namespace realclosure {
                 value_ref a_i(*this);
                 SASSERT(p[sz-1] != 0);
                 if (!is_rational_one(p[sz-1])) {
-                    for (unsigned i = 0; i < sz - 1; i++) {
+                    for (unsigned i = 0; i < sz - 1; ++i) {
                         div(p[i], p[sz-1], a_i);
                         p.set(i, a_i);
                     }
@@ -3663,7 +3658,7 @@ namespace realclosure {
         */
         void gcd(unsigned sz1, value * const * p1, unsigned sz2, value * const * p2, value_ref_buffer & r) {
             INC_DEPTH();
-            TRACE("rcf_gcd", tout << "GCD [" << m_exec_depth << "]\n";
+            TRACE(rcf_gcd, tout << "GCD [" << m_exec_depth << "]\n";
                   display_poly(tout, sz1, p1); tout << "\n";
                   display_poly(tout, sz2, p2); tout << "\n";);
             if (sz1 == 0) {
@@ -3681,13 +3676,13 @@ namespace realclosure {
                 A.append(sz1, p1);
                 B.append(sz2, p2);
                 while (true) {
-                    TRACE("rcf_gcd",
+                    TRACE(rcf_gcd,
                           tout << "A: "; display_poly(tout, A.size(), A.data()); tout << "\n";
                           tout << "B: "; display_poly(tout, B.size(), B.data()); tout << "\n";);
                     if (B.empty()) {
                         mk_monic(A);
                         r = A;
-                        TRACE("rcf_gcd",
+                        TRACE(rcf_gcd,
                               tout << "gcd result: "; display_poly(tout, r.size(), r.data()); tout << "\n";);
                         return;
                     }
@@ -3708,7 +3703,7 @@ namespace realclosure {
 
         void prem_gcd(unsigned sz1, value * const * p1, unsigned sz2, value * const * p2, value_ref_buffer & r) {
             INC_DEPTH();
-            TRACE("rcf_gcd", tout << "prem-GCD [" << m_exec_depth << "]\n";
+            TRACE(rcf_gcd, tout << "prem-GCD [" << m_exec_depth << "]\n";
                   display_poly(tout, sz1, p1); tout << "\n";
                   display_poly(tout, sz2, p2); tout << "\n";);
             SASSERT(p1 != r.data());
@@ -3728,14 +3723,14 @@ namespace realclosure {
                 A.append(sz1, p1);
                 B.append(sz2, p2);
                 while (true) {
-                    TRACE("rcf_gcd",
+                    TRACE(rcf_gcd,
                           tout << "A: "; display_poly(tout, A.size(), A.data()); tout << "\n";
                           tout << "B: "; display_poly(tout, B.size(), B.data()); tout << "\n";);
                     if (B.empty()) {
                         normalize_int_coeffs(A);
                         flip_sign_if_lc_neg(A);
                         r = A;
-                        TRACE("rcf_gcd",
+                        TRACE(rcf_gcd,
                               tout << "gcd result: "; display_poly(tout, r.size(), r.data()); tout << "\n";);
                         return;
                     }
@@ -3759,7 +3754,7 @@ namespace realclosure {
         void derivative(unsigned sz, value * const * p, value_ref_buffer & r) {
             r.reset();
             if (sz > 1) {
-                for (unsigned i = 1; i < sz; i++) {
+                for (unsigned i = 1; i < sz; ++i) {
                     value_ref a_i(*this);
                     a_i = mk_rational(mpq(i));
                     mul(a_i, p[i], a_i);
@@ -3805,7 +3800,7 @@ namespace realclosure {
             flet<bool> set(m_in_aux_values, true);
 
             SASSERT(seq.size() >= 2);
-            TRACE("rcf_sturm_seq",
+            TRACE(rcf_sturm_seq,
                   unsigned sz = seq.size();
                   tout << "sturm_seq_core [" << m_exec_depth << "]\n";
                   display_poly(tout, seq.size(sz-2), seq.coeffs(sz-2)); tout << "\n";
@@ -3820,7 +3815,7 @@ namespace realclosure {
                 else {
                     srem(seq.size(sz-2), seq.coeffs(sz-2), seq.size(sz-1), seq.coeffs(sz-1), r);
                 }
-                TRACE("rcf_sturm_seq",
+                TRACE(rcf_sturm_seq,
                       tout << "sturm_seq_core [" << m_exec_depth << "], new polynomial\n";
                       display_poly(tout, r.size(), r.data()); tout << "\n";);
                 if (r.empty())
@@ -3937,7 +3932,7 @@ namespace realclosure {
            approximating the coefficients do not have -oo or oo as lower/upper bounds.
         */
         bool has_refineable_approx_coeffs(unsigned n, value * const * p) {
-            for (unsigned i = 0; i < n; i++) {
+            for (unsigned i = 0; i < n; ++i) {
                 if (p[i] != nullptr) {
                     mpbqi & a_i = interval(p[i]);
                     if (a_i.lower_is_inf() || a_i.upper_is_inf())
@@ -4021,7 +4016,7 @@ namespace realclosure {
         */
         int find_biggest_interval_magnitude(unsigned n, value * const * p) {
             int r = INT_MIN;
-            for (unsigned i = 0; i < n; i++) {
+            for (unsigned i = 0; i < n; ++i) {
                 if (p[i] != nullptr) {
                     mpbqi & a_i = interval(p[i]);
                     SASSERT(!a_i.lower_is_inf() && !a_i.upper_is_inf());
@@ -4105,11 +4100,10 @@ namespace realclosure {
             if (sz <= 1)
                 return 0;
             unsigned r = 0;
-            int sign, prev_sign;
-            sign = 0;
+            int sign = 0, prev_sign;
             prev_sign = 0;
             unsigned i = 0;
-            for (; i < sz; i++) {
+            for (; i < sz; ++i) {
                 // find next nonzero
                 unsigned psz      = seq.size(i);
                 value * const * p = seq.coeffs(i);
@@ -4125,9 +4119,6 @@ namespace realclosure {
                     break;
                 case MPBQ:
                     sign = eval_sign_at(psz, p, b);
-                    break;
-                default:
-                    UNREACHABLE();
                     break;
                 }
                 if (sign == 0)
@@ -4208,7 +4199,7 @@ namespace realclosure {
         */
         int TaQ(unsigned p_sz, value * const * p, unsigned q_sz, value * const * q, mpbqi const & interval) {
             INC_DEPTH();
-            TRACE("rcf_TaQ", tout << "TaQ [" << m_exec_depth << "]\n";
+            TRACE(rcf_TaQ, tout << "TaQ [" << m_exec_depth << "]\n";
                   display_poly(tout, p_sz, p); tout << "\n";
                   display_poly(tout, q_sz, q); tout << "\n";);
             scoped_polynomial_seq seq(*this);
@@ -4224,7 +4215,7 @@ namespace realclosure {
         */
         int TaQ_1(unsigned p_sz, value * const * p, mpbqi const & interval) {
             INC_DEPTH();
-            TRACE("rcf_TaQ", tout << "TaQ_1 [" << m_exec_depth << "]\n";
+            TRACE(rcf_TaQ, tout << "TaQ_1 [" << m_exec_depth << "]\n";
                   display_poly(tout, p_sz, p); tout << "\n";);
             scoped_polynomial_seq seq(*this);
             sturm_seq(p_sz, p, seq);
@@ -4254,7 +4245,7 @@ namespace realclosure {
            \brief Refine the interval for each coefficient of in the polynomial p.
         */
         bool refine_coeffs_interval(unsigned n, value * const * p, unsigned prec) {
-            for (unsigned i = 0; i < n; i++) {
+            for (unsigned i = 0; i < n; ++i) {
                 if (p[i] != nullptr && !refine_interval(p[i], prec))
                     return false;
             }
@@ -4324,7 +4315,7 @@ namespace realclosure {
                 refine_transcendental_interval(to_transcendental(v->ext()), _prec);
                 update_rf_interval(v, prec);
 
-                TRACE("rcf_transcendental", tout << "after update_rf_interval: " << magnitude(v->interval()) << " ";
+                TRACE(rcf_transcendental, tout << "after update_rf_interval: " << magnitude(v->interval()) << " ";
                       bqim().display(tout, v->interval()); tout << std::endl;);
 
                 if (check_precision(v->interval(), prec))
@@ -4471,7 +4462,7 @@ namespace realclosure {
                     return false;
 
                 update_rf_interval(v, prec);
-                TRACE("rcf_algebraic", tout << "after update_rf_interval: " << magnitude(v->interval()) << " "; bqim().display(tout, v->interval()); tout << std::endl;);
+                TRACE(rcf_algebraic, tout << "after update_rf_interval: " << magnitude(v->interval()) << " "; bqim().display(tout, v->interval()); tout << std::endl;);
                 if (check_precision(v->interval(), prec))
                     return true;
                 _prec++;
@@ -4517,7 +4508,7 @@ namespace realclosure {
          */
         static unsigned first_non_zero(polynomial const & p) {
             unsigned sz = p.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 if (p[i] != 0)
                     return i;
             }
@@ -4531,7 +4522,7 @@ namespace realclosure {
         int sign_of_first_non_zero(polynomial const & p, unsigned start_idx) {
             unsigned sz = p.size();
             SASSERT(start_idx < sz);
-            for (unsigned i = start_idx; i < sz; i++) {
+            for (unsigned i = start_idx; i < sz; ++i) {
                 if (p[i] != 0)
                     return sign(p[i]);
             }
@@ -4810,7 +4801,7 @@ namespace realclosure {
                     int_buffer   new_taqrs;
                     value_ref_buffer prq(*this);
                     // fill new_taqrs using taqrs and the new tarski queries containing q (and q^2 when use_q2 == true).
-                    for (unsigned i = 0; i < taqrs.size(); i++) {
+                    for (unsigned i = 0; i < taqrs.size(); ++i) {
                         // Add TaQ(p, prs[i] * 1; x->iso_interval())
                         new_taqrs.push_back(taqrs[i]);
                         // Add TaQ(p, prs[i] * q; x->iso_interval())
@@ -4832,16 +4823,16 @@ namespace realclosure {
                             //   - contains only 0 or 1
                             //   - !use_q2 IMPLIES for all i in [0, taqrs.size())   (sc_cardinalities[2*i] == 1) + (sc_cardinalities[2*i + 1] == 1) == 1
                             //   -  use_q2 IMPLIES for all i in [0, taqrs.size())   (sc_cardinalities[3*i] == 1) + (sc_cardinalities[3*i + 1] == 1) + (sc_cardinalities[3*i + 2] == 1) == 1
-                            for (unsigned i = 0; i < sc_cardinalities.size(); i++) {
+                            for (unsigned i = 0; i < sc_cardinalities.size(); ++i) {
                                 SASSERT(sc_cardinalities[i] == 0 || sc_cardinalities[i] == 1);
                             }
                             if (!use_q2) {
-                                for (unsigned i = 0; i < taqrs.size(); i++) {
+                                for (unsigned i = 0; i < taqrs.size(); ++i) {
                                     SASSERT((sc_cardinalities[2*i] == 1) + (sc_cardinalities[2*i + 1] == 1) == 1);
                                 }
                             }
                             else {
-                                for (unsigned i = 0; i < taqrs.size(); i++) {
+                                for (unsigned i = 0; i < taqrs.size(); ++i) {
                                     SASSERT((sc_cardinalities[3*i] == 1) + (sc_cardinalities[3*i + 1] == 1) + (sc_cardinalities[3*i + 2] == 1) == 1);
                                 }
                             }
@@ -4913,7 +4904,7 @@ namespace realclosure {
         bool expensive_determine_algebraic_sign(rational_function_value * v) {
             SASSERT(contains_zero(v->interval()));
             SASSERT(v->ext()->is_algebraic());
-            TRACE("rcf_algebraic_sign",
+            TRACE(rcf_algebraic_sign,
                   tout << "expensive_determine_algebraic_sign\n"; display(tout, v, false);
                   tout << "\ninterval: ";  bqim().display(tout, v->interval()); tout << "\n";);
             algebraic * x = to_algebraic(v->ext());
@@ -4964,16 +4955,13 @@ namespace realclosure {
         bool determine_sign(rational_function_value * v) {
             if (!contains_zero(v->interval()))
                 return true;
-            bool r;
+            bool r = false;
             switch (v->ext()->knd()) {
             case extension::TRANSCENDENTAL: determine_transcendental_sign(v); r = true; break; // it is never zero
             case extension::INFINITESIMAL:  determine_infinitesimal_sign(v);  r = true; break; // it is never zero
             case extension::ALGEBRAIC:      r = determine_algebraic_sign(v); break;
-            default:
-                UNREACHABLE();
-                r = false;
             }
-            TRACE("rcf_determine_sign_bug",
+            TRACE(rcf_determine_sign_bug,
                   tout << "result: " << r << "\n";
                   display_compact(tout, v); tout << "\n";
                   tout << "sign: " << sign(v) << "\n";);
@@ -4999,7 +4987,7 @@ namespace realclosure {
         */
         void normalize_fraction(unsigned sz1, value * const * p1, unsigned sz2, value * const * p2, value_ref_buffer & new_p1, value_ref_buffer & new_p2) {
             INC_DEPTH();
-            TRACE("rcf_arith", tout << "normalize [" << m_exec_depth << "]\n";
+            TRACE(rcf_arith, tout << "normalize [" << m_exec_depth << "]\n";
                   display_poly(tout, sz1, p1); tout << "\n";
                   display_poly(tout, sz2, p2); tout << "\n";);
             SASSERT(sz1 > 0 && sz2 > 0);
@@ -5023,7 +5011,7 @@ namespace realclosure {
                     normalize_num_monic_den(tmp1.size(), tmp1.data(), tmp2.size(), tmp2.data(), new_p1, new_p2);
                 }
             }
-            TRACE("normalize_fraction_bug",
+            TRACE(normalize_fraction_bug,
                   display_poly(tout, sz1, p1); tout << "\n";
                   display_poly(tout, sz2, p2); tout << "\n";
                   tout << "====>\n";
@@ -5232,7 +5220,7 @@ namespace realclosure {
             }
             else {
                 INC_DEPTH();
-                TRACE("rcf_arith", tout << "add [" << m_exec_depth << "]\n";
+                TRACE(rcf_arith, tout << "add [" << m_exec_depth << "]\n";
                       display(tout, a, false); tout << "\n";
                       display(tout, b, false); tout << "\n";);
                 switch (compare_rank(a, b)) {
@@ -5440,7 +5428,7 @@ namespace realclosure {
             }
             else {
                 INC_DEPTH();
-                TRACE("rcf_arith", tout << "mul [" << m_exec_depth << "]\n";
+                TRACE(rcf_arith, tout << "mul [" << m_exec_depth << "]\n";
                       display(tout, a, false); tout << "\n";
                       display(tout, b, false); tout << "\n";);
                 switch (compare_rank(a, b)) {
@@ -5497,7 +5485,7 @@ namespace realclosure {
            The following procedure is essentially a special case of the extended polynomial GCD algorithm.
         */
         bool inv_algebraic(unsigned q_sz, value * const * q, unsigned p_sz, value * const * p, value_ref_buffer & g, value_ref_buffer & h) {
-            TRACE("inv_algebraic",
+            TRACE(inv_algebraic,
                   tout << "q: "; display_poly(tout, q_sz, q); tout << "\n";
                   tout << "p: "; display_poly(tout, p_sz, p); tout << "\n";);
             SASSERT(q_sz > 0);
@@ -5517,7 +5505,7 @@ namespace realclosure {
             while (true) {
                 // In every iteration of the loop we have
                 //   Q(alpha) * h(alpha) = R(alpha)
-                TRACE("inv_algebraic",
+                TRACE(inv_algebraic,
                       tout << "Q: "; display_poly(tout, Q.size(), Q.data()); tout << "\n";
                       tout << "R: "; display_poly(tout, R.size(), R.data()); tout << "\n";);
                 if (Q.size() == 1) {
@@ -5525,7 +5513,7 @@ namespace realclosure {
                     // We just divide R by Q[0].
                     // h(alpha) = R(alpha) / Q[0]
                     div(R.size(), R.data(), Q[0], h);
-                    TRACE("inv_algebraic", tout << "h: "; display_poly(tout, h.size(), h.data()); tout << "\n";);
+                    TRACE(inv_algebraic, tout << "h: "; display_poly(tout, h.size(), h.data()); tout << "\n";);
                     // g <- 1
                     g.reset(); g.push_back(one());
                     return true;
@@ -5667,7 +5655,7 @@ namespace realclosure {
                         alpha_val = mk_rational_function_value(alpha);
                         // search for the root that is equal to alpha
                         unsigned i = 0;
-                        for (i = 0; i < roots.size(); i++) {
+                        for (i = 0; i < roots.size(); ++i) {
                             if (compare(alpha_val, roots[i].m_value) == 0) {
                                 // found it;
                                 break;
@@ -5809,7 +5797,7 @@ namespace realclosure {
             value_ref neg_a(*this);
             neg(a.m_value, neg_a);
             p.push_back(neg_a);
-            for (unsigned i = 0; i < k - 1; i++)
+            for (unsigned i = 0; i < k - 1; ++i)
                 p.push_back(nullptr);
             p.push_back(one());
 
@@ -5904,7 +5892,7 @@ namespace realclosure {
             }
 
             void mark(polynomial const & p) {
-                for (unsigned i = 0; i < p.size(); i++) {
+                for (unsigned i = 0; i < p.size(); ++i) {
                     mark(p[i]);
                 }
             }
@@ -5921,7 +5909,7 @@ namespace realclosure {
 
         static unsigned num_nz_coeffs(polynomial const & p) {
             unsigned r = 0;
-            for (unsigned i = 0; i < p.size(); i++) {
+            for (unsigned i = 0; i < p.size(); ++i) {
                 if (p[i])
                     r++;
             }
@@ -6068,11 +6056,11 @@ namespace realclosure {
 
         void display_poly(std::ostream & out, unsigned n, value * const * p) const {
             collect_algebraic_refs c;
-            for (unsigned i = 0; i < n; i++)
+            for (unsigned i = 0; i < n; ++i)
                 c.mark(p[i]);
             display_polynomial(out, n, p, display_free_var_proc(), true, false);
             std::sort(c.m_found.begin(), c.m_found.end(), rank_lt_proc());
-            for (unsigned i = 0; i < c.m_found.size(); i++) {
+            for (unsigned i = 0; i < c.m_found.size(); ++i) {
                 algebraic * ext = c.m_found[i];
                 out << "\n   r!" << ext->idx() << " := ";
                 display_algebraic_def(out, ext, true, false);
@@ -6131,7 +6119,7 @@ namespace realclosure {
                 std::sort(c.m_found.begin(), c.m_found.end(), rank_lt_proc());
                 out << "[";
                 display(out, a, true, pp);
-                for (unsigned i = 0; i < c.m_found.size(); i++) {
+                for (unsigned i = 0; i < c.m_found.size(); ++i) {
                     algebraic * ext = c.m_found[i];
                     if (pp)
                         out << "; &alpha;<sub>" << ext->idx() << "</sub> := ";
@@ -6475,7 +6463,7 @@ namespace realclosure {
         return m_imp->get_sign_condition_sign(a, i);
     }
 
-    bool manager::get_interval(numeral const & a, int & lower_is_inf, int & lower_is_open, numeral & lower, int & upper_is_inf, int & upper_is_open, numeral & upper)
+    bool manager::get_interval(numeral const & a, bool & lower_is_inf, bool & lower_is_open, numeral & lower, bool & upper_is_inf, bool & upper_is_open, numeral & upper)
     {
         return m_imp->get_interval(a, lower_is_inf, lower_is_open, lower, upper_is_inf, upper_is_open, upper);
     }
@@ -6489,7 +6477,7 @@ namespace realclosure {
     {
         return m_imp->get_sign_condition_coefficient(a, i, j);
     }
-};
+}
 
 void pp(realclosure::manager::imp * imp, realclosure::polynomial const & p, realclosure::extension * ext) {
     imp->display_polynomial_expr(std::cout, p, ext, false, false);
@@ -6502,12 +6490,12 @@ void pp(realclosure::manager::imp * imp, realclosure::value * v) {
 }
 
 void pp(realclosure::manager::imp * imp, unsigned sz, realclosure::value * const * p) {
-    for (unsigned i = 0; i < sz; i++)
+    for (unsigned i = 0; i < sz; ++i)
         pp(imp, p[i]);
 }
 
 void pp(realclosure::manager::imp * imp, realclosure::manager::imp::value_ref_buffer const & p) {
-    for (unsigned i = 0; i < p.size(); i++)
+    for (unsigned i = 0; i < p.size(); ++i)
         pp(imp, p[i]);
 }
 

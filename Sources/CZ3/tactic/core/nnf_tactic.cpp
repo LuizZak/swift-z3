@@ -40,7 +40,7 @@ public:
     nnf_tactic(params_ref const & p):
         m_params(p),
         m_nnf(nullptr) {
-        TRACE("nnf", tout << "nnf_tactic constructor: " << p << "\n";);
+        TRACE(nnf, tout << "nnf_tactic constructor: " << p << "\n";);
     }
 
     tactic * translate(ast_manager & m) override {
@@ -54,7 +54,7 @@ public:
     void collect_param_descrs(param_descrs & r) override { nnf::get_param_descrs(r); }
 
     void operator()(goal_ref const & g, goal_ref_buffer & result) override {
-        TRACE("nnf", tout << "params: " << m_params << "\n"; g->display(tout););
+        TRACE(nnf, tout << "params: " << m_params << "\n"; g->display(tout););
         tactic_report report("nnf", *g);
         bool produce_proofs = g->proofs_enabled();
 
@@ -70,7 +70,7 @@ public:
         proof_ref  new_pr(m);
         
         unsigned sz = g->size();
-        for (unsigned i = 0; !g->inconsistent() && i < sz; i++) {
+        for (unsigned i = 0; !g->inconsistent() && i < sz; ++i) {
             expr * curr = g->form(i);
             local_nnf(curr, defs, def_prs, new_curr, new_pr);
             if (produce_proofs) {
@@ -81,7 +81,7 @@ public:
         }
         
         sz = defs.size();
-        for (unsigned i = 0; !g->inconsistent() && i < sz; i++) {
+        for (unsigned i = 0; !g->inconsistent() && i < sz; ++i) {
             if (produce_proofs)
                 g->assert_expr(defs.get(i), def_prs.get(i), nullptr);
             else
@@ -93,7 +93,7 @@ public:
         if (num_extra_names > 0 && !g->inconsistent()) {
             generic_model_converter * fmc = alloc(generic_model_converter, m, "nnf");
             g->add(fmc);
-            for (unsigned i = 0; i < num_extra_names; i++)
+            for (unsigned i = 0; i < num_extra_names; ++i)
                 fmc->hide(dnames.get_name_decl(i));
         }
     }
@@ -108,6 +108,6 @@ tactic * mk_snf_tactic(ast_manager & m, params_ref const & p) {
 tactic * mk_nnf_tactic(ast_manager & m, params_ref const & p) {
     params_ref new_p(p);
     new_p.set_sym("mode", symbol("full"));
-    TRACE("nnf", tout << "mk_nnf: " << new_p << "\n";);
+    TRACE(nnf, tout << "mk_nnf: " << new_p << "\n";);
     return using_params(mk_snf_tactic(m, p), new_p);
 }

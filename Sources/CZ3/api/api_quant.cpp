@@ -21,6 +21,7 @@ Revision History:
 #include "api/api_util.h"
 #include "parsers/util/pattern_validation.h"
 #include "ast/expr_abstract.h"
+#include "ast/rewriter/rewriter.h"
 
 extern "C" {
 
@@ -73,7 +74,7 @@ extern "C" {
         expr * const* no_ps = reinterpret_cast<expr * const*>(no_patterns);
         symbol qid = to_symbol(quantifier_id);
         pattern_validator v(mk_c(c)->m());
-        for (unsigned i = 0; i < num_patterns; i++) {
+        for (unsigned i = 0; i < num_patterns; ++i) {
             if (!v(num_decls, ps[i], 0, 0)) {
                 SET_ERROR_CODE(Z3_INVALID_PATTERN, nullptr);
                 return nullptr;
@@ -242,11 +243,13 @@ extern "C" {
         // Abstract patterns
         svector<Z3_pattern> _patterns;
         expr_ref_vector pinned(mk_c(c)->m());
+        var_shifter shift(mk_c(c)->m());
         for (unsigned i = 0; i < num_patterns; ++i) {
             expr_ref result(mk_c(c)->m());
             app* pat = to_pattern(patterns[i]);
             SASSERT(mk_c(c)->m().is_pattern(pat));
-            expr_abstract(mk_c(c)->m(), 0, num_bound, bound_asts.data(), pat, result);
+            shift(pat, num_bound, result);
+            expr_abstract(mk_c(c)->m(), 0, num_bound, bound_asts.data(), result, result);
             SASSERT(result.get()->get_kind() == AST_APP);
             pinned.push_back(result.get());
             if (!mk_c(c)->m().is_pattern(result.get())) {
@@ -263,13 +266,15 @@ extern "C" {
                 RETURN_Z3(nullptr);
             }
             app* pat = to_app(to_expr(no_patterns[i]));
-            expr_abstract(mk_c(c)->m(), 0, num_bound, bound_asts.data(), pat, result);
+            shift(pat, num_bound, result);
+            expr_abstract(mk_c(c)->m(), 0, num_bound, bound_asts.data(), result, result);
             SASSERT(result.get()->get_kind() == AST_APP);
             pinned.push_back(result.get());
             _no_patterns.push_back(of_ast(result.get()));
         }
         expr_ref abs_body(mk_c(c)->m());
-        expr_abstract(mk_c(c)->m(), 0, num_bound, bound_asts.data(), to_expr(body), abs_body);
+        shift(to_expr(body), num_bound, abs_body);
+        expr_abstract(mk_c(c)->m(), 0, num_bound, bound_asts.data(), abs_body, abs_body);
 
         Z3_ast result = mk_quantifier_ex_core(c, is_forall, weight,
                                               quantifier_id,
@@ -321,6 +326,10 @@ extern "C" {
         Z3_TRY;
         LOG_Z3_mk_pattern(c, num_patterns, terms);
         RESET_ERROR_CODE();
+        if (num_patterns == 0) {
+            SET_ERROR_CODE(Z3_INVALID_ARG, "pattern requires at least one term");
+            RETURN_Z3(nullptr);
+        }
         for (unsigned i = 0; i < num_patterns; ++i) {
             if (!is_app(to_expr(terms[i]))) {
                 SET_ERROR_CODE(Z3_INVALID_ARG, nullptr);
@@ -579,5 +588,4 @@ extern "C" {
         return Z3_ast_to_string(c, reinterpret_cast<Z3_ast>(p));
     }
 
-};
-
+}

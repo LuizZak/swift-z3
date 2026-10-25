@@ -19,6 +19,8 @@ Revision History:
 #include "util/mpq.h"
 #include "util/warning.h"
 #include "util/z3_exception.h"
+#include <cstdlib>
+#include <numeric>
 
 template<bool SYNCH>
 mpq_manager<SYNCH>::~mpq_manager() {
@@ -32,7 +34,25 @@ mpq_manager<SYNCH>::~mpq_manager() {
 
 
 template<bool SYNCH>
+bool mpq_manager<SYNCH>::small_addmul(mpq const& a, mpq const& b, mpq const& c, mpq& d) {
+    int64_t an = a.m_num.value(), ad = a.m_den.value();
+    int64_t bn = b.m_num.value(), bd = b.m_den.value();
+    int64_t cn = c.m_num.value(), cd = c.m_den.value();
+    // Three 20-bit factors and their sum fit in signed 64 bits.
+    if ((std::abs(an) | ad | std::abs(bn) | bd | std::abs(cn) | cd) >= (1 << 20))
+        return false;
+    int64_t n = an * bd * cd + bn * cn * ad;
+    int64_t den = ad * bd * cd;
+    int64_t g = std::gcd(n, den);
+    set(d.m_num, n / g);
+    set(d.m_den, den / g);
+    return true;
+}
+
+template<bool SYNCH>
 bool mpq_manager<SYNCH>::rat_lt(mpq const & a, mpq const & b) {
+    if (is_small(a) && is_small(b))
+        return int64_t(a.m_num.value()) * b.m_den.value() < int64_t(b.m_num.value()) * a.m_den.value();
     mpz const & na = a.numerator();
     mpz const & nb = b.numerator();
     int sign_a = this->sign(na);
@@ -108,7 +128,7 @@ void mpq_manager<SYNCH>::gcd(unsigned sz, mpq const * as, mpq & g) {
         break;
     }
     gcd(as[0], as[1], g);
-    for (unsigned i = 2; i < sz; i++) {
+    for (unsigned i = 2; i < sz; ++i) {
         if (is_one(g))
             return;
         gcd(g, as[i], g);
@@ -164,7 +184,7 @@ void mpq_manager<SYNCH>::display_decimal(std::ostream & out, mpq const & a, unsi
     if (is_zero(n1))
         goto end; // number is an integer
     out << ".";
-    for (unsigned i = 0; i < prec; i++) {
+    for (unsigned i = 0; i < prec; ++i) {
         mul(n1, ten, n1);
         div(n1, d1, v1);
         SASSERT(lt(v1, ten));
@@ -197,7 +217,7 @@ void mpq_manager<SYNCH>::set(mpq & a, char const * val) {
         }
         ++str;
     }
-    TRACE("mpq_set", tout << "[before] a: " << to_string(a) << "\n";);
+    TRACE(mpq_set, tout << "[before] a: " << to_string(a) << "\n";);
     if (str[0] == '/' || str[0] == '.' || str[0] == 'e' || str[0] == 'E') {
         bool is_rat = str[0] == '/';
         _scoped_numeral<mpz_manager<SYNCH> > tmp2(*this);
@@ -239,7 +259,7 @@ void mpq_manager<SYNCH>::set(mpq & a, char const * val) {
                 else if ('/' == str[0]) {
                     throw default_exception("mixing rational/scientific notation");
                 }
-                TRACE("mpq_set", tout << "[exp]: " << exp << ", str[0]: " << (str[0] - '0') << std::endl;);
+                TRACE(mpq_set, tout << "[exp]: " << exp << ", str[0]: " << (str[0] - '0') << std::endl;);
                 ++str;
             }
         }
@@ -258,7 +278,7 @@ void mpq_manager<SYNCH>::set(mpq & a, char const * val) {
                 _scoped_numeral<mpq_manager<SYNCH>> _qten(*this);
                 _qten = 10;
                 power(_qten, static_cast<unsigned>(exp), _exp);
-                TRACE("mpq_set", tout << "a: " << to_string(a) << ", exp_sign:" << exp_sign << ", exp: " << exp << " " << to_string(_exp) << std::endl;);
+                TRACE(mpq_set, tout << "a: " << to_string(a) << ", exp_sign:" << exp_sign << ", exp: " << exp << " " << to_string(_exp) << std::endl;);
                 if (exp_sign)
                     div(a, _exp, a);
                 else
@@ -281,6 +301,33 @@ void mpq_manager<SYNCH>::set(mpq & a, char const * val) {
 
 template<bool SYNCH>
 void mpq_manager<SYNCH>::power(mpq const & a, unsigned p, mpq & b) {
+    if (p == 1) {
+        set(b, a);
+        return;
+    }
+    if (p == 0) {
+        set(b, 1);
+        return;
+    }
+    if (eq(a, 1)) {
+        set(b, 1);
+        return;
+    }
+    if (eq(a, -1)) {
+        if (p % 2 == 0)
+            set(b, 1);
+        else
+            set(b, -1);
+        return;
+    }
+    if (eq(a, 0)) {
+        set(b, 0);
+        return;
+    }
+
+    if (p > (1 << 20)) 
+        throw default_exception("power is too large to compute");    
+
     unsigned mask = 1;
     mpq power;
     set(power, a);
@@ -326,6 +373,22 @@ unsigned mpq_manager<SYNCH>::next_power_of_two(mpq const & a) {
 template<bool SYNCH>
 template<bool SUB>
 void mpq_manager<SYNCH>::lin_arith_op(mpq const& a, mpq const& b, mpq& c, mpz& g, mpz& tmp1, mpz& tmp2, mpz& tmp3) {
+    if (is_small(a) && is_small(b)) {
+        int64_t an = a.m_num.value(), ad = a.m_den.value();
+        int64_t bn = b.m_num.value(), bd = b.m_den.value();
+        int64_t gcd = std::gcd(ad, bd);
+        // Signed 32-bit numerators and positive 31-bit denominators leave room for both products.
+        int64_t n = an * (bd / gcd);
+        if (SUB)
+            n -= bn * (ad / gcd);
+        else
+            n += bn * (ad / gcd);
+        int64_t d = (ad / gcd) * bd;
+        int64_t h = std::gcd(n, gcd);
+        set(c.m_num, n / h);
+        set(c.m_den, d / h);
+        return;
+    }
     gcd(a.m_den, b.m_den, g);                   
     if (is_one(g)) {                            
        mul(a.m_num, b.m_den, tmp1);             
@@ -335,24 +398,36 @@ void mpq_manager<SYNCH>::lin_arith_op(mpq const& a, mpq const& b, mpq& c, mpz& g
     }                                           
     else {                                      
         div(a.m_den, g, tmp3);                  
-        mul(tmp3, b.m_den, c.m_den);            
+        // Keep the new denominator separate until b has been read: c may alias b.
+        mul(tmp3, b.m_den, tmp1);
         mul(tmp3, b.m_num, tmp2);               
         div(b.m_den, g, tmp3);                  
-        mul(tmp3, a.m_num, tmp1);               
-        if (SUB) sub(tmp1, tmp2, tmp3); else add(tmp1, tmp2, tmp3);
-        gcd(tmp3, g, tmp1);                     
-        if (is_one(tmp1)) {                     
-            set(c.m_num, tmp3);                 
+        mul(tmp3, a.m_num, c.m_num);
+        if (SUB) sub(c.m_num, tmp2, tmp3); else add(c.m_num, tmp2, tmp3);
+        gcd(tmp3, g, tmp2);
+        if (is_one(tmp2)) {
+            set(c.m_num, tmp3);
         }                                       
         else {                                  
-            div(tmp3, tmp1, c.m_num);           
-            div(c.m_den, tmp1, c.m_den);        
+            div(tmp3, tmp2, c.m_num);
+            div(tmp1, tmp2, tmp1);
         }                                       
+        set(c.m_den, tmp1);
     }                                           
 }
 
 template<bool SYNCH>
 void mpq_manager<SYNCH>::rat_mul(mpq const & a, mpq const & b, mpq & c, mpz& g1, mpz& g2, mpz& tmp1, mpz& tmp2) {
+    if (is_small(a) && is_small(b)) {
+        int64_t an = a.m_num.value(), ad = a.m_den.value();
+        int64_t bn = b.m_num.value(), bd = b.m_den.value();
+        int64_t gcd1 = std::gcd(an, bd), gcd2 = std::gcd(bn, ad);
+        int64_t n = (an / gcd1) * (bn / gcd2);
+        int64_t d = (ad / gcd2) * (bd / gcd1);
+        set(c.m_num, n);
+        set(c.m_den, d);
+        return;
+    }
 #if 1
     gcd(a.m_den, b.m_num, g1);
     gcd(a.m_num, b.m_den, g2);
@@ -371,17 +446,17 @@ void mpq_manager<SYNCH>::rat_mul(mpq const & a, mpq const & b, mpq & c, mpz& g1,
 
 template<bool SYNCH>
 void mpq_manager<SYNCH>::rat_mul(mpz const & a, mpq const & b, mpq & c) {
-    STRACE("rat_mpq", tout << "[mpq] " << to_string(a) << " * " << to_string(b) << " == ";); 
+    STRACE(rat_mpq, tout << "[mpq] " << to_string(a) << " * " << to_string(b) << " == ";); 
     mul(a, b.m_num, c.m_num);
     set(c.m_den, b.m_den);
     normalize(c);
-    STRACE("rat_mpq", tout << to_string(c) << "\n";);
+    STRACE(rat_mpq, tout << to_string(c) << "\n";);
 }
 
 
 template<bool SYNCH>
 void mpq_manager<SYNCH>::rat_mul(mpq const & a, mpq const & b, mpq & c) {
-    STRACE("rat_mpq", tout << "[mpq] " << to_string(a) << " * " << to_string(b) << " == ";); 
+    STRACE(rat_mpq, tout << "[mpq] " << to_string(a) << " * " << to_string(b) << " == ";); 
     if (SYNCH) {
         mpz g1, g2, tmp1, tmp2;
         rat_mul(a, b, c, g1, g2, tmp1, tmp2);
@@ -393,12 +468,12 @@ void mpq_manager<SYNCH>::rat_mul(mpq const & a, mpq const & b, mpq & c) {
     else {
         rat_mul(a, b, c, m_tmp1, m_tmp2, m_tmp3, m_tmp4);
     }
-    STRACE("rat_mpq", tout << to_string(c) << "\n";);
+    STRACE(rat_mpq, tout << to_string(c) << "\n";);
 }
 
 template<bool SYNCH>
 void mpq_manager<SYNCH>::rat_add(mpq const & a, mpq const & b, mpq & c) {
-    STRACE("rat_mpq", tout << "[mpq] " << to_string(a) << " + " << to_string(b) << " == ";); 
+    STRACE(rat_mpq, tout << "[mpq] " << to_string(a) << " + " << to_string(b) << " == ";); 
     if (SYNCH) {
         mpz_stack tmp1, tmp2, tmp3, g;
         lin_arith_op<false>(a, b, c, g, tmp1, tmp2, tmp3);
@@ -410,12 +485,12 @@ void mpq_manager<SYNCH>::rat_add(mpq const & a, mpq const & b, mpq & c) {
     else {
         lin_arith_op<false>(a, b, c, m_tmp1, m_tmp2, m_tmp3, m_tmp4);
     }
-    STRACE("rat_mpq", tout << to_string(c) << "\n";);
+    STRACE(rat_mpq, tout << to_string(c) << "\n";);
 }
 
 template<bool SYNCH>
 void mpq_manager<SYNCH>::rat_sub(mpq const & a, mpq const & b, mpq & c) {
-    STRACE("rat_mpq", tout << "[mpq] " << to_string(a) << " - " << to_string(b) << " == ";); 
+    STRACE(rat_mpq, tout << "[mpq] " << to_string(a) << " - " << to_string(b) << " == ";); 
     if (SYNCH) {
         mpz tmp1, tmp2, tmp3, g;
         lin_arith_op<true>(a, b, c, g, tmp1, tmp2, tmp3);
@@ -427,7 +502,7 @@ void mpq_manager<SYNCH>::rat_sub(mpq const & a, mpq const & b, mpq & c) {
     else {
         lin_arith_op<true>(a, b, c, m_tmp1, m_tmp2, m_tmp3, m_tmp4);
     }
-    STRACE("rat_mpq", tout << to_string(c) << "\n";);
+    STRACE(rat_mpq, tout << to_string(c) << "\n";);
 }
 
 

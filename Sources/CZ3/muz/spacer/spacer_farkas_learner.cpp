@@ -99,7 +99,7 @@ bool farkas_learner::is_pure_expr(func_decl_set const& symbs, expr* e, ast_manag
         return false;
     }
     return true;
-};
+}
 
 
 /**
@@ -177,9 +177,8 @@ void farkas_learner::get_lemmas(proof* root, expr_set const& bs, expr_ref_vector
     bool_rewriter brwr(m);
     func_decl_set Bsymbs;
     collect_pure_proc collect_proc(Bsymbs);
-    expr_set::iterator it = bs.begin(), end = bs.end();
-    for (; it != end; ++it) {
-        for_each_expr(collect_proc, *it);
+    for (expr* e : bs) {
+        for_each_expr(collect_proc, e);
     }
 
     proof_ref pr(root, m);
@@ -194,7 +193,7 @@ void farkas_learner::get_lemmas(proof* root, expr_set const& bs, expr_ref_vector
     expr_set* empty_set = alloc(expr_set);
     hyprefs.push_back(empty_set);
     ptr_vector<proof> todo;
-    TRACE("spacer_verbose", tout << mk_pp(pr, m) << "\n";);
+    TRACE(spacer_verbose, tout << mk_pp(pr, m) << "\n";);
     todo.push_back(pr);
     while (!todo.empty()) {
         proof* p = todo.back();
@@ -253,7 +252,7 @@ void farkas_learner::get_lemmas(proof* root, expr_set const& bs, expr_ref_vector
                 if (IS_B_PURE(arg)) {
                     expr* fact = m.get_fact(arg);
                     if (is_pure_expr(Bsymbs, fact, m)) {
-                        TRACE("farkas_learner2",
+                        TRACE(farkas_learner2,
                               tout << "Add: " << mk_pp(m.get_fact(arg), m) << "\n";
                               tout << mk_pp(arg, m) << "\n";
                              );
@@ -323,7 +322,7 @@ void farkas_learner::get_lemmas(proof* root, expr_set const& bs, expr_ref_vector
             rational coef;
             vector<rational> coeffs;
 
-            TRACE("farkas_learner2",
+            TRACE(farkas_learner2,
             for (unsigned i = 0; i < prem_cnt; ++i) {
             VERIFY(params[i].is_rational(coef));
                 proof* prem = to_app(p->get_arg(i));
@@ -375,10 +374,11 @@ void farkas_learner::get_lemmas(proof* root, expr_set const& bs, expr_ref_vector
             if (num_b_pures > 0) {
                 expr_ref res(m);
                 combine_constraints(coeffs.size(), lits.data(), coeffs.data(), res);
-                TRACE("farkas_learner2", tout << "Add: " << mk_pp(res, m) << "\n";);
+                TRACE(farkas_learner2, tout << "Add: " << mk_pp(res, m) << "\n";);
                 INSERT(res);
                 b_closed.mark(p, true);
             }
+            break;
         }
         default:
             break;
@@ -412,7 +412,7 @@ void farkas_learner::get_asserted(proof* p0, expr_set const& bs, ast_mark& b_clo
         if (p->get_decl_kind() == PR_ASSERTED &&
                 bs.contains(m.get_fact(p))) {
             expr* fact = m.get_fact(p);
-            TRACE("farkas_learner2",
+            TRACE(farkas_learner2,
                   tout << mk_ll_pp(p0, m) << "\n";
                   tout << "Add: " << mk_pp(p, m) << "\n";);
             INSERT(fact);

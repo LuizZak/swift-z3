@@ -40,7 +40,7 @@ namespace intblast {
     euf::theory_var solver::mk_var(euf::enode* n) {
         auto r = euf::th_euf_solver::mk_var(n);
         ctx.attach_th_var(n, this, r);
-        TRACE("bv", tout << "mk-var: v" << r << " " << ctx.bpp(n) << "\n";);
+        TRACE(bv, tout << "mk-var: v" << r << " " << ctx.bpp(n) << "\n";);
         return r;
     }
 
@@ -52,7 +52,7 @@ namespace intblast {
         sat::literal lit = expr2literal(e);
         if (sign)
             lit.neg();
-        TRACE("bv", tout << mk_pp(e, m) << " -> " << literal2expr(lit) << "\n");
+        TRACE(bv, tout << mk_pp(e, m) << " -> " << literal2expr(lit) << "\n");
         return lit;
     }
 
@@ -133,8 +133,26 @@ namespace intblast {
         return true;
     }
 
+    bool solver::add_bv2int_axioms() {
+        auto const& bv2int = m_translator.bv2int();
+        if (m_bv2int_qhead == bv2int.size())
+            return false;
+        ctx.push(value_trail(m_bv2int_qhead));
+        for (; m_bv2int_qhead < bv2int.size(); ++m_bv2int_qhead) {
+            app* e = bv2int[m_bv2int_qhead];
+            expr_ref r(m_translator.translated(e), m);
+            if (r.get() == e)
+                continue;
+            ctx.get_rewriter()(r);
+            auto lit = ctx.mk_literal(m.mk_eq(e, r));
+            ctx.mark_relevant(lit);
+            add_unit(lit);
+        }
+        return true;
+    }
+
     bool solver::unit_propagate() {
-        return add_bound_axioms() || add_predicate_axioms();
+        return add_bound_axioms() || add_predicate_axioms() || add_bv2int_axioms();
     }    
 
     lbool solver::check_axiom(sat::literal_vector const& lits) {
@@ -312,7 +330,7 @@ namespace intblast {
             }
         }
         return r;
-    };
+    }
 
     bool solver::is_bv(sat::literal lit) {
         expr* e = ctx.bool_var2expr(lit.var());
@@ -365,7 +383,7 @@ namespace intblast {
         for (expr* e : todo)
             m_translator.translate_expr(e);
 
-        TRACE("bv",
+        TRACE(bv,
             for (expr* e : es)
                 tout << mk_pp(e, m) << "\n->\n" << mk_pp(m_translator.translated(e), m) << "\n";
         );
@@ -382,7 +400,7 @@ namespace intblast {
             for (auto sib : euf::enode_class(n)) {
                 if (sib == n)
                     continue;
-                if (!bv.is_bv2int(sib->get_expr()))
+                if (!bv.is_ubv2int(sib->get_expr()))
                     continue;
                 if (sib->get_arg(0)->get_root() == r1)
                     continue;
@@ -401,7 +419,7 @@ namespace intblast {
         for (auto e : m_translator.int2bv()) {
             auto n = expr2enode(e);
             auto x = n->get_arg(0)->get_expr();
-            auto bv2int = bv.mk_bv2int(e);
+            auto bv2int = bv.mk_ubv2int(e);
             ctx.internalize(bv2int);
             auto N = rational::power_of_two(bv.get_bv_size(e));
             auto xModN = a.mk_mod(x, a.mk_int(N));
@@ -490,7 +508,7 @@ namespace intblast {
             rw.mk_app(n->get_decl(), args.size(), args.data(), value);
         }
         else {
-            expr_ref bv2int(bv.mk_bv2int(n->get_expr()), m);
+            expr_ref bv2int(bv.mk_ubv2int(n->get_expr()), m);
             euf::enode* b2i = ctx.get_enode(bv2int);
             SASSERT(b2i);
             VERIFY(b2i);
@@ -500,7 +518,7 @@ namespace intblast {
             value = bv.mk_numeral(r, bv.get_bv_size(n->get_expr()));
         }
         values.set(n->get_root_id(), value);
-        TRACE("model", tout << "add_value " << ctx.bpp(n) << " := " << value << "\n");
+        TRACE(model, tout << "add_value " << ctx.bpp(n) << " := " << value << "\n");
     }
 
     void solver::finalize_model(model& mdl) {
@@ -513,7 +531,7 @@ namespace intblast {
                 continue;
             auto t = m_translator.translated(e);
             
-            expr_ref ei(bv.mk_bv2int(e), m);
+            expr_ref ei(bv.mk_ubv2int(e), m);
             expr_ref ti(a.mk_mod(t, a.mk_int(rational::power_of_two(bv.get_bv_size(e)))), m);
             auto ev = mdl(ei);
             auto tv = mdl(ti);

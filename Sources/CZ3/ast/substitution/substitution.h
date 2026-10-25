@@ -60,7 +60,7 @@ class substitution {
 
 
     // keep track of how substitution state was last updated.
-    enum state { CLEAN, APPLY, INSERT };
+    enum class state { CLEAN, APPLY, INSERT };
     state                       m_state;
 
 #ifdef Z3DEBUG
@@ -132,12 +132,12 @@ public:
     // -----------------------------------
 
     void insert(unsigned v_idx, unsigned offset, expr_offset const & t) {
-        TRACE("subst_insert", tout << "inserting: #" << v_idx << ":" << offset << " --> " << mk_pp(t.get_expr(), m_manager)
+        TRACE(subst_insert, tout << "inserting: #" << v_idx << ":" << offset << " --> " << mk_pp(t.get_expr(), m_manager)
               << ":" << t.get_offset() << "\n";);
         m_vars.push_back(var_offset(v_idx, offset));
         m_refs.push_back(t.get_expr());
         m_subst.insert(v_idx, offset, t);
-        m_state = INSERT;
+        m_state = state::INSERT;
     }
     void insert(var * v, unsigned offset, expr_offset const & t) { insert(v->get_idx(), offset, t); }
     void insert(expr_offset v, expr_offset const & t) {

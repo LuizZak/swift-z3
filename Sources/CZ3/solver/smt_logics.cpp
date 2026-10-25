@@ -22,65 +22,74 @@ Revision History:
 
 
 bool smt_logics::supported_logic(symbol const & s) {
-    return logic_has_uf(s) || logic_is_all(s) || logic_has_fd(s) || 
+    return logic_has_ff(s) || logic_has_uf(s) || logic_is_all(s) || logic_has_fd(s) ||
         logic_has_arith(s) || logic_has_bv(s) ||
-        logic_has_array(s) || logic_has_seq(s) || logic_has_str(s) ||
-        logic_has_horn(s) || logic_has_fpa(s) || logic_has_datatype(s);
+        logic_has_array(s) || logic_has_seq(s) || logic_has_str(s) || logic_has_horn(s) || logic_has_fpa(s) ||
+           logic_has_datatype(s) || logic_has_finite_sets(s);
 }
 
 bool smt_logics::logic_has_reals_only(symbol const& s) {
+    auto str = s.str();
     return
-        s.str().find("LRA") != std::string::npos ||
-        s.str().find("LRA") != std::string::npos ||
-        s.str().find("NRA") != std::string::npos ||
-        s.str().find("RDL") != std::string::npos;
+        str.find("LRA") != std::string::npos ||
+        str.find("LRA") != std::string::npos ||
+        str.find("NRA") != std::string::npos ||
+        str.find("NTA") != std::string::npos ||
+        str.find("RDL") != std::string::npos;
 }
 
 bool smt_logics::logic_has_arith(symbol const & s) {
+    auto str = s.str();
     return
-        s.str().find("LRA") != std::string::npos ||
-        s.str().find("LIRA") != std::string::npos ||
-        s.str().find("LIA") != std::string::npos ||
-        s.str().find("LRA") != std::string::npos ||
-        s.str().find("NRA") != std::string::npos ||
-        s.str().find("NIRA") != std::string::npos ||
-        s.str().find("NIA") != std::string::npos ||
-        s.str().find("IDL") != std::string::npos ||
-        s.str().find("RDL") != std::string::npos ||
-        s == "QF_BVRE" ||
-        s == "QF_FP" ||
-        s == "FP" ||
-        s == "QF_FPBV" ||
-        s == "QF_BVFP" ||
-        s == "QF_S" ||
+        str.find("LRA") != std::string::npos ||
+        str.find("LIRA") != std::string::npos ||
+        str.find("LIA") != std::string::npos ||
+        str.find("LRA") != std::string::npos ||
+        str.find("NRA") != std::string::npos ||
+        str.find("NTA") != std::string::npos ||
+        str.find("NIRA") != std::string::npos ||
+        str.find("NIA") != std::string::npos ||
+        str.find("IDL") != std::string::npos ||
+        str.find("RDL") != std::string::npos ||
+        str == "QF_BVRE" ||
+        logic_has_fpa(s) ||
+        str == "QF_S" ||
         logic_is_all(s) ||
-        s == "QF_FD" ||
-        s == "HORN";
+        str == "QF_FD" ||
+        str == "HORN";
+}
+
+bool smt_logics::logic_has_transcendental(symbol const & s) {
+    auto str = s.str();
+    return str.find("NTA") != std::string::npos || logic_is_all(s);
 }
 
 bool smt_logics::logic_has_bv(symbol const & s) {
+    auto str = s.str();
     return
-        s.str().find("BV") != std::string::npos ||
-        s == "FP" ||
+        str.find("BV") != std::string::npos ||
+        str == "FP" ||
         logic_is_all(s) ||
-        s == "QF_FD" ||
-        s == "SMTFD" ||
-        s == "HORN";
+        str == "QF_FD" ||
+        str == "SMTFD" ||
+        str == "HORN";
+}
+
+bool smt_logics::logic_has_finite_sets(symbol const &s) {
+    auto str = s.str();
+    return
+        str.find("FS") != std::string::npos ||
+        logic_is_all(s);
 }
 
 bool smt_logics::logic_has_array(symbol const & s) {
+    auto str = s.str();
     return
-        s.str().find("QF_A") != std::string::npos ||        
-        s == "ALIA" ||
-        s == "AUFLIA" ||
-        s == "AUFLIRA" ||
-        s == "AUFNIA" ||
-        s == "AUFNIRA" ||
-        s == "AUFBV" ||
-        s == "ABV" ||
+        str.starts_with("QF_A") ||
+        str.starts_with("A") ||
         logic_is_all(s) ||
-        s == "SMTFD" ||
-        s == "HORN";
+        str == "SMTFD" ||
+        str == "HORN";
 }
 
 bool smt_logics::logic_has_seq(symbol const & s) {
@@ -88,17 +97,24 @@ bool smt_logics::logic_has_seq(symbol const & s) {
 }
 
 bool smt_logics::logic_has_str(symbol const & s) {
-    return s == "QF_S" || s == "QF_SLIA" || s == "QF_SNIA" || logic_is_all(s);
+    auto str = s.str();
+    return str == "QF_S" ||
+           str == "QF_SLIA" ||
+           str == "QF_SNIA" ||
+           logic_is_all(s);
 }
 
 bool smt_logics::logic_has_fpa(symbol const & s) {
-    return s == "FP" || s == "QF_FP" || s == "QF_FPBV" || s == "QF_BVFP" || s == "QF_FPLRA"  || logic_is_all(s);
+    auto str = s.str();
+    return str.find("FP") != std::string::npos ||
+           logic_is_all(s);
 }
 
 bool smt_logics::logic_has_uf(symbol const & s) {
+    auto str = s.str();
     return 
-        s.str().find("UF") != std::string::npos ||
-        s == "SMTFD";
+        str.find("UF") != std::string::npos ||
+        str == "SMTFD";
 }
 
 bool smt_logics::logic_has_horn(symbol const& s) {
@@ -110,9 +126,10 @@ bool smt_logics::logic_has_pb(symbol const& s) {
 }
 
 bool smt_logics::logic_has_datatype(symbol const& s) {
+    auto str = s.str();
     return 
-        s.str().find("DT") != std::string::npos ||
-        s == "QF_FD" ||
+        str.find("DT") != std::string::npos ||
+        str == "QF_FD" ||
         logic_is_all(s) ||
         logic_has_horn(s);
 }

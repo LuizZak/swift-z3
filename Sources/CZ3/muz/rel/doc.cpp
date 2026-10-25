@@ -23,7 +23,7 @@ Revision History:
 #include "muz/rel/doc.h"
 #include "smt/smt_kernel.h"
 #include "ast/rewriter/expr_safe_replace.h"
-#include "smt/params/smt_params.h"
+#include "params/smt_params.h"
 #include "ast/ast_util.h"
 #include "ast/ast_pp.h"
 
@@ -249,7 +249,7 @@ bool doc_manager::merge(doc& d, unsigned idx, subset_ints const& equalities,
     }
     while (idx != root);
 
-    TRACE("doc", tout << "num_x: " << num_x << " value: " << value << "\n";);
+    TRACE(doc, tout << "num_x: " << num_x << " value: " << value << "\n";);
     if (num_x == 0) {
         // nothing to do.
     }
@@ -365,7 +365,7 @@ doc* doc_manager::project(doc_manager& dstm, bit_vector const& to_delete, doc co
                 default: UNREACHABLE(); break;                    
                 }
             }
-            TRACE("doc",
+            TRACE(doc,
                   tout << "pos: ";
                   for (unsigned i = 0; i < pos.size(); ++i) {
                       tbvm().display(tout, pos[i]) << " ";
@@ -685,7 +685,7 @@ void doc_manager::check_equiv(ast_manager& m, expr* fml1, expr* fml2) {
     solver.assert_expr(fml);
     lbool res = solver.check();
     if (res != l_false) {        
-        TRACE("doc",
+        TRACE(doc,
               tout << mk_pp(fml1, m) << "\n";
               tout << mk_pp(fml2, m) << "\n";
               );
@@ -711,7 +711,7 @@ expr_ref doc_manager::to_formula(ast_manager & m, tbv const& src) {
             break;            
         }        
     }
-    result = mk_and(m, conj.size(), conj.data());
+    result = mk_and(conj);
     return result;    
 }
 
@@ -726,7 +726,7 @@ expr_ref doc_manager::to_formula(ast_manager& m, doc const& src) {
     for (unsigned i = 0; i < src.neg().size(); ++i) {
         conj.push_back(m.mk_not(to_formula(m, src.neg()[i])));
     }
-    result = mk_and(m, conj.size(), conj.data());
+    result = mk_and(conj);
     return result;
 }
     
@@ -755,7 +755,11 @@ void doc_manager::project_rename(expr_ref& fml, bit_vector const& to_delete) {
     expr_safe_replace rep(m);
     for (unsigned i = 0, j = 0; i < num_tbits(); ++i) {
         if (!to_delete.get(i)) {
-            rep.insert(mk_var(m, j), mk_var(m, i));
+            {
+                auto lhs = mk_var(m, j);
+                auto rhs = mk_var(m, i);
+                rep.insert(lhs, rhs);
+            }
             ++j;
         }
     }

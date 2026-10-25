@@ -62,14 +62,13 @@ class ackr_bound_probe : public probe {
 public:
     result operator()(goal const & g) override {
         proc p(g.m());
-        unsigned sz = g.size();
         expr_fast_mark1 visited;
-        for (unsigned i = 0; i < sz; i++) {
-            for_each_expr_core<proc, expr_fast_mark1, true, true>(p, visited, g.form(i));
+        for (auto [curr, dep, pr] : g) {
+            for_each_expr_core<proc, expr_fast_mark1, true, true>(p, visited, curr);
         }
         p.prune_non_select();
         double total = ackr_helper::calculate_lemma_bound(p.m_fun2terms, p.m_sel2terms);
-        TRACE("ackermannize", tout << "total=" << total << std::endl;);
+        TRACE(ackermannize, tout << "total=" << total << std::endl;);
         return result(total);
     }
 

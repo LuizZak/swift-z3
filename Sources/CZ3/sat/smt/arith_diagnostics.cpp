@@ -34,7 +34,20 @@ namespace arith {
     }
 
     arith_proof_hint* arith_proof_hint_builder::mk(euf::solver& s) {
-        return new (s.get_region()) arith_proof_hint(m_ty, m_lit_head, m_lit_tail, m_eq_head, m_eq_tail);
+        auto type = m_ty;
+        unsigned certificate = UINT_MAX;
+        if (type == hint_type::nla_h) {
+            auto& a = dynamic_cast<solver&>(*s.fid2solver(s.get_manager().get_family_id("arith")));
+            if (a.m_lemma.nlsat_assumed())
+                type = hint_type::nlsat_assumed_h;
+            else if (a.m_lemma.certificate()) {
+                certificate = m_nla_certificates.size();
+                m_nla_certificates.push_back(a.m_lemma.certificate());
+            }
+            else
+                type = hint_type::nla_unsupported_h;
+        }
+        return new (s.get_region()) arith_proof_hint(type, m_lit_head, m_lit_tail, m_eq_head, m_eq_tail, certificate);
     }
     
     std::ostream& solver::display(std::ostream& out) const { 
@@ -190,7 +203,7 @@ namespace arith {
         family_id fid = m.get_family_id("arith");
         arith_util arith(m);
         solver& a = dynamic_cast<solver&>(*s.fid2solver(fid));
-        char const* name;
+        char const* name = nullptr;
         expr_ref_vector args(m);
 
         switch (m_ty) {
@@ -209,8 +222,11 @@ namespace arith {
         case hint_type::nla_h:
             name = "nla";
             break;
-        default:
-            name = "unknown-arithmetic";
+        case hint_type::nlsat_assumed_h:
+            name = "nlsat-assumed";
+            break;
+        case hint_type::nla_unsupported_h:
+            name = "nla-unsupported";
             break;
         }
 
@@ -220,7 +236,7 @@ namespace arith {
             expr_ref eq(m.mk_eq(x->get_expr(), y->get_expr()), m);
             if (!is_eq) eq = m.mk_not(eq);
             args.push_back(arith.mk_int(1));
-            args.push_back(eq);
+            args.push_back(std::move(eq));
         };
         rational lc(1);
         for (unsigned i = m_lit_head; i < m_lit_tail; ++i) 
@@ -241,6 +257,11 @@ namespace arith {
                 push_eq(is_eq, x, y);
         }
 
+        if (m_certificate != UINT_MAX) {
+            std::ostringstream text;
+            a.m_arith_hint.certificate(m_certificate).display(text);
+            args.push_back(m.mk_const(symbol(text.str()), m.mk_proof_sort()));
+        }
         return m.mk_app(symbol(name), args.size(), args.data(), m.mk_proof_sort());
     }
 
@@ -255,8 +276,8 @@ namespace arith {
         cancel_eh<reslimit> eh(m.limit());
         scoped_timer timer(1000, &eh);
         bool result = l_true != vs->check_sat();
-        CTRACE("arith", !result, vs->display(tout));
-        CTRACE("arith", !result, s().display(tout));
+        CTRACE(arith, !result, vs->display(tout));
+        CTRACE(arith, !result, s().display(tout));
         SASSERT(result);
         return result;
     }

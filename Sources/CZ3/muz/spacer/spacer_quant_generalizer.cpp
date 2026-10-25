@@ -20,6 +20,7 @@ Revision History:
 --*/
 
 
+#include <tuple>
 #include "muz/spacer/spacer_context.h"
 #include "muz/spacer/spacer_generalizers.h"
 #include "muz/spacer/spacer_manager.h"
@@ -50,7 +51,8 @@ struct index_lt_proc {
         bool is_num2 = m_arith.is_numeral(b, val2);
 
         if (is_num1 && is_num2) {
-            return val1 < val2;
+            return std::tuple<rational const&, unsigned>(val1, a->get_id()) <
+                   std::tuple<rational const&, unsigned>(val2, b->get_id());
         }
         else if (is_num1 != is_num2) {
             return is_num1;
@@ -68,7 +70,8 @@ struct index_lt_proc {
         }
 
         if (is_num1 && is_num2) {
-            return val1 < val2;
+            return std::tuple<rational const&, unsigned>(val1, a->get_id()) <
+                   std::tuple<rational const&, unsigned>(val2, b->get_id());
         }
         else if (is_num1 != is_num2) {
             return is_num1;
@@ -165,14 +168,14 @@ void lemma_quantifier_generalizer::find_candidates(expr *e,
     expr_sparse_mark marked_args;
 
     // Make sure not to try and quantify already-quantified indices
-    for (unsigned idx=0, sz = indices.size(); idx < sz; idx++) {
+    for (unsigned idx=0, sz = indices.size(); idx < sz; ++idx) {
         // skip expressions that already contain a quantified variable
         if (has_zk_const(indices.get(idx))) {
             continue;
         }
 
         app *index = indices.get(idx);
-        TRACE ("spacer_qgen", tout << "Candidate: "<< mk_pp(index, m)
+        TRACE(spacer_qgen, tout << "Candidate: "<< mk_pp(index, m)
                << " in " << mk_pp(e, m) << "\n";);
         extra.push_back(index);
         if (m_arith.is_add(index)) {
@@ -254,7 +257,7 @@ void lemma_quantifier_generalizer::cleanup(expr_ref_vector &cube,
 
     for (expr *e : cube) {
         if (match_sk_idx(e, zks, idx, sk)) {
-            CTRACE("spacer_qgen", idx != sk,
+            CTRACE(spacer_qgen, idx != sk,
                    tout << "Possible cleanup of " << mk_pp(idx, m) << " in "
                    << mk_pp(e, m) << " on " << mk_pp(sk, m) << "\n";);
 
@@ -278,7 +281,7 @@ void lemma_quantifier_generalizer::cleanup(expr_ref_vector &cube,
 
             rep = arith.mk_add(kids.size(), kids.data());
             bind = arith.mk_add(kids_bind.size(), kids_bind.data());
-            TRACE("spacer_qgen",
+            TRACE(spacer_qgen,
                   tout << "replace " << mk_pp(idx, m) << " with " << mk_pp(rep, m) << "\n"
                   << "bind is: " << bind << "\n";);
             break;
@@ -290,7 +293,7 @@ void lemma_quantifier_generalizer::cleanup(expr_ref_vector &cube,
         rw.insert(sk, rep);
         rw.insert(idx, sk);
         rw(cube);
-        TRACE("spacer_qgen",
+        TRACE(spacer_qgen,
               tout << "Cleaned cube to: " << mk_and(cube) << "\n";);
     }
 }
@@ -325,12 +328,14 @@ void lemma_quantifier_generalizer::mk_abs_cube(lemma_ref &lemma, app *term,
         minus_one = m_arith.mk_numeral(rational(-1), is_int);
 
         // term+1 -> var+1  if term is a number
+        expr_ref plus_one(m_arith.mk_numeral(val + 1, is_int), m);
         sub.insert(
-            m_arith.mk_numeral(val + 1, is_int),
+            plus_one,
             m_arith.mk_add(var, m_arith.mk_numeral(rational(1), is_int)));
         // -term-1 -> -1*var + -1  if term is a number
+        expr_ref neg_plus_one(m_arith.mk_numeral(-1*val + -1, is_int), m);
         sub.insert(
-            m_arith.mk_numeral(-1*val + -1, is_int),
+            neg_plus_one,
             m_arith.mk_add (m_arith.mk_mul (minus_one, var), minus_one));
     }
 
@@ -507,12 +512,12 @@ bool lemma_quantifier_generalizer::generalize (lemma_ref &lemma, app *term) {
     mk_abs_cube(lemma, term, var, gnd_cube, abs_cube, lb, ub, stride);
     if (abs_cube.empty()) {return false;}
     if (has_nlira(abs_cube)) {
-        TRACE("spacer_qgen",
+        TRACE(spacer_qgen,
               tout << "non-linear expression: " << abs_cube << "\n";);
         return false;
     }
 
-    TRACE("spacer_qgen",
+    TRACE(spacer_qgen,
           tout << "abs_cube is: " << mk_and(abs_cube) << "\n";
           tout << "term: " << mk_pp(term, m) << "\n";
           tout << "lb = ";
@@ -532,7 +537,6 @@ bool lemma_quantifier_generalizer::generalize (lemma_ref &lemma, app *term) {
     }
     if (!ub) {
         abs_cube.push_back (m_arith.mk_le(var, term));
-        ub = abs_cube.back();
     }
 
     rational init;
@@ -544,13 +548,12 @@ bool lemma_quantifier_generalizer::generalize (lemma_ref &lemma, app *term) {
 
     if (stride > 1 && m_arith.is_numeral(constant, init)) {
         unsigned mod = init.get_unsigned() % stride;
-        TRACE("spacer_qgen",
+        TRACE(spacer_qgen,
               tout << "mod=" << mod << " init=" << init << " stride=" << stride << "\n";
               tout.flush(););
-        abs_cube.push_back
-            (m.mk_eq(m_arith.mk_mod(var,
-                                    m_arith.mk_numeral(rational(stride), true)),
-                     m_arith.mk_numeral(rational(mod), true)));}
+        expr_ref remainder(m_arith.mk_mod(var, m_arith.mk_numeral(rational(stride), true)), m);
+        abs_cube.push_back(m.mk_eq(remainder, m_arith.mk_numeral(rational(mod), true)));
+    }
 
     // skolemize
     expr_ref gnd(m);
@@ -558,14 +561,14 @@ bool lemma_quantifier_generalizer::generalize (lemma_ref &lemma, app *term) {
     ground_expr(mk_and(abs_cube), gnd, zks);
     flatten_and(gnd, gnd_cube);
 
-    TRACE("spacer_qgen",
+    TRACE(spacer_qgen,
           tout << "New CUBE is: " << gnd_cube << "\n";);
 
     // check if the result is a true lemma
     unsigned uses_level = 0;
     pred_transformer &pt = lemma->get_pob()->pt();
     if (pt.check_inductive(lemma->level(), gnd_cube, uses_level, lemma->weakness())) {
-        TRACE("spacer_qgen",
+        TRACE(spacer_qgen,
               tout << "Quantifier Generalization Succeeded!\n"
               << "New CUBE is: " << gnd_cube << "\n";);
         SASSERT(zks.size() >= static_cast<unsigned>(m_offset));
@@ -612,7 +615,7 @@ bool lemma_quantifier_generalizer::find_stride(expr_ref_vector &cube,
     app_ref_vector indices(m);
     get_select_indices(pattern, indices);
 
-    CTRACE("spacer_qgen", indices.empty(),
+    CTRACE(spacer_qgen, indices.empty(),
            tout << "Found no select indices in: " << pattern << "\n";);
 
     // TBD: handle multi-dimensional arrays and literals with multiple
@@ -638,7 +641,7 @@ bool lemma_quantifier_generalizer::find_stride(expr_ref_vector &cube,
 
         unsigned size = p_index->get_num_args();
         unsigned matched = 0;
-        for (unsigned p = 0; p < size; p++) {
+        for (unsigned p = 0; p < size; ++p) {
             expr *arg = p_index->get_arg(p);
             if (is_var(arg)) {
                 rational val;
@@ -664,7 +667,7 @@ bool lemma_quantifier_generalizer::find_stride(expr_ref_vector &cube,
         if (candidate->get_num_args() == matched)
             instances.push_back(0);
 
-        TRACE("spacer_qgen",
+        TRACE(spacer_qgen,
               tout << "Match succeeded!\n";);
     }
 
@@ -674,7 +677,7 @@ bool lemma_quantifier_generalizer::find_stride(expr_ref_vector &cube,
     std::sort(instances.begin(), instances.end());
 
     stride = instances[1]-instances[0];
-    TRACE("spacer_qgen", tout << "Index Stride is: " << stride << "\n";);
+    TRACE(spacer_qgen, tout << "Index Stride is: " << stride << "\n";);
 
     return true;
 }
@@ -686,7 +689,7 @@ void lemma_quantifier_generalizer::operator()(lemma_ref &lemma) {
     m_st.count++;
     scoped_watch _w_(m_st.watch);
 
-    TRACE("spacer_qgen",
+    TRACE(spacer_qgen,
           tout << "initial cube: " << mk_and(lemma->get_cube()) << "\n";);
 
     // setup the cube
@@ -700,7 +703,7 @@ void lemma_quantifier_generalizer::operator()(lemma_ref &lemma) {
         normalize(c, c, false, true);
         m_cube.reset();
         flatten_and(c, m_cube);
-        TRACE("spacer_qgen",
+        TRACE(spacer_qgen,
               tout << "normalized cube:\n" << mk_and(m_cube) << "\n";);
     }
 
@@ -708,7 +711,7 @@ void lemma_quantifier_generalizer::operator()(lemma_ref &lemma) {
     m_offset = lemma->get_pob()->get_free_vars_size();
 
     // for every literal, find a candidate term to abstract
-    for (unsigned i=0; i < m_cube.size(); i++) {
+    for (unsigned i=0; i < m_cube.size(); ++i) {
         expr *r = m_cube.get(i);
 
         // generate candidates for abstraction
@@ -717,7 +720,7 @@ void lemma_quantifier_generalizer::operator()(lemma_ref &lemma) {
         if (candidates.empty()) continue;
 
         // for every candidate
-        for (unsigned arg=0, sz = candidates.size(); arg < sz; arg++) {
+        for (unsigned arg=0, sz = candidates.size(); arg < sz; ++arg) {
             if (generalize (lemma, candidates.get(arg))) {
                 return;
             }

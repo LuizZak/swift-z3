@@ -300,6 +300,10 @@ namespace smt {
         */
         static void collect_param_descrs(param_descrs & d);
 
+        void pop_to_base_level();
+
+        void set_preprocess(bool f);
+
         void register_on_clause(void* ctx, user_propagator::on_clause_eh_t& on_clause);
 
         /**
@@ -318,6 +322,8 @@ namespace smt {
         void user_propagate_register_eq(user_propagator::eq_eh_t& eq_eh);
         
         void user_propagate_register_diseq(user_propagator::eq_eh_t& diseq_eh);
+
+        void user_propagate_register_on_binding(user_propagator::binding_eh_t& binding_eh);
 
         void user_propagate_register_expr(expr* e);
         
@@ -338,6 +344,6 @@ namespace smt {
            \warning This method should not be used in new code.
         */
         context & get_context();
+        context const& get_context() const;
     };
-};
-
+}

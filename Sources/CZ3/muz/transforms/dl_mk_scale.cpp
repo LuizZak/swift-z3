@@ -49,7 +49,7 @@ namespace datalog {
 				expr_ref tmp(m);
 
 				if (!new_fi) {
-					TRACE("dl", tout << new_p->get_name() << " has no value in the current model\n";);
+					TRACE(dl, tout << new_p->get_name() << " has no value in the current model\n";);
 					continue;
 				}
 				for (unsigned i = 0; i < old_p->get_arity(); ++i) {
@@ -88,7 +88,7 @@ namespace datalog {
                 }
             }
             md = old_model;
-            //TRACE("dl", model_smt2_pp(tout, m, *md, 0); );
+            //TRACE(dl, model_smt2_pp(tout, m, *md, 0); );
         }
 
         model_converter * translate(ast_translation & translator) override {
@@ -147,7 +147,11 @@ namespace datalog {
             }
             app_ref new_pred = mk_pred(num_vars, r.get_head());
             tail.append(m_eqs);
-            tail.push_back(a.mk_gt(m.mk_var(num_vars, a.mk_real()), a.mk_numeral(rational(0), false)));
+            {
+                expr_ref lhs(m.mk_var(num_vars, a.mk_real()), m);
+                expr_ref rhs(a.mk_numeral(rational(0), false), m);
+                tail.push_back(a.mk_gt(lhs, rhs));
+            }
             neg.resize(tail.size(), false);
             new_rule = rm.mk(new_pred, tail.size(), tail.data(), neg.data(), r.name(), true);
             result->add_rule(new_rule);
@@ -155,7 +159,7 @@ namespace datalog {
                 result->set_output_predicate(new_rule->get_decl());
             }
         }
-        TRACE("dl", result->display(tout););
+        TRACE(dl, result->display(tout););
         if (m_mc) {
             m_ctx.add_model_converter(m_mc);
         }
@@ -235,4 +239,4 @@ namespace datalog {
         return result;
     }
 
-};
+}

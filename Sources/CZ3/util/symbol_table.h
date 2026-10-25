@@ -30,17 +30,6 @@ class symbol_table {
     struct key_data {
         symbol   m_key;
         T        m_data;
-     
-        key_data() = default;
-
-        explicit key_data(symbol k):
-            m_key(k) {
-        }
-        
-        key_data(symbol k, const T & d):
-            m_key(k), 
-            m_data(d) {
-        }
     };
 
     struct key_data_hash_proc { 
@@ -129,7 +118,7 @@ public:
     }
     
     bool contains(symbol key) const { 
-        return m_sym_table.contains(key_data(key)); 
+        return m_sym_table.contains(key_data{key});
     }
 
     unsigned get_scope_level() const { 
@@ -148,11 +137,11 @@ public:
                 m_trail_stack.push_back(dummy);
                 key_data & new_entry = m_trail_stack.back();
                 new_entry.m_key = symbol::mark(new_entry.m_key);
-                m_sym_table.insert(key_data(key, data));
+                m_sym_table.insert(key_data{key, data});
             }
         }
         else {
-            m_sym_table.insert(key_data(key, data));
+            m_sym_table.insert(key_data{key, data});
         }
     }
     
@@ -165,7 +154,7 @@ public:
         m_trail_lims.pop_back();
         unsigned curr_size = m_trail_stack.size();
         SASSERT(old_size <= curr_size);
-        for (unsigned i = old_size; i < curr_size; i++) {
+        for (unsigned i = old_size; i < curr_size; ++i) {
             key_data & curr_entry = m_trail_stack.back();
             symbol key = curr_entry.m_key;
             if (key.is_marked()) {

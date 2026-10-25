@@ -25,6 +25,8 @@ Revision History:
 #include "ast/ast.h"
 #include "ast/char_decl_plugin.h"
 #include "util/lbool.h"
+#include "util/len_abs.h"
+#include "util/manage_warnings.h"
 #include "util/zstring.h"
 
 enum seq_sort_kind {
@@ -59,6 +61,7 @@ enum seq_op_kind {
     OP_SEQ_MAPI,           // Array[Int,A,B] -> Int -> Seq[A] -> Seq[B]
     OP_SEQ_FOLDL,          // Array[B,A,B] -> B -> Seq[A] -> B
     OP_SEQ_FOLDLI,         // Array[Int,B,A,B] -> Int -> B -> Seq[A] -> B
+    OP_SEQ_POWER,          // Seq -> Int -> Seq, s^n
  
     OP_RE_PLUS,
     OP_RE_STAR,
@@ -68,6 +71,7 @@ enum seq_op_kind {
     OP_RE_UNION,
     OP_RE_DIFF,
     OP_RE_INTERSECT,
+    OP_RE_XOR,
     OP_RE_LOOP,
     OP_RE_POWER,
     OP_RE_COMPLEMENT,
@@ -104,10 +108,10 @@ enum seq_op_kind {
     _OP_STRING_CHARAT,
     _OP_STRING_SUBSTR,
     _OP_STRING_STRIDOF,
+    _OP_STRING_POWER,
     _OP_REGEXP_EMPTY,
     _OP_REGEXP_FULL_CHAR,
     _OP_RE_IS_NULLABLE,
-    _OP_RE_ANTIMIROV_UNION, // Lifted union for antimirov-style derivatives
     _OP_SEQ_SKOLEM,
     LAST_SEQ_OP
 };
@@ -224,10 +228,10 @@ class seq_util {
 
 public:
 
-    unsigned max_plus(unsigned x, unsigned y) const;
-    unsigned max_mul(unsigned x, unsigned y) const;
-
     ast_manager& get_manager() const { return m; }
+    char_decl_plugin &get_char_plugin() const {
+        return ch;
+    }
 
     sort* mk_char_sort() const { return seq.char_sort(); }
     sort* mk_string_sort() const { return seq.string_sort(); }
@@ -239,7 +243,7 @@ public:
     bool is_re(sort* s) const { return is_sort_of(s, m_fid, RE_SORT); }
     bool is_re(sort* s, sort*& seq) const { return is_sort_of(s, m_fid, RE_SORT)  && (seq = to_sort(s->get_parameter(0).get_ast()), true); }
     bool is_seq(expr* e) const  { return is_seq(e->get_sort()); }
-    bool is_seq(sort* s, sort*& seq) const { return is_seq(s) && (seq = to_sort(s->get_parameter(0).get_ast()), true); }
+    bool is_seq(sort* s, sort*& ch) const { return is_seq(s) && (ch = to_sort(s->get_parameter(0).get_ast()), true); }
     bool is_re(expr* e) const { return is_re(e->get_sort()); }
     bool is_re(expr* e, sort*& seq) const { return is_re(e->get_sort(), seq); }
     bool is_const_char(expr* e, unsigned& c) const;
@@ -268,10 +272,14 @@ public:
     app* mk_skolem(symbol const& name, unsigned n, expr* const* args, sort* range);
     bool is_skolem(expr const* e) const { return is_app_of(e, m_fid, _OP_SEQ_SKOLEM); }
 
+    bool can_be_member(expr *seq, expr *regex);
+
+    START_DISABLE_EXTRA_SEMI_WARNING;
     MATCH_BINARY(is_char_le);
     MATCH_UNARY(is_char2int);
     MATCH_UNARY(is_char2bv);
     MATCH_UNARY(is_bv2char);
+    END_DISABLE_WARNING;
 
     bool has_re() const { return seq.has_re(); }
     bool has_seq() const { return seq.has_seq(); }
@@ -307,6 +315,7 @@ public:
         app* mk_mapi(expr* f, expr* i, expr* s) const { expr* es[3] = { f, i, s }; return m.mk_app(m_fid, OP_SEQ_MAPI, 3, es); }
         app* mk_foldl(expr* f, expr* b, expr* s) const { expr* es[3] = { f, b, s }; return m.mk_app(m_fid, OP_SEQ_FOLDL, 3, es); }
         app* mk_foldli(expr* f, expr* i, expr* b, expr* s) const { expr* es[4] = { f, i, b, s }; return m.mk_app(m_fid, OP_SEQ_FOLDLI, 4, es); }
+        app* mk_power(expr* s, expr* n) const { expr* es[2] = { s, n }; return m.mk_app(m_fid, OP_SEQ_POWER, 2, es); }
 
         app* mk_substr(expr* a, expr* b, expr* c) const { expr* es[3] = { a, b, c }; return m.mk_app(m_fid, OP_SEQ_EXTRACT, 3, es); }
         app* mk_contains(expr* a, expr* b) const { expr* es[2] = { a, b }; return m.mk_app(m_fid, OP_SEQ_CONTAINS, 2, es); }
@@ -348,6 +357,7 @@ public:
         bool is_mapi(expr const* n)      const { return is_app_of(n, m_fid, OP_SEQ_MAPI); }
         bool is_foldl(expr const* n)      const { return is_app_of(n, m_fid, OP_SEQ_FOLDL); }
         bool is_foldli(expr const* n)      const { return is_app_of(n, m_fid, OP_SEQ_FOLDLI); }
+        bool is_power(expr const* n)       const { return is_app_of(n, m_fid, OP_SEQ_POWER); }
         bool is_extract(expr const* n)  const { return is_app_of(n, m_fid, OP_SEQ_EXTRACT); }
         bool is_contains(expr const* n) const { return is_app_of(n, m_fid, OP_SEQ_CONTAINS); }
         bool is_at(expr const* n)       const { return is_app_of(n, m_fid, OP_SEQ_AT); }
@@ -391,6 +401,12 @@ public:
             return (u.is_seq(s) && !u.is_string(s));
         }
 
+        // Decompose s into a constant length plus a non-negative combination of the lengths
+        // of its non-constant parts: |s| in cst + { sum c_i |v_i| }.  Returns the constant and
+        // the gcd of the multiplicities c_i (0 when s has no variable part).
+        std::pair<unsigned, unsigned> length_shape(expr *s);
+
+        START_DISABLE_EXTRA_SEMI_WARNING;
         MATCH_BINARY(is_concat);
         MATCH_UNARY(is_length);
         MATCH_TERNARY(is_extract);
@@ -404,6 +420,7 @@ public:
         MATCH_TERNARY(is_mapi);
         MATCH_TERNARY(is_foldl);
         MATCH_QUATARY(is_foldli);
+        MATCH_BINARY(is_power);
         MATCH_BINARY(is_last_index);
         MATCH_TERNARY(is_replace);
         MATCH_TERNARY(is_replace_re);
@@ -422,6 +439,7 @@ public:
         MATCH_UNARY(is_to_code);
         MATCH_BINARY(is_in_re);
         MATCH_UNARY(is_unit);
+        END_DISABLE_WARNING;
 
         void get_concat(expr* e, expr_ref_vector& es) const;
         void get_concat(expr* e, ptr_vector<expr>& es) const;
@@ -443,11 +461,40 @@ public:
             lbool nullable { l_undef };
             /* Lower bound  on the length of all accepted words. */
             unsigned min_length { 0 };
+            /* Upper bound on the length of all accepted words, or UINT_MAX if unknown. */
+            unsigned max_length { UINT_MAX };
+            /* Classical regular expression: does not use complement, intersection, diff, or the empty language (fail). */
+            bool classical { true };
+
+            /*
+              Approximate semilinear (ultimately periodic) abstraction of the length set
+              Lambda(r) = { |w| : w in L(r) }. The soundness contract is the containment
+
+                  Lambda(r)  subseteq  { n : min_length <= n <= max_length, (n mod period) in residues }
+
+              The abstraction itself, and every operation on it, lives in len_abs;
+              this struct only stores it and forwards. See util/len_abs.h.
+            */
+            static constexpr unsigned max_period = len_abs::max_period;
+            unsigned period { 1 };
+            uint64_t residues { 1 };
+
+            /* The length abstraction of this info as a standalone value. */
+            len_abs len() const { return len_abs(min_length, max_length, period, residues); }
+
+            /* Overwrites the length component, bounds included. */
+            void set_len(len_abs const& a) {
+                min_length = a.lo();
+                max_length = a.hi();
+                period = a.period();
+                residues = a.residues();
+            }
 
             /*
               Default constructor of invalid info.
             */
             info() = default;
+            info(const info&) = default;
 
             /*
               Used for constructing either an invalid info that is only used to indicate uninitialized entry, or valid but unknown info value.
@@ -459,11 +506,15 @@ public:
             */
             info(bool is_interpreted,
                 lbool is_nullable,
-                unsigned min_l) :
+                unsigned min_l,
+                unsigned max_l,
+                bool is_classical) :
                 known(l_true), 
                 interpreted(is_interpreted),
                 nullable(is_nullable),
-                min_length(min_l) {}
+                min_length(min_l),
+                max_length(max_l),
+                classical(is_classical) {}
 
             /*
               Appends a string representation of the info into the stream.
@@ -479,6 +530,21 @@ public:
 
             bool is_known() const { return known == l_true; }
 
+            /*
+              True when the length abstraction is empty, which certifies that L(r) is empty.
+              Returns false for unknown info.
+            */
+            bool length_is_empty() const { return is_known() && len().is_empty(); }
+
+            /* Over-approximates the residues of Lambda modulo q, as a bitmask over [0, q). */
+            uint64_t residues_mod(unsigned q) const { return len().residues_mod(q); }
+
+            /* The gcd of the abstracted length set; 0 when that set is empty or is exactly {0}. */
+            unsigned length_gcd() const { return len().gcd(); }
+
+            /* Period to use when combining with another info; 0 means "adaptable". */
+            unsigned eff_period() const { return len().eff_period(); }
+
             info star() const;
             info plus() const;
             info opt() const;
@@ -487,6 +553,7 @@ public:
             info disj(info const& rhs) const;
             info conj(info const& rhs) const; 
             info diff(info const& rhs) const;
+            info xor_(info const& rhs) const;
             info orelse(info const& rhs) const;
             info loop(unsigned lower, unsigned upper) const;
 
@@ -515,10 +582,13 @@ public:
         app* mk_to_re(expr* s) { return m.mk_app(m_fid, OP_SEQ_TO_RE, 1, &s); }
         app* mk_in_re(expr* s, expr* r) { return m.mk_app(m_fid, OP_SEQ_IN_RE, s, r); }
         app* mk_range(expr* s1, expr* s2) { return m.mk_app(m_fid, OP_RE_RANGE, s1, s2); }
+        // Smart constructor: returns re.empty / str.to_re / re.range based on lo vs hi.
+        app* mk_range(sort* re_sort, unsigned lo, unsigned hi);
         app* mk_concat(expr* r1, expr* r2) { return m.mk_app(m_fid, OP_RE_CONCAT, r1, r2); }
         app* mk_union(expr* r1, expr* r2) { return m.mk_app(m_fid, OP_RE_UNION, r1, r2); }
         app* mk_inter(expr* r1, expr* r2) { return m.mk_app(m_fid, OP_RE_INTERSECT, r1, r2); }
         app* mk_diff(expr* r1, expr* r2) { return m.mk_app(m_fid, OP_RE_DIFF, r1, r2); }
+        app* mk_xor(expr* r1, expr* r2) { return m.mk_app(m_fid, OP_RE_XOR, r1, r2); }
         app* mk_complement(expr* r) { return m.mk_app(m_fid, OP_RE_COMPLEMENT, r); }
         app* mk_star(expr* r) { return m.mk_app(m_fid, OP_RE_STAR, r); }
         app* mk_plus(expr* r) { return m.mk_app(m_fid, OP_RE_PLUS, r); }
@@ -535,13 +605,13 @@ public:
         app* mk_of_pred(expr* p);
         app* mk_reverse(expr* r) { return m.mk_app(m_fid, OP_RE_REVERSE, r); }
         app* mk_derivative(expr* ele, expr* r) { return m.mk_app(m_fid, OP_RE_DERIVATIVE, ele, r); }
-        app* mk_antimirov_union(expr* r1, expr* r2) { return m.mk_app(m_fid, _OP_RE_ANTIMIROV_UNION, r1, r2); }
 
         bool is_to_re(expr const* n)    const { return is_app_of(n, m_fid, OP_SEQ_TO_RE); }
         bool is_concat(expr const* n)    const { return is_app_of(n, m_fid, OP_RE_CONCAT); }
         bool is_union(expr const* n)    const { return is_app_of(n, m_fid, OP_RE_UNION); }
         bool is_intersection(expr const* n)    const { return is_app_of(n, m_fid, OP_RE_INTERSECT); }
         bool is_diff(expr const* n)    const { return is_app_of(n, m_fid, OP_RE_DIFF); }
+        bool is_xor(expr const* n)    const { return is_app_of(n, m_fid, OP_RE_XOR); }
         bool is_complement(expr const* n)    const { return is_app_of(n, m_fid, OP_RE_COMPLEMENT); }
         bool is_star(expr const* n)    const { return is_app_of(n, m_fid, OP_RE_STAR); }
         bool is_plus(expr const* n)    const { return is_app_of(n, m_fid, OP_RE_PLUS); }
@@ -568,13 +638,18 @@ public:
         bool is_of_pred(expr const* n) const { return is_app_of(n, m_fid, OP_RE_OF_PRED); }
         bool is_reverse(expr const* n) const { return is_app_of(n, m_fid, OP_RE_REVERSE); }
         bool is_derivative(expr const* n) const { return is_app_of(n, m_fid, OP_RE_DERIVATIVE); }
-        bool is_antimirov_union(expr const* n) const { return is_app_of(n, m_fid, _OP_RE_ANTIMIROV_UNION); }
+        START_DISABLE_EXTRA_SEMI_WARNING;
         MATCH_UNARY(is_to_re);
         MATCH_BINARY(is_concat);
         MATCH_BINARY(is_union);
         MATCH_BINARY(is_intersection);
         MATCH_BINARY(is_diff);
+        MATCH_BINARY(is_xor);
         MATCH_BINARY(is_range);
+        MATCH_UNARY(is_concat);
+        MATCH_UNARY(is_union);
+        MATCH_UNARY(is_intersection);
+        MATCH_UNARY(is_xor);
         MATCH_UNARY(is_complement);
         MATCH_UNARY(is_star);
         MATCH_UNARY(is_plus);
@@ -582,7 +657,7 @@ public:
         MATCH_UNARY(is_of_pred);
         MATCH_UNARY(is_reverse);
         MATCH_BINARY(is_derivative);
-        MATCH_BINARY(is_antimirov_union);
+        END_DISABLE_WARNING;
         bool is_loop(expr const* n, expr*& body, unsigned& lo, unsigned& hi) const;
         bool is_loop(expr const* n, expr*& body, unsigned& lo) const;
         bool is_loop(expr const* n, expr*& body, expr*& lo, expr*& hi) const;
@@ -642,4 +717,3 @@ public:
 inline std::ostream& operator<<(std::ostream& out, seq_util::rex::pp const & p) { return p.display(out); }
 
 inline std::ostream& operator<<(std::ostream& out, seq_util::rex::info const& p) { return p.display(out); }
-

@@ -47,6 +47,11 @@ namespace nra {
         */
         lbool check(dd::solver::equation_vector const& eqs);
 
+        /**
+          \brief Check feasibility modulo current value assignment.
+        */
+        lbool check_assignment();
+
         /*
           \brief determine whether nra check is needed.
         */
@@ -58,6 +63,8 @@ namespace nra {
         nlsat::anum const& value(lp::lpvar v);
 
         nlsat::anum_manager& am();        
+
+        void set_value(lp::lpvar v, rational const &value);
 
         scoped_anum& tmp1();
 

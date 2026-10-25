@@ -48,7 +48,7 @@ bool der::is_var_diseq(expr * e, unsigned num_decls, var * & v, expr_ref & t) {
     auto set_result = [&](var *w, expr* s) { 
         v = w; 
         t = s; 
-        TRACE("der", tout << mk_pp(e, m) << "\n";); 
+        TRACE(der, tout << mk_pp(e, m) << "\n";); 
         return true; 
     };
 
@@ -97,7 +97,7 @@ bool der::is_var_eq(expr* e, unsigned num_decls, var*& v, expr_ref& t) {
     auto set_result = [&](var* w, expr* s) {
         v = w;
         t = s;
-        TRACE("der", tout << mk_pp(e, m) << "\n";);
+        TRACE(der, tout << mk_pp(e, m) << "\n";);
         return true;
     };
 
@@ -137,7 +137,7 @@ void der::operator()(quantifier * q, expr_ref & r, proof_ref & pr) {
     pr = nullptr;
     r  = q;
 
-    TRACE("der", tout << mk_pp(q, m) << "\n";);
+    TRACE(der, tout << mk_pp(q, m) << "\n";);
 
     auto k = q->get_kind();
     // Keep applying it until r doesn't change anymore
@@ -198,7 +198,7 @@ void der::reduce1(quantifier * q, expr_ref & r, proof_ref & pr) {
         m_pos2var.reserve(num_args, -1);
 
         // Find all equalities/disequalities
-        for (unsigned i = 0; i < num_args; i++) {
+        for (unsigned i = 0; i < num_args; ++i) {
             expr* arg = literals.get(i);
             is_eq = is_forall(q) ? is_var_diseq(arg, num_decls, v, t) : is_var_eq(arg, num_decls, v, t);
             if (is_eq) {
@@ -226,7 +226,7 @@ void der::reduce1(quantifier * q, expr_ref & r, proof_ref & pr) {
             }
         }
         else {
-            TRACE("der_bug", tout << "Did not find any diseq\n" << mk_pp(q, m) << "\n";);
+            TRACE(der_bug, tout << "Did not find any diseq\n" << mk_pp(q, m) << "\n";);
             r = q;
         }
     }
@@ -243,7 +243,7 @@ static void der_sort_vars(ptr_vector<var> & vars, expr_ref_vector & definitions,
 
     // eliminate self loops, and definitions containing quantifiers.
     bool found = false;
-    for (unsigned i = 0; i < definitions.size(); i++) {
+    for (unsigned i = 0; i < definitions.size(); ++i) {
         var * v  = vars[i];
         expr * t = definitions.get(i);
         if (t == nullptr || has_quantifiers(t) || occurs(v, t))
@@ -263,7 +263,7 @@ static void der_sort_vars(ptr_vector<var> & vars, expr_ref_vector & definitions,
 
     unsigned vidx, num;
 
-    for (unsigned i = 0; i < definitions.size(); i++) {
+    for (unsigned i = 0; i < definitions.size(); ++i) {
         if (!definitions.get(i))
             continue;
         var * v = vars[i];
@@ -272,36 +272,35 @@ static void der_sort_vars(ptr_vector<var> & vars, expr_ref_vector & definitions,
         todo.push_back(frame(v, 0));
         while (!todo.empty()) {
         start:
-            frame & fr = todo.back();
-            expr * t   = fr.first;
-            if (done.is_marked(t)) {
+            auto& [e, idx] = todo.back();
+            if (done.is_marked(e)) {
                 todo.pop_back();
                 continue;
             }
-            switch (t->get_kind()) {
+            switch (e->get_kind()) {
             case AST_VAR:
-                vidx = to_var(t)->get_idx();
-                if (fr.second == 0) {
-                    CTRACE("der_bug", vidx >= definitions.size(), tout << "vidx: " << vidx << "\n";);
+                vidx = to_var(e)->get_idx();
+                if (idx == 0) {
+                    CTRACE(der_bug, vidx >= definitions.size(), tout << "vidx: " << vidx << "\n";);
                     // Remark: The size of definitions may be smaller than the number of variables occurring in the quantified formula.
                     if (definitions.get(vidx, nullptr) != nullptr) {
-                        if (visiting.is_marked(t)) {
-                            // cycle detected: remove t
-                            visiting.reset_mark(t);
+                        if (visiting.is_marked(e)) {
+                            // cycle detected: remove e
+                            visiting.reset_mark(e);
                             definitions[vidx] = nullptr;
                         }
                         else {
-                            visiting.mark(t);
-                            fr.second = 1;
+                            visiting.mark(e);
+                            idx = 1;
                             todo.push_back(frame(definitions.get(vidx), 0));
                             goto start;
                         }
                     }
                 }
                 else {
-                    SASSERT(fr.second == 1);
+                    SASSERT(idx == 1);
                     if (definitions.get(vidx, nullptr) != nullptr) {
-                        visiting.reset_mark(t);
+                        visiting.reset_mark(e);
                         order.push_back(vidx);
                     }
                     else {
@@ -309,7 +308,7 @@ static void der_sort_vars(ptr_vector<var> & vars, expr_ref_vector & definitions,
                         // do nothing
                     }
                 }
-                done.mark(t);
+                done.mark(e);
                 todo.pop_back();
                 break;
             case AST_QUANTIFIER:
@@ -317,16 +316,16 @@ static void der_sort_vars(ptr_vector<var> & vars, expr_ref_vector & definitions,
                 todo.pop_back();
                 break;
             case AST_APP:
-                num = to_app(t)->get_num_args();
-                while (fr.second < num) {
-                    expr * arg = to_app(t)->get_arg(fr.second);
-                    fr.second++;
+                num = to_app(e)->get_num_args();
+                while (idx < num) {
+                    expr * arg = to_app(e)->get_arg(idx);
+                    idx++;
                     if (done.is_marked(arg))
                         continue;
                     todo.push_back(frame(arg, 0));
                     goto start;
                 }
-                done.mark(t);
+                done.mark(e);
                 todo.pop_back();
                 break;
             default:
@@ -341,7 +340,7 @@ static void der_sort_vars(ptr_vector<var> & vars, expr_ref_vector & definitions,
 void der::get_elimination_order() {
     m_order.reset();
 
-    TRACE("top_sort",
+    TRACE(top_sort,
           tout << "DEFINITIONS: " << std::endl;
           unsigned i = 0;
           for (expr* e : m_map) {
@@ -353,7 +352,7 @@ void der::get_elimination_order() {
     // der::top_sort ts(m);
     der_sort_vars(m_inx2var, m_map, m_order);
 
-    TRACE("der",
+    TRACE(der,
           tout << "Elimination m_order:" << "\n";
           tout << m_order << "\n";); 
 }
@@ -362,7 +361,7 @@ void der::create_substitution(unsigned sz) {
     m_subst_map.reset();
     m_subst_map.resize(sz, nullptr);
 
-    for(unsigned i = 0; i < m_order.size(); i++) {
+    for(unsigned i = 0; i < m_order.size(); ++i) {
         expr_ref cur(m_map.get(m_order[i]), m);
 
         // do all the previous substitutions before inserting
@@ -379,7 +378,7 @@ void der::apply_substitution(quantifier * q, expr_ref_vector& literals, bool is_
 
     // get a new expression
     m_new_args.reset();
-    for (unsigned i = 0; i < num_args; i++) {
+    for (unsigned i = 0; i < num_args; ++i) {
         int x = m_pos2var[i];
         if (x != -1 && m_map.get(x) != nullptr)
             continue; // this is a disequality with definition (vanishes)
@@ -393,11 +392,11 @@ void der::apply_substitution(quantifier * q, expr_ref_vector& literals, bool is_
     // don't forget to update the quantifier patterns
     expr_ref_buffer  new_patterns(m);
     expr_ref_buffer  new_no_patterns(m);
-    for (unsigned j = 0; j < q->get_num_patterns(); j++) {
+    for (unsigned j = 0; j < q->get_num_patterns(); ++j) {
         new_patterns.push_back(m_subst(q->get_pattern(j), m_subst_map.size(), m_subst_map.data()));
     }
 
-    for (unsigned j = 0; j < q->get_num_no_patterns(); j++) {
+    for (unsigned j = 0; j < q->get_num_no_patterns(); ++j) {
         new_no_patterns.push_back(m_subst(q->get_no_pattern(j), m_subst_map.size(), m_subst_map.data()));
     }
 

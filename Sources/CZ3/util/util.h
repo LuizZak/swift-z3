@@ -27,7 +27,9 @@ Revision History:
 #include <string>
 #include <functional>
 #include <algorithm>
+#include <bit>
 #include <iterator>
+#include <span>
 
 #ifndef SIZE_MAX
 #define SIZE_MAX std::numeric_limits<std::size_t>::max()
@@ -79,14 +81,21 @@ static_assert(sizeof(int64_t) == 8, "64 bits");
 # define Z3_fallthrough
 #endif
 
-inline bool is_power_of_two(unsigned v) { return !(v & (v - 1)) && v; }
+// UNREACHABLE is not defined in a way that makes it clear to the compiler
+// that it does not return (because it calls INVOKE_DEBUGGER() in debug builds,
+// and that *may* return).  Using this for unreachable switch cases avoids
+// any fall-through warnings.
+#define Z3_unreachable_case() UNREACHABLE(); Z3_fallthrough
+
+static inline bool is_power_of_two(unsigned v) { return std::has_single_bit(v); }
+static inline bool is_power_of_two(uint64_t v) { return std::has_single_bit(v); }
 
 /**
    \brief Return the next power of two that is greater than or equal to v.
    
    \warning This function returns 0 for v == 0.
 */
-inline unsigned next_power_of_two(unsigned v) {
+static inline unsigned next_power_of_two(unsigned v) {
     v--;
     v |= v >> 1;
     v |= v >> 2;
@@ -100,8 +109,11 @@ inline unsigned next_power_of_two(unsigned v) {
 /**
    \brief Return the position of the most significant bit.
 */
-unsigned log2(unsigned v);
-unsigned uint64_log2(uint64_t v);
+static inline unsigned log2(int v) { return v > 0 ? (std::bit_width(static_cast<unsigned>(v)) - 1) : 0; }
+static inline unsigned log2(unsigned v) { return v ? (std::bit_width(v) - 1) : 0; }
+static inline unsigned log2(uint64_t v) { return v ? (std::bit_width(v) - 1) : 0; }
+unsigned mul_truncate(unsigned a, unsigned b);
+unsigned add_truncate(unsigned a, unsigned b);
 
 static_assert(sizeof(unsigned) == 4, "unsigned are 32 bits");
 
@@ -114,7 +126,7 @@ static inline unsigned get_num_1bits(unsigned v) {
 #ifdef Z3DEBUG
     unsigned c;
     unsigned v1 = v;
-    for (c = 0; v1; c++) {
+    for (c = 0; v1; ++c) {
         v1 &= v1 - 1; 
     }
 #endif
@@ -133,7 +145,7 @@ static inline unsigned get_num_1bits(uint64_t v) {
 #ifdef Z3DEBUG
     unsigned c;
     uint64_t v1 = v;
-    for (c = 0; v1; c++) {
+    for (c = 0; v1; ++c) {
         v1 &= v1 - 1; 
     }
 #endif
@@ -190,6 +202,8 @@ struct delete_proc {
 
 void set_verbosity_level(unsigned lvl);
 unsigned get_verbosity_level();
+void set_suppress_platform_verbose(bool suppress);
+bool get_suppress_platform_verbose();
 std::ostream& verbose_stream();
 void set_verbose_stream(std::ostream& str);
 
@@ -230,8 +244,8 @@ public:
         m_ptr(ptr) {
     }
 
-    scoped_ptr(scoped_ptr &&other) noexcept : m_ptr(nullptr) {
-        std::swap(m_ptr, other.m_ptr);
+    scoped_ptr(scoped_ptr &&other) noexcept : m_ptr(other.m_ptr) {
+        other.m_ptr = nullptr;
     }
 
     ~scoped_ptr() {
@@ -269,7 +283,7 @@ public:
     scoped_ptr& operator=(scoped_ptr&& other) noexcept {
         *this = other.detach();
         return *this;
-    };
+    }
 
     T * detach() {
         T* tmp = m_ptr;
@@ -311,7 +325,7 @@ public:
 
 template<typename T>
 bool compare_arrays(const T * array1, const T * array2, unsigned size) {
-    for (unsigned i = 0; i < size; i++) {
+    for (unsigned i = 0; i < size; ++i) {
         if (!(array1[i] == array2[i])) {
             return false;
         }
@@ -344,12 +358,29 @@ public:
     }
 
     void set_seed(unsigned s) { m_data = s; }
+    unsigned get_seed() const { return m_data; }
 
     int operator()() {
         return ((m_data = m_data * 214013L + 2531011L) >> 16) & 0x7fff; 
     }
 
+    // Assemble 32 bits from three 15-bit draws, most significant bits first.
+    uint32_t next_uint32() {
+        uint32_t r = (*this)();
+        r = (r << 15) | (*this)();
+        return (r << 2) | ((*this)() & 3);
+    }
+
+    // Draw the high half before the low half.
+    uint64_t next_uint64() {
+        uint64_t r = next_uint32();
+        return (r << 32) | next_uint32();
+    }
+
     unsigned operator()(unsigned u) {
+        SASSERT(u > 0);
+        if (u == 0)
+            return 0;
         unsigned r = static_cast<unsigned>((*this)());
         return r % u;
     }
@@ -360,12 +391,18 @@ public:
 };
 
 template<typename T>
-void shuffle(unsigned sz, T * array, random_gen & gen) {
-    int n = sz;
-    while (--n > 0) {
+void shuffle(std::span<T> array, random_gen & gen) {
+    auto n = array.size();
+    while (n-- > 0) {
         int k = gen() % (n + 1);
         std::swap(array[n], array[k]);
     }
+}
+
+// Backward compatibility overload
+template<typename T>
+void shuffle(unsigned sz, T * array, random_gen & gen) {
+    shuffle(std::span<T>(array, sz), gen);
 }
 
 void fatal_error(int error_code);
@@ -387,6 +424,14 @@ bool all_of(S const& set, T const& p) {
         if (!p(s))
             return false;
     return true;
+}
+template<typename S, typename T>
+void filter(S& v, T const& p) {
+    unsigned i = 0;
+    for (auto const& e: v)
+        if (p(e))
+            v[i++] = e;
+    v.shrink(i);
 }
 
 template<typename S, typename T>

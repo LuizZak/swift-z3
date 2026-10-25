@@ -46,8 +46,7 @@ namespace sat {
         SASSERT(!stack.empty());
         unsigned sz = stack.size();
         for (unsigned i = sz; i-- > 0; ) {
-            unsigned csz = stack[i].first;
-            literal lit = stack[i].second;
+            auto [csz, lit] = stack[i];
             bool sat = false;
             for (unsigned j = 0; !sat && j < csz; ++j) {
                 sat = value_at(c[j], m) == l_true;
@@ -116,7 +115,7 @@ namespace sat {
                 bool undef = false;
                 for (literal const& l : e.m_clauses) {
                     if (l == null_literal) {
-                        CTRACE("sat", !sat, 
+                        CTRACE(sat, !sat, 
                                tout << "exposed: " << m_exposed_lim << "\n";
                                if (m_solver) m_solver->display(tout);
                                display(tout);
@@ -159,7 +158,7 @@ namespace sat {
                 if (l == null_literal) {
                     // end of clause
                     if (!sat) {
-                        TRACE("sat_model_bug", tout << "failed eliminated: " << mk_lits_pp(static_cast<unsigned>(it - itbegin), itbegin) << "\n";);
+                        TRACE(sat_model_bug, tout << "failed eliminated: " << mk_lits_pp(static_cast<unsigned>(it - itbegin), itbegin) << "\n";);
                         (void)itbegin;
                         ok = false;
                     }
@@ -223,7 +222,7 @@ namespace sat {
         for (literal l : c) e.m_clauses.push_back(l);
         e.m_clauses.push_back(null_literal);
         add_elim_stack(e);
-        TRACE("sat_mc_bug", tout << "adding: " << c << "\n";);
+        TRACE(sat_mc_bug, tout << "adding: " << c << "\n";);
     }
 
     void model_converter::insert(entry & e, literal l1, literal l2) {
@@ -234,7 +233,7 @@ namespace sat {
         e.m_clauses.push_back(l2);
         e.m_clauses.push_back(null_literal);
         add_elim_stack(e);
-        TRACE("sat_mc_bug", tout << "adding (binary): " << l1 << " " << l2 << "\n";);
+        TRACE(sat_mc_bug, tout << "adding (binary): " << l1 << " " << l2 << "\n";);
     }
 
     void model_converter::insert(entry & e, clause_wrapper const & c) {
@@ -246,7 +245,7 @@ namespace sat {
             e.m_clauses.push_back(c[i]);
         e.m_clauses.push_back(null_literal);
         add_elim_stack(e);
-        // TRACE("sat_mc_bug", tout << "adding (wrapper): "; for (literal l : c) tout << l << " "; tout << "\n";);
+        // TRACE(sat_mc_bug, tout << "adding (wrapper): "; for (literal l : c) tout << l << " "; tout << "\n";);
     }
 
     void model_converter::insert(entry & e, literal_vector const& c) {
@@ -256,7 +255,7 @@ namespace sat {
         for (literal l : c) e.m_clauses.push_back(l);
         e.m_clauses.push_back(null_literal);
         add_elim_stack(e);
-        TRACE("sat_mc_bug", tout << "adding: " << c << "\n";);
+        TRACE(sat_mc_bug, tout << "adding: " << c << "\n";);
     }
 
 
@@ -274,7 +273,7 @@ namespace sat {
                     SASSERT(it2->var() != it->var());
                     if (it2->var() == it->var()) return false;
                     for (literal l : it2->m_clauses) {
-                        CTRACE("sat_model_converter", l.var() == it->var(), tout << "var: " << it->var() << "\n"; display(tout););
+                        CTRACE(sat_model_converter, l.var() == it->var(), tout << "var: " << it->var() << "\n"; display(tout););
                         SASSERT(l.var() != it->var());
                         VERIFY(l == null_literal || l.var() < num_vars);
                         if (it2->var() == it->var()) return false;
@@ -317,7 +316,8 @@ namespace sat {
                     elim_stackv const& stack = st->stack();
                     unsigned sz = stack.size();
                     for (unsigned i = sz; i-- > 0; ) {
-                        out << "\n   " << stack[i].first << " " << stack[i].second;
+                        auto [csz, lit] = stack[i];
+                        out << "\n   " << csz << " " << lit;
                     }
                 }
                 ++index;
@@ -385,9 +385,7 @@ namespace sat {
                     if (st) {
                         // clause sizes increase, so we can always swap
                         // the blocked literal to the front from the prefix.
-                        for (auto const& p : st->stack()) {
-                            unsigned csz = p.first;
-                            literal lit = p.second;
+                        for (auto const& [csz, lit] : st->stack()) {
                             swap(lit.var(), csz, clause);
                             update_stack.append(csz, clause.data());
                             update_stack.push_back(null_literal);
@@ -457,4 +455,4 @@ namespace sat {
         }
     }
 
-};
+}

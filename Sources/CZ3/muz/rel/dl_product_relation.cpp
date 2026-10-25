@@ -118,7 +118,7 @@ namespace datalog {
         if(sz!=r2.size()) {
             return false;
         }
-        for(unsigned i=0; i<sz; i++) {
+        for(unsigned i=0; i<sz; ++i) {
             if(r1[i].get_kind()!=r2[i].get_kind()) {
                 return false;
             }
@@ -137,15 +137,11 @@ namespace datalog {
             std::sort(specs.back().begin(), specs.back().end());
         }
 
-        vector<rel_spec>::iterator sit = specs.begin(), send = specs.end();
-
         res.reset();
         for(;;) {
             family_id next = -1;
 
-            sit = specs.begin();
-            for(; sit!=send; ++sit) {
-                rel_spec & s = *sit;
+            for (rel_spec& s : specs) {
                 if(!s.empty() && s.back()>next) {
                     next = s.back();
                 }
@@ -155,9 +151,7 @@ namespace datalog {
                 break;
             }
             res.push_back(next);
-            sit = specs.begin();
-            for(; sit!=send; ++sit) {
-                rel_spec & s = *sit;
+            for (rel_spec& s : specs) {
                 while (!s.empty() && s.back()==next) {
                     s.pop_back();
                 }
@@ -175,7 +169,7 @@ namespace datalog {
         m_spec_store.get_relation_spec(s, kind, spec);
         relation_vector inner_rels;
         unsigned rel_cnt = spec.size();
-        for(unsigned i=0; i<rel_cnt; i++) {
+        for(unsigned i=0; i<rel_cnt; ++i) {
             inner_rels.push_back(get_manager().mk_empty_relation(s, spec[i]));
         }
         return alloc(product_relation,*this, s, inner_rels.size(), inner_rels.data());
@@ -192,7 +186,7 @@ namespace datalog {
         SASSERT(spec.well_formed());
         relation_vector inner_rels;
         unsigned rel_cnt = spec.size();
-        for(unsigned i=0; i<rel_cnt; i++) {
+        for(unsigned i=0; i<rel_cnt; ++i) {
             inner_rels.push_back(get_manager().mk_full_relation(s, p, spec[i]));
         }
         return alloc(product_relation,*this, s, inner_rels.size(), inner_rels.data());
@@ -245,7 +239,7 @@ namespace datalog {
             }
             unsigned sz = sig.size();
             tsig.reset();
-            for(unsigned i=0; i<sz; i++) {
+            for(unsigned i=0; i<sz; ++i) {
                 table_sort tsort;
                 if(rmgr.relation_sort_to_table(sig[i], tsort)) {
                     tsig.push_back(tsort);
@@ -450,7 +444,7 @@ namespace datalog {
         }
 
         relation_base * operator()(const relation_base & _r1, const relation_base & _r2) override {
-            TRACE("dl", _r1.display(tout); _r2.display(tout););
+            TRACE(dl, _r1.display(tout); _r2.display(tout););
             ptr_vector<relation_base> relations;
             unsigned sz = m_joins.size();
             relation_base* result = nullptr;
@@ -460,7 +454,7 @@ namespace datalog {
                 relations.push_back((*m_joins[i])(r1, r2));
             }
             result = alloc(product_relation, m_plugin, get_result_signature(), sz, relations.data());
-            TRACE("dl",result->display(tout););
+            TRACE(dl,result->display(tout););
             return result;
         }
     };
@@ -502,7 +496,7 @@ namespace datalog {
                 relations.push_back((*m_transforms[i])(r[i]));
             }
             relation_base* result = alloc(product_relation, p, m_sig, relations.size(), relations.data());
-            TRACE("dl", _r.display(tout); result->display(tout););
+            TRACE(dl, _r.display(tout); result->display(tout););
             return result;
         }
     };
@@ -556,7 +550,7 @@ namespace datalog {
             else {
                 u = rmgr.mk_union_fn(r1, r2, delta);
             }
-            TRACE("dl_verbose", tout << r1.get_plugin().get_name() << " " << r2.get_plugin().get_name() << " " << (u?"found":"not found") << "\n";); 
+            TRACE(dl_verbose, tout << r1.get_plugin().get_name() << " " << r2.get_plugin().get_name() << " " << (u?"found":"not found") << "\n";); 
             m_unions.back().push_back(u);
         }
 
@@ -603,7 +597,7 @@ namespace datalog {
             scoped_ptr<relation_intersection_filter_fn> intersect_fun = 
                 m_rmgr.mk_filter_by_intersection_fn(tgt, src);
             if (!intersect_fun) {
-                TRACE("dl", tgt.display(tout << "tgt\n"); src.display(tout << "src\n");); 
+                TRACE(dl, tgt.display(tout << "tgt\n"); src.display(tout << "src\n");); 
                 warning_msg("intersection does not exist");
                 return;
             }
@@ -630,13 +624,13 @@ namespace datalog {
 
         ~aligned_union_fn() override {
             unsigned sz = m_unions.size();
-            for(unsigned i=0; i<sz; i++) {
+            for(unsigned i=0; i<sz; ++i) {
                 dealloc_ptr_vector_content(m_unions[i]);
             }
         }
 
         void operator()(relation_base& _tgt, const relation_base& _src, relation_base* _delta) override {
-            TRACE("dl", _tgt.display(tout << "dst:\n"); _src.display(tout  << "src:\n"););
+            TRACE(dl, _tgt.display(tout << "dst:\n"); _src.display(tout  << "src:\n"););
             SASSERT(m_plugin.check_kind(_tgt));
             SASSERT(m_plugin.check_kind(_src));
             SASSERT(!_delta || m_plugin.check_kind(*_delta));
@@ -662,15 +656,15 @@ namespace datalog {
                         continue; //this is the basic union which we will perform later
                     }
                     if (can_do_inner_union(i, j) && can_do_inner_union(j, i)) {
-                        TRACE("dl", itgt.display(tout << "tgt:\n"); src[j].display(tout << "src:\n"););
+                        TRACE(dl, itgt.display(tout << "tgt:\n"); src[j].display(tout << "src:\n"););
                         // union[i][j]
                         scoped_rel<relation_base> one_side_union = itgt.clone();
                         scoped_rel<relation_base> one_side_delta = fresh_delta ? fresh_delta->clone() : nullptr;
-                        TRACE("dl", one_side_union->display(tout << "union 1:\n"); src[j].display(tout););
+                        TRACE(dl, one_side_union->display(tout << "union 1:\n"); src[j].display(tout););
                         do_inner_union(i, j, *one_side_union, src[j], one_side_delta.get());
-                        TRACE("dl", one_side_union->display(tout << "union:\n"););
+                        TRACE(dl, one_side_union->display(tout << "union:\n"););
                         do_destructive_intersection(side_result, one_side_union);                        
-                        TRACE("dl", 
+                        TRACE(dl, 
                               side_result->display(tout << "inner-union: " << i << " " << j << "\n");
                               itgt.display(tout << "tgt:\n"););
                         if (one_side_delta) {
@@ -680,11 +674,11 @@ namespace datalog {
                         // union[j][i]
                         one_side_union = src[i].clone();
                         one_side_delta = fresh_delta ? fresh_delta->clone() : nullptr;
-                        TRACE("dl", one_side_union->display(tout << "union 2:\n"); tgt[j].display(tout););
+                        TRACE(dl, one_side_union->display(tout << "union 2:\n"); tgt[j].display(tout););
                         do_inner_union(i, j, *one_side_union, tgt[j], one_side_delta.get());
-                        TRACE("dl", one_side_union->display(tout << "union:\n"););
+                        TRACE(dl, one_side_union->display(tout << "union:\n"););
                         do_destructive_intersection(side_result, one_side_union);
-                        TRACE("dl", 
+                        TRACE(dl, 
                               side_result->display(tout << "inner-union: " << i << " " << j << "\n");
                               itgt.display(tout << "tgt:\n"););
                         if (one_side_delta) {
@@ -709,7 +703,7 @@ namespace datalog {
                 
                 if (side_result) {
                     do_intersection(itgt, *side_result);
-                    TRACE("dl", side_result->display(tout << "inner-union-end: " << i << "\n"););
+                    TRACE(dl, side_result->display(tout << "inner-union-end: " << i << "\n"););
                 }
                 if (fresh_delta) {
                     do_destructive_intersection(fresh_delta,side_delta);
@@ -726,7 +720,7 @@ namespace datalog {
                     }
                 }
             }
-            TRACE("dl", _tgt.display(tout << "dst':\n"); 
+            TRACE(dl, _tgt.display(tout << "dst':\n"); 
                   if (_delta)  _delta->display(tout  << "delta:\n"); ;);
         }
     };
@@ -749,7 +743,7 @@ namespace datalog {
 
 
         void operator()(relation_base& _tgt, const relation_base& _src, relation_base* _delta) override {
-            TRACE("dl_verbose", _tgt.display(tout << "dst:\n"); _src.display(tout  << "src:\n"););
+            TRACE(dl_verbose, _tgt.display(tout << "dst:\n"); _src.display(tout  << "src:\n"););
             product_relation& tgt = get(_tgt);
             product_relation const& src0 = get(_src);
             product_relation* delta = _delta ? get(_delta) : nullptr;
@@ -770,7 +764,7 @@ namespace datalog {
                 SASSERT(m_aligned_union_fun);
             }
             (*m_aligned_union_fun)(tgt, src, delta);
-            TRACE("dl", _tgt.display(tout << "dst':\n"); 
+            TRACE(dl, _tgt.display(tout << "dst':\n"); 
                         if (_delta) _delta->display(tout  << "delta:\n"););
         }
     };
@@ -784,7 +778,7 @@ namespace datalog {
                 m_inner_union_fun(inner_union_fun) {}
 
         void operator()(relation_base& tgt, const relation_base& _src, relation_base* delta) override {
-            TRACE("dl", tgt.display(tout); _src.display(tout); );
+            TRACE(dl, tgt.display(tout); _src.display(tout); );
             product_relation const& src = get(_src);
             (*m_inner_union_fun)(tgt, src[m_single_rel_idx], delta);
         }
@@ -799,7 +793,7 @@ namespace datalog {
             return alloc(unaligned_union_fn, get(tgt), get(src), get(delta), is_widen);
         }
         if (check_kind(src)) {
-            TRACE("dl", tgt.display(tout << "different kinds"); src.display(tout););
+            TRACE(dl, tgt.display(tout << "different kinds"); src.display(tout););
             const product_relation & p_src = get(src);
             unsigned single_idx;
             if(p_src.try_get_single_non_transparent(single_idx)) {
@@ -837,7 +831,7 @@ namespace datalog {
        ~mutator_fn() override { dealloc_ptr_vector_content(m_mutators); }
 
         void operator()(relation_base & _r) override {
-            TRACE("dl", _r.display(tout););
+            TRACE(dl, _r.display(tout););
             product_relation& r = get(_r);
             SASSERT(m_mutators.size() == r.size());
             for (unsigned i = 0; i < r.size(); ++i) {
@@ -846,7 +840,7 @@ namespace datalog {
                     (*m)(r[i]);
                 }
             }
-            TRACE("dl", _r.display(tout););
+            TRACE(dl, _r.display(tout););
         }
     };
 
@@ -914,7 +908,7 @@ namespace datalog {
         ~filter_interpreted_fn() override { dealloc_ptr_vector_content(m_mutators); }
 
         void operator()(relation_base& _r) override {
-            TRACE("dl", _r.display(tout););
+            TRACE(dl, _r.display(tout););
             product_relation const& r = get(_r);
             for (unsigned i = 0; i < m_attach.size(); ++i) {
                 m_mutators[m_attach[i].first]->attach(r[m_attach[i].second]);
@@ -922,7 +916,7 @@ namespace datalog {
             for (unsigned i = 0; i < m_mutators.size(); ++i) {
                 (*m_mutators[i])(r[i]);
             }
-            TRACE("dl", _r.display(tout););
+            TRACE(dl, _r.display(tout););
         }      
     };
 
@@ -971,7 +965,7 @@ namespace datalog {
         if (spec_changed) {
             m_spec.resize(rel_cnt);
         }
-        for (unsigned i = 0; i < rel_cnt; i++) {
+        for (unsigned i = 0; i < rel_cnt; ++i) {
             family_id rkind = m_relations[i]->get_kind();
             spec_changed |= (m_spec[i] != rkind);
             m_spec[i] = rkind;
@@ -990,7 +984,7 @@ namespace datalog {
             return;
         }
 
-        TRACE("dl", {
+        TRACE(dl, {
                 ast_manager& m = get_ast_manager_from_rel_manager(get_manager());
                 sig.output(m, tout); tout << "\n";
                 for (unsigned i = 0; i < spec.size(); ++i) {
@@ -1006,11 +1000,11 @@ namespace datalog {
         relation_vector new_rels;
 
         //the loop is quadratic with the number of relations, maybe we want to fix it
-        for(unsigned i=0; i<new_sz; i++) {
+        for(unsigned i=0; i<new_sz; ++i) {
             family_id ikind = spec[i];
             relation_base * irel = nullptr;
             //we try to find the relation for the new specification among those we already have
-            for(unsigned j=0; j<old_sz; j++) {
+            for(unsigned j=0; j<old_sz; ++j) {
                 if(m_relations[j] && m_relations[j]->get_kind()==ikind) {
                     irel = m_relations[j];
                     m_relations[j] = 0;
@@ -1043,7 +1037,7 @@ namespace datalog {
         unsigned sz = size();
         bool found = false;
         unsigned candidate;
-        for(unsigned i=0; i<sz; i++) {
+        for(unsigned i=0; i<sz; ++i) {
             relation_base & r = (*this)[i];
             if(r.get_plugin().is_sieve_relation()) {
                 sieve_relation & sr = sieve_relation_plugin::get(r);
@@ -1134,7 +1128,7 @@ namespace datalog {
         }
     }
 
-};
+}
 
 
 

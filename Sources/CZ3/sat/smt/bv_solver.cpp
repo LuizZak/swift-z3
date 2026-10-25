@@ -29,10 +29,14 @@ namespace bv {
         solver::var_pos vp;
         sat::literal lit;
     public:
-        bit_trail(solver& s, var_pos vp) : s(s), vp(vp), lit(s.m_bits[vp.first][vp.second]) {}
+        bit_trail(solver& s, var_pos vp) : s(s), vp(vp) {
+            auto [v, idx] = vp;
+            lit = s.m_bits[v][idx];
+        }
 
         void undo() override {
-            s.m_bits[vp.first][vp.second] = lit;
+            auto [v, idx] = vp;
+            s.m_bits[v][idx] = lit;
         }
     };
 
@@ -88,7 +92,7 @@ namespace bv {
             m_fixed_var_table.insert(key, v1);
         else if (n1->get_root() != var2enode(v2)->get_root()) {
             SASSERT(get_bv_size(v1) == get_bv_size(v2));
-            TRACE("bv", tout << "detected equality: v" << v1 << " = v" << v2 << "\n" << pp(v1) << pp(v2););
+            TRACE(bv, tout << "detected equality: v" << v1 << " = v" << v2 << "\n" << pp(v1) << pp(v2););
             m_stats.m_num_bit2eq++;
             add_fixed_eq(v1, v2);
             ctx.propagate(n1, var2enode(v2), mk_bit2eq_justification(v1, v2));
@@ -134,11 +138,11 @@ namespace bv {
             unsigned idx = (i + wpos) % sz;
             if (s().value(bits[idx]) == l_undef) {
                 wpos = idx;
-                TRACE("bv", tout << "moved wpos of v" << v << " to " << wpos << "\n";);
+                TRACE(bv, tout << "moved wpos of v" << v << " to " << wpos << "\n";);
                 return false;
             }
         }
-        TRACE("bv", tout << "v" << v << " is a fixed variable.\n";);
+        TRACE(bv, tout << "v" << v << " is a fixed variable.\n";);
         fixed_var_eh(v);
         return true;
     }
@@ -149,9 +153,7 @@ namespace bv {
     void solver::find_new_diseq_axioms(atom& a, theory_var v, unsigned idx) {
         literal l = m_bits[v][idx];
         l.neg();
-        for (auto vp : a) {
-            theory_var v2 = vp.first;
-            unsigned   idx2 = vp.second;
+        for (auto [v2, idx2] : a) {
             if (idx == idx2 && m_bits[v2].size() == m_bits[v].size() && m_bits[v2][idx2] == l )
                 mk_new_diseq_axiom(v, v2, idx);
         }
@@ -162,7 +164,7 @@ namespace bv {
     */
     void solver::mk_new_diseq_axiom(theory_var v1, theory_var v2, unsigned idx) {
         SASSERT(m_bits[v1][idx] == ~m_bits[v2][idx]);
-        TRACE("bv", tout << "found new diseq axiom\n" << pp(v1) << pp(v2););
+        TRACE(bv, tout << "found new diseq axiom\n" << pp(v1) << pp(v2););
         m_stats.m_num_diseq_static++;
         expr_ref eq(m.mk_eq(var2expr(v1), var2expr(v2)), m);
         add_unit(~ctx.internalize(eq, false, false));
@@ -190,8 +192,8 @@ namespace bv {
             }
         }
         else if (m.is_bool(e) && (a = m_bool_var2atom.get(expr2literal(e).var(), nullptr))) {
-            for (var_pos vp : *a)
-                out << " " << var2enode(vp.first)->get_expr_id() << "[" << vp.second << "]";
+            for (auto [v, idx] : *a)
+                out << " " << var2enode(v)->get_expr_id() << "[" << idx << "]";
         }
         else
             out << " " << mk_bounded_pp(e, m, 1);
@@ -201,7 +203,7 @@ namespace bv {
 
     void solver::new_eq_eh(euf::th_eq const& eq) {
         force_push();
-        TRACE("bv", tout << "new eq " << mk_bounded_pp(var2expr(eq.v1()), m) << " == " << mk_bounded_pp(var2expr(eq.v2()), m) << "\n";);
+        TRACE(bv, tout << "new eq " << mk_bounded_pp(var2expr(eq.v1()), m) << " == " << mk_bounded_pp(var2expr(eq.v2()), m) << "\n";);
         if (is_bv(eq.v1())) {
             m_find.merge(eq.v1(), eq.v2());
             VERIFY(eq.is_eq());
@@ -231,7 +233,7 @@ namespace bv {
         }
         else {
             for (euf::enode* bv2int : euf::enode_class(n1)) {                
-                if (bv.is_bv2int(bv2int->get_expr()))
+                if (bv.is_ubv2int(bv2int->get_expr()))
                     propagate_bv2int(bv2int);
             }
         }
@@ -244,7 +246,7 @@ namespace bv {
         if (s().is_probing())
             return;
         
-        TRACE("bv", tout << "diff: " << v1 << " != " << v2 << " @" << s().scope_lvl() << "\n";);
+        TRACE(bv, tout << "diff: " << v1 << " != " << v2 << " @" << s().scope_lvl() << "\n";);
         unsigned sz = m_bits[v1].size();
         if (sz == 1)
             return;
@@ -280,7 +282,7 @@ namespace bv {
             undef_idx--;
             sat::literal consequent = m_bits[v1][undef_idx];
             sat::literal b = m_bits[v2][undef_idx];
-            sat::literal antecedent = ~expr2literal(ne.eq());
+            sat::literal antecedent = ~expr2literal(ne.eq()->get_expr());
             SASSERT(s().value(antecedent) == l_true);
             SASSERT(s().value(consequent) == l_undef);
             SASSERT(s().value(b) != l_undef);
@@ -303,7 +305,7 @@ namespace bv {
 
     euf::enode_pair solver::get_justification_eq(size_t j) {
         auto& c = bv_justification::from_index(j);
-        TRACE("bv", display_constraint(tout, j) << "\n";);
+        TRACE(bv, display_constraint(tout, j) << "\n";);
         switch (c.m_kind) {
         case bv_justification::kind_t::eq2bit:
             UNREACHABLE();
@@ -325,7 +327,7 @@ namespace bv {
 
     void solver::get_antecedents(literal l, sat::ext_justification_idx idx, literal_vector& r, bool probing) {
         auto& c = bv_justification::from_index(idx);
-        TRACE("bv", display_constraint(tout, idx) << "\n";);
+        TRACE(bv, display_constraint(tout, idx) << "\n";);
         switch (c.m_kind) {
         case bv_justification::kind_t::eq2bit:
             SASSERT(s().value(c.m_antecedent) == l_true);
@@ -519,16 +521,16 @@ namespace bv {
         }
         func_decl* f = m.mk_func_decl(th, sorts.size(), sorts.data(), proof);
         return m.mk_app(f, args);
-    };
+    }
 
     void solver::asserted(literal l) {        
         atom* a = get_bv2a(l.var());
-        TRACE("bv", tout << "asserted: " << l << "\n";);
+        TRACE(bv, tout << "asserted: " << l << "\n";);
         if (a) {
             force_push();
             m_prop_queue.push_back(propagation_item(a));            
-            for (auto p : a->m_bit2occ) 
-                del_eq_occurs(p.first, p.second);
+            for (auto [v, idx] : a->m_bit2occ) 
+                del_eq_occurs(v, idx);
         }
     }
 
@@ -581,15 +583,14 @@ namespace bv {
     }
 
     bool solver::propagate_bits(var_pos entry) {
-        theory_var v1 = entry.first;
-        unsigned idx = entry.second;
+        auto [v1, idx] = entry;
         SASSERT(idx < m_bits[v1].size());
         if (m_wpos[v1] == idx)
             find_wpos(v1);
 
         literal bit1 = m_bits[v1][idx];
         lbool   val = s().value(bit1);
-        TRACE("bv", tout << "propagating v" << v1 << " #" << var2enode(v1)->get_expr_id() << "[" << idx << "] = " << val << "\n";);
+        TRACE(bv, tout << "propagating v" << v1 << " #" << var2enode(v1)->get_expr_id() << "[" << idx << "] = " << val << "\n";);
         if (val == l_undef)
             return false;
 
@@ -600,7 +601,7 @@ namespace bv {
         for (theory_var v2 = m_find.next(v1); v2 != v1; v2 = m_find.next(v2)) {
             literal bit2 = m_bits[v2][idx];
             SASSERT(m_bits[v1][idx] != ~m_bits[v2][idx]);
-            TRACE("bv", tout << "propagating #" << var2enode(v2)->get_expr_id() << "[" << idx << "] = " << s().value(bit2) << "\n";);
+            TRACE(bv, tout << "propagating #" << var2enode(v2)->get_expr_id() << "[" << idx << "] = " << s().value(bit2) << "\n";);
 
             if (val == l_false)
                 bit2.neg();
@@ -632,8 +633,8 @@ namespace bv {
         for (auto kv : m_delay_internalize)
             delay.push_back(std::make_pair(kv.m_key, kv.m_value));
         flet<bool> _cheap1(m_cheap_axioms, true);
-        for (auto kv : delay) 
-            if (!check_delay_internalized(kv.first))
+        for (auto [e, mode] : delay) 
+            if (!check_delay_internalized(e))
                 ok = false;
         if (!ok)
             return sat::check_result::CR_CONTINUE;
@@ -641,8 +642,8 @@ namespace bv {
         // if (repair_model()) return sat::check_result::DONE;
 
         flet<bool> _cheap2(m_cheap_axioms, false);
-        for (auto kv : delay) 
-            if (!check_delay_internalized(kv.first))
+        for (auto [e, mode] : delay) 
+            if (!check_delay_internalized(e))
                 ok = false;
         
         if (!ok)
@@ -651,7 +652,7 @@ namespace bv {
     }
 
     void solver::push_core() {
-        TRACE("bv", tout << "push: " << get_num_vars() << "@" << m_prop_queue_lim.size() << "\n";);
+        TRACE(bv, tout << "push: " << get_num_vars() << "@" << m_prop_queue_lim.size() << "\n";);
         th_euf_solver::push_core();
         m_prop_queue_lim.push_back(m_prop_queue.size());
     }
@@ -666,7 +667,7 @@ namespace bv {
         m_bits.shrink(old_sz);
         m_wpos.shrink(old_sz);
         m_zero_one_bits.shrink(old_sz);
-        TRACE("bv", tout << "num vars " << old_sz << "@" << m_prop_queue_lim.size() << "\n";);
+        TRACE(bv, tout << "num vars " << old_sz << "@" << m_prop_queue_lim.size() << "\n";);
     }
 
     void solver::simplify() {
@@ -678,16 +679,16 @@ namespace bv {
         atom* a = get_bv2a(l.var());
         if (!a)
             return true;
-        for (auto vp : *a) {            
-            sat::literal l2 = m_bits[vp.first][vp.second];
+        for (auto [v, idx] : *a) {            
+            sat::literal l2 = m_bits[v][idx];
             if (l2.var() == r.var())
                 continue;
             SASSERT(l2.var() == l.var());
             VERIFY(l2.var() == l.var());
             sat::literal r2 = (l.sign() == l2.sign()) ? r : ~r;
-            ctx.push(vector2_value_trail<bits_vector, sat::literal>(m_bits, vp.first, vp.second));
-            m_bits[vp.first][vp.second] = r2;
-            set_bit_eh(vp.first, r2, vp.second);
+            ctx.push(vector2_value_trail<bits_vector, sat::literal>(m_bits, v, idx));
+            m_bits[v][idx] = r2;
+            set_bit_eh(v, r2, idx);
         }
         ctx.push(bit_occs_trail(*this, *a));
         a->m_occs = nullptr;
@@ -711,7 +712,7 @@ namespace bv {
             hash(solver& s) :s(s) {}
             bool operator()(theory_var v) const {
                 literal_vector const& a = s.m_bits[v];
-                return string_hash(reinterpret_cast<char*>(a.data()), a.size() * sizeof(sat::literal), 3);
+                return string_hash(std::string_view(reinterpret_cast<char*>(a.data()), a.size() * sizeof(sat::literal)), 3);
             }
         };
         eq eq_proc(*this);
@@ -724,7 +725,7 @@ namespace bv {
                     assert_ackerman(v, w);
             }
         }    
-        TRACE("bv", tout << "infer new equations for bit-vectors that are now equal\n";);
+        TRACE(bv, tout << "infer new equations for bit-vectors that are now equal\n";);
     }
 
     void solver::clauses_modifed() {}
@@ -733,7 +734,7 @@ namespace bv {
         unsigned num_vars = get_num_vars();
         if (num_vars > 0)
             out << "bv-solver:\n";
-        for (unsigned v = 0; v < num_vars; v++)
+        for (unsigned v = 0; v < num_vars; ++v)
             out << pp(v);
         return out;
     }
@@ -764,17 +765,14 @@ namespace bv {
             return out << "bv <- " << m_bits[v1] << " != " << m_bits[v2] << " @" << cidx;
         case bv_justification::kind_t::bv2int:
             return out << "bv <- v" << v1 << " == v" << v2 << " <== " << ctx.bpp(c.a) << " == " << ctx.bpp(c.b) << " == " << ctx.bpp(c.c);
-        default:
-            UNREACHABLE();
-            break;
         }
         return out;
     }
 
     std::ostream& solver::display(std::ostream& out, atom const& a) const {
         out << a.m_bv << "\n";
-        for (auto vp : a) 
-            out << vp.first << "[" << vp.second << "]\n";
+        for (auto [v, idx] : a) 
+            out << v << "[" << idx << "]\n";
         for (auto e : a.eqs())
             out << e.m_bv1 << " " << e.m_bv2 << "\n";
         return out;
@@ -886,20 +884,20 @@ namespace bv {
 
     void solver::merge_eh(theory_var r1, theory_var r2, theory_var v1, theory_var v2) {
 
-        TRACE("bv", tout << "merging: v" << v1 << " #" << var2enode(v1)->get_expr_id() << " v" << v2 << " #" << var2enode(v2)->get_expr_id() << "\n";);
+        TRACE(bv, tout << "merging: v" << v1 << " #" << var2enode(v1)->get_expr_id() << " v" << v2 << " #" << var2enode(v2)->get_expr_id() << "\n";);
 
         if (!merge_zero_one_bits(r1, r2)) {
-            TRACE("bv", tout << "conflict detected\n";);
+            TRACE(bv, tout << "conflict detected\n";);
             return; // conflict was detected
         }
         SASSERT(m_bits[v1].size() == m_bits[v2].size());
         unsigned sz = m_bits[v1].size();
         if (sz == 1)
             return;
-        for (unsigned idx = 0; !s().inconsistent() && idx < sz; idx++) {
+        for (unsigned idx = 0; !s().inconsistent() && idx < sz; ++idx) {
             literal bit1 = m_bits[v1][idx];
             literal bit2 = m_bits[v2][idx];
-            CTRACE("bv", bit1 == ~bit2, tout << pp(v1) << pp(v2) << "idx: " << idx << "\n";);
+            CTRACE(bv, bit1 == ~bit2, tout << pp(v1) << pp(v2) << "idx: " << idx << "\n";);
             if (bit1 == ~bit2) {
                 mk_new_diseq_axiom(v1, v2, idx);
                 return;
@@ -907,10 +905,10 @@ namespace bv {
             SASSERT(bit1 != ~bit2);
             lbool val1 = s().value(bit1);
             lbool val2 = s().value(bit2);
-            TRACE("bv", tout << "merge v" << v1 << " " << bit1 << ":= " << val1 << " " << bit2 << ":= " << val2 << "\n";);
+            TRACE(bv, tout << "merge v" << v1 << " " << bit1 << ":= " << val1 << " " << bit2 << ":= " << val2 << "\n";);
             if (val1 == val2)
                 continue;
-            CTRACE("bv", (val1 != l_undef && val2 != l_undef), tout << "inconsistent "; tout << pp(v1) << pp(v2) << "idx: " << idx << "\n";);
+            CTRACE(bv, (val1 != l_undef && val2 != l_undef), tout << "inconsistent "; tout << pp(v1) << pp(v2) << "idx: " << idx << "\n";);
             if (val1 == l_false)
                 assign_bit(~bit2, v1, v2, idx, ~bit1, true);
             else if (val1 == l_true)
@@ -927,7 +925,7 @@ namespace bv {
         sat::constraint_base::initialize(mem, this);
         auto* constraint = new (sat::constraint_base::ptr2mem(mem)) bv_justification(v1, v2, c, a);
         auto jst = sat::justification::mk_ext_justification(s().scope_lvl(), constraint->to_index());
-        TRACE("bv", tout << jst << " " << constraint << "\n");
+        TRACE(bv, tout << jst << " " << constraint << "\n");
         return jst;
     }
 
@@ -1025,7 +1023,7 @@ namespace bv {
         };
         scoped_reset _sr(*this, bits1);
 
-        DEBUG_CODE(for (unsigned i = 0; i < bv_size; i++) SASSERT(m_merge_aux[0][i] == euf::null_theory_var || m_merge_aux[1][i] == euf::null_theory_var););
+        DEBUG_CODE(for (unsigned i = 0; i < bv_size; ++i) SASSERT(m_merge_aux[0][i] == euf::null_theory_var || m_merge_aux[1][i] == euf::null_theory_var););
 
         // save info about bits1
         for (auto& zo : bits1)
@@ -1046,7 +1044,7 @@ namespace bv {
                 bits1.push_back(zo);
         }
         // reset m_merge_aux vector
-        DEBUG_CODE(for (unsigned i = 0; i < bv_size; i++) { SASSERT(m_merge_aux[0][i] == euf::null_theory_var || m_merge_aux[1][i] == euf::null_theory_var); });
+        DEBUG_CODE(for (unsigned i = 0; i < bv_size; ++i) { SASSERT(m_merge_aux[0][i] == euf::null_theory_var || m_merge_aux[1][i] == euf::null_theory_var); });
         return true;
     }
 

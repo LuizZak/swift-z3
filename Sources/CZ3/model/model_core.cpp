@@ -22,7 +22,8 @@ Revision History:
 model_core::~model_core() {
     for (auto & kv : m_interp) {
         m.dec_ref(kv.m_key);
-        m.dec_ref(kv.m_value.second);
+        auto [idx, e] = kv.m_value;
+        m.dec_ref(e);
     }
 
     for (auto & kv : m_finterp) {
@@ -53,7 +54,7 @@ void model_core::register_decl(func_decl * d, expr * v) {
         register_decl(d, fi);
         return;
     }
-    TRACE("model", tout << "register " << d->get_name() << "\n";
+    TRACE(model, tout << "register " << d->get_name() << "\n";
           if (v) tout << mk_pp(v, m) << "\n";
           );
     i_expr v0(0, nullptr);
@@ -81,7 +82,7 @@ void model_core::register_decl(func_decl * d, func_interp * fi) {
 }
 
 func_interp* model_core::update_func_interp(func_decl* d, func_interp* fi) {
-    TRACE("model_verbose", tout << "register " << d->get_name() << "\n";);
+    TRACE(model_verbose, tout << "register " << d->get_name() << "\n";);
 
     SASSERT(d->get_arity() > 0);
     SASSERT(&fi->m() == &m);
@@ -129,19 +130,3 @@ void model_core::unregister_decl(func_decl * d) {
     }
 }
 
-void model_core::add_lambda_defs() {
-    unsigned sz = get_num_decls();
-    for (unsigned i = sz; i-- > 0; ) {
-        func_decl* f = get_decl(i);
-        quantifier* q = m.is_lambda_def(f);
-        if (!q)
-            continue;
-        if (f->get_arity() > 0) {
-            func_interp* fi = alloc(func_interp, m, f->get_arity());
-            fi->set_else(q);
-            register_decl(f, fi);
-        }
-        else
-            register_decl(f, q);
-    }
-}

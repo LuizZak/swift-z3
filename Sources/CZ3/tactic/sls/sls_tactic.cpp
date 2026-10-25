@@ -69,7 +69,7 @@ public:
             return;
         }
 
-        for (unsigned i = 0; i < g->size(); i++)
+        for (unsigned i = 0; i < g->size(); ++i)
             m_sls->assert_expr(g->form(i));
 
 
@@ -93,7 +93,7 @@ public:
             if (g->models_enabled()) {
                 model_ref mdl = m_sls->get_model();
                 mc = model2model_converter(mdl.get());
-                TRACE("sls_model", mc->display(tout););
+                TRACE(sls_model, mc->display(tout););
             }
             g->reset();
         }
@@ -105,7 +105,7 @@ public:
         goal_ref_buffer& result) override {
         result.reset();
 
-        TRACE("sls", g->display(tout););
+        TRACE(sls, g->display(tout););
         tactic_report report("sls", *g);
 
         model_converter_ref mc;
@@ -169,7 +169,7 @@ public:
             return;
         }        
         
-        for (unsigned i = 0; i < g->size(); i++)
+        for (unsigned i = 0; i < g->size(); ++i)
             m_engine->assert_expr(g->form(i));    
         
         lbool res = m_engine->operator()();
@@ -177,7 +177,7 @@ public:
         if (res == l_true) {
             report_tactic_progress("Number of flips:", stats.m_moves);
             
-            for (unsigned i = 0; i < g->size(); i++)
+            for (unsigned i = 0; i < g->size(); ++i)
                 if (!m_engine->get_mpz_manager().is_one(m_engine->get_value(g->form(i)))) {
                     verbose_stream() << "Terminated before all assertions were SAT!" << std::endl;
                     NOT_IMPLEMENTED_YET();
@@ -186,7 +186,7 @@ public:
             if (g->models_enabled()) {
                 model_ref mdl = m_engine->get_model();
                 mc = model2model_converter(mdl.get());
-                TRACE("sls_model", mc->display(tout););
+                TRACE(sls_model, mc->display(tout););
             }
             g->reset();
         }
@@ -199,7 +199,7 @@ public:
                     goal_ref_buffer & result) override {
         result.reset();
         
-        TRACE("sls", g->display(tout););
+        TRACE(sls, g->display(tout););
         tactic_report report("sls", *g);
         
         model_converter_ref mc;

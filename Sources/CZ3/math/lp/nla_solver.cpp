@@ -20,34 +20,60 @@ namespace nla {
         m_core->add_monic(v, sz, vs);
     }
 
-    void solver::add_idivision(lpvar q, lpvar x, lpvar y) {
-        m_core->add_idivision(q, x, y);
+    void solver::add_idivision(lpvar q, lpvar x, lpvar y, lpvar r) {
+        m_core->add_idivision(q, x, y, r);
     }
 
-    void solver::add_rdivision(lpvar q, lpvar x, lpvar y) {
-        m_core->add_rdivision(q, x, y);
+    void solver::add_rdivision(lpvar q, lpvar x, lpvar y, lpvar r) {
+        m_core->add_rdivision(q, x, y, r);
     }
 
-    void solver::add_bounded_division(lpvar q, lpvar x, lpvar y) {
-        m_core->add_bounded_division(q, x, y);
+    void solver::add_bounded_division(lpvar q, lpvar x, lpvar y, lpvar r) {
+        m_core->add_bounded_division(q, x, y, r);
+    }
+
+    void solver::add_divisibility(lpvar r, lpvar x, lpvar y, lpvar d) {
+        m_core->add_divisibility(r, x, y, d);
+    }
+
+    void solver::add_transcendental(nlsat::transcendental_op_kind op, lpvar arg, lpvar val) {
+        m_core->add_transcendental(op, arg, val);
+    }
+
+    void solver::add_pi(lpvar val) {
+        m_core->add_pi(val);
+    }
+
+    void solver::add_atan2(lpvar y, lpvar x, lpvar val) {
+        m_core->add_atan2(y, x, val);
     }
 
     void solver::set_relevant(std::function<bool(lpvar)>& is_relevant) {
         m_core->set_relevant(is_relevant);
+    }
+
+    void solver::updt_params(params_ref const& p) {
+        m_core->updt_params(p);
     }
     
     bool solver::is_monic_var(lpvar v) const {
         return m_core->is_monic_var(v);
     }
     
-    bool solver::need_check() { return m_core->has_relevant_monomial(); }
+    bool solver::need_check() {
+        return m_core->has_relevant_monomial() || !m_core->get_transcendentals().empty();
+    }
     
-    lbool solver::check() {
-        return m_core->check();
+    lbool solver::check(unsigned level) {
+        return m_core->check(level);
     }
 
-    void solver::propagate() {
-        m_core->propagate();
+    bool solver::propagate() {
+        return m_core->propagate();
+    }
+
+    bool solver::incremental_propagate() {
+        return m_core->incremental_propagate();
     }
     
     void solver::push(){
@@ -71,7 +97,7 @@ namespace nla {
     }
     
     std::ostream& solver::display(std::ostream& out) const {    
-        m_core->print_monics(out);
+        m_core->display(out);
         if (use_nra_model()) 
             m_core->m_nra.display(out);
         return out;
@@ -108,7 +134,7 @@ namespace nla {
         m_core->check_bounded_divisions();
     }
 
-    vector<nla::lemma> const& solver::lemmas() const {
+    const vector<lemma>&  solver::lemmas() const {
         return m_core->lemmas();
     }
     

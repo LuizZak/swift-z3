@@ -20,20 +20,25 @@ Notes:
 --*/
 #pragma once
 
-#include "util/inf_rational.h"
-#include "util/inf_eps_rational.h"
+#include "opt/opt_search.h"
 #include "ast/ast.h"
 #include "util/params.h"
 #include "solver/solver_na2as.h"
 #include "smt/smt_kernel.h"
-#include "smt/params/smt_params.h"
+#include "params/smt_params.h"
 #include "smt/smt_types.h"
 #include "smt/theory_opt.h"
 #include "ast/converters/generic_model_converter.h"
 
+class arith_util;
+
 namespace opt {
 
-    typedef inf_eps_rational<inf_rational> inf_eps;
+    // Extract from a model value of an objective term a rational bound on it:
+    // the value itself when it is a rational numeral, otherwise, for an
+    // irrational algebraic value (e.g. sqrt(2) for an objective pinned by
+    // x^2 = 2), the requested side of its isolating interval.
+    bool model_value_bound(arith_util& a, expr* val, bool lower, rational& n);
 
     // Adjust bound bound |-> m_offset + (m_negate?-1:1)*bound
     class adjust_value {
@@ -49,12 +54,15 @@ namespace opt {
         void set_negate(bool neg) { m_negate = neg; }
         rational const& get_offset() const { return m_offset; }
         void add_offset(rational const& o) { if (m_negate) m_offset -= o; else m_offset += o; }
-        bool get_negate() { return m_negate; }
+        bool get_negate() const { return m_negate; }
         inf_eps operator()(inf_eps const& r) const {
             inf_eps result = r;
             if (m_negate) result.neg();
             result += m_offset;
             return result;
+        }
+        objective_value operator()(objective_value const& r) const {
+            return r.adjusted(m_offset, m_negate);
         }
         rational operator()(rational const& r) const {
             rational result = r;
@@ -73,23 +81,26 @@ namespace opt {
         generic_model_converter& m_fm;
         progress_callback * m_callback;
         symbol              m_logic;
-        model_ref           m_last_model;
+        model_ref           m_model;
         svector<smt::theory_var>  m_objective_vars;
         vector<inf_eps>     m_objective_values;
-        sref_vector<model>  m_models;
+        sref_vector<model>  m_objective_models;
         expr_ref_vector     m_objective_terms;
         bool                m_dump_benchmarks;
         static unsigned     m_dump_count;
         statistics          m_stats;
         bool                m_first;
         bool                m_was_unknown;
+        unsigned            m_dual_bound_rlimit;
+        unsigned            m_dual_bound_checks = 0;
+        unsigned            m_dual_bound_refutations = 0;
     public:
         opt_solver(ast_manager & m, params_ref const & p, generic_model_converter& fm);
 
         solver* translate(ast_manager& m, params_ref const& p) override;
         void updt_params(params_ref const& p) override;
         void collect_param_descrs(param_descrs & r) override;
-        void collect_statistics(statistics & st) const override;
+        void collect_statistics_core(statistics & st) const override;
         void assert_expr_core(expr * t) override;
         void push_core() override;
         void pop_core(unsigned n) override;
@@ -117,16 +128,61 @@ namespace opt {
         void set_phase(phase* p) override { m_context.set_phase(p); }
         void move_to_front(expr* e) override { m_context.move_to_front(e); }
         void user_propagate_initialize_value(expr* var, expr* value) override { m_context.user_propagate_initialize_value(var, value); }
+        void user_propagate_init(void *ctx, user_propagator::push_eh_t &push_eh, user_propagator::pop_eh_t &pop_eh, user_propagator::fresh_eh_t &fresh_eh) override {
+            m_context.user_propagate_init(ctx, push_eh, pop_eh, fresh_eh);
+            m_first = false;
+        }
+
+        void user_propagate_register_fixed(user_propagator::fixed_eh_t &fixed_eh) override {
+            m_context.user_propagate_register_fixed(fixed_eh);
+        }
+
+        void user_propagate_register_final(user_propagator::final_eh_t &final_eh) override {
+            m_context.user_propagate_register_final(final_eh);
+        }
+
+        void user_propagate_register_eq(user_propagator::eq_eh_t &eq_eh) override {
+            m_context.user_propagate_register_eq(eq_eh);
+        }
+
+        void user_propagate_register_diseq(user_propagator::eq_eh_t &diseq_eh) override {
+            m_context.user_propagate_register_diseq(diseq_eh);
+        }
+
+        void user_propagate_register_expr(expr *e) override {
+            m_context.user_propagate_register_expr(e);
+        }
+
+        void user_propagate_register_created(user_propagator::created_eh_t &r) override {
+            m_context.user_propagate_register_created(r);   
+        }
+
+        void user_propagate_register_decide(user_propagator::decide_eh_t &r) override {
+            m_context.user_propagate_register_decide(r);
+        }
+
+        void user_propagate_register_on_binding(user_propagator::binding_eh_t &r) override {
+            m_context.user_propagate_register_on_binding(r);
+        }
+
+         void user_propagate_clear() override {
+        }
+
+        void register_on_clause(void *, user_propagator::on_clause_eh_t &r) override {
+            m_context.register_on_clause(nullptr, r);
+        }
 
         void set_logic(symbol const& logic);
 
         smt::theory_var add_objective(app* term);
         void reset_objectives();
-        bool maximize_objective(unsigned i, expr_ref& blocker);
+        maximize_result maximize_objective(unsigned i, expr_ref& blocker, bool dual_bounds = false, bool probe_bound = true);
         bool maximize_objectives1(expr_ref_vector& blockers);
+        bool maximize_objective_isolated(unsigned i, model_ref& baseline_model, expr_ref& blocker);
+        void update_from_baseline_model(unsigned i, model_ref& baseline_model, expr_ref& blocker);
         inf_eps const & saved_objective_value(unsigned obj_index);
         inf_eps current_objective_value(unsigned obj_index);
-        model* get_model_idx(unsigned obj_index) { return m_models[obj_index]; }
+        model* get_model_idx(unsigned obj_index) { return m_objective_models[obj_index]; }
 
         bool was_unknown() const { return m_was_unknown; }
 
@@ -147,9 +203,9 @@ namespace opt {
                                symbol const& logic = symbol::null, char const * status = "unknown", char const * attributes = "");
 
     private:
-        bool bound_value(unsigned i, inf_eps& val);
+        lbool check_upper_bound(unsigned i, rational const& value);
+        lbool bound_value(unsigned i, inf_eps& val);
         void set_model(unsigned i);
         lbool adjust_result(lbool r);
     };
 }
-

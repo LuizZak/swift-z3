@@ -58,8 +58,8 @@ namespace smt2 {
             if (m_at_eof)
                 return;
             if (c == '\n') {
-                new_line();
                 next();
+                new_line();
                 return;
             }
             next();
@@ -74,8 +74,8 @@ namespace smt2 {
             if (m_at_eof)
                 return;
             if (c == '\n') {
-                new_line();
                 next();
+                new_line();
                 continue;
             }
             next();
@@ -88,7 +88,6 @@ namespace smt2 {
 
     scanner::token scanner::read_quoted_symbol() {
         SASSERT(curr() == '|');
-        bool escape = false;
         m_string.reset();
         next();
         while (true) {
@@ -96,23 +95,20 @@ namespace smt2 {
             if (m_at_eof) {
                 throw scanner_exception("unexpected end of quoted symbol", m_line, m_spos);
             }
-            else if (c == '\n') {
-                new_line();
-            }
-            else if (c == '|' && !escape) {
+            else if (c == '|') {
                 next();
                 m_string.push_back(0);
                 m_id = m_string.begin();
-                TRACE("scanner", tout << "new quoted symbol: " << m_id << "\n";);
+                TRACE(scanner, tout << "new quoted symbol: " << m_id << "\n";);
                 return SYMBOL_TOKEN;
             }
-            else if (c != '|' && c != '\\' && escape) {
-                m_string.push_back('\\');
+            else if (c == '\\') {
+                // SMT-LIB 2.5+ gives '\' no special meaning inside a quoted symbol
+                throw scanner_exception("invalid character '\\' in quoted symbol", m_line, m_spos);
             }
-
-            escape = (c == '\\') && !escape;
-            if (!escape)
-                m_string.push_back(c);
+            else if (c == '\n')
+                new_line();
+            m_string.push_back(c);
             next();
         }
     }
@@ -128,7 +124,7 @@ namespace smt2 {
             else {
                 m_string.push_back(0);
                 m_id = m_string.begin();
-                TRACE("scanner", tout << "new symbol: " << m_id << "\n";);
+                TRACE(scanner, tout << "new symbol: " << m_id << "\n";);
                 return SYMBOL_TOKEN;
             }
         }
@@ -175,7 +171,7 @@ namespace smt2 {
         }
         if (is_float)
             m_number /= q;
-        TRACE("scanner", tout << "new number: " << m_number << "\n";);
+        TRACE(scanner, tout << "new number: " << m_number << "\n";);
         return is_float ? FLOAT_TOKEN : INT_TOKEN;
     }
 
@@ -222,6 +218,15 @@ namespace smt2 {
         SASSERT(curr() == '#');
         next();
         char c = curr();
+        if (c == 'f') {
+            std::string value("#f");
+            next();
+            while ((curr() >= '0' && curr() <= '9') || curr() == 'm' || curr() == '-') {
+                value.push_back(curr()); next();
+            }
+            m_id = symbol(value.c_str());
+            return SYMBOL_TOKEN;
+        }
         if (c == 'x') {
             next();
             c = curr();
@@ -385,11 +390,13 @@ namespace smt2 {
 
     char const * scanner::cached_str(unsigned begin, unsigned end) {
         m_cache_result.reset();
-        while (begin < end && isspace(m_cache[begin]))
+        // A signed char may be negative; isspace accepts only unsigned-char values or EOF.
+        while (begin < end && isspace(static_cast<unsigned char>(m_cache[begin])))
             begin++;
-        while (begin < end && isspace(m_cache[end-1]))
+        // The trailing byte also needs conversion to avoid a negative isspace argument.
+        while (begin < end && isspace(static_cast<unsigned char>(m_cache[end-1])))
             end--;
-        for (unsigned i = begin; i < end; i++)
+        for (unsigned i = begin; i < end; ++i)
             m_cache_result.push_back(m_cache[i]);
         m_cache_result.push_back(0);
         return m_cache_result.begin();
@@ -403,5 +410,5 @@ namespace smt2 {
         m_bend = 0;
         next();
     }
-};
+}
 

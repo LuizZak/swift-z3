@@ -99,7 +99,6 @@ public:
     lar_term& operator=(const lar_term& other) = default;
     // move assignment operator
     lar_term& operator=(lar_term&& other) noexcept = default;
-    ~lar_term() = default;
     lar_term(const lar_term& a) {
         for (auto const& p : a) {
             add_monomial(p.coeff(), p.var());
@@ -130,8 +129,8 @@ public:
         add_monomial(a, v1);
         add_monomial(b, v2);
     }
-    bool operator==(const lar_term & a) const {  return false; } // take care not to create identical terms
-    bool operator!=(const lar_term & a) const {  return ! (*this == a);}
+    bool operator==(const lar_term & a) const = delete; //  take care not to create identical terms
+    bool operator!=(const lar_term & a) const = delete;  
     // some terms get used in add constraint
     // it is the same as the offset in the m_constraints
 
@@ -310,7 +309,7 @@ public:
         auto it = m_coeffs.begin();
         r.add_var(it->m_key);
         it++;
-        for(;it != m_coeffs.end(); it++) {
+        for(;it != m_coeffs.end(); ++it) {
             r.add_monomial(it->m_value / a, it->m_key);
         }
         return r;        

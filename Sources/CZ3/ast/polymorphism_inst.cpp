@@ -17,10 +17,12 @@ Author:
 --*/
 #include "ast/polymorphism_inst.h"
 #include "ast/ast_pp.h"
+#include "ast/for_each_expr.h"
 
 namespace polymorphism {
     
     void inst::add(expr* e) {
+        TRACE(context, tout << "add " << mk_pp(e, m) << "\n");
         if (!m.has_type_vars())
             return;
 
@@ -29,6 +31,7 @@ namespace polymorphism {
 
         instances inst;
         u.collect_poly_instances(e, inst.m_poly_fns);
+        CTRACE(context, inst.m_poly_fns.empty(), tout << "no poly fns\n");
         if (inst.m_poly_fns.empty())
             return;
         if (m_instances.contains(e))
@@ -36,8 +39,15 @@ namespace polymorphism {
         
         add_instantiations(e, inst.m_poly_fns);
 
+        CTRACE(context, !u.has_type_vars(e), tout << "no type vars\n";
+        for (auto e : subterms::all(expr_ref(e, m))) {
+            if (is_app(e))
+                tout << mk_pp(to_app(e)->get_decl(), m) << "\n";
+        });
         if (!u.has_type_vars(e))
             return;
+
+        TRACE(context, tout << "inserting " << mk_pp(e, m) << "\n");
         
         // insert e into the occurs list for polymorphic roots
         ast_mark seen;
@@ -57,9 +67,11 @@ namespace polymorphism {
         m_assertions.push_back(e);
         t.push(push_back_vector(m_assertions));
         u.collect_type_vars(e, inst.m_tvs);
+        auto* init = alloc(substitution, m);
         inst.m_subst = alloc(substitutions);
-        inst.m_subst->insert(alloc(substitution, m));
+        inst.m_subst->insert(init);
         m_instances.insert(e, inst);            
+        t.push(new_obj_trail(init));
         t.push(new_obj_trail(inst.m_subst));
         t.push(insert_map(m_instances, e));        
     }
@@ -107,13 +119,14 @@ namespace polymorphism {
         auto const& [tv, fns, substs] = m_instances[e];
                 
         for (auto* f2 : fns) {
-            substitution sub1(m), new_sub(m);
+            substitution sub1(m);
             if (!u.unify(f1, f2, sub1))
                 continue;
             if (substs->contains(&sub1))
                 continue;
             substitutions new_substs;
             for (auto* sub2 : *substs) {
+                substitution new_sub(m);
                 if (!u.unify(sub1, *sub2, new_sub))
                     continue;
                 if (substs->contains(&new_sub))
@@ -123,12 +136,12 @@ namespace polymorphism {
                 expr_ref e_inst = new_sub(e);
                 if (!m_from_instantiation.contains(e_inst)) {
                     collect_instantiations(e_inst);
-                    auto* new_sub1 = alloc(substitution, new_sub);
+                    auto* new_sub1 = alloc(substitution, std::move(new_sub));
                     instances.push_back(instantiation(e, e_inst, new_sub1));
                     new_substs.insert(new_sub1);
                     m_from_instantiation.insert(e_inst);
                     m.inc_ref(e_inst);
-                    t.push(insert_ref_map(m, m_from_instantiation, e_inst));
+                    t.push(insert_ref_map(m, m_from_instantiation, e_inst.get()));
                 }
             }
             for (auto* sub2 : new_substs) {

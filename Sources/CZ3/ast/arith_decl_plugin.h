@@ -24,11 +24,12 @@ class sexpr;
 namespace algebraic_numbers {
     class anum;
     class manager;
-};
+}
 
 enum arith_sort_kind {
     REAL_SORT,
-    INT_SORT
+    INT_SORT,
+    COMPLEX_SORT
 };
 
 enum arith_op_kind {
@@ -70,6 +71,9 @@ enum arith_op_kind {
     OP_ASINH,
     OP_ACOSH,
     OP_ATANH,
+    OP_EXP,
+    OP_ATAN2,
+    OP_LOG,
     // Bit-vector functions
     OP_ARITH_BAND,
     OP_ARITH_SHL,
@@ -82,6 +86,9 @@ enum arith_op_kind {
     OP_NEG_ROOT,      // x^n when n is even and x is negative
     OP_U_ASIN,        // asin(x) for x < -1 or x > 1
     OP_U_ACOS,        // acos(x) for x < -1 or x > 1
+    OP_COMPLEX,
+    OP_REAL_PART,
+    OP_IMAG_PART,
     LAST_ARITH_OP
 };
 
@@ -96,6 +103,17 @@ protected:
     symbol      m_rootv_sym;
     sort *      m_real_decl;
     sort *      m_int_decl;
+    sort *      m_complex_decl = nullptr;
+    func_decl * m_c_add_decl = nullptr;
+    func_decl * m_c_sub_decl = nullptr;
+    func_decl * m_c_uminus_decl = nullptr;
+    func_decl * m_c_mul_decl = nullptr;
+    func_decl * m_rc_mul_decl = nullptr;
+    func_decl * m_cr_mul_decl = nullptr;
+    func_decl * m_c_div_decl = nullptr;
+    func_decl * m_complex_ctor = nullptr;
+    func_decl * m_real_part_decl = nullptr;
+    func_decl * m_imag_part_decl = nullptr;
     func_decl * m_r_le_decl;
     func_decl * m_r_ge_decl;
     func_decl * m_r_lt_decl;
@@ -120,11 +138,13 @@ protected:
     func_decl * m_i_mod_decl;
     func_decl * m_i_rem_decl;
 
-    func_decl * m_to_real_decl;
-    func_decl * m_to_int_decl;
-    func_decl * m_is_int_decl;
-    func_decl * m_r_power_decl;
-    func_decl * m_i_power_decl;
+    func_decl * m_to_real_decl = nullptr;
+    func_decl * m_to_int_decl = nullptr;
+    func_decl * m_r_to_real_decl = nullptr;
+    func_decl * m_i_to_int_decl = nullptr;
+    func_decl * m_is_int_decl = nullptr;
+    func_decl * m_r_power_decl = nullptr;
+    func_decl * m_i_power_decl = nullptr;
 
     func_decl * m_r_abs_decl;
     func_decl * m_i_abs_decl;
@@ -141,6 +161,9 @@ protected:
     func_decl * m_asinh_decl;
     func_decl * m_acosh_decl;
     func_decl * m_atanh_decl;
+    func_decl * m_exp_decl;
+    func_decl * m_atan2_decl;
+    func_decl * m_log_decl;
 
     app       * m_pi;
     app       * m_e;
@@ -156,6 +179,7 @@ protected:
     symbol bv_symbol(decl_kind k) const;
 
     func_decl * mk_func_decl(decl_kind k, bool is_real);
+    func_decl * mk_complex_func_decl(decl_kind k);
     void set_manager(ast_manager * m, family_id id) override;
     decl_kind fix_kind(decl_kind k, unsigned arity);
     void check_arity(unsigned arity, unsigned expected_arity);
@@ -305,7 +329,12 @@ public:
     bool is_int(expr const * n) const { return is_int(n->get_sort()); }
     bool is_real(sort const * s) const { return is_sort_of(s, arith_family_id, REAL_SORT); }
     bool is_real(expr const * n) const { return is_real(n->get_sort()); }
-    bool is_int_real(sort const * s) const { return s->get_family_id() == arith_family_id; }
+    bool is_complex(sort const * s) const { return is_sort_of(s, arith_family_id, COMPLEX_SORT); }
+    bool is_complex(expr const * n) const { return is_complex(n->get_sort()); }
+    bool is_complex_constructor(expr const * n) const { return is_app_of(n, arith_family_id, OP_COMPLEX); }
+    bool is_real_part(expr const * n) const { return is_app_of(n, arith_family_id, OP_REAL_PART); }
+    bool is_imag_part(expr const * n) const { return is_app_of(n, arith_family_id, OP_IMAG_PART); }
+    bool is_int_real(sort const * s) const { return is_int(s) || is_real(s); }
     bool is_int_real(expr const * n) const { return is_int_real(n->get_sort()); }
 
     bool is_band(expr const* n) const { return is_app_of(n, arith_family_id, OP_ARITH_BAND); }
@@ -320,6 +349,8 @@ public:
     bool is_sin(expr const* n) const { return is_app_of(n, arith_family_id, OP_SIN); }
     bool is_cos(expr const* n) const { return is_app_of(n, arith_family_id, OP_COS); }
     bool is_tan(expr const* n) const { return is_app_of(n, arith_family_id, OP_TAN); }
+    bool is_sinh(expr const* n) const { return is_app_of(n, arith_family_id, OP_SINH); }
+    bool is_cosh(expr const* n) const { return is_app_of(n, arith_family_id, OP_COSH); }
     bool is_tanh(expr const* n) const { return is_app_of(n, arith_family_id, OP_TANH); }
     bool is_asin(expr const* n) const { return is_app_of(n, arith_family_id, OP_ASIN); }
     bool is_acos(expr const* n) const { return is_app_of(n, arith_family_id, OP_ACOS); }
@@ -327,12 +358,17 @@ public:
     bool is_asinh(expr const* n) const { return is_app_of(n, arith_family_id, OP_ASINH); }
     bool is_acosh(expr const* n) const { return is_app_of(n, arith_family_id, OP_ACOSH); }
     bool is_atanh(expr const* n) const { return is_app_of(n, arith_family_id, OP_ATANH); }
+    bool is_exp(expr const* n) const { return is_app_of(n, arith_family_id, OP_EXP); }
+    bool is_atan2(expr const* n) const { return is_app_of(n, arith_family_id, OP_ATAN2); }
+    bool is_log(expr const* n) const { return is_app_of(n, arith_family_id, OP_LOG); }
     bool is_pi(expr const * arg) const { return is_app_of(arg, arith_family_id, OP_PI); }
     bool is_e(expr const * arg) const { return is_app_of(arg, arith_family_id, OP_E); }
     bool is_non_algebraic(expr const* n) const {
         return is_sin(n) ||
             is_cos(n) ||
             is_tan(n) ||
+            is_sinh(n) ||
+            is_cosh(n) ||
             is_tanh(n) || 
             is_asin(n) ||
             is_acos(n) ||
@@ -340,10 +376,14 @@ public:
             is_asinh(n) ||
             is_acosh(n) ||
             is_atanh(n) ||
+            is_exp(n) ||
+            is_atan2(n) ||
+            is_log(n) ||
             is_e(n) ||
             is_pi(n);
     }
 
+    START_DISABLE_EXTRA_SEMI_WARNING;
     MATCH_UNARY(is_uminus);
     MATCH_UNARY(is_to_real);
     MATCH_UNARY(is_to_int);
@@ -376,6 +416,13 @@ public:
     MATCH_UNARY(is_tan);
     MATCH_UNARY(is_atan);
     MATCH_UNARY(is_atanh);
+    MATCH_UNARY(is_sinh);
+    MATCH_UNARY(is_cosh);
+    MATCH_UNARY(is_tanh);
+    MATCH_UNARY(is_exp);
+    MATCH_BINARY(is_atan2);
+    MATCH_UNARY(is_log);
+    END_DISABLE_WARNING;
 
 };
 
@@ -426,6 +473,10 @@ public:
 
     sort * mk_int() { return m_manager.mk_sort(arith_family_id, INT_SORT); }
     sort * mk_real() { return m_manager.mk_sort(arith_family_id, REAL_SORT); }
+    sort * mk_complex() { return m_manager.mk_sort(arith_family_id, COMPLEX_SORT); }
+    app * mk_complex(expr * re, expr * im) const { return m_manager.mk_app(arith_family_id, OP_COMPLEX, re, im); }
+    app * mk_real_part(expr * z) const { return m_manager.mk_app(arith_family_id, OP_REAL_PART, z); }
+    app * mk_imag_part(expr * z) const { return m_manager.mk_app(arith_family_id, OP_IMAG_PART, z); }
 
     func_decl* mk_rem0();
     func_decl* mk_div0();
@@ -439,6 +490,11 @@ public:
         return plugin().mk_numeral(val, is_int);
     }
     app * mk_numeral(rational const & val, sort const * s) const {
+        if (is_complex(s)) {
+            expr_ref re(mk_numeral(val, false), m_manager);
+            expr_ref im(mk_numeral(rational(0), false), m_manager);
+            return mk_complex(re, im);
+        }
         SASSERT(is_int(s) || is_real(s));
         return mk_numeral(val, is_int(s));
     }
@@ -501,9 +557,13 @@ public:
     app * mk_power0(expr* arg1, expr* arg2) { return m_manager.mk_app(arith_family_id, OP_POWER0, arg1, arg2); }
 
     app* mk_band(unsigned n, expr* arg1, expr* arg2) { parameter p(n); expr* args[2] = { arg1, arg2 }; return m_manager.mk_app(arith_family_id, OP_ARITH_BAND, 1, &p, 2, args); }
+    app* mk_band(unsigned n, std::initializer_list<expr*> args) { parameter p(n); return m_manager.mk_app(arith_family_id, OP_ARITH_BAND, 1, &p, static_cast<unsigned>(args.size()), args.begin()); }
     app* mk_shl(unsigned n, expr* arg1, expr* arg2) { parameter p(n); expr* args[2] = { arg1, arg2 }; return m_manager.mk_app(arith_family_id, OP_ARITH_SHL, 1, &p, 2, args); }
+    app* mk_shl(unsigned n, std::initializer_list<expr*> args) { parameter p(n); return m_manager.mk_app(arith_family_id, OP_ARITH_SHL, 1, &p, static_cast<unsigned>(args.size()), args.begin()); }
     app* mk_ashr(unsigned n, expr* arg1, expr* arg2) { parameter p(n); expr* args[2] = { arg1, arg2 }; return m_manager.mk_app(arith_family_id, OP_ARITH_ASHR, 1, &p, 2, args); }
+    app* mk_ashr(unsigned n, std::initializer_list<expr*> args) { parameter p(n); return m_manager.mk_app(arith_family_id, OP_ARITH_ASHR, 1, &p, static_cast<unsigned>(args.size()), args.begin()); }
     app* mk_lshr(unsigned n, expr* arg1, expr* arg2) { parameter p(n); expr* args[2] = { arg1, arg2 }; return m_manager.mk_app(arith_family_id, OP_ARITH_LSHR, 1, &p, 2, args); }
+    app* mk_lshr(unsigned n, std::initializer_list<expr*> args) { parameter p(n); return m_manager.mk_app(arith_family_id, OP_ARITH_LSHR, 1, &p, static_cast<unsigned>(args.size()), args.begin()); }
 
     app * mk_sin(expr * arg) { return m_manager.mk_app(arith_family_id, OP_SIN, arg); }
     app * mk_cos(expr * arg) { return m_manager.mk_app(arith_family_id, OP_COS, arg); }
@@ -518,6 +578,9 @@ public:
     app * mk_asinh(expr * arg) { return m_manager.mk_app(arith_family_id, OP_ASINH, arg); }
     app * mk_acosh(expr * arg) { return m_manager.mk_app(arith_family_id, OP_ACOSH, arg); }
     app * mk_atanh(expr * arg) { return m_manager.mk_app(arith_family_id, OP_ATANH, arg); }
+    app * mk_exp(expr * arg) { return m_manager.mk_app(arith_family_id, OP_EXP, arg); }
+    app * mk_atan2(expr * arg1, expr * arg2) { return m_manager.mk_app(arith_family_id, OP_ATAN2, arg1, arg2); }
+    app * mk_log(expr * arg) { return m_manager.mk_app(arith_family_id, OP_LOG, arg); }
 
     app * mk_pi() { return plugin().mk_pi(); }
     app * mk_e()  { return plugin().mk_e(); }
@@ -658,5 +721,4 @@ inline app_ref operator>(app_ref const& x, app_ref const& y) {
     arith_util a(x.get_manager());
     return app_ref(a.mk_gt(x, y), x.get_manager());
 }
-
 

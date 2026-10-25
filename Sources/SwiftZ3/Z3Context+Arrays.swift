@@ -163,10 +163,4 @@ public extension Z3Context {
     func makeAsArray(_ f: Z3FuncDecl) -> AnyZ3Ast {
         return AnyZ3Ast(context: self, ast: Z3_mk_as_array(context, f.funcDecl))
     }
-
-    /// Create predicate that holds if Boolean array `set` has `k` elements set
-    /// to true.
-    func makeSetHasSize<T>(_ set: Z3Set<T>, _ k: AnyZ3Ast) -> Z3Bool {
-        return Z3Bool(context: self, ast: Z3_mk_set_has_size(context, set.ast, k.ast))
-    }
 }

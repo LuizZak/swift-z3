@@ -59,11 +59,11 @@ public:
         fail_if_unsat_core_generation("qfufbv_ackr", g);
         fail_if_proof_generation("qfufbv_ackr", g);
 
-        TRACE("goal", g->display(tout););
+        TRACE(goal, g->display(tout););
         // running implementation
         ptr_vector<expr> flas;
         const unsigned sz = g->size();
-        for (unsigned i = 0; i < sz; i++) flas.push_back(g->form(i));
+        for (unsigned i = 0; i < sz; ++i) flas.push_back(g->form(i));
         scoped_ptr<solver> uffree_solver = setup_sat();
         lackr imp(m, m_p, m_st, flas, uffree_solver.get());
         const lbool o = imp.operator()();

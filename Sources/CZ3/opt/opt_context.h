@@ -22,7 +22,7 @@ Notes:
 #include "ast/bv_decl_plugin.h"
 #include "ast/converters/model_converter.h"
 #include "tactic/tactic.h"
-#include "qe/qsat.h"
+#include "solver/preferred_value_propagator.h"
 #include "opt/opt_solver.h"
 #include "opt/opt_pareto.h"
 #include "opt/optsmt.h"
@@ -177,7 +177,8 @@ namespace opt {
         ref<solver>         m_sat_solver;
         scoped_ptr<pareto_base>  m_pareto;
         bool                 m_pareto1;
-        scoped_ptr<qe::qmax> m_qmax;
+        bool                 m_pareto_exact_comparison = false;
+        bool                 m_has_assumptions = false;
         sref_vector<model>  m_box_models;
         unsigned            m_box_index;
         params_ref          m_params;
@@ -185,7 +186,8 @@ namespace opt {
         map_t               m_maxsmts;
         scoped_state        m_scoped_state;
         vector<objective>   m_objectives;
-        model_ref           m_model;         
+        model_ref           m_model;     
+        bool m_model_available = false;
         model_converter_ref          m_model_converter;
         generic_model_converter_ref  m_fm;
         sref_vector<model>           m_model_fixed;
@@ -205,9 +207,17 @@ namespace opt {
         symbol                       m_logic;
         svector<symbol>              m_labels;
         std::string                  m_unknown;
+        std::string                  m_pareto_unknown;
     public:
         context(ast_manager& m);
         ~context() override;
+        
+        /**
+         * \brief Create a clone of the optimization context in a different ast_manager.
+         * Translates all assertions, objectives, and solver state.
+         */
+        context* translate(ast_manager& target_m);
+        
         unsigned add_soft_constraint(expr* f, rational const& w, symbol const& id);
         unsigned add_objective(app* t, bool is_max);
         void add_hard_constraint(expr* f);
@@ -226,12 +236,12 @@ namespace opt {
         void get_model_core(model_ref& _m) override;
         void get_box_model(model_ref& _m, unsigned index) override;
         void fix_model(model_ref& _m) override;
-        void collect_statistics(statistics& stats) const override;
+        void collect_statistics_core(statistics& stats) const override;
         proof* get_proof_core() override { return nullptr; }
         void get_labels(svector<symbol> & r) override;
         void get_unsat_core(expr_ref_vector & r) override;
         std::string reason_unknown() const override;
-        void set_reason_unknown(char const* msg) override { m_unknown = msg; }
+        void set_reason_unknown(char const* msg) override { m_unknown = msg; }        
 
         void display_assignment(std::ostream& out) override;
         bool is_pareto() override { return m_pareto.get() != nullptr; }
@@ -247,8 +257,8 @@ namespace opt {
         expr_ref get_lower(unsigned idx);
         expr_ref get_upper(unsigned idx);
 
-        void get_lower(unsigned idx, expr_ref_vector& es) { to_exprs(get_lower_as_num(idx), es); }
-        void get_upper(unsigned idx, expr_ref_vector& es) { to_exprs(get_upper_as_num(idx), es); }
+        void get_lower(unsigned idx, expr_ref_vector& es) { get_lower_value(idx).to_exprs(es); }
+        void get_upper(unsigned idx, expr_ref_vector& es) { get_upper_value(idx).to_exprs(es); }
 
         std::string to_string();
 
@@ -295,13 +305,13 @@ namespace opt {
         lbool execute_min_max(unsigned index, bool committed, bool scoped, bool is_max);        
         lbool execute_maxsat(symbol const& s, bool committed, bool scoped);
         lbool execute_lex();
+        lbool execute_lex_after_unbounded(unsigned unbounded_index);
         lbool execute_box();
         lbool execute_pareto();
+        solver* mk_pareto_solver();
         lbool adjust_unknown(lbool r);
         bool scoped_lex();
         bool contains_quantifiers() const;
-        expr_ref to_expr(inf_eps const& n);
-        void to_exprs(inf_eps const& n, expr_ref_vector& es);
 
         void reset_maxsmts();
         void import_scoped_state();
@@ -313,6 +323,8 @@ namespace opt {
         bool is_maxsat(expr* fml, expr_ref_vector& terms, 
                        vector<rational>& weights, rational& offset, bool& neg, 
                        symbol& id, expr_ref& orig_term, unsigned& index);
+        bool is_min_max_of_sums(expr *fml, expr_ref_vector &fmls);
+        bool simplify_min_max_of_sums(expr_ref_vector &fmls);
         void  purify(app_ref& term);
         app* purify(generic_model_converter_ref& fm, expr* e);
         bool is_mul_const(expr* e);
@@ -328,8 +340,8 @@ namespace opt {
         void update_lower() { update_bound(true); }
         void update_bound(bool is_lower);
 
-        inf_eps get_lower_as_num(unsigned idx);
-        inf_eps get_upper_as_num(unsigned idx);
+        objective_value get_lower_value(unsigned idx);
+        objective_value get_upper_value(unsigned idx);
 
 
         struct is_fd;
@@ -363,17 +375,13 @@ namespace opt {
         void display_benchmark();
 
         // pareto
-        void yield();
+        void publish_pareto_result();
         expr_ref mk_ge(expr* t, expr* s);
         expr_ref mk_cmp(bool is_ge, model_ref& mdl, objective const& obj);
 
 
-        // quantifiers
-        bool is_qsat_opt();
-        lbool run_qsat_opt();
 
       
     };
 
 }
-

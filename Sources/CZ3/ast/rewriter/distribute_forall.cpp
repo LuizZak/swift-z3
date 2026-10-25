@@ -108,7 +108,9 @@ void distribute_forall::reduce1_quantifier(quantifier * q) {
     //    2) All or-formulas are flat (or f1 (or f2 f3)) is encoded as (or f1 f2 f3)
 
     expr * e = get_cached(q->get_expr());
-    if (m_manager.is_not(e) && m_manager.is_or(to_app(e)->get_arg(0))) {
+    // A trigger for the original body need not be valid for each conjunct.
+    if (m_manager.is_not(e) && m_manager.is_or(to_app(e)->get_arg(0)) &&
+        !q->get_num_patterns() && !q->get_num_no_patterns()) {
         bool_rewriter br(m_manager);
 
         // found target for simplification
@@ -120,7 +122,7 @@ void distribute_forall::reduce1_quantifier(quantifier * q) {
         app * or_e        = to_app(to_app(e)->get_arg(0));
         unsigned num_args = or_e->get_num_args();
         expr_ref_buffer new_args(m_manager);
-        for (unsigned i = 0; i < num_args; i++) {
+        for (unsigned i = 0; i < num_args; ++i) {
             expr * arg = or_e->get_arg(i);
             expr_ref not_arg(m_manager);
             br.mk_not(arg, not_arg);
@@ -155,7 +157,7 @@ void distribute_forall::operator()(expr * f, expr_ref & result) {
 
     result = get_cached(f);
     SASSERT(result!=0);
-    TRACE("distribute_forall", tout << mk_ll_pp(f, m_manager) << "======>\n"
+    TRACE(distribute_forall, tout << mk_ll_pp(f, m_manager) << "======>\n"
           << mk_ll_pp(result, m_manager););
 }
 

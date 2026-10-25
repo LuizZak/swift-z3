@@ -32,11 +32,11 @@ Notes:
 void generic_model_converter::add(func_decl * d, expr* e) {
     VERIFY(e);
     VERIFY(d->get_range() == e->get_sort());
-    m_entries.push_back(entry(d, e, m, ADD));
+    m_entries.push_back(entry(d, e, m, instruction::ADD));
 }
 
 void generic_model_converter::operator()(model_ref & md) {
-    TRACE("model_converter", tout << "before generic_model_converter\n"; model_v2_pp(tout, *md); display(tout););
+    TRACE(model_converter, tout << "before generic_model_converter\n"; model_v2_pp(tout, *md); display(tout););
     
     model_evaluator ev(*(md.get()));
     ev.set_model_completion(m_completion);
@@ -53,7 +53,7 @@ void generic_model_converter::operator()(model_ref & md) {
             break;
         case instruction::ADD:
             ev(e.m_def, val);
-            TRACE("model_converter", tout << e.m_f->get_name() << " ->\n" << e.m_def << "\n==>\n" << val << "\n";);
+            TRACE(model_converter, tout << e.m_f->get_name() << " ->\n" << e.m_def << "\n==>\n" << val << "\n";);
             arity = e.m_f->get_arity();
             reset_ev = false;
             if (arity == 0) {
@@ -96,7 +96,7 @@ void generic_model_converter::operator()(model_ref & md) {
     for (auto const& [s, u] : uninterpreted) {
         md->register_usort(s, u.size(), u.data());
     }
-    TRACE("model_converter", tout << "after generic_model_converter\n"; model_v2_pp(tout, *md););
+    TRACE(model_converter, tout << "after generic_model_converter\n"; model_v2_pp(tout, *md););
 }
 
 void generic_model_converter::display(std::ostream & out) {
@@ -138,9 +138,9 @@ void generic_model_converter::convert_initialize_value(vector<std::pair<expr_ref
         auto& [var, value] = var2value[i];
         for (auto const& e : m_entries) {
             switch (e.m_instruction) {
-            case HIDE: 
+            case instruction::HIDE: 
                 break;
-            case ADD: 
+            case instruction::ADD: 
                 if (is_uninterp_const(var) && e.m_f == to_app(var)->get_decl())
                     convert_initialize_value(e.m_def, i, var2value);                
                 break;
@@ -203,14 +203,14 @@ void generic_model_converter::get_units(obj_map<expr, bool>& units) {
     for (unsigned i = m_entries.size(); i-- > 0;) {
         entry const& e = m_entries[i];
         switch (e.m_instruction) {
-        case HIDE: 
+        case instruction::HIDE: 
             tmp = m.mk_const(e.m_f);
             if (units.contains(tmp)) {
                 m.dec_ref(tmp);
                 units.remove(tmp);
             }
             break;
-        case ADD:
+        case instruction::ADD:
             if (e.m_f->get_arity() == 0 && m.is_bool(e.m_f->get_range())) {
                 tmp = m.mk_const(e.m_f);
                 if (units.contains(tmp)) {
@@ -262,7 +262,9 @@ expr_ref generic_model_converter::simplify_def(entry const& e) {
         rep.apply_substitution(c, m.mk_true(),  result1);
         rep.apply_substitution(c, m.mk_false(), result2);
         th_rewriter rw(m);
-        expr_ref result(m.mk_and(m.mk_implies(result2, c), m.mk_implies(c, result1)), m);
+        expr_ref lhs(m.mk_implies(result2, c), m);
+        expr_ref rhs(m.mk_implies(c, result1), m);
+        expr_ref result(m.mk_and(lhs, rhs), m);
         rw(result);
         return result;
     }

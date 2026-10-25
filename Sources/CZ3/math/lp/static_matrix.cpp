@@ -28,6 +28,10 @@
 namespace lp {
     
     template std::set<std::pair<unsigned, unsigned>> static_matrix<mpq, mpq>::get_domain();
+    template void static_matrix<mpq, mpq>::add_new_element(unsigned, unsigned, const mpq&);
+    template mpq& static_matrix<mpq, mpq>::add_new_element(unsigned, unsigned);
+    template void static_matrix<mpq, numeric_pair<mpq>>::add_new_element(unsigned, unsigned, const mpq&);
+    template mpq& static_matrix<mpq, numeric_pair<mpq>>::add_new_element(unsigned, unsigned);
     template std::set<std::pair<unsigned, unsigned>> static_matrix<mpq, numeric_pair<mpq> >::get_domain();
     template void static_matrix<mpq, mpq>::add_column_to_vector(mpq const&, unsigned int, mpq*) const;
     template bool static_matrix<mpq, mpq>::is_correct() const;
@@ -39,6 +43,7 @@ namespace lp {
     template mpq static_matrix<mpq, mpq>::get_min_abs_in_column(unsigned int) const;
     template mpq static_matrix<mpq, mpq>::get_min_abs_in_row(unsigned int) const;
     template void static_matrix<mpq, mpq>::init_row_columns(unsigned int, unsigned int);
+    template void static_matrix<mpq, mpq>::clear();
     template static_matrix<mpq, mpq>::ref& static_matrix<mpq, mpq>::ref::operator=(mpq const&);
     template void static_matrix<mpq, mpq>::set(unsigned int, unsigned int, mpq const&);
 
@@ -51,8 +56,8 @@ namespace lp {
     template void static_matrix<mpq, numeric_pair<mpq> >::set(unsigned int, unsigned int, mpq const&);
 
 
-    template bool static_matrix<mpq, mpq>::pivot_row_to_row_given_cell(unsigned int, column_cell& , unsigned int);
-    template bool static_matrix<mpq, numeric_pair<mpq> >::pivot_row_to_row_given_cell(unsigned int, column_cell&, unsigned int);
+    template void static_matrix<mpq, mpq>::pivot_row_to_row_given_cell(unsigned int, column_cell& , unsigned int);
+    template void static_matrix<mpq, numeric_pair<mpq> >::pivot_row_to_row_given_cell(unsigned int, column_cell&, unsigned int);
     template void static_matrix<mpq, numeric_pair<mpq> >::pivot_row_to_row_given_cell_with_sign(unsigned int, column_cell&, unsigned int, int);
     template void static_matrix<mpq, mpq>::pivot_row_to_row_given_cell_with_sign(unsigned int, row_cell<empty_struct>&, unsigned int, int);
     template void static_matrix<mpq, numeric_pair<mpq> >::add_rows(mpq const&, unsigned int, unsigned int);

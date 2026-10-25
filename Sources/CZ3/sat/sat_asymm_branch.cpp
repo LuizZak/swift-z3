@@ -69,8 +69,11 @@ namespace sat {
                        if (num_units > 0)   verbose_stream() << " :units " << num_units;
                        if (tr > 0)          verbose_stream() << " :hte " << tr;
                        verbose_stream() << " :cost " << m_asymm_branch.m_counter;
-                       verbose_stream() << mem_stat();
-                       verbose_stream() << m_watch << ")\n";);
+                       if (!get_suppress_platform_verbose()) {
+                           verbose_stream() << mem_stat();
+                           verbose_stream() << m_watch;
+                       }
+                       verbose_stream() << ")\n";);
         }
     };
 
@@ -168,7 +171,7 @@ namespace sat {
             return;
         }
         CASSERT("asymm_branch", s.check_invariant());
-        TRACE("asymm_branch_detail", s.display(tout););
+        TRACE(asymm_branch_detail, s.display(tout););
         report rpt(*this);
         bool_vector saved_phase(s.m_phase);
         flet<bool> _is_probing(s.m_is_probing, true);
@@ -343,7 +346,7 @@ namespace sat {
             return false;
         }
         SASSERT(!s.inconsistent());
-        TRACE("asymm_branch_detail", tout << "assigning: " << l << "\n";);
+        TRACE(asymm_branch_detail, tout << "assigning: " << l << "\n";);
         s.assign_scoped(l);
         s.propagate_core(false); // must not use propagate(), since check_missed_propagation may fail for c
         return s.inconsistent();
@@ -354,7 +357,7 @@ namespace sat {
         bool found_conflict = false;
         unsigned i = 0, sz = c.size();        
         s.push();
-        for (i = 0; !found_conflict && i < sz; i++) {
+        for (i = 0; !found_conflict && i < sz; ++i) {
             if (i == flip_index) continue;
             found_conflict = propagate_literal(c, ~c[i]);
         }
@@ -369,7 +372,7 @@ namespace sat {
     
     bool asymm_branch::cleanup(scoped_detach& scoped_d, clause& c, unsigned skip_idx, unsigned new_sz) {
         unsigned j = 0;
-        for (unsigned i = 0; i < new_sz; i++) {            
+        for (unsigned i = 0; i < new_sz; ++i) {            
             if (skip_idx == i) continue;
             literal l = c[i];
             switch (s.value(l)) {
@@ -403,7 +406,7 @@ namespace sat {
             s.set_conflict();
             return false;
         case 1:
-            TRACE("asymm_branch", tout << "produced unit clause: " << c[0] << "\n";);
+            TRACE(asymm_branch, tout << "produced unit clause: " << c[0] << "\n";);
             s.assign_unit(c[0]);
             s.propagate_core(false); 
             scoped_d.del_clause();
@@ -433,7 +436,7 @@ namespace sat {
     }
 
     bool asymm_branch::process(clause & c) {
-        TRACE("asymm_branch_detail", tout << "processing: " << c << "\n";);
+        TRACE(asymm_branch_detail, tout << "processing: " << c << "\n";);
         SASSERT(s.scope_lvl() == 0);
         SASSERT(!s.inconsistent());
 
@@ -441,7 +444,7 @@ namespace sat {
         SASSERT(sz > 0);
         unsigned i;
         // check if the clause is already satisfied
-        for (i = 0; i < sz; i++) {
+        for (i = 0; i < sz; ++i) {
             if (s.value(c[i]) == l_true) {
                 s.detach_clause(c);
                 s.del_clause(c);
@@ -497,4 +500,4 @@ namespace sat {
         m_tr = 0;
     }
 
-};
+}

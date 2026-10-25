@@ -19,6 +19,7 @@ Author:
 #include "math/lp/column.h"
 #include "math/lp/lar_term.h"
 #include "math/lp/column_namer.h"
+#include "math/lp/evidence.h"
 namespace lp {
 inline lconstraint_kind flip_kind(lconstraint_kind t) {
     return static_cast<lconstraint_kind>( - static_cast<int>(t));
@@ -39,26 +40,47 @@ inline std::string lconstraint_kind_string(lconstraint_kind t) {
 
 class lar_base_constraint {
     lconstraint_kind m_kind;
-    mpq              m_right_side;
+    // Right-hand side as a delta-rational pair (x, y) = x + y*delta.  The
+    // rational part x is the ordinary bound value returned by rhs(); the
+    // infinitesimal part y (bound_eps) is non-zero only for the delta-rational
+    // bounds that validate strict optimization suprema/infima (see
+    // opt_solver::maximize_objective).  The strict kinds already carry a
+    // matching-sign infinitesimal in update_bound_with_* (LT -> upper bound
+    // (r, -1); GT -> lower bound (r, +1)); y is needed for the OPPOSITE-sign
+    // case that no kind yields: a lower bound (r, -1), i.e. objvar >= r - delta
+    // (GE gives (r, 0), GT gives (r, +1)), which is how a maximize supremum
+    // r - delta is asserted.  y is zero for all ordinary constraints.
+    impq             m_right_side;
     bool             m_active;
+    bool             m_is_auxiliary;
     unsigned         m_j;
     u_dependency*    m_dep;
 
-   public:
+public:
 
     virtual vector<std::pair<mpq, lpvar>> coeffs() const = 0;
     lar_base_constraint(unsigned j, lconstraint_kind kind, u_dependency* dep, const mpq& right_side) :
-        m_kind(kind), m_right_side(right_side), m_active(false), m_j(j), m_dep(dep) {}
+        m_kind(kind), m_right_side(right_side), m_active(false), m_is_auxiliary(false), m_j(j), m_dep(dep) {}
     virtual ~lar_base_constraint() = default;
 
     lconstraint_kind kind() const { return m_kind; }
-    mpq const& rhs() const { return m_right_side; }
+    // First (rational) component of the right-hand side pair.
+    mpq const& rhs() const { return m_right_side.x; }
+    // Whole right-hand side pair (rational value + infinitesimal, see below).
+    impq const& rhs_impq() const { return m_right_side; }
     unsigned column() const { return m_j; }
     u_dependency* dep() const { return m_dep; }
+
+    // Second (infinitesimal) component of the right-hand side pair.
+    mpq const& bound_eps() const { return m_right_side.y; }
+    void set_bound_eps(mpq const& e) { m_right_side.y = e; }
 
     void activate() { m_active = true; }
     void deactivate() { m_active = false; }
     bool is_active() const { return m_active; }
+
+    bool is_auxiliary() const { return m_is_auxiliary; }
+    void set_auxiliary() { m_is_auxiliary = true; }
 
     virtual unsigned size() const = 0;
     virtual mpq get_free_coeff_of_left_side() const { return zero_of_type<mpq>();}
@@ -91,15 +113,25 @@ public:
 class constraint_set {
     region                         m_region;
     column_namer&                  m_namer;
-    u_dependency_manager&          m_dep_manager;
+    evidence_manager&              m_dep_manager;
     vector<lar_base_constraint*>   m_constraints;
     stacked_value<unsigned>        m_constraint_count;
     unsigned_vector                m_active;
     stacked_value<unsigned>        m_active_lim;    
+    bool                           m_is_auxiliary_mode = false;
 
     constraint_index add(lar_base_constraint* c) {
         constraint_index ci = m_constraints.size();
         m_constraints.push_back(c);
+        if (m_dep_manager.proofs_enabled()) {
+            evidence_manager::fact f;
+            f.lhs = c->coeffs();
+            f.kind = c->kind();
+            f.rhs = c->rhs_impq();
+            m_dep_manager.set_input_fact(c->dep(), std::move(f));
+        }
+        if (m_is_auxiliary_mode)
+            c->set_auxiliary();
         return ci;
     }
 
@@ -136,7 +168,7 @@ class constraint_set {
     }
 
 public:
-    constraint_set(u_dependency_manager& d, column_namer& cn):
+    constraint_set(evidence_manager& d, column_namer& cn):
         m_namer(cn),
         m_dep_manager(d)
     {}
@@ -145,6 +177,8 @@ public:
         for (auto* c : m_constraints) 
             c->~lar_base_constraint();
     }
+
+    void set_auxiliary(bool m) { m_is_auxiliary_mode = m; }
 
     void push() {
         m_constraint_count = m_constraints.size();
@@ -172,9 +206,22 @@ public:
         return add(new (m_region) lar_var_constraint(j, k, mk_dep(), rhs));
     }
 
+    constraint_index add_var_constraint(lpvar j, lconstraint_kind k, mpq const& rhs, mpq const& eps) {
+        auto* c = new (m_region) lar_var_constraint(j, k, mk_dep(), rhs);
+        c->set_bound_eps(eps);
+        return add(c);
+    }
+
     constraint_index add_term_constraint(unsigned j, const lar_term* t, lconstraint_kind k, mpq const& rhs) {
         auto* dep = mk_dep();
         return add(new (m_region) lar_term_constraint(j, t, k, dep, rhs));
+    }
+
+    constraint_index add_term_constraint(unsigned j, const lar_term* t, lconstraint_kind k, mpq const& rhs, mpq const& eps) {
+        auto* dep = mk_dep();
+        auto* c = new (m_region) lar_term_constraint(j, t, k, dep, rhs);
+        c->set_bound_eps(eps);
+        return add(c);
     }
 
     // future behavior uses activation bit.
@@ -185,6 +232,7 @@ public:
     lar_base_constraint const& operator[](constraint_index ci) const { return *m_constraints[ci]; }    
 
     bool valid_index(constraint_index ci) const { return ci < m_constraints.size(); }
+    unsigned size() const { return m_constraints.size(); }
 
     class active_constraints {
         friend class constraint_set;
@@ -197,7 +245,7 @@ public:
             unsigned m_index;
             iterator(constraint_set const& cs, unsigned idx): cs(cs), m_index(idx) { forward(); }
             void next() { ++m_index; forward(); }
-            void forward() { for (; m_index < cs.m_constraints.size() && !cs.is_active(m_index); m_index++) ; }
+            void forward() { for (; m_index < cs.m_constraints.size() && !cs.is_active(m_index); ++m_index) ; }
         public:
             lar_base_constraint const& operator*() { return cs[m_index]; }
             lar_base_constraint const* operator->() const { return &cs[m_index]; }
@@ -222,7 +270,7 @@ public:
             unsigned m_index;
             iterator(constraint_set const& cs, unsigned idx): cs(cs), m_index(idx) { forward(); }
             void next() { ++m_index; forward(); }
-            void forward() { for (; m_index < cs.m_constraints.size() && !cs.is_active(m_index); m_index++) ; }
+            void forward() { for (; m_index < cs.m_constraints.size() && !cs.is_active(m_index); ++m_index) ; }
         public:
             constraint_index operator*() { return m_index; }
             constraint_index const* operator->() const { return &m_index; }

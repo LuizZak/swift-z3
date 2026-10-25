@@ -21,6 +21,7 @@ Revision History:
 #include "api/api_context.h"
 #include "api/api_util.h"
 #include "ast/ast_pp.h"
+#include "util/manage_warnings.h"
 
 extern "C" {
 
@@ -48,6 +49,10 @@ extern "C" {
         Z3_TRY;
         LOG_Z3_mk_string(c, str);
         RESET_ERROR_CODE();
+        if (!str) {
+            SET_ERROR_CODE(Z3_INVALID_ARG, "null string");
+            RETURN_Z3(nullptr);
+        }
         zstring s(str);
         app* a = mk_c(c)->sutil().str.mk_string(s);
         mk_c(c)->save_ast_trail(a);
@@ -59,6 +64,10 @@ extern "C" {
         Z3_TRY;
         LOG_Z3_mk_lstring(c, sz, str);
         RESET_ERROR_CODE();
+        if (sz > 0 && !str) {
+            SET_ERROR_CODE(Z3_INVALID_ARG, "null string buffer");
+            RETURN_Z3(nullptr);
+        }
         unsigned_vector chs;
         for (unsigned i = 0; i < sz; ++i) chs.push_back((unsigned char)str[i]);
         zstring s(sz, chs.data());
@@ -279,6 +288,7 @@ extern "C" {
     Z3_CATCH_RETURN(0);                                         \
     }
 
+    START_DISABLE_EXTRA_SEMI_WARNING;
     MK_SORTED(Z3_mk_seq_empty, mk_c(c)->sutil().str.mk_empty);
 
     MK_UNARY(Z3_mk_seq_unit, mk_c(c)->get_seq_fid(), OP_SEQ_UNIT, SKIP);
@@ -293,9 +303,13 @@ extern "C" {
 
     MK_TERNARY(Z3_mk_seq_extract, mk_c(c)->get_seq_fid(), OP_SEQ_EXTRACT, SKIP);
     MK_TERNARY(Z3_mk_seq_replace, mk_c(c)->get_seq_fid(), OP_SEQ_REPLACE, SKIP);
+    MK_TERNARY(Z3_mk_seq_replace_all, mk_c(c)->get_seq_fid(), OP_SEQ_REPLACE_ALL, SKIP);
+    MK_TERNARY(Z3_mk_seq_replace_re, mk_c(c)->get_seq_fid(), OP_SEQ_REPLACE_RE, SKIP);
+    MK_TERNARY(Z3_mk_seq_replace_re_all, mk_c(c)->get_seq_fid(), OP_SEQ_REPLACE_RE_ALL, SKIP);
     MK_BINARY(Z3_mk_seq_at, mk_c(c)->get_seq_fid(), OP_SEQ_AT, SKIP);
     MK_BINARY(Z3_mk_seq_nth, mk_c(c)->get_seq_fid(), OP_SEQ_NTH, SKIP);
     MK_UNARY(Z3_mk_seq_length, mk_c(c)->get_seq_fid(), OP_SEQ_LENGTH, SKIP);
+    MK_BINARY(Z3_mk_seq_power, mk_c(c)->get_seq_fid(), OP_SEQ_POWER, SKIP);
     MK_TERNARY(Z3_mk_seq_index, mk_c(c)->get_seq_fid(), OP_SEQ_INDEX, SKIP);
     MK_BINARY(Z3_mk_seq_last_index, mk_c(c)->get_seq_fid(), OP_SEQ_LAST_INDEX, SKIP);
     MK_UNARY(Z3_mk_seq_to_re, mk_c(c)->get_seq_fid(), OP_SEQ_TO_RE, SKIP);
@@ -305,12 +319,17 @@ extern "C" {
     MK_UNARY(Z3_mk_str_to_int, mk_c(c)->get_seq_fid(), OP_STRING_STOI, SKIP);
     MK_UNARY(Z3_mk_ubv_to_str, mk_c(c)->get_seq_fid(), OP_STRING_UBVTOS, SKIP);
     MK_UNARY(Z3_mk_sbv_to_str, mk_c(c)->get_seq_fid(), OP_STRING_SBVTOS, SKIP);
+    END_DISABLE_WARNING;
 
 
     Z3_ast Z3_API Z3_mk_re_loop(Z3_context c, Z3_ast r, unsigned lo, unsigned hi) {
         Z3_TRY;
         LOG_Z3_mk_re_loop(c, r, lo, hi);
         RESET_ERROR_CODE();
+        if (hi != 0 && lo > hi) {
+            SET_ERROR_CODE(Z3_INVALID_ARG, "loop lower bound must not exceed upper bound");
+            RETURN_Z3(nullptr);
+        }
         app* a = hi == 0 ? mk_c(c)->sutil().re.mk_loop(to_expr(r), lo) : mk_c(c)->sutil().re.mk_loop(to_expr(r), lo, hi);
         mk_c(c)->save_ast_trail(a);
         RETURN_Z3(of_ast(a));
@@ -328,6 +347,7 @@ extern "C" {
     }
 
 
+    START_DISABLE_EXTRA_SEMI_WARNING;
     MK_UNARY(Z3_mk_re_plus, mk_c(c)->get_seq_fid(), OP_RE_PLUS, SKIP);
     MK_UNARY(Z3_mk_re_star, mk_c(c)->get_seq_fid(), OP_RE_STAR, SKIP);
     MK_UNARY(Z3_mk_re_option, mk_c(c)->get_seq_fid(), OP_RE_OPTION, SKIP);
@@ -352,6 +372,7 @@ extern "C" {
     MK_TERNARY(Z3_mk_seq_mapi, mk_c(c)->get_seq_fid(), OP_SEQ_MAPI, SKIP);
     MK_TERNARY(Z3_mk_seq_foldl, mk_c(c)->get_seq_fid(), OP_SEQ_FOLDL, SKIP);
     MK_FOURARY(Z3_mk_seq_foldli, mk_c(c)->get_seq_fid(), OP_SEQ_FOLDLI, SKIP);
+    END_DISABLE_WARNING;
 
 
-};
+}

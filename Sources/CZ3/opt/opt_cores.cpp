@@ -47,9 +47,7 @@ namespace opt {
         }
     }
 
-    bool cores::improve() {
-        model_ref mdl;
-        s.get_model(mdl);
+    bool cores::improve(model_ref& mdl) {
         rational cost = ctx.cost(*mdl);
         IF_VERBOSE(3, verbose_stream() << "(opt.maxcore new model cost " << cost << ")\n");
         if (m_best_cost < 0 || cost < m_best_cost) {            
@@ -65,7 +63,9 @@ namespace opt {
      * weighted soft constraints are treated as multi-sets.
      */
     vector<weighted_core> const& cores::disjoint_cores() {
-        std::sort(m_cores.begin(), m_cores.end(), [&](weighted_core const& c1, weighted_core const& c2) { return c1.m_core.size() < c2.m_core.size(); });
+        std::sort(m_cores.begin(), m_cores.end(), [](weighted_core const& c1, weighted_core const& c2) {
+            return core_lt{}(c1.m_core, c2.m_core);
+        });
         vector<weighted_core> result;
         for (auto const& [core, w] : m_cores) {
             rational weight = core_weight(core);
@@ -155,7 +155,7 @@ namespace opt {
                     ps.remove(q);
                 }
                 
-                if (improve())
+                if (improve(mdl))
                     improved = true;
                 break;
             }
@@ -195,8 +195,8 @@ namespace opt {
         cores& c;
         char const* par;
         bool     is_uint = true;
-        unsigned old_uval;
-        bool     old_bval;
+        unsigned old_uval = 0;
+        bool     old_bval = false;
     public:
         scoped_update(cores& c, char const* par, unsigned old_val, unsigned new_val):
             c(c), par(par), old_uval(old_val) {
@@ -233,12 +233,10 @@ namespace opt {
         }
     }
 
-    void cores::local_mss() {
+    void cores::local_mss(model& mdl) {
         obj_hashtable<expr> mss;
-        model_ref mdl;
-        s.get_model(mdl);
         for (expr* f : ctx.soft()) 
-            if (mdl->is_true(f))
+            if (mdl.is_true(f))
                 mss.insert(f);
         rotate(mss, nullptr, 0);
     }
@@ -271,8 +269,11 @@ namespace opt {
             }
             case l_true: {
                 ++num_sat;
-                improve();
-                local_mss();
+                // Reporting a model can invalidate the solver's cached model.
+                model_ref mdl;
+                s.get_model(mdl);
+                improve(mdl);
+                local_mss(*mdl);
                 if (num_sat > 1) 
                     return;
                 soft.reset();
@@ -316,7 +317,7 @@ namespace opt {
             add_core(core);
             if (core.empty()) {
                 IF_VERBOSE(100, verbose_stream() << "(opt.maxres :empty-core)\n";);
-                TRACE("opt", tout << "empty core\n";);
+                TRACE(opt, tout << "empty core\n";);
                 break;
             }
 
@@ -394,4 +395,4 @@ namespace opt {
         }
     }
 
-};
+}

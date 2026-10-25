@@ -26,7 +26,7 @@ Revision History:
 #include "ast/for_each_expr.h"
 #include "util/scoped_ptr_vector.h"
 
-#define TRACEFN(x) TRACE("recfun", tout << x << '\n';)
+#define TRACEFN(x) TRACE(recfun, tout << x << '\n';)
 #define VALIDATE_PARAM(m, _pred_) if (!(_pred_)) m.raise_exception("invalid parameter to recfun "  #_pred_);
 
 namespace recfun {
@@ -287,9 +287,10 @@ namespace recfun {
 
                     expr* cond = nullptr, *th = nullptr, *el = nullptr; 
                     if (m.is_ite(e, cond, th, el) && contains_def(u, cond)) {
-                        // skip
+                        // the test contains a recursive call: this is not a case split,
+                        // the ite is kept as a term of the case body
                     }
-                    if (m.is_ite(e, cond, th, el) && !contains_def(u, th) && !contains_def(u, el)) {
+                    else if (m.is_ite(e, cond, th, el) && !contains_def(u, th) && !contains_def(u, el)) {
                         // skip
                     }
                     else if (m.is_ite(e)) {
@@ -437,7 +438,8 @@ namespace recfun {
 
         promise_def plugin::mk_def(symbol const& name, unsigned n, sort *const * params, sort * range, bool is_generated) {
             def* d = u().decl_fun(name, n, params, range, is_generated);
-            SASSERT(!m_defs.contains(d->get_decl()));
+            if (m_defs.contains(d->get_decl()))
+                throw default_exception(std::string("recursive function ") + name.str() + " already defined");
             m_defs.insert(d->get_decl(), d);
             return promise_def(&u(), d);
         }

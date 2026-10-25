@@ -124,8 +124,53 @@ def backup_includes(from_path: Path, to_path: Path):
 
 
 def initialize_z3(clone_path: Path):
-    run("python", "scripts/mk_make.py", cwd=clone_path)
+    # Generate pattern database
+    run("python", "scripts/mk_pat_db.py", "src/ast/pattern/database.smt2", "src/ast/pattern/database.h", cwd=clone_path)
 
+    # Generate z3_version.h (manually)
+    generate_z3_version_h(clone_path)
+
+    # Generate API log macro files
+    generate_api_files(clone_path)
+
+def generate_z3_version_h(clone_path: Path):
+    version_file_path = clone_path.joinpath("scripts", "VERSION.txt")
+    version_header_path = clone_path.joinpath("src", "util", "z3_version.h")
+
+    version_string: str
+    with open(version_file_path) as version_file:
+        version_string = version_file.readline()
+
+    (version_major, version_minor, version_patch, version_tweak) = version_string.strip().split(".")
+
+    with open(version_header_path, 'w') as output_file:
+        output_file.write(f"#define Z3_MAJOR_VERSION {version_major}\n")
+        output_file.write(f"#define Z3_MINOR_VERSION {version_minor}\n")
+        output_file.write(f"#define Z3_BUILD_NUMBER {version_patch}\n")
+        output_file.write(f"#define Z3_REVISION_NUMBER {version_tweak}\n")
+        output_file.write("\n")
+        output_file.write(f"#define Z3_FULL_VERSION \"{version_string.strip()}\"\n")
+
+def generate_api_files(clone_path: Path):
+    out_path = clone_path.joinpath("src", "api")
+    
+    files = [
+        "z3_api.h",
+        "z3_ast_containers.h",
+        "z3_algebraic.h",
+        "z3_polynomial.h",
+        "z3_rcf.h",
+        "z3_fixedpoint.h",
+        "z3_optimization.h",
+        "z3_fpa.h",
+        "z3_spacer.h",
+    ]
+
+    files_absolute = []
+    for file in files:
+        files_absolute.append(out_path.joinpath(file))
+
+    run("python", "scripts/update_api.py", *files_absolute, "--api_output_dir", out_path, cwd=clone_path)
 
 def copy_repo_files(source_files: Path, target_path: Path):
     # Backup includes
@@ -155,6 +200,8 @@ def remove_extra_z3_files(target_path: Path):
         "api/js",
         "api/ml",
         "api/python",
+        "api/go",
+        "api/mcp",
         "shell",
         "test",
     ]

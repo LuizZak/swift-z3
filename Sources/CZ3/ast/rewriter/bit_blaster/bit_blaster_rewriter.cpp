@@ -17,12 +17,14 @@ Notes:
 
 --*/
 #include "ast/rewriter/bit_blaster/bit_blaster_rewriter.h"
+#include "ast/ast_translation.h"
 #include "ast/bv_decl_plugin.h"
 #include "ast/rewriter/bit_blaster/bit_blaster_tpl_def.h"
 #include "ast/rewriter/rewriter_def.h"
 #include "ast/rewriter/bool_rewriter.h"
 #include "ast/rewriter/th_rewriter.h"
 #include "util/ref_util.h"
+#include "util/manage_warnings.h"
 #include "ast/ast_smt2_pp.h"
 
 struct blaster_cfg {
@@ -152,7 +154,7 @@ struct blaster_rewriter_cfg : public default_rewriter_cfg {
         }
         else {
             unsigned bv_size = butil().get_bv_size(t);
-            for (unsigned i = 0; i < bv_size; i++) {
+            for (unsigned i = 0; i < bv_size; ++i) {
                 parameter p(i);
                 out_bits.push_back(m().mk_app(butil().get_family_id(), OP_BIT2BOOL, 1, &p, 1, &t));
             }
@@ -208,6 +210,18 @@ struct blaster_rewriter_cfg : public default_rewriter_cfg {
             newbits.push_back(f);        
     }
 
+    void set_translation(obj_map<func_decl, expr*> const& const2bits, ptr_vector<func_decl> const& newbits) {
+        SASSERT(m_keys.empty());
+        SASSERT(m_newbits.empty());
+        for (auto const& [f, bits] : const2bits) {
+            m_const2bits.insert(f, bits);
+            m_keys.push_back(f);
+            m_values.push_back(bits);
+        }
+        for (func_decl* f : newbits)
+            m_newbits.push_back(f);
+    }
+
     template<typename V>
     app * mk_mkbv(V const & bits) {
         return m().mk_app(butil().get_family_id(), OP_MKBV, bits.size(), bits.data());
@@ -226,7 +240,7 @@ struct blaster_rewriter_cfg : public default_rewriter_cfg {
         unsigned bv_size = butil().get_bv_size(s);
         sort * b = m().mk_bool_sort();
         m_out.reset();
-        for (unsigned i = 0; i < bv_size; i++) {
+        for (unsigned i = 0; i < bv_size; ++i) {
             m_out.push_back(m().mk_fresh_const(nullptr, b));
             m_newbits.push_back(to_app(m_out.back())->get_decl());
         }
@@ -246,9 +260,11 @@ void OP(expr * arg, expr_ref & result) {                        \
     result = mk_mkbv(m_out);                                    \
 }
 
+    START_DISABLE_EXTRA_SEMI_WARNING;
     MK_UNARY_REDUCE(reduce_not, mk_not);
     MK_UNARY_REDUCE(reduce_redor, mk_redor);
     MK_UNARY_REDUCE(reduce_redand, mk_redand);
+    END_DISABLE_WARNING;
 
 #define MK_BIN_REDUCE(OP, BB_OP)                                        \
 void OP(expr * arg1, expr * arg2, expr_ref & result) {                  \
@@ -260,6 +276,7 @@ void OP(expr * arg1, expr * arg2, expr_ref & result) {                  \
     result = mk_mkbv(m_out);                                            \
 }
 
+    START_DISABLE_EXTRA_SEMI_WARNING;
     MK_BIN_REDUCE(reduce_shl, mk_shl);
     MK_BIN_REDUCE(reduce_ashr, mk_ashr);
     MK_BIN_REDUCE(reduce_lshr, mk_lshr);
@@ -270,6 +287,7 @@ void OP(expr * arg1, expr * arg2, expr_ref & result) {                  \
     MK_BIN_REDUCE(reduce_smod, mk_smod);
     MK_BIN_REDUCE(reduce_ext_rotate_left, mk_ext_rotate_left);
     MK_BIN_REDUCE(reduce_ext_rotate_right, mk_ext_rotate_right);
+    END_DISABLE_WARNING;
 
 #define MK_BIN_AC_REDUCE(OP, BIN_OP, BB_OP)                             \
 MK_BIN_REDUCE(BIN_OP, BB_OP);                                           \
@@ -277,18 +295,20 @@ void OP(unsigned num_args, expr * const * args, expr_ref & result) {    \
     SASSERT(num_args > 0);                                              \
     result = args[0];                                                   \
     expr_ref new_result(m_manager);                                     \
-    for (unsigned i = 1; i < num_args; i++) {                           \
+    for (unsigned i = 1; i < num_args; ++i) {                           \
         BIN_OP(result.get(), args[i], new_result);                      \
         result = new_result;                                            \
     }                                                                   \
 }
 
+    START_DISABLE_EXTRA_SEMI_WARNING;
     MK_BIN_AC_REDUCE(reduce_add, reduce_bin_add, mk_adder);
     MK_BIN_AC_REDUCE(reduce_mul, reduce_bin_mul, mk_multiplier);
 
     MK_BIN_AC_REDUCE(reduce_and, reduce_bin_and, mk_and);
     MK_BIN_AC_REDUCE(reduce_or, reduce_bin_or, mk_or);
     MK_BIN_AC_REDUCE(reduce_xor, reduce_bin_xor, mk_xor);
+    END_DISABLE_WARNING;
 
 
 #define MK_BIN_PRED_REDUCE(OP, BB_OP)                                           \
@@ -299,12 +319,14 @@ void OP(expr * arg1, expr * arg2, expr_ref & result) {                          
     m_blaster.BB_OP(m_in1.size(), m_in1.data(), m_in2.data(), result);        \
 }
 
+    START_DISABLE_EXTRA_SEMI_WARNING;
     MK_BIN_PRED_REDUCE(reduce_eq,  mk_eq);
     MK_BIN_PRED_REDUCE(reduce_sle, mk_sle);
     MK_BIN_PRED_REDUCE(reduce_ule, mk_ule);
     MK_BIN_PRED_REDUCE(reduce_umul_no_overflow, mk_umul_no_overflow);
     MK_BIN_PRED_REDUCE(reduce_smul_no_overflow, mk_smul_no_overflow);
     MK_BIN_PRED_REDUCE(reduce_smul_no_underflow, mk_smul_no_underflow);
+    END_DISABLE_WARNING;
 
 #define MK_PARAMETRIC_UNARY_REDUCE(OP, BB_OP)                   \
 void OP(expr * arg, unsigned n, expr_ref & result) {            \
@@ -315,7 +337,9 @@ void OP(expr * arg, unsigned n, expr_ref & result) {            \
     result = mk_mkbv(m_out);                                    \
 }
 
+START_DISABLE_EXTRA_SEMI_WARNING;
 MK_PARAMETRIC_UNARY_REDUCE(reduce_sign_extend, mk_sign_extend);
+END_DISABLE_WARNING;
 
     void reduce_ite(expr * arg1, expr * arg2, expr * arg3, expr_ref & result) {
         m_in1.reset();
@@ -369,7 +393,7 @@ MK_PARAMETRIC_UNARY_REDUCE(reduce_sign_extend, mk_sign_extend);
     void blast_bv_term(expr * t, expr_ref & result, proof_ref & result_pr) {
         ptr_buffer<expr> bits;
         unsigned bv_size = butil().get_bv_size(t);
-        for (unsigned i = 0; i < bv_size; i++) {
+        for (unsigned i = 0; i < bv_size; ++i) {
             parameter p(i);
             bits.push_back(m().mk_app(butil().get_family_id(), OP_BIT2BOOL, 1, &p, 1, &t));
         }
@@ -379,7 +403,7 @@ MK_PARAMETRIC_UNARY_REDUCE(reduce_sign_extend, mk_sign_extend);
 
     br_status reduce_app(func_decl * f, unsigned num, expr * const * args, expr_ref & result, proof_ref & result_pr) {
         result_pr = nullptr;
-        TRACE("bit_blaster", tout << f->get_name() << " ";
+        TRACE(bit_blaster, tout << f->get_name() << " ";
               for (unsigned i = 0; i < num; ++i) tout << mk_pp(args[i], m()) << " ";
               tout << "\n";);
         if (num == 0 && f->get_family_id() == null_family_id && butil().is_bv_sort(f->get_range())) {
@@ -548,11 +572,12 @@ MK_PARAMETRIC_UNARY_REDUCE(reduce_sign_extend, mk_sign_extend);
             case OP_BIT2BOOL:
             case OP_MKBV:
             case OP_INT2BV:
-            case OP_BV2INT:
+            case OP_UBV2INT:
+            case OP_SBV2INT:
                 return BR_FAILED;
             default:                
-                TRACE("bit_blaster", tout << "non-supported operator: " << f->get_name() << "\n";
-                      for (unsigned i = 0; i < num; i++) tout << mk_ismt2_pp(args[i], m()) << std::endl;);
+                TRACE(bit_blaster, tout << "non-supported operator: " << f->get_name() << "\n";
+                      for (unsigned i = 0; i < num; ++i) tout << mk_ismt2_pp(args[i], m()) << std::endl;);
                 {
                     expr_ref r(m().mk_app(f, num, args), m());
                     result = r;
@@ -587,7 +612,7 @@ MK_PARAMETRIC_UNARY_REDUCE(reduce_sign_extend, mk_sign_extend);
                 if (butil().is_bv_sort(s)) {
                     unsigned bv_size = butil().get_bv_size(s);
                     new_args.reset();
-                    for (unsigned k = 0; k < bv_size; k++) {
+                    for (unsigned k = 0; k < bv_size; ++k) {
                         new_args.push_back(m().mk_var(j, m().mk_bool_sort()));
                         j++;
                     }
@@ -659,12 +684,12 @@ MK_PARAMETRIC_UNARY_REDUCE(reduce_sign_extend, mk_sign_extend);
         string_buffer<> name_buffer;
         ptr_buffer<sort> new_decl_sorts;
         sbuffer<symbol>  new_decl_names;
-        for (unsigned i = 0; i < num_decls; i++) {
+        for (unsigned i = 0; i < num_decls; ++i) {
             symbol const & n = old_q->get_decl_name(i);
             sort * s         = old_q->get_decl_sort(i);
             if (butil().is_bv_sort(s)) {
                 unsigned bv_size = butil().get_bv_size(s);
-                for (unsigned j = 0; j < bv_size; j++) {
+                for (unsigned j = 0; j < bv_size; ++j) {
                     name_buffer.reset();
                     name_buffer << n << "." << j;
                     new_decl_names.push_back(symbol(name_buffer.c_str()));
@@ -702,6 +727,7 @@ struct bit_blaster_rewriter::imp : public rewriter_tpl<blaster_rewriter_cfg> {
     void start_rewrite() { m_cfg.start_rewrite(); }
     void end_rewrite(obj_map<func_decl, expr*>& const2bits, ptr_vector<func_decl> & newbits) { m_cfg.end_rewrite(const2bits, newbits); }
     void get_translation(obj_map<func_decl, expr*>& const2bits, ptr_vector<func_decl> & newbits) { m_cfg.get_translation(const2bits, newbits); }
+    void set_translation(obj_map<func_decl, expr*> const& const2bits, ptr_vector<func_decl> const& newbits) { m_cfg.set_translation(const2bits, newbits); }
     unsigned get_num_scopes() const { return m_cfg.get_num_scopes(); }
 };
 
@@ -760,4 +786,18 @@ void bit_blaster_rewriter::end_rewrite(obj_map<func_decl, expr*>& const2bits, pt
 
 void bit_blaster_rewriter::get_translation(obj_map<func_decl, expr*>& const2bits, ptr_vector<func_decl> & newbits) {
     m_imp->get_translation(const2bits, newbits);
+}
+
+void bit_blaster_rewriter::translate(bit_blaster_rewriter const& src, ast_translation& tr) const {
+    SASSERT(src.get_num_scopes() == 0);
+    obj_map<func_decl, expr*> source;
+    ptr_vector<func_decl> source_bits;
+    src.m_imp->get_translation(source, source_bits);
+    obj_map<func_decl, expr*> translated;
+    ptr_vector<func_decl> translated_bits;
+    for (auto const& [f, bits] : source)
+        translated.insert(tr(f), tr(bits));
+    for (func_decl* f : source_bits)
+        translated_bits.push_back(tr(f));
+    m_imp->set_translation(translated, translated_bits);
 }

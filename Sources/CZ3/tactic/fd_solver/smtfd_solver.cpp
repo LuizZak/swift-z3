@@ -149,13 +149,14 @@ namespace smtfd {
         ast_manager&    m;
         stats&          m_stats;
         expr_ref_vector m_abs, m_rep, m_atoms, m_atom_defs; // abstraction and representation maps
+        expr_ref_vector m_distincts; // source nodes aliased to expanded abstractions
         array_util      m_autil;
         bv_util         m_butil;
         pb_util         m_pb;
         ptr_vector<expr> m_args, m_todo;
         unsigned        m_nv;
         unsigned_vector m_abs_trail, m_rep_trail, m_nv_trail;
-        unsigned_vector m_abs_lim, m_rep_lim, m_atoms_lim;
+        unsigned_vector m_abs_lim, m_rep_lim, m_atoms_lim, m_distincts_lim;
         random_gen      m_rand;
         
         void pop(unsigned n, expr_ref_vector& v, unsigned_vector& trail, unsigned_vector& lim) {
@@ -186,10 +187,9 @@ namespace smtfd {
                 if (bw >= 24) {
                     throw default_exception("number of allowed bits for variables exceeded");
                 }
-                unsigned n = (m_rand() << 16) | m_rand();
+                unsigned n = m_rand.next_uint32();
                 expr* num = m_butil.mk_numeral(n, bw);
-                expr* es[2] = { num, m.mk_fresh_const(name, m_butil.mk_sort(bw)) };
-                expr* e = m_butil.mk_bv_xor(2, es);
+                expr* e = m_butil.mk_bv_xor({num, m.mk_fresh_const(name, m_butil.mk_sort(bw))});
                 return m_butil.mk_concat(e, m_butil.mk_numeral(0, 24 - bw));
             }
         }
@@ -223,6 +223,7 @@ namespace smtfd {
             m_rep(m),
             m_atoms(m),
             m_atom_defs(m),
+            m_distincts(m),
             m_autil(m),
             m_butil(m),
             m_pb(m),
@@ -248,6 +249,7 @@ namespace smtfd {
             m_abs_lim.push_back(m_abs_trail.size());
             m_rep_lim.push_back(m_rep_trail.size());
             m_atoms_lim.push_back(m_atoms.size());
+            m_distincts_lim.push_back(m_distincts.size());
             m_nv_trail.push_back(m_nv);
         }
 
@@ -256,6 +258,8 @@ namespace smtfd {
             pop(n, m_rep, m_rep_trail, m_rep_lim);
             m_atoms.shrink(m_atoms_lim[m_atoms_lim.size() - n]);
             m_atoms_lim.shrink(m_atoms_lim.size() - n);
+            m_distincts.shrink(m_distincts_lim[m_distincts_lim.size() - n]);
+            m_distincts_lim.shrink(m_distincts_lim.size() - n);
             m_nv = m_nv_trail[m_nv_trail.size() - n];
             m_nv_trail.shrink(m_nv_trail.size() - n);
         }
@@ -286,6 +290,7 @@ namespace smtfd {
         expr* abs(expr* e) {
             expr* r = try_abs(e);
             if (r) return r;
+            expr_ref_vector expanded_distincts(m);
             m_todo.push_back(e);
             family_id bvfid = m_butil.get_fid();
             family_id bfid  = m.get_basic_family_id();
@@ -294,6 +299,21 @@ namespace smtfd {
                 expr* t = m_todo.back();
                 r = try_abs(t);
                 if (r) {
+                    m_todo.pop_back();
+                    continue;
+                }
+                if (m.is_distinct(t)) {
+                    // Refine the individual disequalities, including under negation.
+                    app* a = to_app(t);
+                    expr_ref expanded(m.mk_distinct_expanded(a->get_num_args(), a->get_args()), m);
+                    r = try_abs(expanded);
+                    if (!r) {
+                        expanded_distincts.push_back(expanded);
+                        m_todo.push_back(expanded);
+                        continue;
+                    }
+                    push_trail(m_abs, m_abs_trail, t, r);
+                    m_distincts.push_back(t);
                     m_todo.pop_back();
                     continue;
                 }
@@ -315,9 +335,6 @@ namespace smtfd {
                     family_id fid = a->get_family_id();
                     if (m.is_eq(a)) {
                         r = m.mk_eq(m_args.get(0), m_args.get(1));
-                    }
-                    else if (m.is_distinct(a)) {
-                        r = m.mk_distinct(m_args.size(), m_args.data());
                     }
                     else if (m.is_ite(a)) {
                         r = m.mk_ite(m_args.get(0), m_args.get(1), m_args.get(2));
@@ -375,6 +392,9 @@ namespace smtfd {
         app*       m_t;
         sort*      m_s;
         unsigned   m_val_offset;
+
+        // Array identity selects the table; only the indices form its keys.
+        unsigned first_arg() const { return is_func_decl(m_f) ? 0 : 1; }
     };
 
     class theory_plugin;
@@ -404,7 +424,7 @@ namespace smtfd {
 
         smtfd_abs& get_abs() { return m_abs; }
 
-        void add(expr* f, char const* msg) { m_lemmas.push_back(f); TRACE("smtfd", tout << msg << " " << mk_bounded_pp(f, m, 2) << "\n";); }
+        void add(expr* f, char const* msg) { m_lemmas.push_back(f); TRACE(smtfd, tout << msg << " " << mk_bounded_pp(f, m, 2) << "\n";); }
 
         ast_manager& get_manager() { return m; }
 
@@ -546,13 +566,13 @@ namespace smtfd {
             f_app f1 = mk_app(f, t, s);
             f_app const& f2 = insert(f1);
             if (f2.m_val_offset == f1.m_val_offset) {
-                TRACE("smtfd_verbose", tout << "fresh: " << mk_pp(f, m, 2) << "\n";);
+                TRACE(smtfd_verbose, tout << "fresh: " << mk_pp(f, m, 2) << "\n";);
                 return;
             }
             bool eq = value_of(f1) == value_of(f2);
             m_values.shrink(f1.m_val_offset);
             if (eq) {
-                TRACE("smtfd_verbose", tout << "eq: " << " " << mk_bounded_pp(t, m, 2) << " " << mk_bounded_pp(f2.m_t, m, 2) << "\n";);
+                TRACE(smtfd_verbose, tout << "eq: " << " " << mk_bounded_pp(t, m, 2) << " " << mk_bounded_pp(f2.m_t, m, 2) << "\n";);
                 return;
             }
             m_args.reset();
@@ -563,8 +583,9 @@ namespace smtfd {
                 expr* e2 = f2.m_t->get_arg(i);
                 if (e1 != e2) m_args.push_back(m.mk_eq(e1, e2));
             }            
-            TRACE("smtfd_verbose", tout << "diff: " << mk_bounded_pp(f1.m_t, m, 2) << " " << mk_bounded_pp(f2.m_t, m, 2) << "\n";);
-            m_context.add(m.mk_implies(mk_and(m_args), m.mk_eq(f1.m_t, f2.m_t)), __FUNCTION__);
+            TRACE(smtfd_verbose, tout << "diff: " << mk_bounded_pp(f1.m_t, m, 2) << " " << mk_bounded_pp(f2.m_t, m, 2) << "\n";);
+            expr_ref premise = mk_and(m_args);
+            m_context.add(m.mk_implies(premise, m.mk_eq(f1.m_t, f2.m_t)), __FUNCTION__);
         }
 
         std::ostream& display(std::ostream& out) {
@@ -687,9 +708,9 @@ namespace smtfd {
     }
 
     bool f_app_eq::operator()(f_app const& a, f_app const& b) const {
-        if (a.m_f != b.m_f) 
+        if (a.m_t->get_decl() != b.m_t->get_decl())
             return false;
-        for (unsigned i = 0; i < a.m_t->get_num_args(); ++i) {
+        for (unsigned i = a.first_arg(); i < a.m_t->get_num_args(); ++i) {
             if (p.values().get(a.m_val_offset+i) != p.values().get(b.m_val_offset+i)) 
                 return false;
             if (a.m_t->get_arg(i)->get_sort() != b.m_t->get_arg(i)->get_sort())
@@ -699,7 +720,8 @@ namespace smtfd {
     }
 
     unsigned f_app_hash::operator()(f_app const& a) const {
-        return get_composite_hash(p.values().data() + a.m_val_offset, a.m_t->get_num_args(), *this, *this);
+        unsigned first = a.first_arg();
+        return get_composite_hash(p.values().data() + a.m_val_offset + first, a.m_t->get_num_args() - first, *this, *this);
     }
     
     class basic_plugin : public theory_plugin {
@@ -797,7 +819,7 @@ namespace smtfd {
         void check_term(expr* t, unsigned round) override {
             sort* s = t->get_sort();
             if (round == 0 && is_uf(t)) {
-                TRACE("smtfd_verbose", tout << "check-term: " << mk_bounded_pp(t, m, 2) << "\n";);
+                TRACE(smtfd_verbose, tout << "check-term: " << mk_bounded_pp(t, m, 2) << "\n";);
                 enforce_congruence(to_app(t)->get_decl(), to_app(t), s);
             }
             else if (round == 1 && sort_covered(s) && m.is_value(t)) {
@@ -860,7 +882,7 @@ namespace smtfd {
                         args.push_back(model_value(arg));
                     }
                     expr_ref val = model_value(f.m_t);
-                    TRACE("smtfd_verbose", tout << mk_bounded_pp(f.m_t, m, 2) << " := " << val << "\n";);
+                    TRACE(smtfd_verbose, tout << mk_bounded_pp(f.m_t, m, 2) << " := " << val << "\n";);
                     fi->insert_new_entry(args.data(), val);
                 }
                 mdl->register_decl(fn, fi);
@@ -930,7 +952,7 @@ namespace smtfd {
         void check_select(app* t) {
             expr* a = t->get_arg(0);
             expr_ref vA = eval_abs(a);
-            TRACE("smtfd", tout << mk_bounded_pp(t, m, 2) << "\n";);
+            TRACE(smtfd, tout << mk_bounded_pp(t, m, 2) << "\n";);
             enforce_congruence(vA, t, a->get_sort());                                 
         }
 
@@ -948,7 +970,7 @@ namespace smtfd {
             expr_ref val2 = eval_abs(stored_value);
             // A[i] = v
             if (val1 != val2) {
-                TRACE("smtfd", tout << "select/store: " << mk_bounded_pp(t, m, 2) << "\n";);
+                TRACE(smtfd, tout << "select/store: " << mk_bounded_pp(t, m, 2) << "\n";);
                 m_context.add(m.mk_eq(sel, stored_value), __FUNCTION__);
                 m_pinned.push_back(sel);
                 insert_select(sel);
@@ -987,14 +1009,22 @@ namespace smtfd {
             expr_ref val1 = eval_abs(t);
             expr_ref val2 = eval_abs(val);
             if (val1 != val2 && !m.is_false(eqV)) {
-                m_context.add(m.mk_implies(mk_and(eqs), m.mk_eq(t, val)), __FUNCTION__);
+                {
+                    auto lhs = mk_and(eqs);
+                    expr_ref rhs(m.mk_eq(t, val), m);
+                    m_context.add(m.mk_implies(lhs, rhs), __FUNCTION__);
+                }
             }
             
             app_ref sel(m_autil.mk_select(m_args), m);
             val2 = eval_abs(sel);
             if (val1 != val2 && !m.is_true(eqV)) {
-                TRACE("smtfd", tout << "select/store: " << mk_bounded_pp(t, m, 2) << "\n";);                
-                m_context.add(m.mk_or(m.mk_eq(sel, t), mk_and(eqs)), __FUNCTION__);
+                TRACE(smtfd, tout << "select/store: " << mk_bounded_pp(t, m, 2) << "\n";);
+                {
+                    expr_ref lhs(m.mk_eq(sel, t), m);
+                    auto rhs = mk_and(eqs);
+                    m_context.add(m.mk_or(lhs, rhs), __FUNCTION__);
+                }
                 m_pinned.push_back(sel);
                 insert_select(sel);
             }
@@ -1063,7 +1093,7 @@ namespace smtfd {
                 m_args.push_back(arg);
             }
             SASSERT(t->get_sort() == a->get_sort());
-            TRACE("smtfd", tout << mk_bounded_pp(t, m, 2) << " " << mk_bounded_pp(f.m_t, m, 2) << "\n";);
+            TRACE(smtfd, tout << mk_bounded_pp(t, m, 2) << " " << mk_bounded_pp(f.m_t, m, 2) << "\n";);
             expr_ref eq = mk_eq_idxs(t, f.m_t);
             m_args[0] = t;
             expr_ref sel1(m_autil.mk_select(m_args), m);
@@ -1157,11 +1187,13 @@ namespace smtfd {
             expr_ref a1(m_autil.mk_select(args), m);
             args[0] = b;
             expr_ref b1(m_autil.mk_select(args), m);
-            expr_ref ext(m.mk_iff(m.mk_eq(a1, b1), m.mk_eq(a, b)), m);
-            if (!m.is_true(eval_abs(ext))) {
-                TRACE("smtfd", tout << mk_bounded_pp(a, m, 2) << " " << mk_bounded_pp(b, m, 2) << "\n";);
-                m_context.add(ext, __FUNCTION__);            
-            }
+            expr_ref lhs(m.mk_eq(a1, b1), m);
+            expr_ref rhs(m.mk_eq(a, b), m);
+            expr_ref ext(m.mk_iff(lhs, rhs), m);
+            // The arrays have different abstract values but identical observed reads.
+            // Evaluating a newly abstracted equality here can hide the violation.
+            TRACE(smtfd, tout << mk_bounded_pp(a, m, 2) << " " << mk_bounded_pp(b, m, 2) << "\n";);
+            m_context.add(ext, __FUNCTION__);
         }
 
         expr_ref mk_array_value(table& t) {
@@ -1414,7 +1446,7 @@ namespace smtfd {
             if (is_exists(q) && m.is_false(tmp)) {
                 return l_false;
             }
-            TRACE("smtfd", 
+            TRACE(smtfd, 
                   tout << mk_pp(q, m) << "\n";
                   /*tout << *m_model << "\n"; */
                   tout << "eval: " << tmp << "\n";);
@@ -1441,7 +1473,7 @@ namespace smtfd {
             m_solver->assert_expr(body);
             lbool r = m_solver->check_sat(0, nullptr);
             model_ref mdl;
-            TRACE("smtfd", tout << "check: " << r << "\n";);
+            TRACE(smtfd, tout << "check: " << r << "\n";);
             
             if (r == l_true) {
                 expr_ref qq(q->get_expr(), m);
@@ -1449,7 +1481,7 @@ namespace smtfd {
                     init_term(t);
                 }
                 m_solver->get_model(mdl);
-                TRACE("smtfd", tout << *mdl << "\n";);
+                TRACE(smtfd, tout << *mdl << "\n";);
 
                 for (unsigned i = 0; i < sz; ++i) {
                     app* v = to_app(vars.get(i));
@@ -1473,7 +1505,7 @@ namespace smtfd {
             if (r == l_true) {                
                 body = subst(q->get_expr(), vals.size(), vals.data());
                 m_context.rewrite(body);
-                TRACE("smtfd", tout << "vals: " << vals << "\n" << body << "\n";);
+                TRACE(smtfd, tout << "vals: " << vals << "\n" << body << "\n";);
                 if (is_forall(q)) {
                     body = m.mk_implies(q, body);
                 }
@@ -1628,14 +1660,15 @@ namespace smtfd {
             unsigned sz = m_assertions.size() - m_assertions_qhead;
             if (sz > 0) {
                 m_assertions.push_back(m_toggles.back());                
-                expr_ref fml(m.mk_and(sz + 1, m_assertions.data() + m_assertions_qhead), m);
+                expr_ref fml(m.mk_and(std::span<expr* const>(m_assertions.data() + m_assertions_qhead, sz + 1)), m);
                 m_assertions.pop_back();                
                 expr* toggle = add_toggle(m.mk_fresh_const("toggle", m.mk_bool_sort()));
                 m_assertions_qhead = m_assertions.size();
-                TRACE("smtfd", tout << "flush: " << m_assertions_qhead << " " << mk_bounded_pp(fml, m, 3) << "\n";);
+                TRACE(smtfd, tout << "flush: " << m_assertions_qhead << " " << mk_bounded_pp(fml, m, 3) << "\n";);
                 fml = abs(fml);
                 m_fd_sat_solver->assert_expr(fml);                
-                fml = m.mk_not(m.mk_and(toggle, fml));
+                // The toggle represents all assertions flushed so far.
+                fml = m.mk_iff(toggle, fml);
                 m_fd_core_solver->assert_expr(fml);
                 flush_atom_defs();
             }
@@ -1644,12 +1677,12 @@ namespace smtfd {
         lbool check_abs(unsigned num_assumptions, expr * const * assumptions) {
             expr_ref_vector asms(m);
             init_assumptions(num_assumptions, assumptions, asms);
-            TRACE("smtfd", 
+            TRACE(smtfd, 
                   for (unsigned i = 0; i < num_assumptions; ++i) {
                       tout << mk_bounded_pp(assumptions[i], m, 3) << "\n";
                   }
                   display(tout << asms << "\n"););
-            TRACE("smtfd_verbose", m_fd_sat_solver->display(tout););
+            TRACE(smtfd_verbose, m_fd_sat_solver->display(tout););
 
             lbool r = m_fd_sat_solver->check_sat(asms);
             update_reason_unknown(r, m_fd_sat_solver);
@@ -1663,16 +1696,19 @@ namespace smtfd {
             m_fd_sat_solver->get_model(m_model);
             m_model->set_model_completion(true);
             init_model_assumptions(num_assumptions, assumptions, asms);
-            TRACE("smtfd", display(tout << asms << "\n" << *m_model << "\n"););
+            TRACE(smtfd, display(tout << asms << "\n" << *m_model << "\n"););
             lbool r = m_fd_core_solver->check_sat(asms);
             update_reason_unknown(r, m_fd_core_solver);
             if (r == l_false) {
                 m_fd_core_solver->get_unsat_core(core);
-                TRACE("smtfd", display(tout << core << "\n"););
-                SASSERT(asms.contains(m_toggles.back()));
-                SASSERT(core.contains(m_toggles.back()));
-                core.erase(m_toggles.back());
+                TRACE(smtfd, display(tout << core << "\n"););
+                expr_ref not_toggle(m.mk_not(m_toggles.back()), m);
+                SASSERT(asms.contains(not_toggle));
+                SASSERT(core.contains(not_toggle));
+                core.erase(not_toggle.get());
                 rep(core);
+                // Core minimization may drop assumptions that still constrain this check.
+                core.append(num_assumptions, assumptions);
             }
             return r;
         }
@@ -1684,7 +1720,7 @@ namespace smtfd {
 
             for (unsigned round = 0; !m_context.at_max() && m_context.add_theory_axioms(terms, round); ++round) {}
             
-            TRACE("smtfd", m_context.display(tout););
+            TRACE(smtfd, m_context.display(tout););
             for (expr* f : m_context) {
                 assert_fd(f);
             }
@@ -1713,7 +1749,7 @@ namespace smtfd {
             }
             m_context.populate_model(m_model, terms);
 
-            TRACE("smtfd", 
+            TRACE(smtfd, 
                   tout << "axioms: " << m_axioms << "\n";
                   for (expr* a : subterms::ground(terms)) {
                       expr_ref val0 = (*m_model)(a);
@@ -1776,7 +1812,7 @@ namespace smtfd {
 
         void init_model_assumptions(unsigned sz, expr* const* user_asms, expr_ref_vector& asms) {
             asms.reset();
-            asms.push_back(m_toggles.back());
+            asms.push_back(m.mk_not(m_toggles.back()));
             for (unsigned i = 0; i < sz; ++i) {
                 asms.push_back(abs(user_asms[i]));
             }
@@ -1885,7 +1921,7 @@ namespace smtfd {
         }
 
         void flush_atom_defs() {
-            CTRACE("smtfd", !m_abs.atom_defs().empty(), for (expr* f : m_abs.atom_defs()) tout << mk_bounded_pp(f, m, 4) << "\n";);
+            CTRACE(smtfd, !m_abs.atom_defs().empty(), for (expr* f : m_abs.atom_defs()) tout << mk_bounded_pp(f, m, 4) << "\n";);
             for (expr* f : m_abs.atom_defs()) {
                 m_fd_sat_solver->assert_expr(f);
                 m_fd_core_solver->assert_expr(f);
@@ -1896,8 +1932,8 @@ namespace smtfd {
 
         void assert_fd(expr* fml) {
             expr_ref _fml(fml, m);
-            TRACE("smtfd", tout << mk_bounded_pp(fml, m, 3) << "\n";);
-            CTRACE("smtfd", m_axioms.contains(fml), 
+            TRACE(smtfd, tout << mk_bounded_pp(fml, m, 3) << "\n";);
+            CTRACE(smtfd, m_axioms.contains(fml), 
                    tout << "formula:\n" << _fml << "\n";
                    tout << "axioms:\n" << m_axioms << "\n";
                    tout << "assertions:\n" << m_assertions << "\n";);
@@ -1906,7 +1942,7 @@ namespace smtfd {
             SASSERT(!m_axioms.contains(fml));
             m_axioms.push_back(fml);
             _fml = abs(fml);
-            TRACE("smtfd", tout << mk_bounded_pp(_fml, m, 3) << "\n";);
+            TRACE(smtfd, tout << mk_bounded_pp(_fml, m, 3) << "\n";);
             m_fd_sat_solver->assert_expr(_fml);
             m_fd_core_solver->assert_expr(_fml);
             flush_atom_defs();
@@ -1914,7 +1950,7 @@ namespace smtfd {
 
         void block_core(expr_ref_vector const& core) {
             expr_ref fml(m.mk_not(mk_and(core)), m);
-            TRACE("smtfd", tout << "block:\n" << mk_bounded_pp(fml, m, 3) << "\n" << mk_bounded_pp(abs(fml), m, 3) << "\n";);
+            TRACE(smtfd, tout << "block:\n" << mk_bounded_pp(fml, m, 3) << "\n" << mk_bounded_pp(abs(fml), m, 3) << "\n";);
             assert_fd(fml);
         }
 
@@ -1938,7 +1974,8 @@ namespace smtfd {
                 // phase 2: find prime implicate over FD (abstraction)
                 r = get_prime_implicate(num_assumptions, assumptions, core);
                 if (r != l_false) {
-                    break;
+                    // A satisfying abstraction alone does not establish satisfiability.
+                    return l_undef;
                 }
              
                 // phase 3: check if prime implicate is really valid, or add theory lemmas until there is a theory core
@@ -1982,7 +2019,7 @@ namespace smtfd {
                 }
                 IF_VERBOSE(1, indent(); verbose_stream() << "(smtfd-round :round " << round << " :lemmas " << m_context.size() << ")\n");
                 round = 0;
-                TRACE("smtfd_verbose", 
+                TRACE(smtfd_verbose, 
                       for (expr* f : m_context) tout << "refine " << mk_bounded_pp(f, m, 3) << "\n";
                       m_context.display(tout););
                 for (expr* f : m_context) {
@@ -2033,7 +2070,7 @@ namespace smtfd {
 
         void set_produce_models(bool f) override { }
         void set_progress_callback(progress_callback * callback) override { }
-        void collect_statistics(statistics & st) const override {
+        void collect_statistics_core(statistics & st) const override {
             if (m_fd_sat_solver) {
                 m_fd_sat_solver->collect_statistics(st); 
                 m_fd_core_solver->collect_statistics(st); 

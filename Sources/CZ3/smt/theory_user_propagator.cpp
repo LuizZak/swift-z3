@@ -50,15 +50,19 @@ void theory_user_propagator::add_expr(expr* term, bool ensure_enode) {
     expr_ref r(m);
     expr* e = term;
     ctx.get_rewriter()(e, r);
-    TRACE("user_propagate", tout << "add " << mk_bounded_pp(e, m) << "\n");
-    if (r != e) {
+    TRACE(user_propagate, tout << "add " << mk_bounded_pp(e, m) << "\n");
+    if (!is_ground(r)) {
+        if (m_add_expr_fresh.contains(term))
+            return;
+        m_add_expr_fresh.insert(term);
+        ctx.push_trail(insert_obj_trail(m_add_expr_fresh, term));
         r = m.mk_fresh_const("aux-expr", e->get_sort());
         expr_ref eq(m.mk_eq(r, e), m);
         ctx.assert_expr(eq);
         ctx.internalize_assertions();
-        e = r;
         ctx.mark_as_relevant(eq.get());
     }
+    e = r;
     enode* n = ensure_enode ? this->ensure_enode(e) : ctx.get_enode(e);
     if (is_attached_to_var(n))
         return;
@@ -85,7 +89,7 @@ bool theory_user_propagator::propagate_cb(
     unsigned num_fixed, expr* const* fixed_ids, 
     unsigned num_eqs, expr* const* eq_lhs, expr* const* eq_rhs, 
     expr* conseq) {
-    CTRACE("user_propagate", ctx.lit_internalized(conseq) && ctx.get_assignment(ctx.get_literal(conseq)) == l_true,
+    CTRACE(user_propagate, ctx.lit_internalized(conseq) && ctx.get_assignment(ctx.get_literal(conseq)) == l_true,
            ctx.display(tout << "redundant consequence: " << mk_pp(conseq, m) << "\n"));
 
     expr_ref _conseq(conseq, m);
@@ -104,6 +108,15 @@ void theory_user_propagator::register_cb(expr* e) {
         m_to_add.push_back(e);
     else
         add_expr(e, true);
+}
+
+void theory_user_propagator::register_on_binding(user_propagator::binding_eh_t& binding_eh) {
+    std::function<bool(quantifier* q, expr* inst)> on_binding = 
+        [this, binding_eh](quantifier* q, expr* inst) {
+            return binding_eh(m_user_context, this, q, inst);
+        };    
+    ctx.register_on_binding(on_binding);
+
 }
 
 bool theory_user_propagator::next_split_cb(expr* e, unsigned idx, lbool phase) {
@@ -144,7 +157,7 @@ theory * theory_user_propagator::mk_fresh(context * new_ctx) {
     return th;
 }
 
-final_check_status theory_user_propagator::final_check_eh() {
+final_check_status theory_user_propagator::final_check_eh(unsigned level) {
     if (!(bool)m_final_eh)
         return FC_DONE;
     force_push();
@@ -156,9 +169,9 @@ final_check_status theory_user_propagator::final_check_eh() {
     catch (...) {
         throw default_exception("Exception thrown in \"final\"-callback");
     }
-    CTRACE("user_propagate", can_propagate(), tout << "can propagate\n");
+    CTRACE(user_propagate, can_propagate(), tout << "can propagate\n");
     propagate();
-    CTRACE("user_propagate", ctx.inconsistent(), tout << "inconsistent\n");
+    CTRACE(user_propagate, ctx.inconsistent(), tout << "inconsistent\n");
     // check if it became inconsistent or something new was propagated/registered
     bool done = (sz1 == m_prop.size()) && (sz2 == get_num_vars()) && !ctx.inconsistent();
     return done ? FC_DONE : FC_CONTINUE;
@@ -196,61 +209,36 @@ void theory_user_propagator::decide(bool_var& var, bool& is_pos) {
     if (!m_decide_eh)
         return;
 
-    const bool_var_data& d = ctx.get_bdata(var);
+    expr *e = ctx.bool_var2expr(var);
+    if (!e)
+        e = m.mk_true(); // use a dummy case split atom.
 
-    if (!d.is_enode() && !d.is_theory_atom())
-        return;
-
-    enode* original_enode = nullptr;
-    unsigned original_bit = 0;
-    bv_util bv(m);
-    theory* th = nullptr;
-    theory_var v = null_theory_var;
-
-    // get the associated theory
-    if (!d.is_enode()) {
-        // it might be a value that does not have an enode
-        th = ctx.get_theory(d.get_theory());
-    }
-    else {
-        original_enode = ctx.bool_var2enode(var);
-        v = original_enode->get_th_var(get_family_id());
-        if (v == null_theory_var) {
-            // it is not a registered boolean expression
-            th = ctx.get_theory(d.get_theory());
+    unsigned bit = 0;
+    // determine if case split is a bit-position in a bit-vector
+    {
+        bv_util bv(m);
+        auto th = ctx.get_theory(bv.get_fid());
+        if (th) {
+            // it is then n'th bit of a bit-vector n.
+            auto [n, nbit] = static_cast<theory_bv *>(th)->get_bv_with_theory(var, get_family_id());
+            if (n) {
+                e = n->get_expr();
+                bit = nbit;
+            }
         }
     }
 
-    if (v == null_theory_var && !th)
-        return;
-
-    if (v == null_theory_var && th->get_family_id() != bv.get_fid())
-        return;
-
-    if (v == null_theory_var) {
-        // it is not a registered boolean value but it is a bitvector
-        auto registered_bv = ((theory_bv*) th)->get_bv_with_theory(var, get_family_id());
-        if (!registered_bv.first)
-            // there is no registered bv associated with the bit
-            return;
-        original_enode = registered_bv.first;
-        original_bit = registered_bv.second;
-        v = original_enode->get_th_var(get_family_id());
-    }
-
-    // call the registered callback
-    unsigned new_bit = original_bit;
-
     force_push();
-    expr *e = var2expr(v);
-    m_decide_eh(m_user_context, this, e, new_bit, is_pos);
+    m_decide_eh(m_user_context, this, e, bit, is_pos);
 
     bool_var new_var;
     if (!get_case_split(new_var, is_pos) || new_var == var)
         // The user did not interfere
         return;
+    TRACE(user_propagate,
+          tout << "decide: " << ctx.bool_var2expr(var) << " -> " << ctx.bool_var2expr(new_var) << "\n");
     var = new_var;
-
+                    
     // check if the new variable is unassigned
     if (ctx.get_assignment(var) != l_undef)
         throw default_exception("expression in \"decide\" is already assigned");
@@ -309,7 +297,7 @@ void theory_user_propagator::propagate_consequence(prop_info const& prop) {
     DEBUG_CODE(for (expr* e : prop.m_ids) VERIFY(m_fixed.contains(expr2var(e))););
     DEBUG_CODE(for (literal lit : m_lits) VERIFY(ctx.get_assignment(lit) == l_true););
     
-    TRACE("user_propagate", tout << "propagating #" << prop.m_conseq->get_id() << ": " << prop.m_conseq << "\n";
+    TRACE(user_propagate, tout << "propagating #" << prop.m_conseq->get_id() << ": " << prop.m_conseq << "\n";
           for (auto const& [a,b] : m_eqs) tout << enode_pp(a, ctx) << " == " << enode_pp(b, ctx) << "\n";
           for (expr* e : prop.m_ids) tout << mk_pp(e, m) << "\n";
           for (literal lit : m_lits) tout << lit << "\n");
@@ -354,7 +342,7 @@ void theory_user_propagator::propagate_consequence(prop_info const& prop) {
         else
             ctx.mk_th_lemma(get_id(), m_lits);
     }
-    TRACE("user_propagate", ctx.display(tout););
+    TRACE(user_propagate, ctx.display(tout););
     
 }
 
@@ -366,7 +354,7 @@ void theory_user_propagator::propagate_new_fixed(prop_info const& prop) {
 void theory_user_propagator::propagate() {
     if (m_qhead == m_prop.size() && m_to_add_qhead == m_to_add.size() && m_replay_qhead == m_clauses_to_replay.size())
         return;
-    TRACE("user_propagate", tout << "propagating queue head: " << m_qhead << " prop queue: " << m_prop.size() << "\n");
+    TRACE(user_propagate, tout << "propagating queue head: " << m_qhead << " prop queue: " << m_prop.size() << "\n");
     force_push();
 
     unsigned qhead = m_replay_qhead;

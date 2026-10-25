@@ -24,7 +24,11 @@ Revision History:
 #if defined(_MSC_VER)
 #pragma float_control( except, on )   // exception semantics; this does _not_ mean that exceptions are enabled (we want them off!)
 #pragma float_control( precise, on )  // precise semantics (no guessing!)
+#if defined(__clang__)
+#pragma clang fp contract(off)
+#else
 #pragma fp_contract(off)              // contractions off (`contraction' means x*y+z is turned into a fused-mul-add).
+#endif
 #pragma fenv_access(on)               // fpu environment sensitivity (needed to be allowed to make FPU mode changes).
 #endif
 #else
@@ -126,7 +130,7 @@ void hwf_manager::set(hwf & o, mpf_rounding_mode rm, char const * value) {
     f = (e_pos != std::string::npos) ? v.substr(0, e_pos) : v;
     e = (e_pos != std::string::npos) ? v.substr(e_pos+1) : "0";
 
-    TRACE("mpf_dbg", tout << " f = " << f << " e = " << e << std::endl;);
+    TRACE(mpf_dbg, tout << " f = " << f << " e = " << e << std::endl;);
 
     mpq q;
     m_mpq_manager.set(q, f.c_str());
@@ -136,7 +140,7 @@ void hwf_manager::set(hwf & o, mpf_rounding_mode rm, char const * value) {
 
     set(o, rm, q, ex);
 
-    TRACE("mpf_dbg", tout << "set: res = " << to_string(o) << std::endl;);
+    TRACE(mpf_dbg, tout << "set: res = " << to_string(o) << std::endl;);
 }
 
 void hwf_manager::set(hwf & o, mpf_rounding_mode rm, mpq const & significand, mpz const & exponent) {
@@ -555,39 +559,38 @@ void hwf_manager::set_rounding_mode(mpf_rounding_mode rm)
     switch (rm) {
     case MPF_ROUND_NEAREST_TEVEN:
         SETRM(_MM_ROUND_NEAREST);
-        break;
+        return;
     case MPF_ROUND_TOWARD_POSITIVE:
         SETRM(_MM_ROUND_UP);
-        break;
+        return;
     case MPF_ROUND_TOWARD_NEGATIVE:
         SETRM(_MM_ROUND_DOWN);
-        break;
+        return;
     case MPF_ROUND_TOWARD_ZERO:
         SETRM(_MM_ROUND_TOWARD_ZERO);
-        break;
+        return;
     case MPF_ROUND_NEAREST_TAWAY:
-    default:
-        UNREACHABLE(); // Note: MPF_ROUND_NEAREST_TAWAY is not supported by the hardware!
+        break;
     }
 #else
     switch (rm) {
     case MPF_ROUND_NEAREST_TEVEN:
         SETRM(_RC_NEAR);
-        break;
+        return;
     case MPF_ROUND_TOWARD_POSITIVE:
         SETRM(_RC_UP);
-        break;
+        return;
     case MPF_ROUND_TOWARD_NEGATIVE:
         SETRM(_RC_DOWN);
-        break;
+        return;
     case MPF_ROUND_TOWARD_ZERO:
         SETRM(_RC_CHOP);
-        break;
+        return;
     case MPF_ROUND_NEAREST_TAWAY:
-    default:
-        UNREACHABLE(); // Note: MPF_ROUND_NEAREST_TAWAY is not supported by the hardware!
+        break;
     }
 #endif
+    UNREACHABLE(); // Note: MPF_ROUND_NEAREST_TAWAY is not supported by the hardware!
 #else // macOS/Linux
     switch (rm) {
     case MPF_ROUND_NEAREST_TEVEN:
@@ -603,7 +606,6 @@ void hwf_manager::set_rounding_mode(mpf_rounding_mode rm)
         SETRM(FE_TOWARDZERO);
         break;
     case MPF_ROUND_NEAREST_TAWAY:
-    default:
         UNREACHABLE(); // Note: MPF_ROUND_NEAREST_TAWAY is not supported by the hardware!
     }
 #endif

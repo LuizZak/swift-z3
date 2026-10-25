@@ -1,77 +1,51 @@
-// Automatically generated file
+/*++
+Copyright (c) 2024 Microsoft Corporation
+
+Module Name:
+
+    sat_simplifier_params.hpp
+
+Abstract:
+
+    Parameters for the 'sat' module.
+
+--*/
 #pragma once
+
 #include "util/params.h"
 #include "util/gparams.h"
-struct sat_simplifier_params {
-  params_ref const & p;
-  params_ref g;
-  sat_simplifier_params(params_ref const & _p = params_ref::get_empty()):
-     p(_p), g(gparams::get_module("sat")) {}
-  static void collect_param_descrs(param_descrs & d) {
-    d.insert("bce", CPK_BOOL, "eliminate blocked clauses", "false","sat");
-    d.insert("abce", CPK_BOOL, "eliminate blocked clauses using asymmetric literals", "false","sat");
-    d.insert("cce", CPK_BOOL, "eliminate covered clauses", "false","sat");
-    d.insert("ate", CPK_BOOL, "asymmetric tautology elimination", "true","sat");
-    d.insert("acce", CPK_BOOL, "eliminate covered clauses using asymmetric added literals", "false","sat");
-    d.insert("bce_at", CPK_UINT, "eliminate blocked clauses only once at the given simplification round", "2","sat");
-    d.insert("bca", CPK_BOOL, "blocked clause addition - add blocked binary clauses", "false","sat");
-    d.insert("bce_delay", CPK_UINT, "delay eliminate blocked clauses until simplification round", "2","sat");
-    d.insert("retain_blocked_clauses", CPK_BOOL, "retain blocked clauses as lemmas", "true","sat");
-    d.insert("blocked_clause_limit", CPK_UINT, "maximum number of literals visited during blocked clause elimination", "100000000","sat");
-    d.insert("override_incremental", CPK_BOOL, "override incremental safety gaps. Enable elimination of blocked clauses and variables even if solver is reused", "false","sat");
-    d.insert("resolution.limit", CPK_UINT, "approx. maximum number of literals visited during variable elimination", "500000000","sat");
-    d.insert("resolution.occ_cutoff", CPK_UINT, "first cutoff (on number of positive/negative occurrences) for Boolean variable elimination", "10","sat");
-    d.insert("resolution.occ_cutoff_range1", CPK_UINT, "second cutoff (number of positive/negative occurrences) for Boolean variable elimination, for problems containing less than res_cls_cutoff1 clauses", "8","sat");
-    d.insert("resolution.occ_cutoff_range2", CPK_UINT, "second cutoff (number of positive/negative occurrences) for Boolean variable elimination, for problems containing more than res_cls_cutoff1 and less than res_cls_cutoff2", "5","sat");
-    d.insert("resolution.occ_cutoff_range3", CPK_UINT, "second cutoff (number of positive/negative occurrences) for Boolean variable elimination, for problems containing more than res_cls_cutoff2", "3","sat");
-    d.insert("resolution.lit_cutoff_range1", CPK_UINT, "second cutoff (total number of literals) for Boolean variable elimination, for problems containing less than res_cls_cutoff1 clauses", "700","sat");
-    d.insert("resolution.lit_cutoff_range2", CPK_UINT, "second cutoff (total number of literals) for Boolean variable elimination, for problems containing more than res_cls_cutoff1 and less than res_cls_cutoff2", "400","sat");
-    d.insert("resolution.lit_cutoff_range3", CPK_UINT, "second cutoff (total number of literals) for Boolean variable elimination, for problems containing more than res_cls_cutoff2", "300","sat");
-    d.insert("resolution.cls_cutoff1", CPK_UINT, "limit1 - total number of problems clauses for the second cutoff of Boolean variable elimination", "100000000","sat");
-    d.insert("resolution.cls_cutoff2", CPK_UINT, "limit2 - total number of problems clauses for the second cutoff of Boolean variable elimination", "700000000","sat");
-    d.insert("elim_vars", CPK_BOOL, "enable variable elimination using resolution during simplification", "true","sat");
-    d.insert("elim_vars_bdd", CPK_BOOL, "enable variable elimination using BDD recompilation during simplification", "true","sat");
-    d.insert("elim_vars_bdd_delay", CPK_UINT, "delay elimination of variables using BDDs until after simplification round", "3","sat");
-    d.insert("probing", CPK_BOOL, "apply failed literal detection during simplification", "true","sat");
-    d.insert("probing_limit", CPK_UINT, "limit to the number of probe calls", "5000000","sat");
-    d.insert("probing_cache", CPK_BOOL, "add binary literals as lemmas", "true","sat");
-    d.insert("probing_cache_limit", CPK_UINT, "cache binaries unless overall memory usage exceeds cache limit", "1024","sat");
-    d.insert("probing_binary", CPK_BOOL, "probe binary clauses", "true","sat");
-    d.insert("subsumption", CPK_BOOL, "eliminate subsumed clauses", "true","sat");
-    d.insert("subsumption.limit", CPK_UINT, "approx. maximum number of literals visited during subsumption (and subsumption resolution)", "100000000","sat");
-  }
-  /*
-     REG_MODULE_PARAMS('sat', 'sat_simplifier_params::collect_param_descrs')
-  */
-  bool bce() const { return p.get_bool("bce", g, false); }
-  bool abce() const { return p.get_bool("abce", g, false); }
-  bool cce() const { return p.get_bool("cce", g, false); }
-  bool ate() const { return p.get_bool("ate", g, true); }
-  bool acce() const { return p.get_bool("acce", g, false); }
-  unsigned bce_at() const { return p.get_uint("bce_at", g, 2u); }
-  bool bca() const { return p.get_bool("bca", g, false); }
-  unsigned bce_delay() const { return p.get_uint("bce_delay", g, 2u); }
-  bool retain_blocked_clauses() const { return p.get_bool("retain_blocked_clauses", g, true); }
-  unsigned blocked_clause_limit() const { return p.get_uint("blocked_clause_limit", g, 100000000u); }
-  bool override_incremental() const { return p.get_bool("override_incremental", g, false); }
-  unsigned resolution_limit() const { return p.get_uint("resolution.limit", g, 500000000u); }
-  unsigned resolution_occ_cutoff() const { return p.get_uint("resolution.occ_cutoff", g, 10u); }
-  unsigned resolution_occ_cutoff_range1() const { return p.get_uint("resolution.occ_cutoff_range1", g, 8u); }
-  unsigned resolution_occ_cutoff_range2() const { return p.get_uint("resolution.occ_cutoff_range2", g, 5u); }
-  unsigned resolution_occ_cutoff_range3() const { return p.get_uint("resolution.occ_cutoff_range3", g, 3u); }
-  unsigned resolution_lit_cutoff_range1() const { return p.get_uint("resolution.lit_cutoff_range1", g, 700u); }
-  unsigned resolution_lit_cutoff_range2() const { return p.get_uint("resolution.lit_cutoff_range2", g, 400u); }
-  unsigned resolution_lit_cutoff_range3() const { return p.get_uint("resolution.lit_cutoff_range3", g, 300u); }
-  unsigned resolution_cls_cutoff1() const { return p.get_uint("resolution.cls_cutoff1", g, 100000000u); }
-  unsigned resolution_cls_cutoff2() const { return p.get_uint("resolution.cls_cutoff2", g, 700000000u); }
-  bool elim_vars() const { return p.get_bool("elim_vars", g, true); }
-  bool elim_vars_bdd() const { return p.get_bool("elim_vars_bdd", g, true); }
-  unsigned elim_vars_bdd_delay() const { return p.get_uint("elim_vars_bdd_delay", g, 3u); }
-  bool probing() const { return p.get_bool("probing", g, true); }
-  unsigned probing_limit() const { return p.get_uint("probing_limit", g, 5000000u); }
-  bool probing_cache() const { return p.get_bool("probing_cache", g, true); }
-  unsigned probing_cache_limit() const { return p.get_uint("probing_cache_limit", g, 1024u); }
-  bool probing_binary() const { return p.get_bool("probing_binary", g, true); }
-  bool subsumption() const { return p.get_bool("subsumption", g, true); }
-  unsigned subsumption_limit() const { return p.get_uint("subsumption.limit", g, 100000000u); }
-};
+
+#define SAT_SIMPLIFIER_PARAMS_LIST(UINT_, BOOL_, DOUBLE_, STRING_, SYMBOL_) \
+  BOOL_(bce,                           "bce",                           false,      "eliminate blocked clauses") \
+  BOOL_(abce,                          "abce",                          false,      "eliminate blocked clauses using asymmetric literals") \
+  BOOL_(cce,                           "cce",                           false,      "eliminate covered clauses") \
+  BOOL_(ate,                           "ate",                           true,       "asymmetric tautology elimination") \
+  BOOL_(acce,                          "acce",                          false,      "eliminate covered clauses using asymmetric added literals") \
+  UINT_(bce_at,                        "bce_at",                        2,          "eliminate blocked clauses only once at the given simplification round") \
+  BOOL_(bca,                           "bca",                           false,      "blocked clause addition - add blocked binary clauses") \
+  UINT_(bce_delay,                     "bce_delay",                     2,          "delay eliminate blocked clauses until simplification round") \
+  BOOL_(retain_blocked_clauses,        "retain_blocked_clauses",        true,       "retain blocked clauses as lemmas") \
+  UINT_(blocked_clause_limit,          "blocked_clause_limit",          100000000,  "maximum number of literals visited during blocked clause elimination") \
+  BOOL_(override_incremental,          "override_incremental",          false,      "override incremental safety gaps. Enable elimination of blocked clauses and variables even if solver is reused") \
+  UINT_(resolution_limit,              "resolution.limit",              500000000,  "approx. maximum number of literals visited during variable elimination") \
+  UINT_(resolution_occ_cutoff,         "resolution.occ_cutoff",         10,         "first cutoff (on number of positive/negative occurrences) for Boolean variable elimination") \
+  UINT_(resolution_occ_cutoff_range1,  "resolution.occ_cutoff_range1",  8,          "second cutoff (number of positive/negative occurrences) for Boolean variable elimination, for problems containing less than res_cls_cutoff1 clauses") \
+  UINT_(resolution_occ_cutoff_range2,  "resolution.occ_cutoff_range2",  5,          "second cutoff (number of positive/negative occurrences) for Boolean variable elimination, for problems containing more than res_cls_cutoff1 and less than res_cls_cutoff2") \
+  UINT_(resolution_occ_cutoff_range3,  "resolution.occ_cutoff_range3",  3,          "second cutoff (number of positive/negative occurrences) for Boolean variable elimination, for problems containing more than res_cls_cutoff2") \
+  UINT_(resolution_lit_cutoff_range1,  "resolution.lit_cutoff_range1",  700,        "second cutoff (total number of literals) for Boolean variable elimination, for problems containing less than res_cls_cutoff1 clauses") \
+  UINT_(resolution_lit_cutoff_range2,  "resolution.lit_cutoff_range2",  400,        "second cutoff (total number of literals) for Boolean variable elimination, for problems containing more than res_cls_cutoff1 and less than res_cls_cutoff2") \
+  UINT_(resolution_lit_cutoff_range3,  "resolution.lit_cutoff_range3",  300,        "second cutoff (total number of literals) for Boolean variable elimination, for problems containing more than res_cls_cutoff2") \
+  UINT_(resolution_cls_cutoff1,        "resolution.cls_cutoff1",        100000000,  "limit1 - total number of problems clauses for the second cutoff of Boolean variable elimination") \
+  UINT_(resolution_cls_cutoff2,        "resolution.cls_cutoff2",        700000000,  "limit2 - total number of problems clauses for the second cutoff of Boolean variable elimination") \
+  BOOL_(elim_vars,                     "elim_vars",                     true,       "enable variable elimination using resolution during simplification") \
+  BOOL_(probing,                       "probing",                       true,       "apply failed literal detection during simplification") \
+  UINT_(probing_limit,                 "probing_limit",                 5000000,    "limit to the number of probe calls") \
+  BOOL_(probing_cache,                 "probing_cache",                 true,       "add binary literals as lemmas") \
+  UINT_(probing_cache_limit,           "probing_cache_limit",           1024,       "cache binaries unless overall memory usage exceeds cache limit") \
+  BOOL_(probing_binary,                "probing_binary",                true,       "probe binary clauses") \
+  BOOL_(subsumption,                   "subsumption",                   true,       "eliminate subsumed clauses") \
+  UINT_(subsumption_limit,             "subsumption.limit",             100000000,  "approx. maximum number of literals visited during subsumption (and subsumption resolution)")
+
+Z3_DEFINE_MODULE_PARAMS(sat_simplifier_params, "sat", SAT_SIMPLIFIER_PARAMS_LIST, nullptr);
+
+#undef SAT_SIMPLIFIER_PARAMS_LIST

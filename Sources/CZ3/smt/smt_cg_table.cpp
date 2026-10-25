@@ -57,7 +57,7 @@ namespace smt {
         if (num != n2->get_num_args()) {
             return false;
         }
-        for (unsigned i = 0; i < num; i++) 
+        for (unsigned i = 0; i < num; ++i) 
             if (n1->get_arg(i)->get_root() != n2->get_arg(i)->get_root())
                 return false;
         return true;
@@ -217,7 +217,7 @@ namespace smt {
             return enode_bool_pair(n_prime, false);
         case BINARY:
             n_prime = UNTAG(binary_table*, t)->insert_if_not_there(n);
-            TRACE("cg_table", tout << "insert: " << n->get_owner_id() << " " << cg_binary_hash()(n) << " inserted: " << (n == n_prime) << " " << n_prime->get_owner_id() << "\n";
+            TRACE(cg_table, tout << "insert: " << n->get_owner_id() << " " << cg_binary_hash()(n) << " inserted: " << (n == n_prime) << " " << n_prime->get_owner_id() << "\n";
                   display_binary(tout, t); tout << "contains_ptr: " << contains_ptr(n) << "\n";); 
             return enode_bool_pair(n_prime, false);
         case BINARY_COMM:
@@ -238,7 +238,7 @@ namespace smt {
             UNTAG(unary_table*, t)->erase(n);
             break;
         case BINARY:
-            TRACE("cg_table", tout << "erase: " << n->get_owner_id() << " " << cg_binary_hash()(n) << " contains: " << contains_ptr(n) << "\n";);
+            TRACE(cg_table, tout << "erase: " << n->get_owner_id() << " " << cg_binary_hash()(n) << " contains: " << contains_ptr(n) << "\n";);
             UNTAG(binary_table*, t)->erase(n);
             break;
         case BINARY_COMM:
@@ -258,5 +258,5 @@ namespace smt {
         return true;
     }
 
-};
+}
 

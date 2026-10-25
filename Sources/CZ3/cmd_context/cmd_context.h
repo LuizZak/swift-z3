@@ -22,6 +22,7 @@ Notes:
 
 #include<sstream>
 #include<vector>
+#include<functional>
 #include "util/stopwatch.h"
 #include "util/cmd_context_types.h"
 #include "util/event_handler.h"
@@ -38,6 +39,8 @@ Notes:
 #include "solver/solver.h"
 #include "solver/check_logic.h"
 #include "solver/progress_callback.h"
+#include "solver/simplifier_solver.h"
+#include "solver/preferred_value_propagator.h"
 #include "cmd_context/pdecl.h"
 #include "cmd_context/tactic_manager.h"
 #include "params/context_params.h"
@@ -95,7 +98,7 @@ public:
 
 class proof_cmds {
 public:
-    virtual ~proof_cmds() {}
+    virtual ~proof_cmds() = default;
     virtual void add_literal(expr* e) = 0;
     virtual void end_assumption() = 0;
     virtual void end_infer() = 0;
@@ -154,14 +157,17 @@ public:
 };
 
 struct builtin_decl {
-    family_id      m_fid;
-    decl_kind      m_decl;
-    builtin_decl * m_next;
-    builtin_decl():m_fid(null_family_id), m_decl(0), m_next(nullptr) {}
+    family_id      m_fid = null_family_id;
+    decl_kind      m_decl = 0;
+    builtin_decl * m_next = nullptr;
+    builtin_decl() = default;
     builtin_decl(family_id fid, decl_kind k, builtin_decl * n = nullptr):m_fid(fid), m_decl(k), m_next(n) {}
 };
 
 class opt_wrapper : public check_sat_result {
+protected:
+    preferred_value_propagator *m_preferred = nullptr;
+
 public:
     opt_wrapper(ast_manager& m): check_sat_result(m) {}
     virtual bool empty() = 0;
@@ -175,7 +181,7 @@ public:
     virtual void get_box_model(model_ref& mdl, unsigned index) = 0;
     virtual void updt_params(params_ref const& p) = 0;
     virtual void initialize_value(expr* var, expr* value) = 0;
-
+    void set_preferred(preferred_value_propagator *p) { m_preferred = p; }
 };
 
 class ast_context_params : public context_params { 
@@ -193,6 +199,8 @@ public:
 
 class cmd_context : public progress_callback, public tactic_manager, public ast_printer_context {
 public:
+    using proof_check_callback = std::function<std::string(proof*, expr_ref_vector const&)>;
+
     enum status {
         UNSAT, SAT, UNKNOWN
     };
@@ -264,6 +272,7 @@ protected:
     dictionary<object_ref*>      m_object_refs; // anything that can be named.
     dictionary<sexpr*>           m_user_tactic_decls;
     vector<std::pair<expr_ref, expr_ref>> m_var2values;
+    scoped_ptr<preferred_value_propagator> m_preferred;
 
     dictionary<func_decls>       m_func_decls;
     obj_map<func_decl, symbol>   m_func_decl2alias;
@@ -282,6 +291,7 @@ protected:
     std::vector<std::string>     m_assertion_strings;
     ptr_vector<expr>             m_assertion_names; // named assertions are represented using boolean variables.
     scoped_ptr<var_subst>        m_std_subst, m_rev_subst;
+    simplifier_factory           m_simplifier_factory;
 
     struct scope {
         unsigned m_func_decls_stack_lim;
@@ -289,14 +299,16 @@ protected:
         unsigned m_macros_stack_lim;
         unsigned m_aux_pdecls_lim;
         unsigned m_psort_inst_stack_lim;
-        // only m_assertions_lim is relevant when m_global_decls = true
+        // Declaration limits are ignored when m_global_decls = true.
         unsigned m_assertions_lim;
+        unsigned m_rlimit;
     };
 
     svector<scope>               m_scopes;
     scoped_ptr<solver_factory>   m_solver_factory;
     ref<solver>                  m_solver;
     ref<check_sat_result>        m_check_sat_result;
+    proof_check_callback        m_proof_check_callback;
     ref<opt_wrapper>             m_opt;
 
     stopwatch                    m_watch;
@@ -323,6 +335,7 @@ protected:
     var_subst& rev_subst() { if (!m_rev_subst) m_rev_subst = alloc(var_subst, m(), false); return *m_rev_subst; }
 
     void register_builtin_sorts(decl_plugin * p);
+    void restrict_builtin_sorts();
     void register_builtin_ops(decl_plugin * p);
     void load_plugin(symbol const & name, bool install_names, svector<family_id>& fids);
     void init_manager_core(bool new_manager);
@@ -357,6 +370,8 @@ protected:
     void mk_solver();
 
     bool contains_func_decl(symbol const& s, unsigned n, sort* const* domain, sort* range) const;
+    bool builtin_signature_collides(symbol const& s, unsigned arity, sort* const* domain) const;
+    bool is_transcendental_shadow_decl(symbol const& s, unsigned arity, sort* const* domain) const;
 
     bool contains_macro(symbol const& s) const;
     bool contains_macro(symbol const& s, func_decl* f) const;
@@ -427,8 +442,11 @@ public:
     void set_solver(solver* s) { m_solver = s; }
     void set_proof_cmds(proof_cmds* pc) { m_proof_cmds = pc; }
     void set_initial_value(expr* var, expr* value);
+    void set_preferred(expr *fmla);
+    void reset_preferred();
 
     void set_solver_factory(solver_factory * s);
+    void set_simplifier_factory(simplifier_factory& sf) { m_simplifier_factory = sf; }
     void set_check_sat_result(check_sat_result * r) { m_check_sat_result = r; }
     check_sat_result * get_check_sat_result() const { return m_check_sat_result.get(); }
     check_sat_state cs_state() const;
@@ -515,6 +533,8 @@ public:
     void push(unsigned n);
     void pop(unsigned n);
     void check_sat(unsigned num_assumptions, expr * const * assumptions);
+    void set_proof_check_callback(proof_check_callback callback) { m_proof_check_callback = std::move(callback); }
+    void check_proof(unsigned num_assumptions = 0, expr* const* assumptions = nullptr);
     void get_consequences(expr_ref_vector const& assumptions, expr_ref_vector const& vars, expr_ref_vector & conseq);
     void reset_assertions();
     // display the result produced by a check-sat or check-sat-using commands in the regular stream
@@ -570,24 +590,4 @@ public:
 };
 
 std::ostream & operator<<(std::ostream & out, cmd_context::status st);
-
-
-class th_solver : public expr_solver {
-    cmd_context& m_ctx;
-    params_ref   m_params;
-    ref<solver> m_solver;
-public:
-    th_solver(cmd_context& ctx): m_ctx(ctx) {}
-    
-    lbool check_sat(expr* e) override {
-        if (!m_solver) {
-            m_solver = m_ctx.get_solver_factory()(m_ctx.m(), m_params, false, true, false, symbol::null);
-        }
-        m_solver->push();
-        m_solver->assert_expr(e);
-        lbool r = m_solver->check_sat(0,nullptr);
-        m_solver->pop(1);
-        return r;
-    }
-};
 

@@ -157,7 +157,7 @@ struct pb2bv_rewriter::imp {
             gcd_reduce<is_le>(m_coeffs, k);
             unsigned sz = m_args.size();
             expr * const* args = m_args.data();
-            TRACE("pb", 
+            TRACE(pb, 
                   for (unsigned i = 0; i < sz; ++i) {
                       tout << m_coeffs[i] << "*" << mk_pp(args[i], m) << " ";
                       if (i + 1 < sz && !m_coeffs[i+1].is_neg()) tout << "+ ";
@@ -259,10 +259,9 @@ struct pb2bv_rewriter::imp {
                     fmls.push_back(m.mk_eq(bound, es.back()));
                 }
                 return ::mk_and(fmls);
-            default:
-                UNREACHABLE();
-                return expr_ref(m.mk_true(), m);
             }
+            UNREACHABLE();
+            return expr_ref(m);
         }
 
         /**
@@ -283,7 +282,7 @@ struct pb2bv_rewriter::imp {
                 return false;
             }
             result = m.mk_not(bounded_addition(sz, args, k + 1));
-            TRACE("pb", tout << result << "\n";);
+            TRACE(pb, tout << result << "\n";);
             return true;
         }
 
@@ -301,7 +300,7 @@ struct pb2bv_rewriter::imp {
                 return false;
             }
             result = bounded_addition(sz, args, k);
-            TRACE("pb", tout << result << "\n";);
+            TRACE(pb, tout << result << "\n";);
             return true;
         }
 
@@ -324,20 +323,20 @@ struct pb2bv_rewriter::imp {
                 unsigned c = m_coeffs[i].get_unsigned();
                 v.push_back(c >= k ? k : c);
                 e.push_back(args[i]);   
-                es.push_back(e);
-                coeffs.push_back(v);
+                es.push_back(std::move(e));
+                coeffs.push_back(std::move(v));
             }
             while (es.size() > 1) {
                 for (unsigned i = 0; i + 1 < es.size(); i += 2) {
                     expr_ref_vector o(m);
                     unsigned_vector oc;
                     tot_adder(es[i], coeffs[i], es[i + 1], coeffs[i + 1], k, o, oc);
-                    es[i / 2].set(o);
-                    coeffs[i / 2] = oc;
+                    es[i / 2] = std::move(o);
+                    coeffs[i / 2] = std::move(oc);
                 }
                 if ((es.size() % 2) == 1) {
-                    es[es.size() / 2].set(es.back());
-                    coeffs[es.size() / 2] = coeffs.back();
+                    es[es.size() / 2] = std::move(es.back());
+                    coeffs[es.size() / 2] = std::move(coeffs.back());
                 }
                 es.shrink((1 + es.size())/2);
                 coeffs.shrink((1 + coeffs.size())/2);
@@ -449,7 +448,7 @@ struct pb2bv_rewriter::imp {
             rational cost(0);
             create_basis(m_coeffs, rational::zero(), cost);
             m_base = m_min_base;
-            TRACE("pb",
+            TRACE(pb,
                   tout << "Base: ";
                   for (unsigned i = 0; i < m_base.size(); ++i) {
                       tout << m_base[i] << " ";
@@ -465,7 +464,7 @@ struct pb2bv_rewriter::imp {
            \brief Check if 'out mod n >= lim'. 
          */
         expr_ref mod_ge(ptr_vector<expr> const& out, unsigned n, unsigned lim) {
-            TRACE("pb", for (unsigned i = 0; i < out.size(); ++i) tout << mk_pp(out[i], m) << " "; tout << "\n";
+            TRACE(pb, for (unsigned i = 0; i < out.size(); ++i) tout << mk_pp(out[i], m) << " "; tout << "\n";
                   tout << "n:" << n << " lim: " << lim << "\n";);
             if (lim == n) {
                 return expr_ref(m.mk_false(), m);
@@ -514,7 +513,7 @@ struct pb2bv_rewriter::imp {
                     }
                     coeffs[j] = div(coeffs[j], b_i);
                 }
-                TRACE("pb", tout << "Carry: " << carry << "\n";
+                TRACE(pb, tout << "Carry: " << carry << "\n";
                       for (auto c : coeffs) tout << c << " ";
                       tout << "\n";
                       );
@@ -525,7 +524,7 @@ struct pb2bv_rewriter::imp {
                 expr_ref ge = mod_ge(out, B, d_i);
                 result = mk_and(ge, result);
                 result = mk_or(gt, result);                
-                TRACE("pb", tout << "b: " << b_i << " d: " << d_i << " gt: " << gt << " ge: " << ge << " " << result << "\n";);
+                TRACE(pb, tout << "b: " << b_i << " d: " << d_i << " gt: " << gt << " ge: " << ge << " " << result << "\n";);
 
                 new_carry.reset();
                 for (unsigned j = B - 1; j < out.size(); j += B) {
@@ -534,7 +533,7 @@ struct pb2bv_rewriter::imp {
                 carry.reset();
                 carry.append(new_carry);
             }
-            TRACE("pb", tout << "bound: " << bound << " Carry: " << carry << " result: " << result << "\n";);
+            TRACE(pb, tout << "bound: " << bound << " Carry: " << carry << " result: " << result << "\n";);
             return true;
         }
 
@@ -618,7 +617,11 @@ struct pb2bv_rewriter::imp {
                 return expr_ref(m.mk_true(), m);
             }
             expr_ref_vector fmls(m);
-            fmls.push_back(m.mk_implies(m.mk_not(out[0]), mk_seg_le_rec(outs, coeffs, i + 1, k)));
+            {
+                auto _seq621_0 = m.mk_not(out[0]);
+                auto _seq621_1 = mk_seg_le_rec(outs, coeffs, i + 1, k);
+                fmls.push_back(m.mk_implies(_seq621_0, _seq621_1));
+            }
             rational k1;
             for (unsigned j = 0; j + 1 < out.size(); ++j) {
                 k1 = k - rational(j+1)*c;
@@ -626,7 +629,11 @@ struct pb2bv_rewriter::imp {
                     fmls.push_back(m.mk_not(out[j]));
                     break;
                 }
-                fmls.push_back(m.mk_implies(m.mk_and(out[j], m.mk_not(out[j+1])), mk_seg_le_rec(outs, coeffs, i + 1, k1)));
+                {
+                    auto _seq629_0 = m.mk_and(out[j], m.mk_not(out[j + 1]));
+                    auto _seq629_1 = mk_seg_le_rec(outs, coeffs, i + 1, k1);
+                    fmls.push_back(m.mk_implies(_seq629_0, _seq629_1));
+                }
             }
             return ::mk_and(fmls);
         }
@@ -685,7 +692,7 @@ struct pb2bv_rewriter::imp {
                 m_coeffs.push_back(pb.get_coeff(f, i));
                 m_args.push_back(args[i]);
             }
-            CTRACE("pb", k.is_neg(), tout << expr_ref(m.mk_app(f, sz, args), m) << "\n";);
+            CTRACE(pb, k.is_neg(), tout << expr_ref(m.mk_app(f, sz, args), m) << "\n";);
             SASSERT(!k.is_neg());
             switch (kind) {
             case OP_PB_GE:
@@ -923,7 +930,7 @@ struct pb2bv_rewriter::imp {
             else {
                 result = mk_bv(f, sz, args);
             }
-            TRACE("pb", tout << "full: " << full << " " << expr_ref(m.mk_app(f, sz, args), m) << " " << result << "\n";
+            TRACE(pb, tout << "full: " << full << " " << expr_ref(m.mk_app(f, sz, args), m) << " " << result << "\n";
                   );
             return true;
         }
@@ -945,7 +952,7 @@ struct pb2bv_rewriter::imp {
         pliteral mk_false() { return m.mk_false(); }
         pliteral mk_true() { return m.mk_true(); }
         pliteral mk_max(unsigned n, pliteral const* lits) { return trail(m.mk_or(n, lits)); }
-        pliteral mk_min(unsigned n, pliteral const* lits) { return trail(m.mk_and(n, lits)); }
+        pliteral mk_min(unsigned n, pliteral const* lits) { return trail(m.mk_and(std::span<expr* const>(lits, n))); }
         pliteral mk_not(pliteral a) { if (m.is_not(a,a)) return a; return trail(m.mk_not(a)); }
 
         std::ostream& pp(std::ostream& out, pliteral lit) {  return out << mk_ismt2_pp(lit, m);  }

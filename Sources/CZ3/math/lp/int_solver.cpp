@@ -30,7 +30,7 @@ namespace lp {
     };
     
     class int_solver::imp {
-        public:
+    public:
         int_solver&         lia;
         lar_solver&         lra;
         lar_core_solver&    lrac;
@@ -41,9 +41,13 @@ namespace lp {
         mpq                 m_k;               // the right side of the cut
         hnf_cutter          m_hnf_cutter;
         unsigned            m_hnf_cut_period;
-        unsigned            m_dioph_eq_period;
         dioph_eq            m_dio;  
         int_gcd_test        m_gcd;
+        unsigned            m_initial_dio_calls_period;
+        unsigned            m_lcube_period;
+        // The number of consecutive genuine dio calls that returned undef, reset on a dio
+        // conflict. Drives the decision to start running Gomory with dio.
+        unsigned            m_dio_undef_in_a_row = 0;
 
         bool column_is_int_inf(unsigned j) const {
             return lra.column_is_int(j) && (!lia.value_is_int(j));
@@ -51,8 +55,9 @@ namespace lp {
 
         imp(int_solver& lia): lia(lia), lra(lia.lra), lrac(lia.lrac), m_hnf_cutter(lia), m_dio(lia), m_gcd(lia) {
             m_hnf_cut_period = settings().hnf_cut_period();
-            m_dioph_eq_period = settings().m_dioph_eq_period;
-        } 
+            m_initial_dio_calls_period = settings().dio_calls_period();
+            m_lcube_period = settings().m_int_find_cube_period;
+        }
 
         bool has_lower(unsigned j) const {
             switch (lrac.m_column_types()[j]) {
@@ -102,8 +107,9 @@ namespace lp {
             for (auto const& c : A.column(j)) {
                 unsigned row_index = c.var();
                 unsigned bj = lrac.m_r_basis[row_index];
-                auto old_val = lia.get_value(bj);
-                auto new_val = old_val - impq(c.coeff()*delta);
+                auto const& old_val = lia.get_value(bj);
+                auto new_val = old_val;
+                new_val.x.submul(c.coeff(), delta);
                 if (has_lower(bj) && new_val < lra.get_lower_bound(bj))
                     return false;
                 if (has_upper(bj) && new_val > lra.get_upper_bound(bj))
@@ -113,7 +119,7 @@ namespace lp {
                 }
                 // if bj == v, then, because we are patching the lra.get_value(v),
                 // we just need to assert that the lra.get_value(v) would be integral.
-                lp_assert(bj != v || lra.from_model_in_impq_to_mpq(new_val).is_int());
+                SASSERT(bj != v || lra.from_model_in_impq_to_mpq(new_val).is_int());
             }
         
             lra.set_value_for_nbasic_column(j, lia.get_value(j) + impq(delta));
@@ -126,7 +132,8 @@ namespace lp {
         }
 
         bool all_columns_are_integral() const {
-            for (lpvar j = 0; j < lra.number_of_vars(); j++)
+            return true; // otherwise it never returns true!
+            for (lpvar j = 0; j < lra.number_of_vars(); ++j)
                 if (!lra.column_is_int(j))
                     return false;
             return true;
@@ -141,8 +148,8 @@ namespace lp {
                 return false;
             mpq a = fractional_part(c.coeff());
             mpq r = fractional_part(lra.get_value(v));
-            lp_assert(0 < r && r < 1);
-            lp_assert(0 < a && a < 1);
+            SASSERT(0 < r && r < 1);
+            SASSERT(0 < a && a < 1);
             mpq delta_plus, delta_minus;
             if (!get_patching_deltas(r, a, delta_plus, delta_minus))
                 return false;
@@ -158,7 +165,7 @@ namespace lp {
         lia_move patch_basic_columns() {
             lia.settings().stats().m_patches++;
             lra.remove_fixed_vars_from_base();
-            lp_assert(lia.is_feasible());
+            SASSERT(lia.is_feasible());
             for (unsigned j : lra.r_basis()) 
                 if (!lra.get_value(j).is_int() && lra.column_is_int(j) && !lia.is_fixed(j))
                     patch_basic_column(j);
@@ -174,33 +181,84 @@ namespace lp {
 
             if (r == lia_move::conflict) {
                 m_dio.explain(*this->m_ex);
-                m_dioph_eq_period = settings().m_dioph_eq_period;
+                lia.settings().dio_calls_period() = m_initial_dio_calls_period;
+                m_dio_undef_in_a_row = 0;
+                lia.settings().stop_running_gomory_with_dio(); // dio was productive: stop running Gomory
+                lia.settings().set_run_gcd_test(false);
                 return lia_move::conflict;
-            } else if (r == lia_move::branch)  {
-                m_dioph_eq_period = settings().m_dioph_eq_period;
-                return lia_move::branch;
-            } 
+            }
+            if (r == lia_move::undef) {
+                lia.settings().dio_calls_period() *= 2; // throttle dio scheduling on failure
+                ++m_dio_undef_in_a_row;
+                if (m_dio_undef_in_a_row >= lra.settings().dio_gomory_enable_period()) {
+                    lia.settings().start_running_gomory_with_dio(); // dio persistently unproductive: start running Gomory
+                    lia.settings().set_run_gcd_test(true);
+                }
+            }
             return r;
         }
 
         lp_settings& settings() { return lra.settings(); }
+
         
+        // Decide whether a periodic heuristic fires on this call. When
+        // random_hammers is enabled the gate is drawn at random with the same
+        // 1/period expected rate instead of a deterministic "every k-th call"
+        // modulus: a deterministic period can phase-lock with the search on
+        // some families and drown the solver in conflicts while another handler
+        // is starved; randomizing the gate breaks that resonance.
+        bool hit_period(unsigned period) {
+            if (period <= 1)
+                return true;
+            if (settings().random_hammers())
+                return settings().random_next(period) == 0;
+            return m_number_of_calls % period == 0;
+        }
+
         bool should_find_cube() {
-            return m_number_of_calls % settings().m_int_find_cube_period == 0;
+            return hit_period(settings().m_int_find_cube_period);
+        }
+
+        // The largest cube test is throttled exponentially: when the polyhedron
+        // does not contain a large enough cube it is unlikely to contain one
+        // later, after more constraints are added, so each failure doubles the
+        // period and a success resets it.
+        bool should_find_lcube() {
+            return settings().lcube() && hit_period(m_lcube_period);
+        }
+
+        lia_move find_lcube() {
+            lia_move r = int_cube(lia).find_largest_cube();
+            if (r == lia_move::undef) {
+                if (m_lcube_period < (1u << 30))
+                    m_lcube_period *= 2;
+            }
+            else
+                m_lcube_period = settings().m_int_find_cube_period;
+            return r;
         }
 
         bool should_gomory_cut() {
-            return (!settings().dio_eqs() || settings().dio_enable_gomory_cuts())
-                && m_number_of_calls % settings().m_int_gomory_cut_period == 0;
+            bool dio_allows_gomory = !settings().dio() || settings().dio_enable_gomory_cuts() ||
+                                      m_dio.some_terms_are_ignored();
+            return dio_allows_gomory && hit_period(settings().m_int_gomory_cut_period);
         }
 
         bool should_solve_dioph_eq() {
-            return lia.settings().dio_eqs() && m_number_of_calls % m_dioph_eq_period == 0;
+            bool ret = lia.settings().dio() && hit_period(settings().dio_calls_period());
+            if (!ret && lia.settings().dio_calls_period() > m_initial_dio_calls_period) {
+                unsigned dec = settings().dio_calls_period_decrease();
+                unsigned& period = lia.settings().dio_calls_period();
+                period = period > m_initial_dio_calls_period + dec ? period - dec : m_initial_dio_calls_period;
+            }
+            return ret;
         }
 
+        // HNF
+
         bool should_hnf_cut() {
-            return (!settings().dio_eqs() || settings().dio_enable_hnf_cuts())
-                && settings().enable_hnf() && m_number_of_calls % settings().hnf_cut_period() == 0;
+            return (!settings().dio() || settings().dio_enable_hnf_cuts())
+                && settings().enable_hnf() && hit_period(settings().hnf_cut_period());
         }
         
         lia_move hnf_cut() {
@@ -211,7 +269,6 @@ namespace lp {
                 m_hnf_cut_period = settings().hnf_cut_period();
             return r;
         }
-
         
         lia_move check(lp::explanation * e) {
             SASSERT(lra.ax_is_correct());
@@ -226,7 +283,7 @@ namespace lp {
         
             lia_move r = lia_move::undef;
 
-            if (m_gcd.should_apply())
+            if (m_gcd.should_apply() || (settings().dio() && m_dio.some_terms_are_ignored()))
                 r = m_gcd();
 
             check_return_helper pc(lra);
@@ -236,11 +293,12 @@ namespace lp {
 
             ++m_number_of_calls;
             if (r == lia_move::undef) r = patch_basic_columns();
-            if (r == lia_move::undef && should_find_cube()) r = int_cube(lia)();
+            if (r == lia_move::undef && should_find_cube())  r = int_cube(lia)();
+            if (r == lia_move::undef && should_find_lcube()) r = find_lcube();
             if (r == lia_move::undef) lra.move_non_basic_columns_to_bounds();
             if (r == lia_move::undef && should_hnf_cut()) r = hnf_cut();
-            if (r == lia_move::undef && should_gomory_cut()) r = gomory(lia).get_gomory_cuts(2);
             if (r == lia_move::undef && should_solve_dioph_eq()) r = solve_dioph_eq();
+            if (r == lia_move::undef && should_gomory_cut()) r = gomory(lia).get_gomory_cuts(2);
             if (r == lia_move::undef) r = int_branch(lia)();
             if (settings().get_cancel_flag()) r = lia_move::undef;        
             return r;
@@ -256,77 +314,16 @@ namespace lp {
 
         bool current_solution_is_inf_on_cut() const {
             SASSERT(cut_indices_are_columns());
-            const auto & x = lrac.m_r_x;
+            const auto & x = lrac.r_x();
             impq v = m_t.apply(x);
             mpq sign = m_upper ? one_of_type<mpq>()  : -one_of_type<mpq>();
-            CTRACE("current_solution_is_inf_on_cut", v * sign <= impq(m_k) * sign,
+            CTRACE(current_solution_is_inf_on_cut, v * sign <= impq(m_k) * sign,
                    tout << "m_upper = " << m_upper << std::endl;
                    tout << "v = " << v << ", k = " << m_k << std::endl;
                    tout << "term:";lra.print_term(m_t, tout) << "\n";
                 );
             return v * sign > impq(m_k) * sign;
-        }
-        
-        int select_int_infeasible_var() {
-            int r_small_box = -1;
-            int r_small_value = -1;
-            int r_any_value = -1;
-            unsigned n_small_box = 1;
-            unsigned n_small_value = 1;
-            unsigned n_any_value = 1;
-            mpq range;
-            mpq new_range;
-            mpq small_value(1024);
-            unsigned prev_usage = 0;
-
-            auto add_column = [&](bool improved, int& result, unsigned& n, unsigned j) {
-                if (result == -1)
-                    result = j;
-                else if (improved && ((random() % (++n)) == 0))
-                    result = j;            
-            };
-        
-            for (unsigned j : lra.r_basis()) {
-                if (!column_is_int_inf(j))
-                    continue;
-                if (settings().get_cancel_flag()){
-                    return -1;
-                }
-                SASSERT(!lia.is_fixed(j));
-
-                unsigned usage = lra.usage_in_terms(j);
-                if (lia.is_boxed(j) && (new_range = lra.bound_span_x(j) - rational(2*usage)) <= small_value) {
-
-                    bool improved = new_range <= range || r_small_box == -1;
-                    if (improved)
-                        range = new_range;
-                    add_column(improved, r_small_box, n_small_box, j);
-                    continue;
-                }
-                impq const& value = lia.get_value(j);
-                if (abs(value.x) < small_value ||
-                    (lra.column_has_upper_bound(j) && small_value > upper_bound(j).x - value.x) ||
-                    (has_lower(j) && small_value > value.x - lower_bound(j).x)) {
-                    TRACE("int_solver", tout << "small j" << j << "\n");
-                    add_column(true, r_small_value, n_small_value, j);
-                    continue;
-                }
-                TRACE("int_solver", tout << "any j" << j << "\n");
-                add_column(usage >= prev_usage, r_any_value, n_any_value, j);
-                if (usage > prev_usage) 
-                    prev_usage = usage;
-            }
-
-            if (r_small_box != -1 && (random() % 3 != 0))
-                return r_small_box;
-            if (r_small_value != -1 && (random() % 3) != 0)
-                return r_small_value;
-            if (r_any_value != -1)
-                return r_any_value;
-            if (r_small_box != -1)
-                return r_small_box;
-            return r_small_value;
-        }
+        }                
 
         std::ostream & display_row(std::ostream & out, lp::row_strip<rational> const & row) const {
             bool first = true;
@@ -405,16 +402,16 @@ namespace lp {
         // coprime. We can find u and v such that u*a1 + v*x2 = 1.
         rational u, v;
         gcd(a1, x2, u, v);
-        lp_assert(gcd(a1, x2, u, v).is_one());
-        lp_assert((x + (a1 / a2) * (-u * t) * x1).is_int());
+        SASSERT(gcd(a1, x2, u, v).is_one());
+        SASSERT((x + (a1 / a2) * (-u * t) * x1).is_int());
         // 1 = (u- l*x2 ) * a1 + (v + l*a1)*x2, for every integer l.
         rational d = u * t * x1;
         // We can prove that x+alpha*d is integral,
         // and any other delta, satisfying x+alpha*delta, is equal to d modulo a2.
         delta_plus = mod(d, a2);
-        lp_assert(delta_plus > 0);
+        SASSERT(delta_plus > 0);
         delta_minus = delta_plus - a2;
-        lp_assert(delta_minus < 0);
+        SASSERT(delta_minus < 0);
 
         return true;
     }
@@ -423,7 +420,7 @@ namespace lp {
     
     int_solver::int_solver(lar_solver& lar_slv) :
         lra(lar_slv),
-        lrac(lra.m_mpq_lar_core_solver) {
+        lrac(lra.get_core_solver()) {
         m_imp = alloc(imp, *this);
         lra.set_int_solver(this);
     }
@@ -440,14 +437,14 @@ namespace lp {
     
     std::ostream& int_solver::display_inf_rows(std::ostream& out) const {
         unsigned num = lra.A_r().column_count();
-        for (unsigned v = 0; v < num; v++) {
+        for (unsigned v = 0; v < num; ++v) {
             if (column_is_int(v) && !get_value(v).is_int()) {
                 display_column(out, v);
             }
         }
 
         num = 0;
-        for (unsigned i = 0; i < lra.A_r().row_count(); i++) {
+        for (unsigned i = 0; i < lra.A_r().row_count(); ++i) {
             unsigned j = lrac.m_r_basis[i];
             if (column_is_int_inf(j)) {
                 num++;
@@ -520,7 +517,7 @@ namespace lp {
         if (lrac.m_r_heading[j] >= 0 || is_fixed(j)) // basic or fixed var
             return false;
 
-        TRACE("random_update", display_column(tout, j) << ", is_int = " << column_is_int(j) << "\n";);
+        TRACE(random_update, display_column(tout, j) << ", is_int = " << column_is_int(j) << "\n";);
         impq const & xj = get_value(j);
 
         inf_l = true;
@@ -536,7 +533,7 @@ namespace lp {
     
 
         const auto & A = lra.A_r();
-        TRACE("random_update", tout <<  "m = " << m << "\n";);
+        TRACE(random_update, tout <<  "m = " << m << "\n";);
 
         auto delta = [](mpq const& x, impq const& y, impq const& z) {
             if (x.is_one())
@@ -551,7 +548,7 @@ namespace lp {
             const mpq & a = c.coeff();
             unsigned i = lrac.m_r_basis[row_index];
             impq const & xi = get_value(i);
-            lp_assert(lrac.m_r_solver.column_is_feasible(i));
+            SASSERT(lrac.m_r_solver.column_is_feasible(i));
             if (column_is_int(i) && !a.is_int() && xi.is_int()) 
                 m = lcm(m, denominator(a));
         
@@ -575,7 +572,7 @@ namespace lp {
         l += xj;
         u += xj;
 
-        TRACE("freedom_interval",
+        TRACE(freedom_interval,
               tout << "freedom variable for:\n";
               tout << lra.get_variable_name(j);
               tout << "[";
@@ -591,14 +588,14 @@ namespace lp {
 
 
     bool int_solver::is_feasible() const {
-        lp_assert(
+        SASSERT(
             lrac.m_r_solver.calc_current_x_is_feasible_include_non_basis() ==
             lrac.m_r_solver.current_x_is_feasible());
         return lrac.m_r_solver.current_x_is_feasible();
     }
 
     const impq & int_solver::get_value(unsigned j) const {
-        return lrac.m_r_x[j];
+        return lrac.r_x(j);
     }
 
     std::ostream& int_solver::display_column(std::ostream & out, unsigned j) const {
@@ -727,19 +724,21 @@ namespace lp {
         mpq r = a - b;
         if (!r.is_pos())
             return false;
-        TRACE("int_solver", tout << "a = " << a << ", b = " << b << ", r = " << r<< ", m = " << m << "\n";);
+        TRACE(int_solver, tout << "a = " << a << ", b = " << b << ", r = " << r<< ", m = " << m << "\n";);
         if (r < mpq(range))
             range = static_cast<unsigned>(r.get_uint64());
 
         mpq s = b + mpq(lra.settings().random_next() % (range + 1));
         impq new_val = x + m * impq(s);
-        TRACE("int_solver", tout << "new_val = " << new_val << "\n";);
+        TRACE(int_solver, tout << "new_val = " << new_val << "\n";);
         SASSERT(l <= new_val && new_val <= u);
         lra.set_value_for_nbasic_column(j, new_val);
         return true;
     }
 
-
+    bool int_solver::current_solution_is_inf_on_cut() const {
+        return m_imp->current_solution_is_inf_on_cut();
+    }
 
     void int_solver::simplify(std::function<bool(unsigned)>& is_root) {
         return;
@@ -899,8 +898,6 @@ namespace lp {
         return m_imp->has_upper(j);
     }
 
-    int int_solver::select_int_infeasible_var() { return m_imp->select_int_infeasible_var(); }
-    bool int_solver::current_solution_is_inf_on_cut() const { return m_imp->current_solution_is_inf_on_cut(); }
     const impq & int_solver::lower_bound(unsigned j) const { return m_imp->lower_bound(j);}
     const impq & int_solver::upper_bound(unsigned j) const { return m_imp->upper_bound(j);}
     #if Z3DEBUG

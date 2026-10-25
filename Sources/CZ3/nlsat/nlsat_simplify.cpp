@@ -30,7 +30,7 @@ namespace nlsat {
             // then promote learned to main.
             for (auto c : m_learned)
                 s.del_clause(c);
-            m_learned.reset();
+            m_learned.clear();
             
             IF_VERBOSE(3, s.display(verbose_stream() << "before\n"));
             unsigned sz = m_clauses.size();
@@ -66,7 +66,7 @@ namespace nlsat {
             polynomial_ref p(m_pm);
             ptr_buffer<poly> ps;
             buffer<bool> is_even;
-            unsigned num_atoms = m_atoms.size();
+            unsigned num_atoms = usize(m_atoms);
             for (unsigned j = 0; j < num_atoms; ++j) {
                 atom* a1 = m_atoms[j];
                 if (a1 && a1->is_ineq_atom()) {
@@ -342,7 +342,7 @@ namespace nlsat {
                 else
                     m_clauses[j++] = c;
             }
-            m_clauses.shrink(j);
+            m_clauses.resize(j);
             return j < sz;
         }
 
@@ -703,7 +703,7 @@ namespace nlsat {
                 poly* po = a.p(i);
                 m_pm.substitute(po, x, qq, p, pr);
                 change |= pr != po;
-                TRACE("nlsat", tout << pr << "\n";);
+                TRACE(nlsat, tout << pr << "\n";);
                 if (m_pm.is_zero(pr)) {
                     ps.reset();
                     even.reset();
@@ -826,4 +826,4 @@ namespace nlsat {
         (*m_imp)();
     }
 
-};
+}

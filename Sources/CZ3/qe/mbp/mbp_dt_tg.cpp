@@ -72,11 +72,11 @@ struct mbp_dt_tg::impl {
 
     // rewrite head(x) with y
     // and x with list(y, z)
-    void rm_select(expr *term) {
+    void rm_accessor(expr *term) {
         SASSERT(is_app(term) &&
                 m_dt_util.is_accessor(to_app(term)->get_decl()) &&
-                is_var(to_app(term)->get_arg(0)));
-        TRACE("mbp_tg", tout << "applying rm_select on " << expr_ref(term, m););
+                has_var(to_app(term)->get_arg(0)));
+        TRACE(mbp_tg, tout << "applying rm_accessor on " << expr_ref(term, m););
         expr *v = to_app(term)->get_arg(0);
         expr_ref sel(m);
         app_ref u(m);
@@ -85,7 +85,7 @@ struct mbp_dt_tg::impl {
             m_dt_util.get_accessor_constructor(to_app(term)->get_decl());
         ptr_vector<func_decl> const *accessors =
             m_dt_util.get_constructor_accessors(cons);
-        for (unsigned i = 0; i < accessors->size(); i++) {
+        for (unsigned i = 0; i < accessors->size(); ++i) {
             func_decl *d = accessors->get(i);
             sel = m.mk_app(d, v);
             u = m_tg.get_const_in_class(sel);
@@ -107,11 +107,11 @@ struct mbp_dt_tg::impl {
     // rewrite cons(v, u) = x with v = head(x) and u = tail(x)
     // where u or v contain variables
     void deconstruct_eq(expr *cons, expr *rhs) {
-        TRACE("mbp_tg",
+        TRACE(mbp_tg,
               tout << "applying deconstruct_eq on " << expr_ref(cons, m););
         ptr_vector<func_decl> const *accessors =
             m_dt_util.get_constructor_accessors(to_app(cons)->get_decl());
-        for (unsigned i = 0; i < accessors->size(); i++) {
+        for (unsigned i = 0; i < accessors->size(); ++i) {
             expr_ref a(m.mk_app(accessors->get(i), rhs), m);
             expr *newRhs = to_app(cons)->get_arg(i);
             m_tg.add_eq(a, newRhs);
@@ -125,7 +125,7 @@ struct mbp_dt_tg::impl {
     // rewrite cons(v, u) != x into one of !cons(x) or v != head(x) or u !=
     // tail(x) where u or v contain variables
     void deconstruct_neq(expr *cons, expr *rhs) {
-        TRACE("mbp_tg",
+        TRACE(mbp_tg,
               tout << "applying deconstruct_neq on " << expr_ref(cons, m););
         ptr_vector<func_decl> const *accessors =
             m_dt_util.get_constructor_accessors(to_app(cons)->get_decl());
@@ -139,7 +139,7 @@ struct mbp_dt_tg::impl {
         }
         m_tg.add_lit(a);
 
-        for (unsigned i = 0; i < accessors->size(); i++) {
+        for (unsigned i = 0; i < accessors->size(); ++i) {
             expr_ref a(m.mk_app(accessors->get(i), rhs), m);
             expr *newRhs = to_app(cons)->get_arg(i);
             if (!m_mdl.are_equal(a, newRhs)) {
@@ -153,19 +153,36 @@ struct mbp_dt_tg::impl {
         expr *cons, *rhs, *f, *term;
         bool progress = false;
         m_new_vars.reset();
-        TRACE("mbp_tg", tout << "Iterating over terms of tg";);
+        TRACE(mbp_tg, tout << "Iterating over terms of tg";);
         // Not resetting terms because get_terms calls resize on terms
         m_tg.get_terms(terms, false);
-        for (unsigned i = 0; i < terms.size(); i++) {
+        for (unsigned i = 0; i < terms.size(); ++i) {
             term = terms.get(i);
             if (is_seen(term)) continue;
             if (m_tg.is_cgr(term)) continue;
             if (is_app(term) &&
                 m_dt_util.is_accessor(to_app(term)->get_decl()) &&
-                is_var(to_app(term)->get_arg(0))) {
+                has_var(to_app(term)->get_arg(0))) {
+                // Only apply rm_accessor if the model confirms the argument
+                // has the constructor that this accessor belongs to.
+                // Otherwise we introduce a contradictory is-cons literal.
+                func_decl *acc_cons =
+                    m_dt_util.get_accessor_constructor(to_app(term)->get_decl());
+                func_decl *rec = m_dt_util.get_constructor_recognizer(acc_cons);
+                expr_ref is_rec(m.mk_app(rec, to_app(term)->get_arg(0)), m);
+                if (!m_mdl.is_true(is_rec)) {
+                    // The accessor's argument does not have the expected constructor in the model.
+                    // Add a guard literal and skip rm_accessor so we don't force a contradictory
+                    // constructor constraint on the argument.
+                    expr_ref is(m.mk_not(is_rec), m);
+                    m_tg.add_lit(is);
+                    mark_seen(term);
+                    progress = true;
+                    continue;
+                }
                 mark_seen(term);
                 progress = true;
-                rm_select(term);
+                rm_accessor(term);
                 continue;
             }
             if (is_constructor_app(term, cons, rhs)) {

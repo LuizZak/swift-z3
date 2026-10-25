@@ -34,13 +34,18 @@ bound_manager::~bound_manager() {
 bound_manager* bound_manager::translate(ast_manager& dst_m) {
     bound_manager* result = alloc(bound_manager, dst_m);
     ast_translation tr(m(), dst_m);
-    expr_dependency_translation edtr(tr);
-    for (auto& kv : m_lowers) result->m_lowers.insert(tr(kv.m_key), kv.m_value);
-    for (auto& kv : m_uppers) result->m_uppers.insert(tr(kv.m_key), kv.m_value);
-    for (auto& kv : m_lower_deps) result->m_lower_deps.insert(tr(kv.m_key), edtr(kv.m_value));
-    for (auto& kv : m_upper_deps) result->m_upper_deps.insert(tr(kv.m_key), edtr(kv.m_value));
-    for (expr* e : m_bounded_vars) result->m_bounded_vars.push_back(tr(e));
+    result->translate(*this, tr);
     return result;
+}
+
+void bound_manager::translate(bound_manager const& src, ast_translation& tr) {
+    expr_dependency_translation edtr(tr);
+    SASSERT(m_bounded_vars.empty());
+    for (auto& kv : src.m_lowers) m_lowers.insert(tr(kv.m_key), kv.m_value);
+    for (auto& kv : src.m_uppers) m_uppers.insert(tr(kv.m_key), kv.m_value);
+    for (auto& kv : src.m_lower_deps) m_lower_deps.insert(tr(kv.m_key), edtr(kv.m_value));
+    for (auto& kv : src.m_upper_deps) m_upper_deps.insert(tr(kv.m_key), edtr(kv.m_value));
+    for (expr* e : src.m_bounded_vars) m_bounded_vars.push_back(tr(e));
 }
 
 
@@ -107,7 +112,7 @@ bool bound_manager::is_numeral(expr* v, numeral& n, bool& is_int) {
 void bound_manager::operator()(expr * f, expr_dependency * d, proof* p) {
     if (p)
         return;
-    TRACE("bound_manager", tout << "processing:\n" << mk_ismt2_pp(f, m()) << "\n";);
+    TRACE(bound_manager, tout << "processing:\n" << mk_ismt2_pp(f, m()) << "\n";);
     expr * v;
     numeral n;
     if (is_disjunctive_bound(f, d))
@@ -142,7 +147,7 @@ void bound_manager::operator()(expr * f, expr_dependency * d, proof* p) {
         k = neg(k);
     if (is_int)
         norm(n, k);
-    TRACE("bound_manager", tout << "found bound for:\n" << mk_ismt2_pp(v, m()) << "\n";);
+    TRACE(bound_manager, tout << "found bound for:\n" << mk_ismt2_pp(v, m()) << "\n";);
     bool strict = is_strict(k);
     if (is_lower(k)) {
         insert_lower(v, strict, n, d);
@@ -155,7 +160,8 @@ void bound_manager::operator()(expr * f, expr_dependency * d, proof* p) {
 void bound_manager::insert_upper(expr * v, bool strict, numeral const & n, expr_dependency * d) {
     limit old;
     if (m_uppers.find(v, old)) {
-        if (n < old.first || (n == old.first && strict && !old.second)) {
+        auto [old_bound, old_strict] = old;
+        if (n < old_bound || (n == old_bound && strict && !old_strict)) {
             // improved bound
             m_uppers.insert(v, limit(n, strict));
             if (d)
@@ -175,7 +181,8 @@ void bound_manager::insert_upper(expr * v, bool strict, numeral const & n, expr_
 void bound_manager::insert_lower(expr * v, bool strict, numeral const & n, expr_dependency * d) {
     limit old;
     if (m_lowers.find(v, old)) {
-        if (n > old.first || (n == old.first && strict && !old.second)) {
+        auto [old_bound, old_strict] = old;
+        if (n > old_bound || (n == old_bound && strict && !old_strict)) {
             // improved bound
             m_lowers.insert(v, limit(n, strict));
             if (d)
@@ -244,7 +251,7 @@ bool bound_manager::is_disjunctive_bound(expr * f, expr_dependency * d) {
             return false;
         }
     }
-    TRACE("bound_manager", tout << "bounds: " << lo << " " << hi << "\n";);
+    TRACE(bound_manager, tout << "bounds: " << lo << " " << hi << "\n";);
     insert_lower(v, false, lo, d);
     insert_upper(v, false, hi, d);
     return true;

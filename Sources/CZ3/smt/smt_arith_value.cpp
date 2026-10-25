@@ -53,7 +53,7 @@ namespace smt {
             next = next->get_next();
         }
         while (n != next);
-        CTRACE("arith_value", !found, tout << "value not found for " << mk_pp(e, m_ctx->get_manager()) << "\n";);
+        CTRACE(arith_value, !found, tout << "value not found for " << mk_pp(e, m_ctx->get_manager()) << "\n";);
         return found;
     }
 
@@ -73,7 +73,7 @@ namespace smt {
             next = next->get_next();
         }
         while (n != next);
-        CTRACE("arith_value", !found, tout << "value not found for " << mk_pp(e, m_ctx->get_manager()) << "\n";);
+        CTRACE(arith_value, !found, tout << "value not found for " << mk_pp(e, m_ctx->get_manager()) << "\n";);
         return found;
     }
 
@@ -85,7 +85,7 @@ namespace smt {
         if (m_tha) return m_tha->get_upper(n, up, is_strict);
         if (m_thi) return m_thi->get_upper(n, up, is_strict);
         if (m_thr) return m_thr->get_upper(n, up, is_strict);
-        TRACE("arith_value", tout << "value not found for " << mk_pp(e, m_ctx->get_manager()) << "\n";);
+        TRACE(arith_value, tout << "value not found for " << mk_pp(e, m_ctx->get_manager()) << "\n";);
         return false;
     }
 
@@ -97,7 +97,7 @@ namespace smt {
         if (m_tha) return m_tha->get_lower(n, up, is_strict);
         if (m_thi) return m_thi->get_lower(n, up, is_strict);
         if (m_thr) return m_thr->get_lower(n, up, is_strict);
-        TRACE("arith_value", tout << "value not found for " << mk_pp(e, m_ctx->get_manager()) << "\n";);
+        TRACE(arith_value, tout << "value not found for " << mk_pp(e, m_ctx->get_manager()) << "\n";);
         return false;
     }
 
@@ -109,7 +109,7 @@ namespace smt {
         if (m_tha && m_tha->get_value(n, _val) && a.is_numeral(_val, val)) return true;
         if (m_thi && m_thi->get_value(n, _val) && a.is_numeral(_val, val)) return true;
         if (m_thr && m_thr->get_value(n, val)) return true;
-        TRACE("arith_value", tout << "value not found for " << mk_pp(e, m_ctx->get_manager()) << "\n";);
+        TRACE(arith_value, tout << "value not found for " << mk_pp(e, m_ctx->get_manager()) << "\n";);
         return false;
     }
 
@@ -126,7 +126,7 @@ namespace smt {
             next = next->get_next();
         }
         while (next != n);
-        TRACE("arith_value", tout << "value not found for " << mk_pp(e, m_ctx->get_manager()) << "\n";);
+        TRACE(arith_value, tout << "value not found for " << mk_pp(e, m_ctx->get_manager()) << "\n";);
         return false;
     }
 
@@ -157,10 +157,16 @@ namespace smt {
         return expr_ref(e, m);
     }    
 
-    final_check_status arith_value::final_check() {
+    final_check_status arith_value::final_check(unsigned level) {
         family_id afid = a.get_family_id();
         theory * th = m_ctx->get_theory(afid);
-        return th->final_check_eh();
+        return th->final_check_eh(level);
     }
 
-};
+    lbool arith_value::check_lp_feasible(vector<std::pair<bool, expr_ref>>& ineqs, literal_vector& lit_core,
+        enode_pair_vector& eq_core) {
+        if (!m_thr)
+            return l_undef;
+        return m_thr->check_lp_feasible(ineqs, lit_core, eq_core);      
+    }
+}

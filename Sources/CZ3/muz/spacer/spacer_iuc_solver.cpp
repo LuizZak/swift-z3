@@ -185,7 +185,7 @@ namespace spacer {
         return m_base_defs.is_proxy (a, def);
     }
 
-    void iuc_solver::collect_statistics (statistics &st) const {
+    void iuc_solver::collect_statistics_core (statistics &st) const {
         m_solver.collect_statistics (st);
         st.update ("time.iuc_solver.get_iuc", m_iuc_sw.get_seconds());
         st.update ("time.iuc_solver.get_iuc.hyp_reduce1", m_hyp_reduce1_sw.get_seconds());
@@ -310,7 +310,7 @@ namespace spacer {
                     static unsigned bcnt = 0;
                     {
                         bcnt++;
-                        TRACE("spacer", tout << "Dumping pf bcnt: " << bcnt << "\n";);
+                        TRACE(spacer, tout << "Dumping pf bcnt: " << bcnt << "\n";);
                         if (bcnt == 123) {
                             std::ofstream ofs;
                             ofs.open("/tmp/bpf_" + std::to_string(bcnt) + ".dot");
@@ -362,7 +362,7 @@ namespace spacer {
             static unsigned cnt = 0;
             {
                 cnt++;
-                TRACE("spacer", tout << "Dumping pf cnt: " << cnt << "\n";);
+                TRACE(spacer, tout << "Dumping pf cnt: " << cnt << "\n";);
                 if (cnt == 123) {
                     std::ofstream ofs;
                     ofs.open("/tmp/pf_" + std::to_string(cnt) + ".dot");

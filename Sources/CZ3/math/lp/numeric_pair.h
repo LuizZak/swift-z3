@@ -239,6 +239,8 @@ struct numeric_pair {
     void neg() { x.neg(); y.neg(); }
     
     std::string to_string() const {
+        if (y.is_zero())
+            return T_to_string(x);
         return std::string("(") + T_to_string(x) + ", "  + T_to_string(y) + ")";
     }
 
@@ -264,6 +266,16 @@ template <typename T, typename X>
 numeric_pair<T> operator*(const numeric_pair<T> & r, const X & a) {
     return numeric_pair<T>(a * r.x, a * r.y);
 }
+
+// r -= delta * a, without temporaries. The infinitesimal part of delta is usually zero.
+template <typename T>
+inline void submul(numeric_pair<T> & r, const numeric_pair<T> & delta, const T & a) {
+    r.x.submul(delta.x, a);
+    if (!delta.y.is_zero())
+        r.y.submul(delta.y, a);
+}
+inline void submul(rational & r, const rational & delta, const rational & a) { r.submul(delta, a); }
+inline void submul(double & r, double delta, double a) { r -= delta * a; }
 
 
 template <typename T, typename X>

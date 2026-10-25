@@ -30,7 +30,7 @@ Revision History:
 #include "ast/arith_decl_plugin.h"
 #include "model/numeral_factory.h"
 #include "smt/smt_theory.h"
-#include "smt/params/theory_arith_params.h"
+#include "params/theory_arith_params.h"
 #include "smt/arith_eq_adapter.h"
 #include "smt/smt_context.h"
 #include "smt/old_interval.h"
@@ -111,13 +111,13 @@ namespace smt {
         */
         struct row_entry {
             numeral     m_coeff;
-            theory_var  m_var;
+            theory_var  m_var = 0;
             union {
                 int       m_col_idx;
                 int       m_next_free_row_entry_idx;
             };
             
-            row_entry():m_var(0), m_col_idx(0) {}
+            row_entry(): m_col_idx(0) {}
             row_entry(numeral const & c, theory_var v): m_coeff(c), m_var(v), m_col_idx(0) {}
             bool is_dead() const { return m_var == null_theory_var; }
         };
@@ -128,14 +128,14 @@ namespace smt {
            with the column entry.
         */
         struct col_entry {
-            int m_row_id;
+            int m_row_id = 0;
             union {
                 int m_row_idx;
                 int m_next_free_row_entry_idx;
             };
             
             col_entry(int r, int i): m_row_id(r), m_row_idx(i) {}
-            col_entry(): m_row_id(0), m_row_idx(0) {}
+            col_entry(): m_row_idx(0) {}
             bool is_dead() const { return m_row_id == dead_row_id; }
         };
      
@@ -189,10 +189,9 @@ namespace smt {
         */
         struct column {
             svector<col_entry> m_entries;
-            unsigned           m_size; 
-            int                m_first_free_idx;
+            unsigned           m_size = 0; 
+            int                m_first_free_idx = -1;
             
-            column():m_size(0), m_first_free_idx(-1) {}
             unsigned size() const { return m_size; }
             unsigned num_entries() const { return m_entries.size(); }
             void reset();
@@ -236,7 +235,7 @@ namespace smt {
             vector<numeral>   m_lit_coeffs;
             vector<numeral>   m_eq_coeffs;
             vector<parameter> m_params;
-            bool m_init;
+            bool m_init = false;
 
             bool empty() const { 
                 return m_eq_coeffs.empty() && m_lit_coeffs.empty(); 
@@ -245,7 +244,6 @@ namespace smt {
             void init();
 
         public:
-            antecedents_t(): m_init(false) {}
             void reset();
             literal_vector const& lits() const { return m_lits; }
             eq_vector const& eqs() const { return m_eqs; }
@@ -526,7 +524,7 @@ namespace smt {
 
         bool has_var(expr * v) const { return get_context().e_internalized(v) && get_context().get_enode(v)->get_th_var(get_id()) != null_theory_var; }
         theory_var expr2var(expr * v) const { SASSERT(get_context().e_internalized(v)); return get_context().get_enode(v)->get_th_var(get_id()); }
-        expr * var2expr(theory_var v) const { return get_enode(v)->get_expr(); }
+        expr * var2expr(theory_var v) const { return get_expr(v); }
         bool reflection_enabled() const;
         bool reflect(app * n) const;
         unsigned lazy_pivoting_lvl() const { return m_params.m_arith_lazy_pivoting_lvl; }
@@ -658,7 +656,7 @@ namespace smt {
         void push_scope_eh() override;
         void pop_scope_eh(unsigned num_scopes) override;
 
-        void relevant_eh(app * n) override;
+        void relevant_eh(expr * n) override;
         
         void restart_eh() override;
         void init_search_eh() override;
@@ -679,7 +677,7 @@ namespace smt {
         */
         bool    m_liberal_final_check = true; 
         final_check_status final_check_core();
-        final_check_status final_check_eh() override;
+        final_check_status final_check_eh(unsigned) override;
         
         bool can_propagate() override;
         void propagate() override;
@@ -968,7 +966,7 @@ namespace smt {
            \brief A monomial is 'pure' if does not have a numeric coefficient.
         */
         bool is_pure_monomial(expr * m) const;
-        bool is_pure_monomial(theory_var v) const { return is_pure_monomial(get_enode(v)->get_expr()); }
+        bool is_pure_monomial(theory_var v) const { return is_pure_monomial(get_expr(v)); }
         void mark_var(theory_var v, svector<theory_var> & vars, var_set & already_found);
         void mark_dependents(theory_var v, svector<theory_var> & vars, var_set & already_found, row_set & already_visited_rows);
         void get_non_linear_cluster(svector<theory_var> & vars);
@@ -1098,7 +1096,7 @@ namespace smt {
         //
         // -----------------------------------
         expr_ref mk_ge(generic_model_converter& fm, theory_var v, inf_numeral const& val);
-        inf_eps_rational<inf_rational> maximize(theory_var v, expr_ref& blocker, bool& has_shared) override;
+        inf_eps_rational<inf_rational> maximize(theory_var v, expr_ref& blocker) override;
         inf_eps_rational<inf_rational> value(theory_var v) override;
         theory_var add_objective(app* term) override;
         void enable_record_conflict(expr* bound);
@@ -1279,6 +1277,5 @@ namespace smt {
     // typedef theory_arith<smi_ext> theory_smi_arith;
 
     
-};
-
+}
 

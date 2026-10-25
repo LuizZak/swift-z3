@@ -74,11 +74,14 @@ enum class lp_status {
     OPTIMAL
 };
 
+inline bool is_sat(lp_status st) {
+    return st == lp_status::FEASIBLE || st == lp_status::OPTIMAL;
+}
+
 // when the ratio of the vector length to domain size to is greater than the return value we switch to solve_By_for_T_indexed_only
 template <typename X>
 unsigned ratio_of_index_size_to_all_size() {
-        return 10;
-    
+    return 10;
 }
 
 const char* lp_status_to_string(lp_status status);
@@ -87,13 +90,14 @@ inline std::ostream& operator<<(std::ostream& out, lp_status status) {
     return out << lp_status_to_string(status);
 }
 
-lp_status lp_status_from_string(std::string status);
+lp_status lp_status_from_string(const std::string& status);
 
 
 class lp_resource_limit {
 public:
     virtual ~lp_resource_limit() = default;
     virtual bool get_cancel_flag() = 0;
+    virtual bool get_cancel_flag(unsigned) { return get_cancel_flag(); }
 };
 
 struct statistics {
@@ -109,6 +113,9 @@ struct statistics {
     unsigned m_gcd_conflicts = 0;
     unsigned m_cube_calls = 0;
     unsigned m_cube_success = 0;
+    unsigned m_lcube_calls = 0;
+    unsigned m_lcube_success = 0;
+    unsigned m_lcube_flip_success = 0;
     unsigned m_patches = 0;
     unsigned m_patches_success = 0;
     unsigned m_hnf_cutter_calls = 0;
@@ -129,15 +136,20 @@ struct statistics {
     unsigned m_offset_eqs = 0;
     unsigned m_fixed_eqs = 0;
     unsigned m_dio_calls = 0;
-    unsigned m_dio_normalize_conflicts = 0;
     unsigned m_dio_tighten_conflicts = 0;
-    unsigned m_dio_branch_iterations= 0;
-    unsigned m_dio_branching_depth = 0;
-    unsigned m_dio_branch_from_proofs = 0;
-    unsigned m_dio_branching_infeasibles = 0;
     unsigned m_dio_rewrite_conflicts = 0;
-    unsigned m_dio_branching_sats = 0;
-    unsigned m_dio_branching_conflicts = 0;
+    unsigned m_dio_state_resets = 0;
+    unsigned m_bounds_tightening_conflicts = 0;
+    unsigned m_bounds_tightenings = 0;
+    unsigned m_nla_throttled_lemmas = 0;
+    unsigned m_pivots = 0;
+    unsigned m_pivot_row_updates = 0;   // rows rewritten by pivots
+    unsigned m_pivot_cells = 0;         // pivot-row cells visited while rewriting rows
+    unsigned m_bp_rows_analyzed = 0;
+    unsigned m_bp_bound_candidates = 0;
+    unsigned m_bp_bounds_interesting = 0;
+    unsigned m_nla_transcendental_splits = 0;
+
     ::statistics m_st = {};
 
     void reset() {
@@ -146,12 +158,21 @@ struct statistics {
     void collect_statistics(::statistics& st) const {
         st.update("arith-factorizations", m_num_factorizations);
         st.update("arith-make-feasible", m_make_feasible);
+        st.update("arith-pivots", m_pivots);
+        st.update("arith-pivot-row-updates", m_pivot_row_updates);
+        st.update("arith-pivot-cells", m_pivot_cells);
+        st.update("arith-bp-rows-analyzed", m_bp_rows_analyzed);
+        st.update("arith-bp-bound-candidates", m_bp_bound_candidates);
+        st.update("arith-bp-bounds-interesting", m_bp_bounds_interesting);
         st.update("arith-max-columns", m_max_cols);
         st.update("arith-max-rows", m_max_rows);
         st.update("arith-gcd-calls", m_gcd_calls);
         st.update("arith-gcd-conflict", m_gcd_conflicts);
         st.update("arith-cube-calls", m_cube_calls);
         st.update("arith-cube-success", m_cube_success);
+        st.update("arith-lcube-calls", m_lcube_calls);
+        st.update("arith-lcube-success", m_lcube_success);
+        st.update("arith-lcube-flip-success", m_lcube_flip_success);
         st.update("arith-patches", m_patches);
         st.update("arith-patches-success", m_patches_success);
         st.update("arith-hnf-calls", m_hnf_cutter_calls);
@@ -171,16 +192,13 @@ struct statistics {
         st.update("arith-nra-calls", m_nra_calls);   
         st.update("arith-bounds-improvements", m_nla_bounds_improvements);
         st.update("arith-dio-calls", m_dio_calls);
-        st.update("arith-dio-normalize-conflicts", m_dio_normalize_conflicts);
         st.update("arith-dio-tighten-conflicts", m_dio_tighten_conflicts);
-        st.update("arith-dio-branch-iterations", m_dio_branch_iterations);
-        st.update("arith-dio-branch-depths", m_dio_branching_depth);
-        st.update("arith-dio-branch-from-proofs", m_dio_branch_from_proofs);
-        st.update("arith-dio-branching-infeasibles", m_dio_branching_infeasibles);
         st.update("arith-dio-rewrite-conflicts", m_dio_rewrite_conflicts);
-        st.update("arith-dio-branching-sats", m_dio_branching_sats);
-        st.update("arith-dio-branching-depth", m_dio_branching_depth);
-        st.update("arith-dio-branching-conflicts", m_dio_branching_conflicts);
+        st.update("arith-dio-state-resets", m_dio_state_resets);
+        st.update("arith-bounds-tightening-conflicts", m_bounds_tightening_conflicts);
+        st.update("arith-bounds-tightenings", m_bounds_tightenings);
+        st.update("arith-nla-transcendental-splits", m_nla_transcendental_splits);
+        st.update("arith-nla-throttled-lemmas", m_nla_throttled_lemmas);
         st.copy(m_st);
     }
 };
@@ -213,8 +231,12 @@ public:
     void updt_params(params_ref const& p);
     bool enable_hnf() const { return m_enable_hnf; }
     unsigned nlsat_delay() const { return m_nlsat_delay; }
-    bool int_run_gcd_test() const { return m_int_run_gcd_test; }
-    bool& int_run_gcd_test() { return m_int_run_gcd_test; }
+    bool int_run_gcd_test() const {
+        if (!m_dio)
+            return m_int_run_gcd_test;
+        return m_dio_run_gcd;
+    }
+    void set_run_gcd_test(bool v) { m_int_run_gcd_test = v; }
     unsigned      reps_in_scaler = 20;
     int           c_partial_pivoting = 10; // this is the constant c from page 410
     unsigned      depth_of_rook_search = 4;
@@ -223,11 +245,13 @@ public:
     unsigned     percent_of_entering_to_check = 5; // we try to find a profitable column in a percentage of the columns
     bool         use_scaling = true;
     unsigned     max_number_of_iterations_with_no_improvements = 2000000;
- double       time_limit; // the maximum time limit of the total run time in seconds
+    double       time_limit; // the maximum time limit of the total run time in seconds
     // end of dual section
     bool                   m_bound_propagation = true;
     bool                   presolve_with_double_solver_for_lar = true;
     simplex_strategy_enum  m_simplex_strategy;
+
+    unsigned         m_max_conflicts = 0;
     
     int              report_frequency = 1000;
     bool             print_statistics = false;
@@ -238,40 +262,75 @@ public:
     unsigned         column_number_threshold_for_using_lu_in_lar_solver = 4000;
     unsigned         m_int_gomory_cut_period = 4;
     unsigned         m_int_find_cube_period = 4;
-    unsigned         m_dioph_eq_period = 1;
 private:
     unsigned         m_hnf_cut_period = 4;
     bool             m_int_run_gcd_test = true;
 public:
     unsigned         limit_on_rows_for_hnf_cutter = 75;
     unsigned         limit_on_columns_for_hnf_cutter = 150;
+    mpq              m_epsilon = mpq(1);
 private:
     unsigned         m_nlsat_delay = 0;
     bool             m_enable_hnf = true;
     bool             m_print_external_var_name = false;
     bool             m_propagate_eqs = false;
-    bool             m_dio_eqs = false;
-    bool             m_dio_enable_gomory_cuts = false;
+    bool             m_dio = false;
+    bool             m_dio_cuts_enable_gomory = false;
+    bool             m_run_gomory_with_dio = false;
+    unsigned         m_dio_gomory_enable_period = 16;
     bool             m_dio_enable_hnf_cuts = true;
-    unsigned         m_dio_branching_period = 100; //  do branching rarere
-
+    bool             m_dump_bound_lemmas = false;
+    bool             m_dio_ignore_big_nums = false;
+    unsigned         m_dio_calls_period = 4;
+    unsigned         m_dio_calls_period_decrease = 2;
+    bool             m_dio_run_gcd = true;
+    unsigned         m_dio_undo_max_work = 1000000;
+    bool             m_random_hammers = true;
+    bool             m_lcube = true;
+    unsigned         m_lcube_flips = 16;
 public:
+    bool lcube() const { return m_lcube; }
+    unsigned lcube_flips() const { return m_lcube_flips; }
+    unsigned dio_calls_period() const { return m_dio_calls_period; }
+    unsigned & dio_calls_period() { return m_dio_calls_period; }
+    unsigned dio_calls_period_decrease() const { return m_dio_calls_period_decrease; }
+    unsigned & dio_calls_period_decrease() { return m_dio_calls_period_decrease; }
+    bool random_hammers() const { return m_random_hammers; }
+    bool & random_hammers() { return m_random_hammers; }
     bool print_external_var_name() const { return m_print_external_var_name; }
     bool propagate_eqs() const { return m_propagate_eqs;}
+    bool& propagate_eqs() { return m_propagate_eqs;}
     unsigned hnf_cut_period() const { return m_hnf_cut_period; }
     void set_hnf_cut_period(unsigned period) { m_hnf_cut_period = period;  }
     unsigned random_next() { return m_rand(); }
     unsigned random_next(unsigned u ) { return m_rand(u); }
-    bool dio_eqs() { return m_dio_eqs; }
-    bool dio_enable_gomory_cuts() const { return m_dio_eqs && m_dio_enable_gomory_cuts; }
-    bool dio_enable_hnf_cuts() const { return m_dio_eqs && m_dio_enable_hnf_cuts; }
-    unsigned dio_branching_period() const { return m_dio_branching_period; }
+    bool dio() { return m_dio; }
+    // Static config: did the user request Gomory cuts up front? (lp.dio_cuts_enable_gomory)
+    bool dio_cuts_enable_gomory() const { return m_dio_cuts_enable_gomory; }
+    // dio_calls_period at which the Diophantine back-off starts running Gomory (lp.dio_gomory_enable_period)
+    unsigned dio_gomory_enable_period() const { return m_dio_gomory_enable_period; }
+    // Runtime flag owned by the Diophantine controller, kept separate from the static
+    // config above so toggling it never clobbers the user's parameter: once dio has
+    // backed off enough it starts running Gomory cuts alongside dio, and a productive
+    // dio conflict stops them again.
+    void start_running_gomory_with_dio() { m_run_gomory_with_dio = true; }
+    void stop_running_gomory_with_dio()  { m_run_gomory_with_dio = false; }
+    // Effective state read by should_gomory_cut(): allowed if either the user enabled it
+    // statically or the dio controller started running it, guarded by dio being active.
+    bool dio_enable_gomory_cuts() const { return m_dio && (m_dio_cuts_enable_gomory || m_run_gomory_with_dio); }
+    bool dio_run_gcd() const { return m_dio && m_dio_run_gcd; }
+    bool dio_enable_hnf_cuts() const { return m_dio && m_dio_enable_hnf_cuts; }
+    bool dio_ignore_big_nums() const { return m_dio_ignore_big_nums; }
+    // Work budget, in machine words, for eliminating the columns of the retired terms
+    // from the certificate matrix of the Diophantine handler. See dioph_eq::imp::undo_add_term_method.
+    unsigned dio_undo_max_work() const { return m_dio_undo_max_work; }
     void set_random_seed(unsigned s) { m_rand.set_seed(s); }
-    
     bool bound_progation() const { 
         return m_bound_propagation;
     }
 
+    bool dump_bound_lemmas() { return m_dump_bound_lemmas; }
+    
     bool& bound_propagation() { return m_bound_propagation; }
     
     lp_settings() : m_default_resource_limit(*this),
@@ -285,6 +344,7 @@ public:
 
     void set_resource_limit(lp_resource_limit& lim) { m_resource_limit = &lim; }
     bool get_cancel_flag() const { return m_resource_limit->get_cancel_flag(); }
+    bool get_cancel_flag(unsigned cost) const { return m_resource_limit->get_cancel_flag(cost); }
 
     void set_debug_ostream(std::ostream* out) { m_debug_out = out; }
     void set_message_ostream(std::ostream* out) { m_message_out = out; }
@@ -342,7 +402,7 @@ template <typename T, typename K >
 bool vectors_are_equal_(const T & a, const K &b) {
     if (a.size() != b.size())
         return false;
-    for (unsigned i = 0; i < a.size(); i++){
+    for (unsigned i = 0; i < a.size(); ++i){
         if (a[i] != b[i]) {
             return false;
         }
@@ -368,7 +428,7 @@ inline void print_blanks(int n, std::ostream & out) {
 // after a push of the last element we ensure that the vector increases
 // we also suppose that before the last push the vector was increasing
 inline void ensure_increasing(vector<unsigned> & v) {
-    lp_assert(v.size() > 0);
+    SASSERT(v.size() > 0);
     unsigned j = v.size() - 1;
     for (; j > 0; j-- )
         if (v[j] <= v[j - 1]) {
@@ -384,7 +444,7 @@ inline void ensure_increasing(vector<unsigned> & v) {
 inline static bool is_rational(const impq & n) { return is_zero(n.y); }
 
 inline static mpq fractional_part(const impq & n) {
-    lp_assert(is_rational(n));
+    SASSERT(is_rational(n));
     return n.x - floor(n.x);
 }
 inline static mpq fractional_part(const mpq & n) {

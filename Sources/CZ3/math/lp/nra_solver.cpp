@@ -9,13 +9,16 @@
 #include <fstream>
 #include "math/lp/lar_solver.h"
 #include "math/lp/nra_solver.h"
+#include "math/lp/nla_coi.h"
 #include "nlsat/nlsat_solver.h"
+#include "nlsat/nlsat_transcendentals.h"
+#include "nlsat/nlsat_assignment.h"
 #include "math/polynomial/polynomial.h"
 #include "math/polynomial/algebraic_numbers.h"
 #include "util/map.h"
 #include "util/uint_set.h"
 #include "math/lp/nla_core.h"
-#include "smt/params/smt_params_helper.hpp"
+#include "params/smt_params_helper.hpp"
 
 
 namespace nra {
@@ -25,101 +28,34 @@ typedef nla::mon_eq mon_eq;
 typedef nla::variable_map_type variable_map_type;
 
 struct solver::imp {
+
     lp::lar_solver&           lra;
     reslimit&                 m_limit;  
     params_ref                m_params; 
     u_map<polynomial::var>    m_lp2nl;  // map from lar_solver variables to nlsat::solver variables        
-    indexed_uint_set          m_term_set;
     scoped_ptr<nlsat::solver> m_nlsat;
     scoped_ptr<scoped_anum_vector>   m_values; // values provided by LRA solver
     scoped_ptr<scoped_anum> m_tmp1, m_tmp2;
+    nla::coi                  m_coi;
+    indexed_uint_set          m_skipped_constraints; // COI constraints kept out of the nlsat problem
+    svector<lp::constraint_index> m_literal2constraint;
+    struct eq {
+        bool operator()(unsigned_vector const &a, unsigned_vector const &b) const {
+            return a == b;
+        }
+    };
+    map<unsigned_vector, unsigned, svector_hash<unsigned_hash>, eq> m_vars2mon;
     nla::core&                m_nla_core;
     
     imp(lp::lar_solver& s, reslimit& lim, params_ref const& p, nla::core& nla_core): 
         lra(s), 
         m_limit(lim),
         m_params(p),
+        m_coi(nla_core),
         m_nla_core(nla_core) {}
 
     bool need_check() {
-        return m_nla_core.m_to_refine.size() != 0;
-    }
-
-    indexed_uint_set m_mon_set, m_constraint_set;
-
-    struct occurs {
-        unsigned_vector constraints;
-        unsigned_vector monics;
-        unsigned_vector terms;
-    };
-
-    void init_cone_of_influence() {
-        indexed_uint_set visited;
-        unsigned_vector todo;
-        vector<occurs> var2occurs;
-        m_term_set.reset();
-        m_mon_set.reset();
-        m_constraint_set.reset();
-
-        for (auto ci : lra.constraints().indices()) {
-            auto const& c = lra.constraints()[ci];
-            for (auto const& [coeff, v] : c.coeffs()) {
-                var2occurs.reserve(v + 1);
-                var2occurs[v].constraints.push_back(ci);
-            }
-        }
-
-        for (auto const& m : m_nla_core.emons()) {
-            for (auto v : m.vars()) {
-                var2occurs.reserve(v + 1);
-                var2occurs[v].monics.push_back(m.var());
-            }
-        }
-
-        for (const auto *t :  lra.terms() ) {
-            for (auto const iv : *t) {
-                auto v = iv.j();
-                var2occurs.reserve(v + 1);
-                var2occurs[v].terms.push_back(t->j());
-            }
-        }
-
-        for (auto const& m : m_nla_core.m_to_refine)
-            todo.push_back(m);
-
-        for (unsigned i = 0; i < todo.size(); ++i) {
-            auto v = todo[i];
-            if (visited.contains(v))
-                continue;
-            visited.insert(v);
-            var2occurs.reserve(v + 1);
-            for (auto ci : var2occurs[v].constraints) {
-                m_constraint_set.insert(ci);
-                auto const& c = lra.constraints()[ci];
-                for (auto const& [coeff, w] : c.coeffs())
-                    todo.push_back(w);
-            }
-            for (auto w : var2occurs[v].monics)
-                todo.push_back(w);
-
-            for (auto ti : var2occurs[v].terms) {
-                for (auto iv : lra.get_term(ti))
-                    todo.push_back(iv.j());
-                todo.push_back(ti);
-            }
-
-            if (lra.column_has_term(v)) {
-                m_term_set.insert(v);
-                for (auto kv : lra.get_term(v))
-                    todo.push_back(kv.j());
-            }            
-
-            if (m_nla_core.is_monic_var(v)) {
-                m_mon_set.insert(v);
-                for (auto w : m_nla_core.emons()[v])
-                    todo.push_back(w);
-            }
-        }
+        return m_nla_core.m_to_refine.size() != 0 || !m_nla_core.get_transcendentals().empty();
     }
 
     void reset() {
@@ -127,8 +63,194 @@ struct solver::imp {
         m_tmp1 = nullptr; m_tmp2 = nullptr;
         m_nlsat = alloc(nlsat::solver, m_limit, m_params, false);
         m_values = alloc(scoped_anum_vector, am());
-        m_term_set.reset();
         m_lp2nl.reset();
+        m_skipped_constraints.reset();
+    }
+
+    // True if the denominator of r is exactly 2^k with k >= threshold.
+    static bool has_large_dyadic_denominator(rational const& r, unsigned threshold) {
+        rational den = denominator(r);
+        unsigned k = 0;
+        while (k < 64 && den.is_even()) {
+            den /= 2;
+            ++k;
+        }
+        return k >= threshold && den.is_one();
+    }
+
+    // nla lemmas (e.g. monotonicity) bound a monomial by products of the current
+    // LP values of its factors. Those values are LP-vertex artifacts with huge
+    // power-of-two denominators (e.g. 124341723133/2^39), and the atoms created
+    // for such lemma literals reach the constraint set via theory_lra. After
+    // clearing denominators they inject outsized coefficients into the nlsat
+    // polynomials and blow up the resultant computations, so they are kept out
+    // of the nlsat problem. Two conditions must hold:
+    //  - the constraint is auxiliary, i.e. it was created for an nla lemma atom
+    //    (theory_lra::mk_literal(nla::ineq const&)); input constraints, however
+    //    their constants look, are never skipped;
+    //  - a constant has a denominator that is a pure power of two, 2^k with
+    //    k >= 24. Decimal constants have denominators 10^k = 2^k*5^k, so long
+    //    decimals (as printed by tools that print doubles exactly) do not match.
+    // Skipping only weakens the nlsat problem: unsat stays sound, and a model
+    // that violates a skipped constraint yields l_undef (see check()).
+    bool is_dyadic_artifact(lp::lar_base_constraint const& c) const {
+        if (!c.is_auxiliary())
+            return false;
+        unsigned const dyadic_artifact_threshold = 24;
+        if (has_large_dyadic_denominator(c.rhs(), dyadic_artifact_threshold))
+            return true;
+        for (auto const& [coeff, v] : c.coeffs())
+            if (has_large_dyadic_denominator(coeff, dyadic_artifact_threshold))
+                return true;
+        return false;
+    }
+
+    // Create polynomial definition for variable v used in setup_solver_poly.
+    // The definition recursively expands monic and term variables into
+    // polynomials in leaf variables, scaled by an integer denominator
+    // tracked in `denominators` to keep the coefficients integral.
+    void mk_definition(unsigned v, polynomial_ref_vector &definitions, vector<rational>& denominators) {
+        auto &pm = m_nlsat->pm();
+        polynomial::polynomial_ref p(pm);
+        rational den(1);
+        if (m_nla_core.emons().is_monic_var(v)) {
+            auto const &m = m_nla_core.emons()[v];
+            for (auto w : m.vars()) {
+                den = denominators[w] * den;
+                polynomial_ref pw(definitions.get(w), m_nlsat->pm());
+                if (!p)
+                    p = pw;
+                else
+                    p = p * pw;
+            }
+        }
+        else if (lra.column_has_term(v)) {
+            for (auto const &[w, coeff] : lra.get_term(v)) 
+                den = lcm(denominator(coeff / denominators[w]), den);            
+            for (auto const &[w, coeff] : lra.get_term(v)) {
+                auto coeff1 = den * coeff / denominators[w];
+                polynomial_ref pw(definitions.get(w), m_nlsat->pm());
+                if (!p)
+                    p = constant(coeff1) * pw;
+                else
+                    p = p + (constant(coeff1) * pw);
+            }
+        }
+        else {
+            p = pm.mk_polynomial(lp2nl(v));  // nlsat var index equals v (verified above when created)
+        }
+        definitions.push_back(p);
+        denominators.push_back(den);
+    }
+
+    void setup_solver_poly() {
+        m_coi.init();
+        auto &pm = m_nlsat->pm();
+        polynomial_ref_vector definitions(pm);
+        vector<rational> denominators;
+        for (unsigned v = 0; v < lra.number_of_vars(); ++v) {
+            if (m_coi.vars().contains(v)) {
+                auto j = m_nlsat->mk_var(lra.var_is_int(v));
+                m_lp2nl.insert(v, j);  // we don't really need this. It is going to be the identify map.
+                mk_definition(v, definitions, denominators);
+            }
+            else {
+                definitions.push_back(nullptr);
+                denominators.push_back(rational(0));
+            }
+        }
+
+        // we rely on that all information encoded into the tableau is present as a constraint.
+        for (auto ci : m_coi.constraints()) {
+            auto &c = lra.constraints()[ci];
+            if (is_dyadic_artifact(c)) {
+                // lemma-atom with LP-vertex constants: keep it out of the nlsat problem
+                m_skipped_constraints.insert(ci);
+                continue;
+            }
+            auto &pm = m_nlsat->pm();
+            auto k = c.kind();
+            auto rhs = c.rhs();
+            auto lhs = c.coeffs();
+            rational den = denominator(rhs);
+            //
+            // let v := p / denominators[v]
+            //           
+            // sum(coeff[v] * v) k rhs
+            // ==
+            // sum(coeff[v] * (p / denominators[v])) k rhs
+            // ==
+            // sum((coeff[v] / denominators[v]) * p) k rhs
+            //
+
+
+            for (auto [coeff, v] : lhs)
+                den = lcm(den, denominator(coeff / denominators[v]));
+            polynomial::polynomial_ref p(pm);
+            p = pm.mk_const(-den * rhs);
+
+            for (auto [coeff, v] : lhs) {
+                polynomial_ref poly(pm);
+                poly = definitions.get(v);
+                poly = poly * constant(den * coeff / denominators[v]);
+                p = p + poly;
+            }
+            add_constraint(p, ci, k);
+            TRACE(nra, tout << "constraint " << ci << ": " << p << " " << k << " 0\n";
+            lra.constraints().display(tout, ci) << "\n");
+        }
+        definitions.reset();
+    }
+
+    void setup_solver_terms() {
+        m_coi.init();
+        // add linear inequalities from lra_solver
+        for (auto ci : m_coi.constraints())
+            add_constraint(ci);
+
+        // add polynomial definitions.
+        for (auto const &m : m_coi.mons())
+            add_monic_eq(m_nla_core.emons()[m]);
+
+        // add term definitions.
+        for (unsigned i : m_coi.terms())
+            add_term(i);
+    }
+
+
+
+    polynomial::polynomial_ref sub(polynomial::polynomial *a, polynomial::polynomial *b) {
+        return polynomial_ref(m_nlsat->pm().sub(a, b), m_nlsat->pm());
+    }
+    polynomial::polynomial_ref constant(rational const& r) {
+        return polynomial_ref(m_nlsat->pm().mk_const(r), m_nlsat->pm());
+    }
+
+    // Registers every transcendental application directly with nlsat so its
+    // own search loop refines them (exact Taylor brackets, global tangent
+    // axioms, cross-application monotonicity; see nlsat_transcendentals.h/
+    // .cpp and solver::imp::search_check's transcendentals branch), instead
+    // of nla_core feeding it progressively-refined polynomial axioms from
+    // outside. Requires "transcendentals" to also be set on m_nlsat (see
+    // check()).
+    void register_transcendentals_with_nlsat() {
+        // nla::transcendental_op_kind is nlsat::transcendental_op_kind (see
+        // nla_transcendentals.h): no translation needed, just forward a.op.
+        for (auto const& a : m_nla_core.get_transcendentals().apps())
+            m_nlsat->add_transcendental(a.op, lp2nl(a.arg), lp2nl(a.val));
+        // atan2(y, x) and pi are registered separately (see
+        // nla::transcendentals::atan2_apps/pi_var): they do not fit the
+        // single-argument (op, arg, val) shape above.
+        for (auto const& a : m_nla_core.get_transcendentals().atan2_apps())
+            m_nlsat->add_atan2(lp2nl(a.y), lp2nl(a.x), lp2nl(a.val));
+        lp::lpvar pi = m_nla_core.get_transcendentals().pi_var();
+        if (pi != nla::null_lpvar)
+            m_nlsat->add_pi(lp2nl(pi));
+    }
+
+    void add_axiom(polynomial::polynomial* p, lp::lconstraint_kind k) {
+        nlsat::literal lit = mk_literal(p, k);
+        m_nlsat->mk_clause(1, &lit, nullptr);
     }
 
     /**
@@ -145,24 +267,15 @@ struct solver::imp {
     lbool check() {
         SASSERT(need_check());
         reset();
-        vector<nlsat::assumption, false> core;
-
-        init_cone_of_influence();
-        // add linear inequalities from lra_solver
-        for (auto ci : m_constraint_set)
-            add_constraint(ci);
+        vector<nlsat::assumption, false> core;        
         
-        // add polynomial definitions.
-        for (auto const& m : m_mon_set)
-            add_monic_eq(m_nla_core.emons()[m]);
-
-        // add term definitions.
-        for (unsigned i : m_term_set)
-            add_term(i);
-
-        TRACE("nra", m_nlsat->display(tout));
-
         smt_params_helper p(m_params);
+
+	    setup_solver_poly();
+        register_transcendentals_with_nlsat();
+
+        TRACE(nra, m_nlsat->display(tout));
+
         if (p.arith_nl_log()) {
             static unsigned id = 0;
             std::stringstream strm;
@@ -179,63 +292,277 @@ struct solver::imp {
             out.close();
         }
 
-        lbool r = l_undef;
         statistics& st = m_nla_core.lp_settings().stats().m_st;
-        try {
-            r = m_nlsat->check();
-        }
-        catch (z3_exception&) {
-            if (m_limit.is_canceled()) {
-                r = l_undef;
-            }
-            else {
-                m_nlsat->collect_statistics(st);
-                throw;
-            }
-        }
+        lbool r = m_nlsat->check();
+
         m_nlsat->collect_statistics(st);
-        TRACE("nra",
+        TRACE(nra, tout << "nra result " << r << "\n");
+        CTRACE(nra, false,
               m_nlsat->display(tout << r << "\n");
               display(tout);
               for (auto [j, x] : m_lp2nl) tout << "j" << j << " := x" << x << "\n";);
         switch (r) {
         case l_true:
+            m_nlsat->restore_order();
             m_nla_core.set_use_nra_model(true);
             lra.init_model();
-            for (lp::constraint_index ci : lra.constraints().indices())
-                if (!check_constraint(ci)) {
+            for (lp::constraint_index ci : lra.constraints().indices()) {
+                if (check_constraint(ci)) continue;
+                // Non-COI constraint violations are benign, and constraints deliberately
+                // kept out of the nlsat problem may be violated by its model; only
+                // violations of COI constraints nlsat actually saw indicate a bug.
+                if (m_coi.constraints().contains(ci) && !m_skipped_constraints.contains(ci)) {
                     IF_VERBOSE(0, verbose_stream() << "constraint " << ci << " violated\n";
                                lra.constraints().display(verbose_stream()));
                     UNREACHABLE();
-                    return l_undef;
                 }
-            for (auto const& m : m_nla_core.emons()) {
-                if (!check_monic(m)) {
+                return l_undef;
+            }
+            for (auto const &m : m_nla_core.emons()) {
+                if (check_monic(m)) continue;
+                if (m_coi.mons().contains(m.var())) {
                     IF_VERBOSE(0, verbose_stream() << "monic " << m << " violated\n";
                                lra.constraints().display(verbose_stream()));
                     UNREACHABLE();
-                    return l_undef;
                 }
+                return l_undef;
             }
             break;
         case l_false: {
             lp::explanation ex;
             m_nlsat->get_core(core);
+            nla::lemma_builder lemma(m_nla_core, __FUNCTION__);
+            lemma.assume_nlsat();
             for (auto c : core) {
-                unsigned idx = static_cast<unsigned>(static_cast<imp*>(c) - this);
+                unsigned idx = static_cast<unsigned>(static_cast<imp *>(c) - this);
                 ex.push_back(idx);
-                TRACE("nra", lra.display_constraint(tout << "ex: " << idx << ": ", idx) << "\n";);
             }
-            nla::new_lemma lemma(m_nla_core, __FUNCTION__);
+
             lemma &= ex;
             m_nla_core.set_use_nra_model(true);
+            TRACE(nra, tout << lemma << "\n");
             break;
         }
         case l_undef:
             break;
         }
         return r;
-    }   
+    }
+
+    void setup_assignment_solver() {
+        SASSERT(need_check());
+        reset();
+        m_literal2constraint.reset();
+        m_vars2mon.reset();
+        m_coi.init();
+        auto &pm = m_nlsat->pm();
+        polynomial_ref_vector definitions(pm);
+        vector<rational> denominators;
+
+        // Create an NLSAT polyvar for each LRA variable (identity mapping),
+        // seed the assignment from the current LRA model, populate
+        // m_vars2mon, and build the inlined polynomial definition of v.
+        //
+        // The definition expands monic and term variables into polynomials
+        // over leaf variables. Each definition is scaled by denominators[v]
+        // so that all coefficients stay integral; the scaling cancels on
+        // both sides of every constraint we build below (just like in
+        // setup_solver_poly).
+        //
+        // This "de-linearized" representation is what the linear-cell
+        // construction in NLSAT needs: a cell built around a constraint
+        // polynomial that mentions several multiplications at once can
+        // yield a lemma constraining all of them simultaneously, which is
+        // strictly stronger than the per-multiplication lemmas we would
+        // get from asserting `v_mon - v1*...*vk = 0` separately.
+        for (unsigned v = 0; v < lra.number_of_vars(); ++v) {
+            auto j = m_nlsat->mk_var(lra.var_is_int(v));
+            VERIFY(j == v);
+            m_lp2nl.insert(v, j);
+            scoped_anum a(am());
+            am().set(a, m_nla_core.val(v).to_mpq());
+            m_values->push_back(a);
+            if (m_nla_core.emons().is_monic_var(v)) {
+                auto const &m = m_nla_core.emons()[v];
+                auto vars = m.vars();
+                std::sort(vars.begin(), vars.end());
+                m_vars2mon.insert(vars, v);
+            }
+            mk_definition(v, definitions, denominators);
+        }
+
+        // Substitute each variable in the LRA constraint by its definition
+        // and rescale to keep integer coefficients. Symbolically:
+        //
+        //     v == definitions[v] / denominators[v]
+        //
+        //   sum(coeff_v * v) k rhs
+        //     == sum((coeff_v / denominators[v]) * definitions[v]) k rhs
+        //
+        // We pick den := lcm of all denominators(coeff_v / denominators[v])
+        // together with denominator(rhs), so that den * coeff_v / denominators[v]
+        // and den * rhs are all integers. The relation kind k is preserved
+        // because den > 0.
+        for (auto ci : m_coi.constraints()) {
+            auto &c = lra.constraints()[ci];
+            auto k = c.kind();
+            auto rhs = c.rhs();
+            auto lhs = c.coeffs();
+            rational den = denominator(rhs);
+            for (auto [coeff, v] : lhs)
+                den = lcm(den, denominator(coeff / denominators[v]));
+            polynomial::polynomial_ref p(pm);
+            p = pm.mk_const(-den * rhs);
+            for (auto [coeff, v] : lhs) {
+                polynomial_ref poly(pm);
+                poly = definitions.get(v);
+                poly = poly * constant(den * coeff / denominators[v]);
+                p = p + poly;
+            }
+            auto lit = add_constraint(p, ci, k);
+            m_literal2constraint.setx(lit.index(), ci, lp::null_ci);
+        }
+        definitions.reset();
+        register_transcendentals_with_nlsat();
+    }
+
+    void process_polynomial_check_assignment(polynomial::polynomial const* p, rational& bound, const u_map<lp::lpvar>& nl2lp, lp::lar_term& t) {
+        polynomial::manager& pm = m_nlsat->pm();       
+        for (unsigned i = 0; i < pm.size(p); ++i) {
+            polynomial::monomial* m = pm.get_monomial(p, i);
+            auto& coeff = pm.coeff(p, i);
+                 
+            unsigned num_vars = pm.size(m);
+            // add mon * coeff to t;
+            switch (num_vars) {                            
+            case 0:
+                bound -= coeff;
+                break;
+            case 1: {
+                auto v = nl2lp[pm.get_var(m, 0)];
+                t.add_monomial(coeff, v);
+                break;
+            }
+            default: {
+                svector<lp::lpvar> vars;
+                for (unsigned j = 0; j < num_vars; ++j)
+                    vars.push_back(nl2lp[pm.get_var(m, j)]);
+                std::sort(vars.begin(), vars.end());
+                lp::lpvar v;
+                if (m_vars2mon.contains(vars)) 
+                   v = m_vars2mon[vars];
+                else 
+                   v = m_nla_core.add_mul_def(vars.size(), vars.data());  
+                t.add_monomial(coeff, v);
+                break;
+            }
+            }                      
+        }
+    }
+
+    u_map<lp::lpvar> reverse_lp2nl() {
+        u_map<lp::lpvar> nl2lp;
+        for (auto [j, x] : m_lp2nl)
+            nl2lp.insert(x, j);
+        return nl2lp;
+    }
+    
+    lbool check_assignment() {
+        setup_assignment_solver();
+        lbool r = l_undef;
+        statistics &st = m_nla_core.lp_settings().stats().m_st;
+        nlsat::literal_vector clause;        
+        nlsat::assignment rvalues(m_nlsat->am());
+        for (auto [j, x] : m_lp2nl) {
+            scoped_anum a(am());
+            am().set(a, m_nla_core.val(j).to_mpq());
+            rvalues.set(x, a);
+        }
+        r = m_nlsat->check(rvalues, clause);
+        
+        m_nlsat->collect_statistics(st);
+        switch (r) {
+        case l_true:
+            m_nla_core.set_use_nra_model(true);
+            lra.init_model();
+            for (lp::constraint_index ci : lra.constraints().indices())
+                if (!check_constraint(ci))
+                    return l_undef;
+            for (auto const& m : m_nla_core.emons())
+                if (!check_monic(m))
+                    return l_undef;
+            m_nla_core.set_use_nra_model(true);
+            break;
+        case l_false:
+            r = add_lemma(clause);
+            break;
+        default:
+            break;
+        }
+        return r;        
+    }
+
+    lbool add_lemma(nlsat::literal_vector const &clause) {
+        u_map<lp::lpvar> nl2lp = reverse_lp2nl();
+        lbool result = l_false;
+        {
+            nla::lemma_builder lemma(m_nla_core, __FUNCTION__);
+            lemma.assume_nlsat();
+            for (nlsat::literal l : clause) {
+                if (m_literal2constraint.get((~l).index(), lp::null_ci) != lp::null_ci) {
+                    auto ci = m_literal2constraint[(~l).index()];
+                    lp::explanation ex;
+                    ex.push_back(ci);
+                    lemma &= ex;
+                    continue;
+                }
+                nlsat::atom *a = m_nlsat->bool_var2atom(l.var());
+                if (a->is_root_atom()) {
+                    result = l_undef;
+                    break;
+                }
+                SASSERT(a->is_ineq_atom());
+                auto &ia = *to_ineq_atom(a);
+                if (ia.size() != 1) {
+                    result = l_undef; // factored polynomials not handled here
+                    break;
+                }
+                polynomial::polynomial const *p = ia.p(0);
+                rational bound(0);
+                lp::lar_term t;
+                process_polynomial_check_assignment(p, bound, nl2lp, t);
+
+                nla::ineq inq(lp::lconstraint_kind::EQ, t, bound);  // initial value overwritten in cases below
+                switch (a->get_kind()) {
+                case nlsat::atom::EQ:
+                    inq = nla::ineq(l.sign() ? lp::lconstraint_kind::NE : lp::lconstraint_kind::EQ, t, bound);
+                    break;
+                case nlsat::atom::LT:
+                    inq = nla::ineq(l.sign() ? lp::lconstraint_kind::GE : lp::lconstraint_kind::LT, t, bound);
+                    break;
+                case nlsat::atom::GT:
+                    inq = nla::ineq(l.sign() ? lp::lconstraint_kind::LE : lp::lconstraint_kind::GT, t, bound);
+                    break;
+                default:
+                    UNREACHABLE();
+                    result = l_undef;
+                    break;
+                }
+                if (result == l_undef)
+                    break;
+                if (m_nla_core.ineq_holds(inq)) {
+                    result = l_undef;
+                    break;
+                }
+                lemma |= inq;
+            }
+            if (result == l_false)
+                this->m_nla_core.m_check_feasible = true;
+        } // lemma_builder destructor runs here
+        if (result == l_undef)
+            m_nla_core.m_lemmas.pop_back(); // discard incomplete lemma
+        return result;
+    }
 
 
     void add_monic_eq_bound(mon_eq const& m) {
@@ -270,10 +597,22 @@ struct solver::imp {
         coeffs.push_back(mpz(1));
         coeffs.push_back(mpz(-1));
         polynomial::polynomial_ref p(pm.mk_polynomial(2, coeffs.data(), mls),  pm);
-        polynomial::polynomial* ps[1] = { p };
-        bool even[1] = { false };
-        nlsat::literal lit = m_nlsat->mk_ineq_literal(nlsat::atom::kind::EQ, 1, ps, even);
+        auto lit = mk_literal(p.get(), lp::lconstraint_kind::EQ);
         m_nlsat->mk_clause(1, &lit, nullptr);
+    }
+
+    nlsat::literal mk_literal(polynomial::polynomial *p, lp::lconstraint_kind k) {
+        polynomial::polynomial *ps[1] = { p };
+        bool is_even[1] = { false };
+        switch (k) {
+        case lp::lconstraint_kind::LE: return ~m_nlsat->mk_ineq_literal(nlsat::atom::kind::GT, 1, ps, is_even);
+        case lp::lconstraint_kind::GE: return ~m_nlsat->mk_ineq_literal(nlsat::atom::kind::LT, 1, ps, is_even);
+        case lp::lconstraint_kind::LT: return m_nlsat->mk_ineq_literal(nlsat::atom::kind::LT, 1, ps, is_even);
+        case lp::lconstraint_kind::GT: return m_nlsat->mk_ineq_literal(nlsat::atom::kind::GT, 1, ps, is_even);
+        case lp::lconstraint_kind::EQ: return m_nlsat->mk_ineq_literal(nlsat::atom::kind::EQ, 1, ps, is_even);
+        default: UNREACHABLE();  // unreachable
+        }
+        throw default_exception("uexpected operator");
     }
 
     void add_constraint(unsigned idx) {
@@ -295,30 +634,26 @@ struct solver::imp {
         }
         rhs *= den;
         polynomial::polynomial_ref p(pm.mk_linear(sz, coeffs.data(), vars.data(), -rhs), pm);
-        polynomial::polynomial* ps[1] = { p };
-        bool is_even[1] = { false };
+        nlsat::literal lit = mk_literal(p.get(), k);
+        nlsat::assumption a = this + idx;
+        m_nlsat->mk_clause(1, &lit, a);
+    }
+
+    nlsat::literal add_constraint(polynomial::polynomial *p, unsigned idx, lp::lconstraint_kind k) {
+        polynomial::polynomial *ps[1] = {p};
+        bool is_even[1] = {false};
         nlsat::literal lit;
         nlsat::assumption a = this + idx;
         switch (k) {
-        case lp::lconstraint_kind::LE:
-            lit = ~m_nlsat->mk_ineq_literal(nlsat::atom::kind::GT, 1, ps, is_even);
-            break;
-        case lp::lconstraint_kind::GE:
-            lit = ~m_nlsat->mk_ineq_literal(nlsat::atom::kind::LT, 1, ps, is_even);
-            break;
-        case lp::lconstraint_kind::LT:
-            lit = m_nlsat->mk_ineq_literal(nlsat::atom::kind::LT, 1, ps, is_even);
-            break;
-        case lp::lconstraint_kind::GT:
-            lit = m_nlsat->mk_ineq_literal(nlsat::atom::kind::GT, 1, ps, is_even);
-            break;
-        case lp::lconstraint_kind::EQ:
-            lit = m_nlsat->mk_ineq_literal(nlsat::atom::kind::EQ, 1, ps, is_even);                
-            break;
-        default:
-            UNREACHABLE(); // unreachable
+        case lp::lconstraint_kind::LE: lit = ~m_nlsat->mk_ineq_literal(nlsat::atom::kind::GT, 1, ps, is_even); break;
+        case lp::lconstraint_kind::GE: lit = ~m_nlsat->mk_ineq_literal(nlsat::atom::kind::LT, 1, ps, is_even); break;
+        case lp::lconstraint_kind::LT: lit = m_nlsat->mk_ineq_literal(nlsat::atom::kind::LT, 1, ps, is_even); break;
+        case lp::lconstraint_kind::GT: lit = m_nlsat->mk_ineq_literal(nlsat::atom::kind::GT, 1, ps, is_even); break;
+        case lp::lconstraint_kind::EQ: lit = m_nlsat->mk_ineq_literal(nlsat::atom::kind::EQ, 1, ps, is_even); break;
+        default: UNREACHABLE();  // unreachable
         }
         m_nlsat->mk_clause(1, &lit, a);
+        return lit;
     }
 
     bool check_monic(mon_eq const& m) {
@@ -368,7 +703,7 @@ struct solver::imp {
         for (auto const& m : m_nla_core.emons())
             if (any_of(m.vars(), [&](lp::lpvar v) { return m_lp2nl.contains(v); }))
                 add_monic_eq_bound(m);
-        for (unsigned i : m_term_set)
+        for (unsigned i : m_coi.terms())
             add_term(i);
         for (auto const& [v, w] : m_lp2nl) {
             if (lra.column_has_lower_bound(v))
@@ -377,24 +712,13 @@ struct solver::imp {
                 add_ub(lra.get_upper_bound(v), w, lra.get_column_upper_bound_witness(v));
         }
         
-        lbool r = l_undef;
-        statistics& st = m_nla_core.lp_settings().stats().m_st;
-        try {
-            r = m_nlsat->check();
-        }
-        catch (z3_exception&) {
-            if (m_limit.is_canceled()) {
-                r = l_undef;
-            }
-            else {
-                m_nlsat->collect_statistics(st);
-                throw;
-            }
-        }
+        lbool r = m_nlsat->check();
+        statistics &st = m_nla_core.lp_settings().stats().m_st;
         m_nlsat->collect_statistics(st);
         
         switch (r) {
         case l_true:
+            m_nlsat->restore_order();
             m_nla_core.set_use_nra_model(true);
             lra.init_model();
             for (lp::constraint_index ci : lra.constraints().indices())
@@ -414,8 +738,10 @@ struct solver::imp {
                 dm.linearize(static_cast<u_dependency*>(c), lv);
             for (auto ci : lv)
                 ex.push_back(ci);
-            nla::new_lemma lemma(m_nla_core, __FUNCTION__);
+            nla::lemma_builder lemma(m_nla_core, __FUNCTION__);
+            lemma.assume_nlsat();
             lemma &= ex;
+            TRACE(nra, tout << lemma << "\n");
             break;
         }
         case l_undef:
@@ -437,18 +763,8 @@ struct solver::imp {
                 add_ub(lra.get_upper_bound(v), w);
         }
         
-        lbool r = l_undef;
-        try {
-            r = m_nlsat->check();
-        }
-        catch (z3_exception&) {
-            if (m_limit.is_canceled()) {
-                r = l_undef;
-            }
-            else {
-                throw;
-            }
-        }
+        
+        lbool r = m_nlsat->check();
 
         if (r == l_true)
             return r;
@@ -552,8 +868,8 @@ struct solver::imp {
         if (!m_lp2nl.find(v, r)) {
             r = m_nlsat->mk_var(is_int(v));
             m_lp2nl.insert(v, r);
-            if (!m_term_set.contains(v) && lra.column_has_term(v)) {
-                m_term_set.insert(v);
+            if (!m_coi.terms().contains(v) && lra.column_has_term(v)) {
+                m_coi.terms().insert(v);
             }
         }
         return r;
@@ -584,18 +900,53 @@ struct solver::imp {
         m_nlsat->mk_clause(1, &lit, nullptr);
     }
 
-    nlsat::anum const& value(lp::lpvar v)  {
-        polynomial::var pv;
-        if (m_lp2nl.find(v, pv))
-            return m_nlsat->value(pv);
-        else {
-            for (unsigned w = m_values->size(); w <= v; ++w) {
-                scoped_anum a(am());
-                am().set(a, m_nla_core.val(w).to_mpq());
+    nlsat::anum const &value(lp::lpvar v) {
+        init_values(v + 1);
+        return (*m_values)[v];
+    }
+
+    void init_values(unsigned sz) {
+        if (m_values->size() >= sz)
+            return;
+        unsigned w;
+        scoped_anum a(am());
+        for (unsigned v = m_values->size(); v < sz; ++v) {
+            if (m_nla_core.emons().is_monic_var(v)) {
+                am().set(a, 1);
+                auto &m = m_nla_core.emon(v);
+                for (auto x : m.vars()) 
+                    am().mul(a, (*m_values)[x], a);
                 m_values->push_back(a);
-            }           
-            return (*m_values)[v];
+            }      
+            else if (lra.column_has_term(v)) {
+                scoped_anum b(am());
+                am().set(a, 0);
+                for (auto const &[w, coeff] : lra.get_term(v)) {
+                    am().set(b, coeff.to_mpq());
+                    am().mul(b, (*m_values)[w], b);
+                    am().add(a, b, a);
+                }
+                m_values->push_back(a);
+            }
+            else if (m_lp2nl.find(v, w)) {
+                m_values->push_back(m_nlsat->value(w));
+            }
+            else {
+                am().set(a, m_nla_core.val(v).to_mpq());
+                m_values->push_back(a);
+            }
         }
+    }
+
+
+    void set_value(lp::lpvar v, rational const& value) {
+        if (!m_values)
+            m_values = alloc(scoped_anum_vector, am());
+        scoped_anum a(am());
+        am().set(a, value.to_mpq());
+        while (m_values->size() <= v)
+            m_values->push_back(a);
+        am().set((*m_values)[v], a);
     }
 
     nlsat::anum_manager& am() {
@@ -642,15 +993,67 @@ solver::~solver() {
 
 
 lbool solver::check() {
-    return m_imp->check();
+    try {
+        return m_imp->check();
+    } 
+    catch (z3_exception &) {
+        statistics &st = m_imp->m_nla_core.lp_settings().stats().m_st;
+        m_imp->m_nlsat->collect_statistics(st);
+        if (m_imp->m_limit.is_canceled()) {
+            return l_undef;
+        }
+        else {
+            throw;
+        }
+    }
 }
 
 lbool solver::check(vector<dd::pdd> const& eqs) {
-    return m_imp->check(eqs);
+    try {
+        return m_imp->check(eqs);
+    } 
+    catch (z3_exception &) {
+        statistics &st = m_imp->m_nla_core.lp_settings().stats().m_st;
+        m_imp->m_nlsat->collect_statistics(st);
+        if (m_imp->m_limit.is_canceled()) {
+            return l_undef;
+        }
+        else {
+            throw;
+        }
+    }
 }
 
 lbool solver::check(dd::solver::equation_vector const& eqs) {
-    return m_imp->check(eqs);
+    try {
+        return m_imp->check(eqs);
+    } 
+    catch (z3_exception &) {
+        statistics &st = m_imp->m_nla_core.lp_settings().stats().m_st;
+        m_imp->m_nlsat->collect_statistics(st);
+        if (m_imp->m_limit.is_canceled()) {
+            return l_undef;
+        }
+        else {
+            throw;
+        }
+    }
+}
+
+lbool solver::check_assignment() {
+    try {
+        return m_imp->check_assignment();
+    } 
+    catch (z3_exception &) {
+        statistics &st = m_imp->m_nla_core.lp_settings().stats().m_st;
+        m_imp->m_nlsat->collect_statistics(st);
+        if (m_imp->m_limit.is_canceled()) {
+            return l_undef;
+        }
+        else {
+            throw;
+        }
+    }
 }
 
 bool solver::need_check() {
@@ -676,6 +1079,10 @@ scoped_anum& solver::tmp2() { return m_imp->tmp2(); }
 
 void solver::updt_params(params_ref& p) {
     m_imp->updt_params(p);
+}
+
+void solver::set_value(lp::lpvar v, rational const& value) {
+    m_imp->set_value(v, value);
 }
 
 }

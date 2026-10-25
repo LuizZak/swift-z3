@@ -1,20 +1,26 @@
-// Automatically generated file
+/*++
+Copyright (c) 2024 Microsoft Corporation
+
+Module Name:
+
+    qfufbv_tactic_params.hpp
+
+Abstract:
+
+    Parameters for the 'ackermannization' module.
+
+--*/
 #pragma once
+
 #include "util/params.h"
 #include "util/gparams.h"
-struct qfufbv_tactic_params {
-  params_ref const & p;
-  params_ref g;
-  qfufbv_tactic_params(params_ref const & _p = params_ref::get_empty()):
-     p(_p), g(gparams::get_module("ackermannization")) {}
-  static void collect_param_descrs(param_descrs & d) {
-    d.insert("sat_backend", CPK_BOOL, "use SAT rather than SMT in qfufbv_ackr_tactic", "false","ackermannization");
-    d.insert("inc_sat_backend", CPK_BOOL, "use incremental SAT", "false","ackermannization");
-  }
-  /*
-     REG_MODULE_PARAMS('ackermannization', 'qfufbv_tactic_params::collect_param_descrs')
-     REG_MODULE_DESCRIPTION('ackermannization', 'tactics based on solving UF-theories via ackermannization (see also ackr module)')
-  */
-  bool sat_backend() const { return p.get_bool("sat_backend", g, false); }
-  bool inc_sat_backend() const { return p.get_bool("inc_sat_backend", g, false); }
-};
+
+#define QFUFBV_TACTIC_PARAMS_LIST(UINT_, BOOL_, DOUBLE_, STRING_, SYMBOL_) \
+  BOOL_(sat_backend,      "sat_backend",      false,  "use SAT rather than SMT in qfufbv_ackr_tactic") \
+  BOOL_(inc_sat_backend,  "inc_sat_backend",  false,  "use incremental SAT")
+
+// Description intentionally omitted: ackermannization_params.hpp already registers the
+// canonical description for the "ackermannization" module.
+Z3_DEFINE_MODULE_PARAMS(qfufbv_tactic_params, "ackermannization", QFUFBV_TACTIC_PARAMS_LIST, nullptr);
+
+#undef QFUFBV_TACTIC_PARAMS_LIST

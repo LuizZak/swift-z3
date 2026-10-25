@@ -77,12 +77,12 @@ namespace smt {
     }
 
     bool almost_cg_table::cg_eq::operator()(enode * n1, enode * n2) const {
-        if (n1->get_expr()->get_decl() != n2->get_expr()->get_decl())
+        if (n1->get_decl() != n2->get_decl() || !n1->is_app())
             return false;
         unsigned num_args = n1->get_num_args();
         if (num_args != n2->get_num_args())
             return false;
-        for (unsigned j = 0; j < num_args; j++) {
+        for (unsigned j = 0; j < num_args; ++j) {
             enode * arg1 = n1->get_arg(j)->get_root();
             enode * arg2 = n2->get_arg(j)->get_root();
             if (arg1 == arg2)
@@ -124,4 +124,4 @@ namespace smt {
         return result;
     }
 
-};
+}

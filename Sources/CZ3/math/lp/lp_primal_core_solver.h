@@ -56,7 +56,7 @@ namespace lp {
         int choose_entering_column_tableau();
 
         bool needs_to_grow(unsigned bj) const {
-            lp_assert(!this->column_is_feasible(bj));
+            SASSERT(!this->column_is_feasible(bj));
             switch (this->m_column_types[bj]) {
             case column_type::free_column:
                 return false;
@@ -72,7 +72,7 @@ namespace lp {
         }
 
         int inf_sign_of_column(unsigned bj) const {
-            lp_assert(!this->column_is_feasible(bj));
+            SASSERT(!this->column_is_feasible(bj));
             switch (this->m_column_types[bj]) {
             case column_type::free_column:
                 return 0;
@@ -90,7 +90,7 @@ namespace lp {
 
         bool monoid_can_decrease(const row_cell<T> &rc) const {
             unsigned j = rc.var();
-            lp_assert(this->column_is_feasible(j));
+            SASSERT(this->column_is_feasible(j));
             switch (this->m_column_types[j]) {
             case column_type::free_column:
                 return true;
@@ -104,8 +104,6 @@ namespace lp {
                 if (is_pos(rc.coeff())) 
                     return this->x_above_lower_bound(j);
                 return this->x_below_upper_bound(j);
-            default:
-                return false;
             }
             UNREACHABLE(); // unreachable
             return false;
@@ -113,7 +111,7 @@ namespace lp {
 
         bool monoid_can_increase(const row_cell<T> &rc) const {
             unsigned j = rc.var();
-            lp_assert(this->column_is_feasible(j));
+            SASSERT(this->column_is_feasible(j));
             switch (this->m_column_types[j]) {
             case column_type::free_column:
                 return true;
@@ -131,8 +129,6 @@ namespace lp {
                 if (is_neg(rc.coeff())) 
                     return this->x_above_lower_bound(j);
                 return this->x_below_upper_bound(j);
-            default:
-                return false;
             }
             UNREACHABLE(); // unreachable
             return false;
@@ -191,11 +187,11 @@ namespace lp {
             // least one pivot operation
             int choice = -1;
             int nchoices = 0;
-            unsigned min_non_free_so_far = -1;
-            unsigned best_col_sz = -1;
+            unsigned min_non_free_so_far = UINT_MAX;
+            unsigned best_col_sz = UINT_MAX;
             unsigned bj = this->m_basis[i];
             bool bj_needs_to_grow = needs_to_grow(bj);
-            for (unsigned k = 0; k < this->m_A.m_rows[i].size(); k++) {
+            for (unsigned k = 0; k < this->m_A.m_rows[i].size(); ++k) {
                 const row_cell<T> &rc = this->m_A.m_rows[i][k];
                 unsigned j = rc.var();
                 if (j == bj)
@@ -247,27 +243,27 @@ namespace lp {
 
     void limit_theta_on_basis_column_for_inf_case_m_neg_upper_bound(
         unsigned j, const T &m, X &theta, bool &unlimited) {
-        lp_assert(m < 0 && this->m_column_types[j] == column_type::upper_bound);
+        SASSERT(m < 0 && this->m_column_types[j] == column_type::upper_bound);
         limit_inf_on_upper_bound_m_neg(m, this->m_x[j], this->m_upper_bounds[j], theta, unlimited);
     }
 
     void limit_theta_on_basis_column_for_inf_case_m_neg_lower_bound(
         unsigned j, const T &m, X &theta, bool &unlimited) {
-        lp_assert(m < 0 && this->m_column_types[j] == column_type::lower_bound);
+        SASSERT(m < 0 && this->m_column_types[j] == column_type::lower_bound);
         limit_inf_on_bound_m_neg(m, this->m_x[j], this->m_lower_bounds[j], theta, unlimited);
     }
 
     void limit_theta_on_basis_column_for_inf_case_m_pos_lower_bound(
         unsigned j, const T &m, X &theta, bool &unlimited) {
-        lp_assert(m > 0 && this->m_column_types[j] == column_type::lower_bound);
+        SASSERT(m > 0 && this->m_column_types[j] == column_type::lower_bound);
         limit_inf_on_lower_bound_m_pos(m, this->m_x[j], this->m_lower_bounds[j], theta, unlimited);
     }
 
     void limit_theta_on_basis_column_for_inf_case_m_pos_upper_bound(
         unsigned j, const T &m, X &theta, bool &unlimited) {
-        lp_assert(m > 0 && this->m_column_types[j] == column_type::upper_bound);
+        SASSERT(m > 0 && this->m_column_types[j] == column_type::upper_bound);
         limit_inf_on_bound_m_pos(m, this->m_x[j], this->m_upper_bounds[j], theta, unlimited);
-    };
+    }
 
     void get_bound_on_variable_and_update_leaving_precisely(
         unsigned j, vector<unsigned> &leavings, T m, X &t,
@@ -294,7 +290,7 @@ namespace lp {
         if (this->m_settings.simplex_strategy() ==
             simplex_strategy_enum::tableau_rows)
             return false;
-        //        lp_assert(calc_current_x_is_feasible() ==
+        //        SASSERT(calc_current_x_is_feasible() ==
         //        current_x_is_feasible());
         return this->current_x_is_feasible() == this->using_infeas_costs();
     }
@@ -321,12 +317,12 @@ namespace lp {
         this->add_delta_to_x(entering, delta);
         for (const auto &c : this->m_A.m_columns[entering])
             if (leaving != this->m_basis[c.var()])
-                this->add_delta_to_x_and_track_feasibility(
-                    this->m_basis[c.var()], -delta * this->m_A.get_val(c));
+                this->submul_from_x_and_track_feasibility(
+                    this->m_basis[c.var()], delta, this->m_A.get_val(c));
     }
 
     void update_basis_and_x_tableau_rows(int entering, int leaving, X const &tt) {
-        lp_assert(entering != leaving);
+        SASSERT(entering != leaving);
         update_x_tableau_rows(entering, leaving, tt);
         this->pivot_column_tableau(entering, this->m_basis_heading[leaving]);
         this->change_basis(entering, leaving);
@@ -346,7 +342,7 @@ namespace lp {
     }
 
     const X &get_val_for_leaving(unsigned j) const {
-        lp_assert(!this->column_is_feasible(j));
+        SASSERT(!this->column_is_feasible(j));
         switch (this->m_column_types[j]) {
             case column_type::fixed:
             case column_type::upper_bound:
@@ -391,11 +387,19 @@ namespace lp {
             this->set_status(lp_status::INFEASIBLE);
             return;
         }
+        // Charge pivot-cell work before changing the tableau so cancellation leaves the basis intact.
+        uint64_t cost = static_cast<uint64_t>(this->m_A.m_rows[this->m_basis_heading[leaving]].size()) *
+                        this->m_A.m_columns[entering].size();
+        if (this->m_settings.get_cancel_flag(static_cast<unsigned>(
+                std::min<uint64_t>(cost, std::numeric_limits<unsigned>::max())))) {
+            this->set_status(lp_status::CANCELLED);
+            return;
+        }
         const X &new_val_for_leaving = get_val_for_leaving(leaving);
         X theta = (this->m_x[leaving] - new_val_for_leaving) / a_ent;
         this->m_x[leaving] = new_val_for_leaving;
-        TRACE("lar_solver_feas", tout << "entering = " << entering << ", leaving = " << leaving << ", new_val_for_leaving = " << new_val_for_leaving << ", theta = " << theta << "\n";);
-        TRACE("lar_solver_feas", tout << "leaving = " << leaving
+        TRACE(lar_solver_feas, tout << "entering = " << entering << ", leaving = " << leaving << ", new_val_for_leaving = " << new_val_for_leaving << ", theta = " << theta << "\n";);
+        TRACE(lar_solver_feas, tout << "leaving = " << leaving
                                  << " removed from inf_heap()\n";);
         // this will remove the leaving from the heap
         this->inf_heap().erase_min();
@@ -411,7 +415,7 @@ namespace lp {
 
     void limit_theta_on_basis_column_for_feas_case_m_neg_no_check(
         unsigned j, const T &m, X &theta, bool &unlimited) {
-        lp_assert(m < 0);
+        SASSERT(m < 0);
         limit_theta((this->m_lower_bounds[j] - this->m_x[j]) / m, theta, unlimited);
         if (theta < zero_of_type<X>())
             theta = zero_of_type<X>();
@@ -420,7 +424,7 @@ namespace lp {
     bool limit_inf_on_bound_m_neg(const T &m, const X &x, const X &bound,
                                   X &theta, bool &unlimited) {
         // x gets smaller
-        lp_assert(m < 0);
+        SASSERT(m < 0);
         if (this->below_bound(x, bound))
             return false;
         if (this->above_bound(x, bound)) {
@@ -435,7 +439,7 @@ namespace lp {
     bool limit_inf_on_bound_m_pos(const T &m, const X &x, const X &bound,
                                   X &theta, bool &unlimited) {
         // x gets larger
-        lp_assert(m > 0);
+        SASSERT(m > 0);
         if (this->above_bound(x, bound))
             return false;
         if (this->below_bound(x, bound)) {
@@ -451,7 +455,7 @@ namespace lp {
     void limit_inf_on_lower_bound_m_pos(const T &m, const X &x, const X &bound,
                                         X &theta, bool &unlimited) {
         // x gets larger
-        lp_assert(m > 0);
+        SASSERT(m > 0);
         if (this->below_bound(x, bound)) {
             limit_theta((bound - x) / m, theta, unlimited);
         }
@@ -460,7 +464,7 @@ namespace lp {
     void limit_inf_on_upper_bound_m_neg(const T &m, const X &x, const X &bound,
                                         X &theta, bool &unlimited) {
         // x gets smaller
-        lp_assert(m < 0);
+        SASSERT(m < 0);
         if (this->above_bound(x, bound)) {
             limit_theta((bound - x) / m, theta, unlimited);
         }
@@ -490,7 +494,7 @@ namespace lp {
                                                               const T &m,
                                                               X &theta,
                                                               bool &unlimited) {
-        //  lp_assert(m < 0 && this->m_column_type[j] == column_type::boxed);
+        //  SASSERT(m < 0 && this->m_column_type[j] == column_type::boxed);
         const X &x = this->m_x[j];
         const X &ubound = this->m_upper_bounds[j];
         if (this->above_bound(x, ubound)) {
@@ -508,7 +512,7 @@ namespace lp {
 
     void limit_theta_on_basis_column_for_feas_case_m_pos_no_check(
         unsigned j, const T &m, X &theta, bool &unlimited) {
-        lp_assert(m > 0);
+        SASSERT(m > 0);
         limit_theta((this->m_upper_bounds[j] - this->m_x[j]) / m, theta, unlimited);
         if (theta < zero_of_type<X>()) {
             theta = zero_of_type<X>();
@@ -585,8 +589,6 @@ namespace lp {
                 }
 
                 break;
-            default:
-                UNREACHABLE();
         }
         if (!unlimited && theta < zero_of_type<X>()) {
             theta = zero_of_type<X>();
@@ -617,7 +619,7 @@ namespace lp {
     // the delta is between the old and the new cost (old - new)
     void update_reduced_cost_for_basic_column_cost_change(const T &delta,
                                                           unsigned j) {
-        lp_assert(this->m_basis_heading[j] >= 0);
+        SASSERT(this->m_basis_heading[j] >= 0);
         unsigned i = static_cast<unsigned>(this->m_basis_heading[j]);
         for (const row_cell<T> &rc : this->m_A.m_rows[i]) {
             unsigned k = rc.var();

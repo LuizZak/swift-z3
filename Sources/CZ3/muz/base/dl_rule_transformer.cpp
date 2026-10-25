@@ -55,7 +55,8 @@ namespace datalog {
 
     void rule_transformer::ensure_ordered() {
         if (m_dirty) {
-            std::sort(m_plugins.begin(), m_plugins.end(), plugin_comparator());
+            // Preserve registration order for plugins with the same priority.
+            std::stable_sort(m_plugins.begin(), m_plugins.end(), plugin_comparator());
             m_dirty = false;
         }
     }
@@ -71,7 +72,7 @@ namespace datalog {
 
         bool modified = false;
 
-        TRACE("dl_rule_transf", 
+        TRACE(dl_rule_transf, 
             tout<<"init:\n";
             rules.display(tout);
         );
@@ -107,7 +108,7 @@ namespace datalog {
             new_rules->ensure_closed();
 
             IF_VERBOSE(1, verbose_stream() << new_rules->get_num_rules() << " rules " << sec << "s)\n";);
-            TRACE("dl_rule_transf", 
+            TRACE(dl_rule_transf, 
                 tout << typeid(p).name()<<":\n";
                 new_rules->display(tout);
             );
@@ -148,4 +149,4 @@ namespace datalog {
 
 
 
-};
+}

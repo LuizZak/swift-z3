@@ -20,6 +20,7 @@ Revision History:
 #include "api/api_context.h"
 #include "api/api_util.h"
 #include "ast/array_decl_plugin.h"
+#include "util/manage_warnings.h"
 
 extern "C" {
 
@@ -38,6 +39,10 @@ extern "C" {
         Z3_TRY;
         LOG_Z3_mk_array_sort_n(c, n, domain, range);
         RESET_ERROR_CODE();
+        if (n == 0) {
+            SET_ERROR_CODE(Z3_INVALID_ARG, "array sort requires at least one domain sort");
+            RETURN_Z3(nullptr);
+        }
         vector<parameter> params;
         for (unsigned i = 0; i < n; ++i) params.push_back(parameter(to_sort(domain[i])));
         params.push_back(parameter(to_sort(range)));
@@ -262,13 +267,14 @@ extern "C" {
         Z3_CATCH_RETURN(nullptr);
     }
 
+    START_DISABLE_EXTRA_SEMI_WARNING;
     MK_NARY(Z3_mk_set_union, mk_c(c)->get_array_fid(), OP_SET_UNION, SKIP);
     MK_NARY(Z3_mk_set_intersect, mk_c(c)->get_array_fid(), OP_SET_INTERSECT, SKIP);
     MK_BINARY(Z3_mk_set_difference, mk_c(c)->get_array_fid(), OP_SET_DIFFERENCE, SKIP);
     MK_UNARY(Z3_mk_set_complement, mk_c(c)->get_array_fid(), OP_SET_COMPLEMENT, SKIP);
     MK_BINARY(Z3_mk_set_subset, mk_c(c)->get_array_fid(), OP_SET_SUBSET, SKIP);
     MK_BINARY(Z3_mk_array_ext, mk_c(c)->get_array_fid(), OP_ARRAY_EXT, SKIP);
-    MK_BINARY(Z3_mk_set_has_size, mk_c(c)->get_array_fid(), OP_SET_HAS_SIZE, SKIP);
+    END_DISABLE_WARNING;
 
     Z3_ast Z3_API Z3_mk_as_array(Z3_context c, Z3_func_decl f) {
         Z3_TRY;
@@ -298,6 +304,19 @@ extern "C" {
         return 
             to_sort(t)->get_family_id() == mk_c(c)->get_array_fid() &&
             to_sort(t)->get_decl_kind() == ARRAY_SORT;
+    }
+
+    unsigned Z3_API Z3_get_array_arity(Z3_context c, Z3_sort s) {
+        Z3_TRY;
+        LOG_Z3_get_array_arity(c, s);
+        RESET_ERROR_CODE();
+        sort * a = to_sort(s);
+        if (Z3_get_sort_kind(c, s) != Z3_ARRAY_SORT) {
+            SET_ERROR_CODE(Z3_INVALID_ARG, "sort should be an array");
+            return 0;
+        }
+        return get_array_arity(a);
+        Z3_CATCH_RETURN(0);
     }
 
     Z3_sort Z3_API Z3_get_array_sort_domain(Z3_context c, Z3_sort t) {
@@ -342,4 +361,4 @@ extern "C" {
         Z3_CATCH_RETURN(nullptr);
     }
 
-};
+}

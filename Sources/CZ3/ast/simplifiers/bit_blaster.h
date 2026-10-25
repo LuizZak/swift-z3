@@ -40,6 +40,7 @@ public:
     void collect_statistics(statistics& st) const override;
     void push() override;
     void pop(unsigned n) override;
+    void translate(dependent_expr_simplifier const& src, ast_translation& tr) override;
 
     /*
     * Expose the bit-blaster rewriter so that assumptions and implied bit-vectors can be reconstructed
@@ -49,6 +50,4 @@ public:
 
 };
 
-/*
-  ADD_SIMPLIFIER("bit-blast", "reduce bit-vector expressions into SAT.", "alloc(bit_blaster_simplifier, m, p, s)")
-*/
+Z3_ADD_SIMPLIFIER(bit_blast, "bit-blast", "reduce bit-vector expressions into SAT.", alloc(bit_blaster_simplifier, m, p, s));

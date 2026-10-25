@@ -1,52 +1,40 @@
-// Automatically generated file
+/*++
+Copyright (c) 2024 Microsoft Corporation
+
+Module Name:
+
+    pp_params.hpp
+
+Abstract:
+
+    Parameters for the 'pp' module.
+
+--*/
 #pragma once
+
 #include "util/params.h"
 #include "util/gparams.h"
-struct pp_params {
-  params_ref const & p;
-  params_ref g;
-  pp_params(params_ref const & _p = params_ref::get_empty()):
-     p(_p), g(gparams::get_module("pp")) {}
-  static void collect_param_descrs(param_descrs & d) {
-    d.insert("max_indent", CPK_UINT, "max. indentation in pretty printer", "4294967295","pp");
-    d.insert("max_num_lines", CPK_UINT, "max. number of lines to be displayed in pretty printer", "4294967295","pp");
-    d.insert("max_width", CPK_UINT, "max. width in pretty printer", "80","pp");
-    d.insert("max_ribbon", CPK_UINT, "max. ribbon (width - indentation) in pretty printer", "80","pp");
-    d.insert("max_depth", CPK_UINT, "max. term depth (when pretty printing SMT2 terms/formulas)", "5","pp");
-    d.insert("no_lets", CPK_BOOL, "dont print lets in low level SMT printer", "false","pp");
-    d.insert("min_alias_size", CPK_UINT, "min. size for creating an alias for a shared term (when pretty printing SMT2 terms/formulas)", "10","pp");
-    d.insert("decimal", CPK_BOOL, "pretty print real numbers using decimal notation (the output may be truncated). Z3 adds a ? if the value is not precise", "false","pp");
-    d.insert("decimal_precision", CPK_UINT, "maximum number of decimal places to be used when pp.decimal=true", "10","pp");
-    d.insert("bv_literals", CPK_BOOL, "use Bit-Vector literals (e.g, #x0F and #b0101) during pretty printing", "true","pp");
-    d.insert("fp_real_literals", CPK_BOOL, "use real-numbered floating point literals (e.g, +1.0p-1) during pretty printing", "false","pp");
-    d.insert("bv_neg", CPK_BOOL, "use bvneg when displaying Bit-Vector literals where the most significant bit is 1", "false","pp");
-    d.insert("flat_assoc", CPK_BOOL, "flat associative operators (when pretty printing SMT2 terms/formulas)", "true","pp");
-    d.insert("fixed_indent", CPK_BOOL, "use a fixed indentation for applications", "false","pp");
-    d.insert("single_line", CPK_BOOL, "ignore line breaks when true", "false","pp");
-    d.insert("bounded", CPK_BOOL, "ignore characters exceeding max width", "false","pp");
-    d.insert("pretty_proof", CPK_BOOL, "use slower, but prettier, printer for proofs", "false","pp");
-    d.insert("simplify_implies", CPK_BOOL, "simplify nested implications for pretty printing", "true","pp");
-  }
-  /*
-     REG_MODULE_PARAMS('pp', 'pp_params::collect_param_descrs')
-     REG_MODULE_DESCRIPTION('pp', 'pretty printer')
-  */
-  unsigned max_indent() const { return p.get_uint("max_indent", g, 4294967295u); }
-  unsigned max_num_lines() const { return p.get_uint("max_num_lines", g, 4294967295u); }
-  unsigned max_width() const { return p.get_uint("max_width", g, 80u); }
-  unsigned max_ribbon() const { return p.get_uint("max_ribbon", g, 80u); }
-  unsigned max_depth() const { return p.get_uint("max_depth", g, 5u); }
-  bool no_lets() const { return p.get_bool("no_lets", g, false); }
-  unsigned min_alias_size() const { return p.get_uint("min_alias_size", g, 10u); }
-  bool decimal() const { return p.get_bool("decimal", g, false); }
-  unsigned decimal_precision() const { return p.get_uint("decimal_precision", g, 10u); }
-  bool bv_literals() const { return p.get_bool("bv_literals", g, true); }
-  bool fp_real_literals() const { return p.get_bool("fp_real_literals", g, false); }
-  bool bv_neg() const { return p.get_bool("bv_neg", g, false); }
-  bool flat_assoc() const { return p.get_bool("flat_assoc", g, true); }
-  bool fixed_indent() const { return p.get_bool("fixed_indent", g, false); }
-  bool single_line() const { return p.get_bool("single_line", g, false); }
-  bool bounded() const { return p.get_bool("bounded", g, false); }
-  bool pretty_proof() const { return p.get_bool("pretty_proof", g, false); }
-  bool simplify_implies() const { return p.get_bool("simplify_implies", g, true); }
-};
+
+#define PP_PARAMS_LIST(UINT_, BOOL_, DOUBLE_, STRING_, SYMBOL_) \
+  UINT_(max_indent,         "max_indent",         UINT_MAX,  "max. indentation in pretty printer") \
+  UINT_(max_num_lines,      "max_num_lines",      UINT_MAX,  "max. number of lines to be displayed in pretty printer") \
+  UINT_(max_width,          "max_width",          80,        "max. width in pretty printer") \
+  UINT_(max_ribbon,         "max_ribbon",         80,        "max. ribbon (width - indentation) in pretty printer") \
+  UINT_(max_depth,          "max_depth",          5,         "max. term depth (when pretty printing SMT2 terms/formulas)") \
+  BOOL_(no_lets,            "no_lets",            false,     "dont print lets in low level SMT printer") \
+  UINT_(min_alias_size,     "min_alias_size",     10,        "min. size for creating an alias for a shared term (when pretty printing SMT2 terms/formulas)") \
+  BOOL_(decimal,            "decimal",            false,     "pretty print real numbers using decimal notation (the output may be truncated). Z3 adds a ? if the value is not precise") \
+  UINT_(decimal_precision,  "decimal_precision",  10,        "maximum number of decimal places to be used when pp.decimal=true") \
+  BOOL_(bv_literals,        "bv_literals",        true,      "use Bit-Vector literals (e.g, #x0F and #b0101) during pretty printing") \
+  BOOL_(fp_real_literals,   "fp_real_literals",   false,     "use real-numbered floating point literals (e.g, +1.0p-1) during pretty printing") \
+  BOOL_(bv_neg,             "bv_neg",             false,     "use bvneg when displaying Bit-Vector literals where the most significant bit is 1") \
+  BOOL_(flat_assoc,         "flat_assoc",         true,      "flat associative operators (when pretty printing SMT2 terms/formulas)") \
+  BOOL_(fixed_indent,       "fixed_indent",       false,     "use a fixed indentation for applications") \
+  BOOL_(single_line,        "single_line",        false,     "ignore line breaks when true") \
+  BOOL_(bounded,            "bounded",            false,     "ignore characters exceeding max width") \
+  BOOL_(pretty_proof,       "pretty_proof",       false,     "use slower, but prettier, printer for proofs") \
+  BOOL_(simplify_implies,   "simplify_implies",   true,      "simplify nested implications for pretty printing")
+
+Z3_DEFINE_MODULE_PARAMS(pp_params, "pp", PP_PARAMS_LIST, "pretty printer");
+
+#undef PP_PARAMS_LIST

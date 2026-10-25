@@ -249,7 +249,7 @@ class mbproj::impl {
             sub(fml, val);
             m_rw(val);
             if (!m.is_true(val)) {
-                TRACE("qe", tout << mk_pp(fml, m) << " -> " << val << "\n";);
+                TRACE(qe, tout << mk_pp(fml, m) << " -> " << val << "\n";);
                 fmls[j++] = val;
             }
         }
@@ -295,22 +295,22 @@ class mbproj::impl {
     bool project_var(model_evaluator& eval, app* var, expr_ref& fml) {
         expr_ref val = eval(var);
 
-        TRACE("mbqi_project_verbose", tout << "MBQI: var: " << mk_pp(var, m) << "\n" << "fml: " << fml << "\n";);
+        TRACE(mbqi_project_verbose, tout << "MBQI: var: " << mk_pp(var, m) << "\n" << "fml: " << fml << "\n";);
         expr_ref_vector terms(m);
         index_term_finder finder(m, var, terms);
         for_each_expr(finder, fml);
 
-        TRACE("mbqi_project_verbose", tout << "terms:\n" << terms;);
+        TRACE(mbqi_project_verbose, tout << "terms:\n" << terms;);
 
         for (expr* term : terms) {
             expr_ref tval = eval(term);
 
-            TRACE("mbqi_project_verbose", tout << "term: " << mk_pp(term, m) << " tval: " << tval << " val: " << val << "\n";);
+            TRACE(mbqi_project_verbose, tout << "term: " << mk_pp(term, m) << " tval: " << tval << " val: " << val << "\n";);
 
             // -- if the term does not contain an occurrence of var
             // -- and is in the same equivalence class in the model
             if (tval == val && !occurs(var, term)) {
-                TRACE("mbqi_project",
+                TRACE(mbqi_project,
                     tout << "MBQI: replacing " << mk_pp(var, m) << " with " << mk_pp(term, m) << "\n";);
                 expr_safe_replace sub(m);
                 sub.insert(var, term);
@@ -319,7 +319,7 @@ class mbproj::impl {
             }
         }
 
-        TRACE("mbqi_project",
+        TRACE(mbqi_project,
             tout << "MBQI: failed to eliminate " << mk_pp(var, m) << " from " << fml << "\n";);
 
         return false;
@@ -420,6 +420,49 @@ public:
         e = mk_and(fmls);
         return any_of(subterms::all(e), [&](expr* c) { return seq.is_char(c) || seq.is_seq(c); });
     }
+
+    // The array term-graph projection (mbp_qel) treats an array equality
+    // (= a b) as an implicit partial array equality and eliminates it via
+    // class-merging. That rewrite is unsound when such an equality (or an
+    // array variable being eliminated) occurs *nested inside* a select/store
+    // *index* position, because the index is a first-class term whose value
+    // must be preserved and the merge can silently change it (for example
+    // (select va (= v va)) becomes (select v true), issues #7259, #7036).
+    //
+    // An array variable that appears *directly* as an index (e.g. the store
+    // index r in (store base r val)) is not affected by this rewrite: the
+    // index is exactly that variable and mbp_qel substitutes its model value
+    // soundly. Only flag the dangerous case where the variable occurs as a
+    // proper subterm of a compound index term.
+    bool has_array_var_in_index(app_ref_vector const& vars, expr* fml) {
+        array_util au(m);
+        ptr_vector<app> arr_vars;
+        for (app* v : vars)
+            if (au.is_array(v))
+                arr_vars.push_back(v);
+        if (arr_vars.empty())
+            return false;
+        for (expr* t : subterms::all(expr_ref(fml, m))) {
+            if (!is_app(t))
+                continue;
+            app* a = to_app(t);
+            bool is_sel = au.is_select(a);
+            bool is_st = au.is_store(a);
+            if (!is_sel && !is_st)
+                continue;
+            // args[0] is the array; the trailing arg of a store is the stored
+            // value; everything in between is an index argument.
+            unsigned n = a->get_num_args();
+            unsigned last = is_st ? n - 1 : n;
+            for (unsigned i = 1; i < last; ++i) {
+                auto idx = a->get_arg(i);
+                if (any_of(arr_vars, [&](app* v) { return idx != v && occurs(v, idx); }))
+                    return true;
+            }
+        }
+        return false;
+    }
+
     void operator()(bool force_elim, app_ref_vector& vars, model& model, expr_ref_vector& fmls, vector<mbp::def>* defs = nullptr) {
         //don't use mbp_qel on some theories where model evaluation is
         //incomplete This is not a limitation of qel. Fix this either by
@@ -434,11 +477,11 @@ public:
             fmls.reset();
             flatten_and(fml, fmls);
             m_dont_sub = dsub;
-            TRACE("qe", tout << "spacer-qel " << vars << " " << fml << "\n");
+            TRACE(qe, tout << "spacer-qel " << vars << " " << fml << "\n");
         }
         else {
             mbp(force_elim, vars, model, fmls, defs);
-            TRACE("qe", tout << "mbp " << vars << " " << fmls << "\n";
+            TRACE(qe, tout << "mbp " << vars << " " << fmls << "\n";
                   if (defs) { tout << "defs: "; for (auto const& d : *defs) tout << d << "\n"; tout << "\n";});
         }
     }
@@ -449,12 +492,12 @@ public:
         app_ref var(m);
         expr_ref_vector unused_fmls(m);
         bool progress = true;
-        TRACE("qe", tout << "eliminate vars: " << vars << "fmls: " << fmls << "\n");
+        TRACE(qe, tout << "eliminate vars: " << vars << "fmls: " << fmls << "\n");
         if (!defs)
             preprocess_solve(model, vars, fmls);
         filter_variables(model, vars, fmls, unused_fmls);
         project_bools(model, vars, fmls);
-        TRACE("qe", tout << "eliminate vars: " << vars << "\nfmls: " << fmls << "\nunused: " << unused_fmls <<"\n");
+        TRACE(qe, tout << "eliminate vars: " << vars << "\nfmls: " << fmls << "\nunused: " << unused_fmls <<"\n");
         while (progress && !vars.empty() && !fmls.empty() && m.limit().inc()) {
             app_ref_vector new_vars(m);
             progress = false;
@@ -463,12 +506,12 @@ public:
                     unsigned sz = defs->size();
                     p->project(model, vars, fmls, *defs);
                     progress |= sz < defs->size();
-                    TRACE("qe", tout << "after project " << m.get_family_name(p->get_family_id()) << ": " << vars << "\n");
+                    TRACE(qe, tout << "after project " << m.get_family_name(p->get_family_id()) << ": " << vars << "\n");
                 }
                 else if (p)
-                    (*p)(model, vars, fmls);
+                    p->project(model, vars, fmls);
             }
-            TRACE("qe", tout << "projecting " << vars << "\n");
+            TRACE(qe, tout << "projecting " << vars << "\n");
             while (!vars.empty() && !fmls.empty() && !defs && m.limit().inc()) {
                 var = vars.back();
                 vars.pop_back();
@@ -503,7 +546,7 @@ public:
             vars.append(new_vars);
             if (progress && !defs) 
                 preprocess_solve(model, vars, fmls);
-            TRACE("qe", tout << "looping " << vars << "\n");
+            TRACE(qe, tout << "looping " << vars << "\n");
             
         }
         if (fmls.empty()) {
@@ -511,14 +554,14 @@ public:
         }
         fmls.append(unused_fmls);
         SASSERT(validate_model(model, fmls));
-        TRACE("qe", tout << "vars: " << vars << "\nfmls: " << fmls << "\n";);
+        TRACE(qe, tout << "vars: " << vars << "\nfmls: " << fmls << "\n";);
     }
 
     void do_qe_lite(app_ref_vector& vars, expr_ref& fml) {
         qe_lite qe(m, m_params, false);
         qe(vars, fml);
         m_rw(fml);
-        TRACE("qe", tout << "After qe_lite:\n" << fml << "\n" << "Vars: " << vars << "\n";);
+        TRACE(qe, tout << "After qe_lite:\n" << fml << "\n" << "Vars: " << vars << "\n";);
         SASSERT(!m.is_false(fml));
     }
 
@@ -527,7 +570,7 @@ public:
         qel qe(m, m_params);
         qe(vars, fml);
         m_rw(fml);
-        TRACE("qe", tout << "After qel:\n"
+        TRACE(qe, tout << "After qel:\n"
                          << fml << "\n"
                          << "Vars: " << vars << "\n";);
         SASSERT(!m.is_false(fml));
@@ -546,13 +589,22 @@ public:
         mbptg(vars, fml, mdl);
         if (reduce_all_selects) rewrite_read_over_write(fml, mdl, fml);
         m_rw(fml);
-        TRACE("qe", tout << "After mbp_tg:\n"
+        TRACE(qe, tout << "After mbp_tg:\n"
               << fml << " models " << mdl.is_true(fml) << "\n"
               << "Vars: " << vars << "\n";);
     }
 
     void spacer_qel(app_ref_vector& vars, model& mdl, expr_ref& fml) {
-        TRACE("qe", tout << "Before projection:\n" << fml << "\n" << "Vars: " << vars << "\n";);
+        TRACE(qe, tout << "Before projection:\n" << fml << "\n" << "Vars: " << vars << "\n";);
+
+        // The array term-graph projection is unsound when an array variable to
+        // be eliminated occurs inside a select/store index. Fall back to the
+        // classic model-based projection in that case (issues #7259, #7036).
+        if (has_array_var_in_index(vars, fml)) {
+            TRACE(qe, tout << "array var in index: using model-based projection\n";);
+            spacer_qe_lite(vars, mdl, fml);
+            return;
+        }
 
         model_evaluator eval(mdl, m_params);
         eval.set_model_completion(true);
@@ -562,20 +614,45 @@ public:
         arith_util ari_u(m);
         datatype_util dt_u(m);
 
+        // Remember the variables we were asked to eliminate. do_qel/qel_project
+        // can report a variable as eliminated (drop it from vars) while a
+        // simplification still leaves an occurrence of it in fml. Such a
+        // variable is a fresh, undeclared constant in the result (issue #10172).
+        app_ref_vector orig_vars(vars);
+        expr_ref orig_fml(fml, m);
+
         do_qel(vars, fml);
         qel_project(vars, mdl, fml, m_reduce_all_selects);
         flatten_and(fml);
         m_rw(fml);
         rewrite_as_const_arr(fml, mdl, fml);
 
+        eval.reset();
+        if (eval.is_false(fml)) {
+            fml = orig_fml;
+            vars.reset();
+            vars.append(orig_vars);
+            spacer_qe_lite(vars, mdl, fml);
+            return;
+        }
+
         for (app* v : vars) {
             SASSERT(!arr_u.is_array(v) && !dt_u.is_datatype(v->get_sort()));
             other_vars.push_back(v);
         }
 
+        // Recover variables that were reported eliminated but still occur in
+        // fml. Route them through the model-based projection/substitution below
+        // so they are replaced by their model values instead of leaking out as
+        // undeclared constants.
+        for (app* v : orig_vars) {
+            if (!vars.contains(v) && !other_vars.contains(v) && occurs(v, fml))
+                other_vars.push_back(v);
+        }
+
         // project reals, ints and other variables.
         if (!other_vars.empty()) {
-            TRACE("qe", tout << "Other vars: " << other_vars << "\n" << mdl;);
+            TRACE(qe, tout << "Other vars: " << other_vars << "\n" << mdl;);
 
             expr_ref_vector fmls(m);
             flatten_and(fml, fmls);
@@ -584,7 +661,7 @@ public:
             fml = mk_and(fmls);
             m_rw(fml);
 
-            TRACE("qe",
+            TRACE(qe,
                 tout << "Projected other vars:\n" << fml << "\n";
             tout << "Remaining other vars:\n" << other_vars << "\n";);
             SASSERT(!m.is_false(fml));
@@ -598,7 +675,7 @@ public:
         // substitute any remaining other vars
         if (!m_dont_sub && !other_vars.empty()) {
             subst_vars(eval, other_vars, fml);
-            TRACE("qe", tout << "After substituting remaining other vars:\n" << fml << "\n";);
+            TRACE(qe, tout << "After substituting remaining other vars:\n" << fml << "\n";);
             // an extra round of simplification because subst_vars is not simplifying
             m_rw(fml);
             other_vars.reset();
@@ -611,7 +688,7 @@ public:
     }
 
     void spacer(app_ref_vector& vars, model& mdl, expr_ref& fml) {
-        TRACE("qe", tout << "spacer " << m_use_qel << " " << fml << " " << vars << "\n");
+        TRACE(qe, tout << "spacer " << m_use_qel << " " << fml << " " << vars << "\n");
         if (m_use_qel) 
             spacer_qel(vars, mdl, fml);
         else 
@@ -619,7 +696,7 @@ public:
     }
 
     void spacer_qe_lite(app_ref_vector& vars, model& mdl, expr_ref& fml) {
-        TRACE("qe", tout << "Before projection:\n" << fml << "\n" << "Vars: " << vars << "\n";);
+        TRACE(qe, tout << "Before projection:\n" << fml << "\n" << "Vars: " << vars << "\n";);
 
         model_evaluator eval(mdl, m_params);
         eval.set_model_completion(true);
@@ -646,7 +723,7 @@ public:
                 }
             }
 
-            TRACE("qe", tout << "Array vars: " << array_vars << "\n";);
+            TRACE(qe, tout << "Array vars: " << array_vars << "\n";);
 
             vars.reset();
 
@@ -657,14 +734,14 @@ public:
             m_rw(fml);
             SASSERT(!m.is_false(fml));
 
-            TRACE("qe",
+            TRACE(qe,
                 tout << "extended model:\n" << mdl;
                 tout << "Vars: " << vars << "\n";);
         }
 
         // project reals, ints and other variables.
         if (!other_vars.empty()) {
-            TRACE("qe", tout << "Other vars: " << other_vars << "\n" << mdl;);
+            TRACE(qe, tout << "Other vars: " << other_vars << "\n" << mdl;);
 
             expr_ref_vector fmls(m);
             flatten_and(fml, fmls);
@@ -673,7 +750,7 @@ public:
             fml = mk_and(fmls);
             m_rw(fml);
 
-            TRACE("qe",
+            TRACE(qe,
                 tout << "Projected other vars:\n" << fml << "\n";
             tout << "Remaining other vars:\n" << other_vars << "\n";);
             SASSERT(!m.is_false(fml));
@@ -687,7 +764,7 @@ public:
         // substitute any remaining other vars
         if (!m_dont_sub && !other_vars.empty()) {
             subst_vars(eval, other_vars, fml);
-            TRACE("qe", tout << "After substituting remaining other vars:\n" << fml << "\n";);
+            TRACE(qe, tout << "After substituting remaining other vars:\n" << fml << "\n";);
             // an extra round of simplification because subst_vars is not simplifying
             m_rw(fml);
             other_vars.reset();

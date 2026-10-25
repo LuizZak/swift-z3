@@ -17,6 +17,8 @@ Revision History:
 
 --*/
 #include<cstdio>
+#include<cstdlib>
+#include<csignal>
 #ifndef _WINDOWS
 #include<unistd.h>
 #endif
@@ -36,11 +38,48 @@ bool assertions_enabled() {
     return g_enable_assertions;
 }
 
+#if defined(_WINDOWS)
+#include <windows.h>
+#include <dbghelp.h>
+#ifdef _MSC_VER
+#pragma comment(lib, "dbghelp.lib")
+#endif
+static void print_windows_backtrace() {
+    HANDLE process = GetCurrentProcess();
+    SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS | SYMOPT_UNDNAME);
+    SymInitialize(process, nullptr, TRUE);
+    void * stack[64];
+    USHORT frames = RtlCaptureStackBackTrace(0, 64, stack, nullptr);
+    char buf[sizeof(SYMBOL_INFO) + 256 * sizeof(char)];
+    SYMBOL_INFO * sym = reinterpret_cast<SYMBOL_INFO*>(buf);
+    sym->SizeOfStruct = sizeof(SYMBOL_INFO);
+    sym->MaxNameLen = 255;
+    IMAGEHLP_LINE64 line64;
+    line64.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+    std::cerr << "----- backtrace -----\n";
+    for (USHORT i = 0; i < frames; i++) {
+        DWORD64 addr = reinterpret_cast<DWORD64>(stack[i]);
+        const char * name = "?";
+        if (SymFromAddr(process, addr, nullptr, sym))
+            name = sym->Name;
+        DWORD disp = 0;
+        std::cerr << i << ": " << name;
+        if (SymGetLineFromAddr64(process, addr, &disp, &line64))
+            std::cerr << " (" << line64.FileName << ":" << line64.LineNumber << ")";
+        std::cerr << "\n";
+    }
+    std::cerr << "---------------------\n";
+}
+#endif
+
 void notify_assertion_violation(const char * fileName, int line, const char * condition) {
     std::cerr << "ASSERTION VIOLATION\n"
                  "File: " << fileName << "\n"
                  "Line: " << line << '\n'
               << condition << '\n';
+#if defined(_WINDOWS)
+    print_windows_backtrace();
+#endif
 #ifndef Z3DEBUG
     std::cerr << Z3_FULL_VERSION "\n"
                  "Please file an issue with this message and more detail about how you encountered it at https://github.com/Z3Prover/z3/issues/new\n";
@@ -85,7 +124,7 @@ void set_default_exit_action(exit_action a) {
     g_default_exit_action = a;
 }
 
-void invoke_exit_action(unsigned int code) {
+[[noreturn]] void invoke_exit_action(unsigned int code) {
     exit_action a = get_default_exit_action();
     switch (a) {
     case exit_action::exit:
@@ -101,9 +140,9 @@ void invoke_exit_action(unsigned int code) {
             default:
                 throw default_exception("unknown");
         }
-    default:
         exit(code);
     }
+    abort();
 }
 
 atomic<debug_action> g_default_debug_action(debug_action::ask);
@@ -117,7 +156,7 @@ void set_default_debug_action(debug_action a) {
 }
 
 debug_action ask_debug_action(std::istream& in) {
-    std::cerr << "(C)ontinue, (A)bort, (S)top, (T)hrow exception, Invoke (G)DB\n";
+    std::cerr << "(C)ontinue, (A)bort, (S)top, (T)hrow exception, Invoke (G)DB, Invoke (L)LDB\n";
     char result;
     bool ok = bool(in >> result);
     if (!ok)
@@ -137,7 +176,10 @@ debug_action ask_debug_action(std::istream& in) {
         return debug_action::throw_exception;
     case 'G':
     case 'g':
-        return debug_action::invoke_debugger;
+        return debug_action::invoke_gdb;
+    case 'L':
+    case 'l':
+        return debug_action::invoke_lldb;
     default:
         std::cerr << "INVALID COMMAND\n";
         return debug_action::ask;
@@ -145,9 +187,13 @@ debug_action ask_debug_action(std::istream& in) {
 }
 
 #if !defined(_WINDOWS) && !defined(NO_Z3_DEBUGGER)
-void invoke_gdb() {
+[[noreturn]] static void force_segfault() {
+    std::raise(SIGSEGV);
+    std::abort();
+}
+
+void invoke_debugger() {
     std::string buffer;
-    int *x = nullptr;
     debug_action a = get_default_debug_action();
     for (;;) {
         switch (a) {
@@ -157,11 +203,10 @@ void invoke_gdb() {
             exit(1);
         case debug_action::stop:
             // force seg fault...
-            *x = 0;
-            return;
+            force_segfault();
         case debug_action::throw_exception:
             throw default_exception("assertion violation");
-        case debug_action::invoke_debugger:
+        case debug_action::invoke_gdb:
             buffer = "gdb -nw /proc/" + std::to_string(getpid()) + "/exe " + std::to_string(getpid());
             std::cerr << "invoking GDB...\n";
             if (system(buffer.c_str()) == 0) {
@@ -170,12 +215,22 @@ void invoke_gdb() {
             else {
                 std::cerr << "error starting GDB...\n";
                 // forcing seg fault.
-                int *x = nullptr;
-                *x = 0;
+                force_segfault();
+            }
+            return;
+        case debug_action::invoke_lldb:
+            buffer = "lldb -p " + std::to_string(getpid());
+            std::cerr << "invoking LLDB...\n";
+            if (system(buffer.c_str()) == 0) {
+                std::cerr << "continuing the execution...\n";
+            }
+            else {
+                std::cerr << "error starting LLDB...\n";
+                // forcing seg fault.
+                force_segfault();
             }
             return;
         case debug_action::ask:
-        default:
             a = ask_debug_action(std::cin);
         }
     }

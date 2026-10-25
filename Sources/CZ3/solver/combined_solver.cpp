@@ -22,6 +22,7 @@ Notes:
 #include "util/common_msgs.h"
 #include "ast/ast_pp.h"
 #include "solver/solver.h"
+#include "solver/combined_solver.h"
 #include "solver/combined_solver_params.hpp"
 #include <atomic>
 #define PS_VB_LVL 15
@@ -96,7 +97,7 @@ private:
 
     bool has_quantifiers() const {
         unsigned sz = get_num_assertions();
-        for (unsigned i = 0; i < sz; i++) {
+        for (unsigned i = 0; i < sz; ++i) {
             if (::has_quantifiers(get_assertion(i)))
                 return true;
         }
@@ -108,10 +109,9 @@ private:
         case IUB_RETURN_UNDEF: return false;
         case IUB_USE_TACTIC_IF_QF: return !has_quantifiers();
         case IUB_USE_TACTIC: return true;
-        default:
-            UNREACHABLE();
-            return false;
         }
+        UNREACHABLE();
+        return false;
     }
 
 public:
@@ -126,7 +126,7 @@ public:
     }
 
     solver* translate(ast_manager& m, params_ref const& p) override {
-        TRACE("solver", tout << "translate\n";);
+        TRACE(solver, tout << "translate\n";);
         solver* s1 = m_solver1->translate(m, p);
         solver* s2 = m_solver2->translate(m, p);
         combined_solver* r = alloc(combined_solver, s1, s2, p);
@@ -177,11 +177,11 @@ public:
         switch_inc_mode();
         m_solver1->push();
         m_solver2->push();        
-        TRACE("pop", tout << "push\n";);
+        TRACE(pop, tout << "push\n";);
     }
     
     void pop(unsigned n) override {
-        TRACE("pop", tout << n << "\n";);
+        TRACE(pop, tout << n << "\n";);
         switch_inc_mode();
         m_solver1->pop(n);
         m_solver2->pop(n);
@@ -290,7 +290,7 @@ public:
         return m_solver1->display(out, n, es);
     }
 
-    void collect_statistics(statistics & st) const override {
+    void collect_statistics_core(statistics & st) const override {
         m_solver2->collect_statistics(st);
         if (m_use_solver1_results)
             m_solver1->collect_statistics(st);
@@ -379,6 +379,10 @@ public:
     void user_propagate_register_diseq(user_propagator::eq_eh_t& diseq_eh) override {
         m_solver2->user_propagate_register_diseq(diseq_eh);
     }
+
+    void user_propagate_register_on_binding(user_propagator::binding_eh_t& binding_eh) override {
+        m_solver2->user_propagate_register_on_binding(binding_eh);
+    }
     
     void user_propagate_register_expr(expr* e) override {
         m_solver2->user_propagate_register_expr(e);
@@ -419,6 +423,12 @@ public:
         return mk_combined_solver((*m_f1)(m, p, proofs_enabled, models_enabled, unsat_core_enabled, logic),
                                   (*m_f2)(m, p, proofs_enabled, models_enabled, unsat_core_enabled, logic),
                                   p);
+    }
+    
+    solver_factory* translate(ast_manager& m) override {
+        solver_factory* translated_f1 = m_f1->translate(m);
+        solver_factory* translated_f2 = m_f2->translate(m);
+        return alloc(combined_solver_factory, translated_f1, translated_f2);
     }
 };
 

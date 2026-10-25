@@ -76,7 +76,7 @@ class fm_tactic : public tactic {
 
             bool is_lower = false;
             bool found = false;
-            for (unsigned i = 0; i < num_lits; i++) {
+            for (unsigned i = 0; i < num_lits; ++i) {
                 expr * l = lits[i];
                 expr * atom;
                 if (is_uninterp_const(l) || (m.is_not(l, atom) && is_uninterp_const(atom))) {
@@ -109,7 +109,7 @@ class fm_tactic : public tactic {
                         num_mons = 1;
                         mons     = &lhs;
                     }
-                    for (unsigned j = 0; j < num_mons; j++) {
+                    for (unsigned j = 0; j < num_mons; ++j) {
                         expr * monomial = mons[j];
                         expr * ai;
                         expr * xi;
@@ -198,7 +198,7 @@ class fm_tactic : public tactic {
         void get_units(obj_map<expr, bool>& units) override { units.reset(); }
 
         void operator()(model_ref & md) override {
-            TRACE("fm_mc", model_v2_pp(tout, *md); display(tout););
+            TRACE(fm_mc, model_v2_pp(tout, *md); display(tout););
             model::scoped_model_completion _sc(*md, true);
             //model_evaluator ev(*(md.get()));
             //ev.set_model_completion(true);
@@ -218,23 +218,23 @@ class fm_tactic : public tactic {
                 rational val;
                 expr_ref val_e(m), val_upper_e(m), val_lower_e(m);
                 bool has_lower = false, has_upper = false;
-                TRACE("fm_mc", tout << "processing " << x->get_name() << "\n";);
+                TRACE(fm_mc, tout << "processing " << x->get_name() << "\n";);
                 for (expr* cl : m_clauses[i]) {
                     if (!m.inc()) 
                         throw tactic_exception(m.limit().get_cancel_msg());
                     switch (process(x, cl, u, *md, val, val_e)) {
                     case NONE: 
-                        TRACE("fm_mc", tout << "no bound for:\n" << mk_ismt2_pp(cl, m) << "\n";);
+                        TRACE(fm_mc, tout << "no bound for:\n" << mk_ismt2_pp(cl, m) << "\n";);
                         break;
                     case LOWER: 
-                        TRACE("fm_mc", tout << "lower bound: " << val << " for:\n" << mk_ismt2_pp(cl, m) << "\n";);
+                        TRACE(fm_mc, tout << "lower bound: " << val << " for:\n" << mk_ismt2_pp(cl, m) << "\n";);
                         if (val_e)
                             val_lower_e = val_lower_e != nullptr ? mk_max(val_lower_e, val_e) : val_e;
                         else if (!has_lower || val > lower) 
                             lower = val, has_lower = true;
                         break;
                     case UPPER: 
-                        TRACE("fm_mc", tout << "upper bound: " << val << " for:\n" << mk_ismt2_pp(cl, m) << "\n";);
+                        TRACE(fm_mc, tout << "upper bound: " << val << " for:\n" << mk_ismt2_pp(cl, m) << "\n";);
                         if (val_e)
                             val_upper_e = val_upper_e != nullptr ? mk_min(val_upper_e, val_e) : val_e;
                         else if (!has_upper || val < upper) 
@@ -270,8 +270,11 @@ class fm_tactic : public tactic {
                     if (val_upper_e && has_upper)
                         val_upper_e = mk_min(val_upper_e, u.mk_numeral(upper, false));
                     
-                    if (val_lower_e && val_upper_e)
-                        x_val = u.mk_div(u.mk_add(val_lower_e, val_upper_e), u.mk_real(2));
+                    if (val_lower_e && val_upper_e) {
+                        expr_ref sum(u.mk_add(val_lower_e, val_upper_e), m);
+                        expr_ref two(u.mk_real(2), m);
+                        x_val = u.mk_div(sum, two);
+                    }
                     else if (val_lower_e)
                         x_val = u.mk_add(val_lower_e, u.mk_real(1));
                     else if (val_upper_e)
@@ -285,10 +288,10 @@ class fm_tactic : public tactic {
                     else
                         x_val = u.mk_numeral(rational(0), false);
                 }
-                TRACE("fm_mc", tout << x->get_name() << " --> " << mk_ismt2_pp(x_val, m) << "\n";);
+                TRACE(fm_mc, tout << x->get_name() << " --> " << mk_ismt2_pp(x_val, m) << "\n";);
                 md->register_decl(x, x_val);
             }
-            TRACE("fm_mc", model_v2_pp(tout, *md););
+            TRACE(fm_mc, model_v2_pp(tout, *md););
         }
 
 
@@ -296,7 +299,7 @@ class fm_tactic : public tactic {
             out << "(fm-model-converter";
             SASSERT(m_xs.size() == m_clauses.size());
             unsigned sz = m_xs.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 out << "\n(" << m_xs[i]->get_name();
                 clauses const & cs = m_clauses[i];
                 for (auto& c : cs)
@@ -310,7 +313,7 @@ class fm_tactic : public tactic {
             ast_manager & to_m = translator.to();
             fm_model_converter * res = alloc(fm_model_converter, to_m);
             unsigned sz = m_xs.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 func_decl * new_x = translator(m_xs[i]);
                 to_m.inc_ref(new_x);
                 res->m_xs.push_back(new_x);
@@ -335,17 +338,17 @@ class fm_tactic : public tactic {
         static unsigned get_obj_size(unsigned num_lits, unsigned num_vars) {
             return sizeof(constraint) + num_lits*sizeof(literal) + num_vars*(sizeof(var) + sizeof(rational));
         }
-        unsigned           m_id;
-        unsigned           m_num_lits:29;
-        unsigned           m_strict:1;
-        unsigned           m_dead:1;
-        unsigned           m_mark:1;
-        unsigned           m_num_vars;
-        literal *          m_lits;
-        var *              m_xs;
-        rational  *        m_as;
+        unsigned           m_id = 0;
+        unsigned           m_num_lits:29 = 0;
+        unsigned           m_strict:1 = 0;
+        unsigned           m_dead:1 = 0;
+        unsigned           m_mark:1 = 0;
+        unsigned           m_num_vars = 0;
+        literal *          m_lits = nullptr;
+        var *              m_xs = nullptr;
+        rational  *        m_as = nullptr;
         rational           m_c;
-        expr_dependency *  m_dep;
+        expr_dependency *  m_dep = nullptr;
         ~constraint() {
             rational * it  = m_as;
             rational * end = it + m_num_vars;
@@ -503,7 +506,7 @@ class fm_tactic : public tactic {
             
             expr_fast_mark2 visited;
             bool all_forbidden = true;
-            for (unsigned i = 0; i < num_mons; i++) {
+            for (unsigned i = 0; i < num_mons; ++i) {
                 expr * x;
                 if (!is_linear_mon_core(mons[i], x))
                     return false;
@@ -519,7 +522,7 @@ class fm_tactic : public tactic {
         bool is_linear_ineq(expr * t) const {
             m.is_not(t, t);
             expr * lhs, * rhs;
-            TRACE("is_occ_bug", tout << mk_pp(t, m) << "\n";);
+            TRACE(is_occ_bug, tout << mk_pp(t, m) << "\n";);
             if (m_util.is_le(t, lhs, rhs) || m_util.is_ge(t, lhs, rhs)) {
                 if (!m_util.is_numeral(rhs))
                     return false;
@@ -532,7 +535,7 @@ class fm_tactic : public tactic {
             if (m_fm_occ && m.is_or(t)) {
                 unsigned num = to_app(t)->get_num_args();
                 bool found = false;
-                for (unsigned i = 0; i < num; i++) {
+                for (unsigned i = 0; i < num; ++i) {
                     expr * l = to_app(t)->get_arg(i);
                     if (is_literal(l)) {
                         continue;
@@ -566,7 +569,7 @@ class fm_tactic : public tactic {
         }
 
         void del_constraints(unsigned sz, constraint * const * cs) {
-            for (unsigned i = 0; i < sz; i++)
+            for (unsigned i = 0; i < sz; ++i)
                 del_constraint(cs[i]);
         }
         
@@ -590,18 +593,18 @@ class fm_tactic : public tactic {
             cnstr->m_strict     = strict;
             cnstr->m_num_vars   = num_vars;
             cnstr->m_lits       = reinterpret_cast<literal*>(mem_lits);
-            for (unsigned i = 0; i < num_lits; i++)
+            for (unsigned i = 0; i < num_lits; ++i)
                 cnstr->m_lits[i] = lits[i];
             cnstr->m_xs         = reinterpret_cast<var*>(mem_xs);
             cnstr->m_as         = reinterpret_cast<rational*>(mem_as);
-            for (unsigned i = 0; i < num_vars; i++) {
-                TRACE("mk_constraint_bug", tout << "xs[" << i << "]: " << xs[i] << "\n";);
+            for (unsigned i = 0; i < num_vars; ++i) {
+                TRACE(mk_constraint_bug, tout << "xs[" << i << "]: " << xs[i] << "\n";);
                 cnstr->m_xs[i] = xs[i];
                 new (cnstr->m_as + i) rational(as[i]);
             }
             cnstr->m_c = c;
             DEBUG_CODE({
-                for (unsigned i = 0; i < num_vars; i++) {
+                for (unsigned i = 0; i < num_vars; ++i) {
                     SASSERT(cnstr->m_xs[i] == xs[i]);
                     SASSERT(cnstr->m_as[i] == as[i]);
                 }
@@ -622,13 +625,13 @@ class fm_tactic : public tactic {
         // multiply as and c, by the lcm of their denominators
         void mk_int(unsigned num, rational * as, rational & c) {
             rational l = denominator(c);
-            for (unsigned i = 0; i < num; i++)
+            for (unsigned i = 0; i < num; ++i)
                 l = lcm(l, denominator(as[i]));
             if (l.is_one())
                 return;
             c *= l;
             SASSERT(c.is_int());
-            for (unsigned i = 0; i < num; i++) {
+            for (unsigned i = 0; i < num; ++i) {
                 as[i] *= l;
                 SASSERT(as[i].is_int());
             }
@@ -641,7 +644,7 @@ class fm_tactic : public tactic {
             rational g = c.m_c;
             if (g.is_neg())
                 g.neg();
-            for (unsigned i = 0; i < c.m_num_vars; i++) {
+            for (unsigned i = 0; i < c.m_num_vars; ++i) {
                 if (g.is_one())
                     break;
                 if (c.m_as[i].is_pos())
@@ -652,12 +655,12 @@ class fm_tactic : public tactic {
             if (g.is_one())
                 return;
             c.m_c /= g;
-            for (unsigned i = 0; i < c.m_num_vars; i++)
+            for (unsigned i = 0; i < c.m_num_vars; ++i)
                 c.m_as[i] /= g;
         }
         
         void display(std::ostream & out, constraint const & c) const {
-            for (unsigned i = 0; i < c.m_num_lits; i++) {
+            for (unsigned i = 0; i < c.m_num_lits; ++i) {
                 literal l = c.m_lits[i];
                 if (sign(l))
                     out << "~";
@@ -668,7 +671,7 @@ class fm_tactic : public tactic {
             out << "(";
             if (c.m_num_vars == 0)
                 out << "0";
-            for (unsigned i = 0; i < c.m_num_vars; i++) {
+            for (unsigned i = 0; i < c.m_num_vars; ++i) {
                 if (i > 0)
                     out << " + ";
                 if (!c.m_as[i].is_one())
@@ -706,12 +709,12 @@ class fm_tactic : public tactic {
             
             m_counter += c1.m_num_lits + c2.m_num_lits;
             
-            for (unsigned i = 0; i < c1.m_num_vars; i++) {
+            for (unsigned i = 0; i < c1.m_num_vars; ++i) {
                 m_var2pos[c1.m_xs[i]] = i;
             }
             
             bool failed = false;
-            for (unsigned i = 0; i < c2.m_num_vars; i++) {
+            for (unsigned i = 0; i < c2.m_num_vars; ++i) {
                 unsigned pos1 = m_var2pos[c2.m_xs[i]];
                 if (pos1 == UINT_MAX || c1.m_as[pos1] != c2.m_as[i]) {
                     failed = true;
@@ -719,31 +722,31 @@ class fm_tactic : public tactic {
                 }
             }
             
-            for (unsigned i = 0; i < c1.m_num_vars; i++) {
+            for (unsigned i = 0; i < c1.m_num_vars; ++i) {
                 m_var2pos[c1.m_xs[i]] = UINT_MAX;
             }
             
             if (failed)
                 return false;
             
-            for (unsigned i = 0; i < c2.m_num_lits; i++) {
+            for (unsigned i = 0; i < c2.m_num_lits; ++i) {
                 literal l = c2.m_lits[i];
                 bvar b    = lit2bvar(l);
                 SASSERT(m_bvar2sign[b] == 0);
                 m_bvar2sign[b] = sign(l) ? -1 : 1;
             }
             
-            for (unsigned i = 0; i < c1.m_num_lits; i++) {
+            for (unsigned i = 0; i < c1.m_num_lits; ++i) {
                 literal l = c1.m_lits[i];
                 bvar b    = lit2bvar(l);
-                char s    = sign(l) ? -1 : 1;
+                int s     = sign(l) ? -1 : 1;
                 if (m_bvar2sign[b] != s) {
                     failed = true;
                     break;
                 }
             }
             
-            for (unsigned i = 0; i < c2.m_num_lits; i++) {
+            for (unsigned i = 0; i < c2.m_num_lits; ++i) {
                 literal l = c2.m_lits[i];
                 bvar b    = lit2bvar(l);
                 m_bvar2sign[b] = 0;
@@ -761,7 +764,7 @@ class fm_tactic : public tactic {
             var      best       = UINT_MAX;
             unsigned best_sz    = UINT_MAX;
             bool     best_lower = false;
-            for (unsigned i = 0; i < c.m_num_vars; i++) {
+            for (unsigned i = 0; i < c.m_num_vars; ++i) {
                 var xi     = c.m_xs[i];
                 if (is_forbidden(xi))
                     continue; // variable is not in the index
@@ -787,7 +790,7 @@ class fm_tactic : public tactic {
                 if (c2->m_dead)
                     continue;
                 if (subsumes(c, *c2)) {
-                    TRACE("fm_subsumption", display(tout, c); tout << "\nsubsumed:\n"; display(tout, *c2); tout << "\n";);
+                    TRACE(fm_subsumption, display(tout, c); tout << "\nsubsumed:\n"; display(tout, *c2); tout << "\n";);
                     c2->m_dead = true;
                     continue;
                 }
@@ -854,11 +857,11 @@ class fm_tactic : public tactic {
             expr_fast_mark1 visited;
             forbidden_proc  proc(*this);
             unsigned sz = g.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 expr * f = g.form(i);
                 if (is_occ(f))
                     continue;
-                TRACE("is_occ_bug", tout << "not OCC:\n" << mk_ismt2_pp(f, m) << "\n";);
+                TRACE(is_occ_bug, tout << "not OCC:\n" << mk_ismt2_pp(f, m) << "\n";);
                 quick_for_each_expr(proc, visited, f);
             }
         }
@@ -905,7 +908,7 @@ class fm_tactic : public tactic {
         }
         
         bool all_int(constraint const & c) const {
-            for (unsigned i = 0; i < c.m_num_vars; i++) {
+            for (unsigned i = 0; i < c.m_num_vars; ++i) {
                 if (!is_int(c.m_xs[i]))
                     return false;
             }
@@ -924,7 +927,7 @@ class fm_tactic : public tactic {
             else {
                 bool int_cnstr = all_int(c);
                 ptr_buffer<expr> ms;
-                for (unsigned i = 0; i < c.m_num_vars; i++) {
+                for (unsigned i = 0; i < c.m_num_vars; ++i) {
                     expr * x = m_var2expr.get(c.m_xs[i]);
                     if (!int_cnstr && is_int(c.m_xs[i]))
                         x = m_util.mk_to_real(x);
@@ -955,7 +958,7 @@ class fm_tactic : public tactic {
             }
             
             ptr_buffer<expr> lits;
-            for (unsigned i = 0; i < c.m_num_lits; i++) {
+            for (unsigned i = 0; i < c.m_num_lits; ++i) {
                 literal l = c.m_lits[i];
                 if (sign(l))
                     lits.push_back(m.mk_not(m_bvar2expr.get(lit2bvar(l))));
@@ -967,7 +970,7 @@ class fm_tactic : public tactic {
             if (lits.size() == 1)
                 return to_app(lits[0]);
             else
-                return m.mk_or(lits.size(), lits.data());
+                return m.mk_or(lits);
         }
         
         var mk_var(expr * t) {
@@ -1009,7 +1012,7 @@ class fm_tactic : public tactic {
                 x = mk_var(t);
             SASSERT(m_expr2var.contains(t));
             SASSERT(m_var2expr.get(x) == t);
-            TRACE("to_var_bug", tout << mk_ismt2_pp(t, m) << " --> " << x << "\n";);
+            TRACE(to_var_bug, tout << mk_ismt2_pp(t, m) << " --> " << x << "\n";);
             return x;
         }
         
@@ -1049,7 +1052,7 @@ class fm_tactic : public tactic {
 #if Z3DEBUG
             bool found_ineq = false;
 #endif
-            for (unsigned i = 0; i < num; i++) {
+            for (unsigned i = 0; i < num; ++i) {
                 expr * l = args[i];
                 if (is_literal(l)) {
                     lits.push_back(to_literal(l));
@@ -1080,7 +1083,7 @@ class fm_tactic : public tactic {
                     }
                     
                     bool all_int = true;
-                    for (unsigned j = 0; j < num_mons; j++) {
+                    for (unsigned j = 0; j < num_mons; ++j) {
                         expr * monomial = mons[j];
                         expr * a;
                         rational a_val;
@@ -1108,7 +1111,7 @@ class fm_tactic : public tactic {
                 }
             }
             
-            TRACE("to_var_bug", tout << "before mk_constraint: "; for (unsigned i = 0; i < xs.size(); i++) tout << " " << xs[i]; tout << "\n";);
+            TRACE(to_var_bug, tout << "before mk_constraint: "; for (unsigned i = 0; i < xs.size(); ++i) tout << " " << xs[i]; tout << "\n";);
             
             constraint * new_c = mk_constraint(lits.size(),
                                                lits.data(),
@@ -1119,7 +1122,7 @@ class fm_tactic : public tactic {
                                                strict,
                                                dep);
             
-            TRACE("to_var_bug", tout << "add_constraint: "; display(tout, *new_c); tout << "\n";);
+            TRACE(to_var_bug, tout << "add_constraint: "; display(tout, *new_c); tout << "\n";);
             VERIFY(register_constraint(new_c));
         }
         
@@ -1132,13 +1135,13 @@ class fm_tactic : public tactic {
             if (is_false(*c)) {
                 del_constraint(c);
                 m_inconsistent = true;
-                TRACE("add_constraint_bug", tout << "is false "; display(tout, *c); tout << "\n";);
+                TRACE(add_constraint_bug, tout << "is false "; display(tout, *c); tout << "\n";);
                 return false;
             }
             
             bool r = false;
             
-            for (unsigned i = 0; i < c->m_num_vars; i++) {
+            for (unsigned i = 0; i < c->m_num_vars; ++i) {
                 var x = c->m_xs[i];
                 if (!is_forbidden(x)) {
                     r = true;
@@ -1155,7 +1158,7 @@ class fm_tactic : public tactic {
                 return true;
             }
             else {
-                TRACE("add_constraint_bug", tout << "all variables are forbidden "; display(tout, *c); tout << "\n";);
+                TRACE(add_constraint_bug, tout << "all variables are forbidden "; display(tout, *c); tout << "\n";);
                 m_new_goal->assert_expr(to_expr(*c), nullptr, c->m_dep);
                 del_constraint(c);
                 return false;
@@ -1164,7 +1167,7 @@ class fm_tactic : public tactic {
         
         void init_use_list(goal const & g) {
             unsigned sz = g.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 if (m_inconsistent)
                     return;
                 expr * f = g.form(i);
@@ -1204,14 +1207,14 @@ class fm_tactic : public tactic {
         void sort_candidates(var_vector & xs) {
             svector<x_cost> x_cost_vector;
             unsigned num = num_vars();
-            for (var x = 0; x < num; x++) {
+            for (var x = 0; x < num; ++x) {
                 if (!is_forbidden(x)) {
                     x_cost_vector.push_back(x_cost(x, get_cost(x)));
                 }
             }
             // x_cost_lt is not a total order on variables
             std::stable_sort(x_cost_vector.begin(), x_cost_vector.end(), x_cost_lt(m_is_int));
-            TRACE("fm",
+            TRACE(fm,
                   for (auto const& [v,c] : x_cost_vector) 
                       tout << "(" << mk_ismt2_pp(m_var2expr.get(v), m) << " " << c << ") ";
                   tout << "\n";);
@@ -1222,7 +1225,7 @@ class fm_tactic : public tactic {
         void cleanup_constraints(constraints & cs) {
             unsigned j = 0;
             unsigned sz = cs.size();
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 constraint * c = cs[i];
                 if (c->m_dead)
                     continue;
@@ -1238,7 +1241,7 @@ class fm_tactic : public tactic {
         void analyze(constraint const & c, var x, bool & all_int, bool & unit_coeff) const {
             all_int    = true;
             unit_coeff = true;
-            for (unsigned i = 0; i < c.m_num_vars; i++) {
+            for (unsigned i = 0; i < c.m_num_vars; ++i) {
                 if (!is_int(c.m_xs[i])) {
                     all_int = false;
                     return;
@@ -1304,7 +1307,7 @@ class fm_tactic : public tactic {
         }
         
         void get_coeff(constraint const & c, var x, rational & a) {
-            for (unsigned i = 0; i < c.m_num_vars; i++) {
+            for (unsigned i = 0; i < c.m_num_vars; ++i) {
                 if (c.m_xs[i] == x) {
                     a = c.m_as[i];
                     return;
@@ -1333,7 +1336,7 @@ class fm_tactic : public tactic {
             rational         new_c = l.m_c*b + u.m_c*a;
             bool             new_strict = l.m_strict || u.m_strict;
             
-            for (unsigned i = 0; i < l.m_num_vars; i++) {
+            for (unsigned i = 0; i < l.m_num_vars; ++i) {
                 var xi = l.m_xs[i];
                 if (xi == x)
                     continue;
@@ -1346,7 +1349,7 @@ class fm_tactic : public tactic {
                 SASSERT(new_xs.size() == new_as.size());
             }
             
-            for (unsigned i = 0; i < u.m_num_vars; i++) {
+            for (unsigned i = 0; i < u.m_num_vars; ++i) {
                 var xi = u.m_xs[i];
                 if (xi == x)
                     continue;
@@ -1364,7 +1367,7 @@ class fm_tactic : public tactic {
             bool all_int = true;
             unsigned sz = new_xs.size();
             unsigned j  = 0;
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 if (new_as[i].is_zero())
                     continue;
                 if (!is_int(new_xs[i]))
@@ -1384,13 +1387,13 @@ class fm_tactic : public tactic {
             }
             
             // reset m_var2pos
-            for (unsigned i = 0; i < l.m_num_vars; i++) {
+            for (unsigned i = 0; i < l.m_num_vars; ++i) {
                 m_var2pos[l.m_xs[i]] = UINT_MAX;
             }
             
             if (new_xs.empty() && (new_c.is_pos() || (!new_strict && new_c.is_zero()))) {
                 // literal is true
-                TRACE("fm", tout << "resolution " << x << " consequent literal is always true: \n";
+                TRACE(fm, tout << "resolution " << x << " consequent literal is always true: \n";
                       display(tout, l);
                       tout << "\n";
                       display(tout, u); tout << "\n";);
@@ -1398,7 +1401,7 @@ class fm_tactic : public tactic {
             }
             
             new_lits.reset();
-            for (unsigned i = 0; i < l.m_num_lits; i++) {
+            for (unsigned i = 0; i < l.m_num_lits; ++i) {
                 literal lit = l.m_lits[i];
                 bvar    p   = lit2bvar(lit);
                 m_bvar2sign[p] = sign(lit) ? -1 : 1;
@@ -1406,7 +1409,7 @@ class fm_tactic : public tactic {
             }
             
             bool tautology = false;
-            for (unsigned i = 0; i < u.m_num_lits && !tautology; i++) {
+            for (unsigned i = 0; i < u.m_num_lits && !tautology; ++i) {
                 literal lit = u.m_lits[i];
                 bvar    p   = lit2bvar(lit);
                 switch (m_bvar2sign[p]) {
@@ -1427,14 +1430,14 @@ class fm_tactic : public tactic {
             }
             
             // reset m_bvar2sign
-            for (unsigned i = 0; i < l.m_num_lits; i++) {
+            for (unsigned i = 0; i < l.m_num_lits; ++i) {
                 literal lit = l.m_lits[i];
                 bvar    p   = lit2bvar(lit);
                 m_bvar2sign[p] = 0;
             }
             
             if (tautology) {
-                TRACE("fm", tout << "resolution " << x << " tautology: \n";
+                TRACE(fm, tout << "resolution " << x << " tautology: \n";
                       display(tout, l);
                       tout << "\n";
                       display(tout, u); tout << "\n";);
@@ -1444,7 +1447,7 @@ class fm_tactic : public tactic {
             expr_dependency * new_dep = m.mk_join(l.m_dep, u.m_dep);
             
             if (new_lits.empty() && new_xs.empty() && (new_c.is_neg() || (new_strict && new_c.is_zero()))) {
-                TRACE("fm", tout << "resolution " << x << " inconsistent: \n";
+                TRACE(fm, tout << "resolution " << x << " inconsistent: \n";
                       display(tout, l);
                       tout << "\n";
                       display(tout, u); tout << "\n";);
@@ -1462,7 +1465,7 @@ class fm_tactic : public tactic {
                                                    new_strict,
                                                    new_dep);
 
-            TRACE("fm", tout << "resolution " << x << "\n";
+            TRACE(fm, tout << "resolution " << x << "\n";
                   display(tout, l);
                   tout << "\n";
                   display(tout, u);
@@ -1485,7 +1488,7 @@ class fm_tactic : public tactic {
             if (l.empty() || u.empty()) {
                 // easy case
                 mark_constraints_dead(x);
-                TRACE("fm", tout << "variables was eliminated (trivial case)\n";);
+                TRACE(fm, tout << "variables was eliminated (trivial case)\n";);
                 return true;
             }
             
@@ -1503,17 +1506,17 @@ class fm_tactic : public tactic {
             
             m_counter += num_lowers * num_uppers;
             
-            TRACE("fm_bug", tout << "eliminating " << mk_ismt2_pp(m_var2expr.get(x), m) << "\nlowers:\n";
+            TRACE(fm_bug, tout << "eliminating " << mk_ismt2_pp(m_var2expr.get(x), m) << "\nlowers:\n";
                   display_constraints(tout, l); tout << "uppers:\n"; display_constraints(tout, u););
             
             unsigned num_old_cnstrs = num_uppers + num_lowers;
             unsigned limit          = num_old_cnstrs + m_fm_extra;
             unsigned num_new_cnstrs = 0;
             new_constraints.reset();
-            for (unsigned i = 0; i < num_lowers; i++) {
-                for (unsigned j = 0; j < num_uppers; j++) {
+            for (unsigned i = 0; i < num_lowers; ++i) {
+                for (unsigned j = 0; j < num_uppers; ++j) {
                     if (m_inconsistent || num_new_cnstrs > limit) {
-                        TRACE("fm", tout << "too many new constraints: " << num_new_cnstrs << "\n";);
+                        TRACE(fm, tout << "too many new constraints: " << num_new_cnstrs << "\n";);
                         del_constraints(new_constraints.size(), new_constraints.data());
                         return false;
                     }
@@ -1533,12 +1536,12 @@ class fm_tactic : public tactic {
             
             m_counter += sz;
             
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 constraint * c = new_constraints[i];
                 backward_subsumption(*c);
                 register_constraint(c);
             }
-            TRACE("fm", tout << "variables was eliminated old: " << num_old_cnstrs << " new_constraints: " << sz << "\n";);
+            TRACE(fm, tout << "variables was eliminated old: " << num_old_cnstrs << " new_constraints: " << sz << "\n";);
             return true;
         }
         
@@ -1548,7 +1551,7 @@ class fm_tactic : public tactic {
                     if (!c->m_dead) {
                         c->m_dead = true;
                         expr * new_f = to_expr(*c);
-                        TRACE("fm_bug", tout << "asserting...\n" << mk_ismt2_pp(new_f, m) << "\nnew_dep: " << c->m_dep << "\n";);
+                        TRACE(fm_bug, tout << "asserting...\n" << mk_ismt2_pp(new_f, m) << "\nnew_dep: " << c->m_dep << "\n";);
                         m_new_goal->assert_expr(new_f, nullptr, c->m_dep);
                     }
                 }
@@ -1589,7 +1592,7 @@ class fm_tactic : public tactic {
                 m_new_goal->assert_expr(m.mk_false(), nullptr, m_inconsistent_core);
             }
             else {
-                TRACE("fm", display(tout););
+                TRACE(fm, display(tout););
                 
                 subsume();
                 var_vector candidates;
@@ -1601,7 +1604,7 @@ class fm_tactic : public tactic {
                     m_mc = alloc(fm_model_converter, m);
                 
                 unsigned num = candidates.size();
-                for (unsigned i = 0; i < num; i++) {
+                for (unsigned i = 0; i < num; ++i) {
                     checkpoint();
                     if (m_counter > m_fm_limit)
                         break;
@@ -1623,7 +1626,7 @@ class fm_tactic : public tactic {
             }
             reset_constraints();
             result.push_back(m_new_goal.get());
-            TRACE("fm", m_new_goal->display(tout););
+            TRACE(fm, m_new_goal->display(tout););
         }
         
         void display_constraints(std::ostream & out, constraints const & cs) const {
@@ -1636,7 +1639,7 @@ class fm_tactic : public tactic {
         
         void display(std::ostream & out) const {
             unsigned num = num_vars();
-            for (var x = 0; x < num; x++) {
+            for (var x = 0; x < num; ++x) {
                 if (is_forbidden(x))
                     continue;
                 out << mk_ismt2_pp(m_var2expr.get(x), m) << "\n";

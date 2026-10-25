@@ -103,11 +103,9 @@ namespace sat {
                     out << "ext: " << w.get_ext_constraint_idx();
                 }
                 break;
-            default: 
-                UNREACHABLE();
             }
         }
         return out;
     }
 
-};
+}

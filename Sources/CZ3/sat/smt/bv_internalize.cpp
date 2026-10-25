@@ -90,7 +90,7 @@ namespace bv {
         m_wpos.push_back(0);
         m_zero_one_bits.push_back(zero_one_bits());       
         ctx.attach_th_var(n, this, r);        
-        TRACE("bv", tout << "mk-var: v" << r << " " << n->get_expr_id() << " " << mk_bounded_pp(n->get_expr(), m) << "\n";);
+        TRACE(bv, tout << "mk-var: v" << r << " " << n->get_expr_id() << " " << mk_bounded_pp(n->get_expr(), m) << "\n";);
         return r;
     }
 
@@ -139,7 +139,7 @@ namespace bv {
         SASSERT(!n || !n->is_attached_to(get_id()));
         bool suppress_args = !reflect() 
             && !m.is_considered_uninterpreted(a->get_decl())
-            && !bv.is_int2bv(e) && !bv.is_bv2int(e);
+            && !bv.is_int2bv(e) && !bv.is_ubv2int(e);
         if (!n)
             n = mk_enode(e, suppress_args);
 
@@ -176,11 +176,11 @@ namespace bv {
         case OP_BNEG:             internalize_un(mk_neg); break;
         case OP_BREDAND:          internalize_un(mk_redand); break;
         case OP_BREDOR:           internalize_un(mk_redor); break;
-        case OP_BSDIV_I:          internalize_bin(mk_sdiv); break;
-        case OP_BUDIV_I:          internalize_bin(mk_udiv); break;
-        case OP_BUREM_I:          internalize_bin(mk_urem); break;
-        case OP_BSREM_I:          internalize_bin(mk_srem); break;
-        case OP_BSMOD_I:          internalize_bin(mk_smod); break;
+        case OP_BSDIV_I:          internalize_bin(mk_sdiv); assert_bv_divrem_bound_axiom(a); break;
+        case OP_BUDIV_I:          internalize_bin(mk_udiv); assert_bv_divrem_bound_axiom(a); break;
+        case OP_BUREM_I:          internalize_bin(mk_urem); assert_bv_divrem_bound_axiom(a); break;
+        case OP_BSREM_I:          internalize_bin(mk_srem); assert_bv_divrem_bound_axiom(a); break;
+        case OP_BSMOD_I:          internalize_bin(mk_smod); assert_bv_divrem_bound_axiom(a); break;
         case OP_BSHL:             internalize_bin(mk_shl); break;
         case OP_BLSHR:            internalize_bin(mk_lshr); break;
         case OP_BASHR:            internalize_bin(mk_ashr); break;
@@ -202,6 +202,14 @@ namespace bv {
         case OP_BUMUL_NO_OVFL:    internalize_nfl(mk_umul_no_overflow); break;
         case OP_BSMUL_NO_OVFL:    internalize_nfl(mk_smul_no_overflow); break;
         case OP_BSMUL_NO_UDFL:    internalize_nfl(mk_smul_no_underflow); break;
+        case OP_BUMUL_OVFL:
+        case OP_BSMUL_OVFL:
+        case OP_BSDIV_OVFL:
+        case OP_BNEG_OVFL:
+        case OP_BUADD_OVFL:
+        case OP_BSADD_OVFL:
+        case OP_BUSUB_OVFL:
+        case OP_BSSUB_OVFL:       internalize_overflow(a); break;
         case OP_BIT2BOOL:         internalize_bit2bool(a); break;
         case OP_ULEQ:             internalize_le<false, false, false>(a); break;
         case OP_SLEQ:             internalize_le<true,  false, false>(a); break;
@@ -219,7 +227,8 @@ namespace bv {
         case OP_REPEAT:           internalize_repeat(a); break;
         case OP_MKBV:             internalize_mkbv(a); break;
         case OP_INT2BV:           internalize_int2bv(a); break;
-        case OP_BV2INT:           internalize_bv2int(a); break;
+        case OP_UBV2INT:          internalize_bv2int(a); break;
+        case OP_SBV2INT:          throw default_exception("sbv_to_int is not handled. Pre-processing should have removed it");
         case OP_BUDIV:            internalize_int(bv.mk_bv_udiv_i, bv.mk_bv_udiv0); break;
         case OP_BSDIV:            internalize_int(bv.mk_bv_sdiv_i, bv.mk_bv_sdiv0); break;
         case OP_BSREM:            internalize_int(bv.mk_bv_srem_i, bv.mk_bv_srem0); break;
@@ -239,15 +248,15 @@ namespace bv {
     }
 
     void solver::mk_bits(theory_var v) {
-        TRACE("bv", tout << "v" << v << "@" << s().scope_lvl() << "\n";);
+        TRACE(bv, tout << "v" << v << "@" << s().scope_lvl() << "\n";);
         expr* e = var2expr(v);
         unsigned bv_size = get_bv_size(v);
         m_bits[v].reset();
-        for (unsigned i = 0; i < bv_size; i++) {
+        for (unsigned i = 0; i < bv_size; ++i) {
             expr_ref b2b(bv.mk_bit2bool(e, i), m);
             m_bits[v].push_back(sat::null_literal);
             sat::literal lit = ctx.internalize(b2b, false, false);
-            TRACE("bv", tout << "add-bit: " << lit << " " << literal2expr(lit) << "\n";);
+            TRACE(bv, tout << "add-bit: " << lit << " " << literal2expr(lit) << "\n";);
             if (m_bits[v].back() == sat::null_literal)
                 m_bits[v].back() = lit;
             SASSERT(m_bits[v].back() == lit);
@@ -292,7 +301,7 @@ namespace bv {
         SASSERT(l == mk_true() || ~l == mk_true());
         bool is_true = l == mk_true();
         zero_one_bits& bits = m_zero_one_bits[v];
-        TRACE("bv", tout << "register v" << v << " " << l << " " << mk_true() << "\n";);
+        TRACE(bv, tout << "register v" << v << " " << l << " " << mk_true() << "\n";);
         bits.push_back(zero_one_bit(v, idx, is_true));
     }
 
@@ -302,7 +311,7 @@ namespace bv {
     void solver::add_bit(theory_var v, literal l) {
         unsigned idx = m_bits[v].size();
         m_bits[v].push_back(l);
-        TRACE("bv", tout << "add-bit: v" << v << "[" << idx << "] " << l << " " << literal2expr(l) << "@" << s().scope_lvl() << "\n";);
+        TRACE(bv, tout << "add-bit: v" << v << "[" << idx << "] " << l << " " << literal2expr(l) << "@" << s().scope_lvl() << "\n";);
         SASSERT(m_num_scopes == 0);
         s().set_external(l.var());
         euf::enode* n = bool_var2enode(l.var());
@@ -345,7 +354,7 @@ namespace bv {
             unsigned i = 0;
             for (expr* bit : bits) {
                 sat::literal lit = ctx.internalize(bit, false, false);
-                TRACE("bv", tout << "set " << m_bits[v][i] << " == " << lit << "\n";);
+                TRACE(bv, tout << "set " << m_bits[v][i] << " == " << lit << "\n";);
                 add_clause(~lit, m_bits[v][i]);
                 add_clause(lit, ~m_bits[v][i]);
                 ++i;
@@ -389,7 +398,7 @@ namespace bv {
         SASSERT(bits.size() == sz);
         SASSERT(m_bits[v].empty());
         sat::literal true_literal = mk_true();
-        for (unsigned i = 0; i < sz; i++) {
+        for (unsigned i = 0; i < sz; ++i) {
             expr* l = bits.get(i);
             SASSERT(m.is_true(l) || m.is_false(l));
             m_bits[v].push_back(m.is_true(l) ? true_literal : ~true_literal);
@@ -415,7 +424,7 @@ namespace bv {
 
     void solver::assert_bv2int_axiom(app* n) {
         expr* k = nullptr;        
-        VERIFY(bv.is_bv2int(n, k));
+        VERIFY(bv.is_ubv2int(n, k));
         SASSERT(bv.is_bv_sort(k->get_sort()));
         expr_ref_vector k_bits(m);
         euf::enode* k_enode = expr2enode(k);
@@ -461,7 +470,7 @@ namespace bv {
         VERIFY(bv.is_int2bv(n, e));      
         euf::enode* n_enode = expr2enode(n);
         expr_ref lhs(m), rhs(m);
-        lhs = bv.mk_bv2int(n);
+        lhs = bv.mk_ubv2int(n);
         unsigned sz = bv.get_bv_size(n);
         numeral mod = power(numeral(2), sz);
         rhs = m_autil.mk_mod(e, m_autil.mk_int(mod));
@@ -535,6 +544,20 @@ namespace bv {
         internalize_binary(a, bin);
     }
 
+    // Add, on the fly, the magnitude bound axioms for division/remainder operators.
+    // Uses the shared bv_util::mk_bv_divrem_bound clause builder so the axiom matches the one
+    // produced by the bv-divrem-bounds simplifier. Only fires for a symbolic divisor.
+    void solver::assert_bv_divrem_bound_axiom(app* a) {
+        expr_ref_vector clause(m);
+        bv.mk_bv_divrem_bound(a, clause);
+        if (clause.empty())
+            return;
+        sat::literal_vector lits;
+        for (expr* e : clause)
+            lits.push_back(mk_literal(e));
+        add_clause(lits);
+    }
+
     void solver::internalize_interp(app* n, std::function<expr* (expr*, expr*)>& ibin, std::function<expr* (expr*)>& iun) {
         bv_rewriter_params p(s().params());
         expr* arg1 = n->get_arg(0);
@@ -588,7 +611,7 @@ namespace bv {
             bits.swap(new_bits);
         }        
         init_bits(e, bits);
-        TRACE("bv_verbose", tout << arg_bits << " " << bits << " " << new_bits << "\n";);
+        TRACE(bv_verbose, tout << arg_bits << " " << bits << " " << new_bits << "\n";);
     }
 
     void solver::internalize_novfl(app* n, std::function<void(unsigned, expr* const*, expr* const*, expr_ref&)>& fn) {
@@ -610,6 +633,106 @@ namespace bv {
         ctx.push(mk_atom_trail(l.var(), *this));
         add_clause(l, ~def);
         add_clause(def, ~l);
+    }
+
+    void solver::internalize_overflow(app* n) {
+        expr_ref def_expr(m);
+        expr* arg0 = n->get_arg(0);
+
+        switch (n->get_decl_kind()) {
+        case OP_BUMUL_OVFL: {
+            SASSERT(n->get_num_args() == 2);
+            SASSERT(bv.get_bv_size(arg0) == bv.get_bv_size(n->get_arg(1)));
+            expr_ref no_ovfl(bv.mk_bvumul_no_ovfl(arg0, n->get_arg(1)), m);
+            def_expr = m.mk_not(no_ovfl);
+            break;
+        }
+        case OP_BSMUL_OVFL: {
+            SASSERT(n->get_num_args() == 2);
+            expr* arg1 = n->get_arg(1);
+            SASSERT(bv.get_bv_size(arg0) == bv.get_bv_size(arg1));
+            expr_ref no_ovfl(bv.mk_bvsmul_no_ovfl(arg0, arg1), m);
+            expr_ref no_udfl(bv.mk_bvsmul_no_udfl(arg0, arg1), m);
+            expr_ref overflow(m.mk_not(no_ovfl), m);
+            expr_ref underflow(m.mk_not(no_udfl), m);
+            def_expr = m.mk_or(overflow, underflow);
+            break;
+        }
+        case OP_BUADD_OVFL: {
+            SASSERT(n->get_num_args() == 2);
+            SASSERT(bv.get_bv_size(arg0) == bv.get_bv_size(n->get_arg(1)));
+            unsigned sz = bv.get_bv_size(arg0);
+            expr_ref a_ext(bv.mk_zero_extend(1, arg0), m);
+            expr_ref b_ext(bv.mk_zero_extend(1, n->get_arg(1)), m);
+            expr_ref sum(bv.mk_bv_add(a_ext, b_ext), m);
+            expr_ref carry(bv.mk_extract(sz, sz, sum), m);
+            expr_ref one(bv.mk_one(1), m);
+            def_expr = m.mk_eq(carry.get(), one.get());
+            break;
+        }
+        case OP_BSADD_OVFL: {
+            SASSERT(n->get_num_args() == 2);
+            expr* arg1 = n->get_arg(1);
+            SASSERT(bv.get_bv_size(arg0) == bv.get_bv_size(arg1));
+            unsigned sz = bv.get_bv_size(arg0);
+            expr_ref zero(bv.mk_zero(sz), m);
+            expr_ref sum(bv.mk_bv_add(arg0, arg1), m);
+            expr_ref a_pos(bv.mk_slt(zero, arg0), m);
+            expr_ref b_pos(bv.mk_slt(zero, arg1), m);
+            expr_ref sum_npos(bv.mk_sle(sum, zero), m);
+            expr_ref overflow(m.mk_and(a_pos, b_pos, sum_npos), m);
+            expr_ref a_neg(bv.mk_slt(arg0, zero), m);
+            expr_ref b_neg(bv.mk_slt(arg1, zero), m);
+            expr_ref sum_nneg(bv.mk_sle(zero, sum), m);
+            expr_ref underflow(m.mk_and(a_neg, b_neg, sum_nneg), m);
+            def_expr = m.mk_or(overflow, underflow);
+            break;
+        }
+        case OP_BUSUB_OVFL: {
+            SASSERT(n->get_num_args() == 2);
+            SASSERT(bv.get_bv_size(arg0) == bv.get_bv_size(n->get_arg(1)));
+            expr_ref ule(bv.mk_ule(n->get_arg(1), arg0), m);
+            def_expr = m.mk_not(ule);
+            break;
+        }
+        case OP_BSSUB_OVFL: {
+            SASSERT(n->get_num_args() == 2);
+            expr* arg1 = n->get_arg(1);
+            SASSERT(bv.get_bv_size(arg0) == bv.get_bv_size(arg1));
+            unsigned sz = bv.get_bv_size(arg0);
+            expr_ref minSigned(bv.mk_numeral(rational::power_of_two(sz - 1), sz), m);
+            expr_ref neg_b(bv.mk_bv_neg(arg1), m);
+            expr_ref saddo(bv.mk_bvsadd_ovfl(arg0, neg_b), m);
+            expr_ref zero(bv.mk_zero(sz), m);
+            expr_ref a_geq_zero(bv.mk_sle(zero, arg0), m);
+            expr_ref b_is_min(m.mk_eq(arg1, minSigned.get()), m);
+            def_expr = m.mk_ite(b_is_min, a_geq_zero, saddo);
+            break;
+        }
+        case OP_BSDIV_OVFL: {
+            SASSERT(n->get_num_args() == 2);
+            SASSERT(bv.get_bv_size(arg0) == bv.get_bv_size(n->get_arg(1)));
+            unsigned sz = bv.get_bv_size(arg0);
+            expr_ref minSigned(bv.mk_numeral(rational::power_of_two(sz - 1), sz), m);
+            expr_ref minusOne(bv.mk_numeral(rational::power_of_two(sz) - 1, sz), m);
+            expr_ref a_is_min(m.mk_eq(arg0, minSigned.get()), m);
+            expr_ref b_is_minus_one(m.mk_eq(n->get_arg(1), minusOne.get()), m);
+            def_expr = m.mk_and(a_is_min, b_is_minus_one);
+            break;
+        }
+        case OP_BNEG_OVFL: {
+            SASSERT(n->get_num_args() == 1);
+            unsigned sz = bv.get_bv_size(arg0);
+            expr_ref minSigned(bv.mk_numeral(rational::power_of_two(sz - 1), sz), m);
+            def_expr = m.mk_eq(arg0, minSigned.get());
+            break;
+        }
+        default:
+            UNREACHABLE();
+        }
+
+        sat::literal def = ctx.internalize(def_expr, false, false);
+        add_def(def, expr2literal(n));
     }
 
     void solver::internalize_concat(app* n) {
@@ -674,7 +797,7 @@ namespace bv {
         sat::literal lit0 = m_bits[v_arg][idx];
         if (lit0 == sat::null_literal) {
             m_bits[v_arg][idx] = lit;
-            TRACE("bv", tout << "add-bit: " << lit << " " << literal2expr(lit) << "\n";);
+            TRACE(bv, tout << "add-bit: " << lit << " " << literal2expr(lit) << "\n";);
             atom* a = new (get_region()) atom(lit.var());
             a->m_occs = new (get_region()) var_pos_occ(v_arg, idx);
             insert_bv2a(lit.var(), a);
@@ -759,7 +882,7 @@ namespace bv {
         expr_ref oe = mk_var_eq(v1, v2);
         literal oeq = ctx.internalize(oe, false, false);
         unsigned sz = m_bits[v1].size();
-        TRACE("bv", tout << "ackerman-eq: " << s().scope_lvl() << " " << oe << "\n";);
+        TRACE(bv, tout << "ackerman-eq: " << s().scope_lvl() << " " << oe << "\n";);
         literal_vector eqs;
         eqs.push_back(oeq);
         for (unsigned i = 0; i < sz; ++i) {
@@ -770,7 +893,7 @@ namespace bv {
             add_clause(eq, ~oeq);
             eqs.push_back(~eq);
         }
-        TRACE("bv", for (auto l : eqs) tout << mk_bounded_pp(literal2expr(l), m) << " "; tout << "\n";);
+        TRACE(bv, for (auto l : eqs) tout << mk_bounded_pp(literal2expr(l), m) << " "; tout << "\n";);
         euf::th_proof_hint* ph = ctx.mk_smt_clause(name(), eqs.size(), eqs.data());
         s().mk_clause(eqs, sat::status::th(true, m.get_basic_family_id(), ph));
     }

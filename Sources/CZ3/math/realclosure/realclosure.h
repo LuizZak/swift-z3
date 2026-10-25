@@ -28,6 +28,7 @@ Notes:
 #include "math/interval/interval.h"
 #include "util/z3_exception.h"
 #include "util/rlimit.h"
+#include "util/manage_warnings.h"
 
 namespace realclosure {
     class num;
@@ -298,7 +299,7 @@ namespace realclosure {
 
         int get_sign_condition_sign(numeral const &a, unsigned i);
 
-        bool get_interval(numeral const & a, int & lower_is_inf, int & lower_is_open, numeral & lower, int & upper_is_inf, int & upper_is_open, numeral & upper);
+        bool get_interval(numeral const & a, bool & lower_is_inf, bool & lower_is_open, numeral & lower, bool & upper_is_inf, bool & upper_is_open, numeral & upper);
 
         unsigned num_sign_condition_coefficients(numeral const &a, unsigned i);
 
@@ -317,7 +318,7 @@ namespace realclosure {
         void * data() { return m_value; }
         static num mk(void * ptr) { num r; r.m_value = reinterpret_cast<value*>(ptr); return r; }
     };
-};
+}
 
 typedef realclosure::manager             rcmanager;
 typedef rcmanager::numeral               rcnumeral;
@@ -339,12 +340,14 @@ RCF_MK_COMPARISON_CORE(EXTERNAL, INTERNAL, int)     \
 RCF_MK_COMPARISON_CORE(EXTERNAL, INTERNAL, mpz)     \
 RCF_MK_COMPARISON_CORE(EXTERNAL, INTERNAL, mpq)
 
+START_DISABLE_EXTRA_SEMI_WARNING;
 RCF_MK_COMPARISON(operator==, eq);
 RCF_MK_COMPARISON(operator!=, neq);
 RCF_MK_COMPARISON(operator<,  lt);
 RCF_MK_COMPARISON(operator<=, le);
 RCF_MK_COMPARISON(operator>,  gt);
 RCF_MK_COMPARISON(operator>=, ge);
+END_DISABLE_WARNING;
 
 #undef RCF_MK_COMPARISON
 #undef RCF_MK_COMPARISON_CORE
@@ -364,10 +367,12 @@ RCF_MK_BINARY_CORE(EXTERNAL, INTERNAL, int)      \
 RCF_MK_BINARY_CORE(EXTERNAL, INTERNAL, mpz)      \
 RCF_MK_BINARY_CORE(EXTERNAL, INTERNAL, mpq)
 
-RCF_MK_BINARY(operator+, add)
-RCF_MK_BINARY(operator-, sub)
-RCF_MK_BINARY(operator*, mul)
-RCF_MK_BINARY(operator/, div)
+START_DISABLE_EXTRA_SEMI_WARNING;
+RCF_MK_BINARY(operator+, add);
+RCF_MK_BINARY(operator-, sub);
+RCF_MK_BINARY(operator*, mul);
+RCF_MK_BINARY(operator/, div);
+END_DISABLE_WARNING;
 
 #undef RCF_MK_BINARY
 #undef RCF_MK_BINARY_CORE

@@ -17,6 +17,7 @@
 --*/
 
 #include "sat/sat_proof_trim.h"
+#include <sstream>
 
 namespace sat {
 
@@ -65,7 +66,7 @@ namespace sat {
     }
     
     void proof_trim::del(literal_vector const& cl, clause* cp) {
-        CTRACE("sat", cp, tout << "del " << *cp << "\n");
+        CTRACE(sat, cp, tout << "del " << *cp << "\n");
         if (cp) 
             s.detach_clause(*cp);
         else 
@@ -80,6 +81,15 @@ namespace sat {
      * Possible optimization: 
      * - check if clause contains a literal that is on implied on the trail
      *   if it doesn't contain any such literal, bypass the trail adjustment.
+     *
+     * Only the literal whose justification is cl itself is implied by cl.
+     * A literal of cl that was already true when cl was added (cl satisfied)
+     * is justified by an earlier clause, and that clause may since have been
+     * deleted. Unassigning it would lose a level-0 fact of the solver for
+     * good: the re-propagation at the next probe does not re-derive it from a
+     * detached clause, and a later inference that relied on it is then not
+     * derivable by unit propagation, so its probe fails and the dependencies
+     * reported for it are incomplete.
      */
 
     void proof_trim::prune_trail(literal_vector const& cl, clause* cp) {
@@ -100,12 +110,36 @@ namespace sat {
             s.m_assignment[(~l).index()] = l_undef;
         };
         
+        auto justified_by_cl = [&](literal l) {
+            if (!m_in_clause.contains(l.index()))
+                return false;
+            auto js = s.get_justification(l);
+            if (cp)
+                return js.is_clause() && &s.get_clause(js) == cp;
+            if (cl.size() == 2) {
+                if (!js.is_binary_clause() || !m_in_clause.contains(js.get_literal().index()))
+                    return false;
+                // The copies of a binary clause share one justification; the
+                // literal stays implied while another copy remains attached.
+                // Limitation: the attached copies are told apart only by
+                // count, so a log that deletes a binary clause (big::reduce_tr
+                // logs such deletions) and later adds it again can still lose
+                // a fact derived from the deleted copy. The result is the
+                // explicit error below at a later probe, not a wrong core.
+                unsigned copies = 0;
+                for (watched const& w : s.get_wlist(~cl[0]))
+                    if (w.is_binary_clause() && w.get_literal() == cl[1])
+                        ++copies;
+                return copies <= 1;
+            }
+            return cl.size() == 1 && js.is_none();
+        };
+
         bool on_trail = false;
         unsigned j = 0;
         for (unsigned i = 0; i < s.trail_size(); ++i) {
             literal l = s.trail_literal(i);
-            if (m_in_clause.contains(l.index())) {
-                SASSERT(!on_trail);
+            if (!on_trail && justified_by_cl(l)) {
                 on_trail = true;
                 unassign_literal(l);
                 continue;
@@ -122,8 +156,8 @@ namespace sat {
                     in_coi |= m_in_coi.contains(lit.index());                
             else if (js.is_binary_clause())
                 in_coi = m_in_coi.contains(js.get_literal().index());
-            else if (js.is_none()) {                
-                verbose_stream() << "none " << js << "\n";
+            else if (js.is_none()) {
+                IF_VERBOSE(10, verbose_stream() << "none " << js << "\n");
             }
             else if (js.is_ext_justification()) {
                 verbose_stream() << js << "\n";
@@ -190,8 +224,18 @@ namespace sat {
                 s.m_qhead = 0;
                 s.propagate(false);
             }
-            if (!s.inconsistent())
-                IF_VERBOSE(0, s.display(verbose_stream()));
+            if (!s.inconsistent()) {
+                // The step is not derivable by unit propagation from the
+                // clauses before it. The conflict state is stale here, so
+                // the dependencies collected from it would be arbitrary and
+                // incomplete; a consumer of the trimmed log must not see a
+                // core it cannot replay as if it were the proof's.
+                s.pop(1);
+                std::ostringstream strm;
+                strm << "proof trimming: the inferred clause " << cl
+                     << " is not derivable by unit propagation from the preceding clauses";
+                throw default_exception(strm.str());
+            }
             for (unsigned i = trail_size0; i < s.m_trail.size(); ++i)
                 m_propagated[s.m_trail[i].var()] = true;
         }
@@ -203,7 +247,11 @@ namespace sat {
             add_dependency(s.m_not_l);
             l = ~s.m_not_l;
         }
-        add_core(l, s.m_conflict);
+        // A probe over a clause that a level-0 fact already satisfies fails
+        // at the assumption itself: the conflict carries no clause, and the
+        // fact's justification (added above) is the whole dependency.
+        if (!probe || !s.m_conflict.is_none() || s.m_not_l == null_literal)
+            add_core(l, s.m_conflict);
         add_dependency(s.m_conflict);
         
         for (unsigned i = s.m_trail.size(); i-- > trail_size0; ) {
@@ -226,9 +274,11 @@ namespace sat {
             if (!s.is_marked(v))
                 s.mark(v);
         }
-        else if (s.lvl(v) == 0)  // literal depends on level 0, it is not assumed by ~C
+        else if (s.lvl(v) == 0) { // literal depends on level 0, it is not assumed by ~C
             // inefficient for repeated insertions ? 
-            add_core(v);                       
+            add_core(v);           
+            add_dependency(s.get_justification(v));
+        }
     }
     
     void proof_trim::add_dependency(justification j) {
@@ -284,6 +334,11 @@ namespace sat {
         }
         std::sort(m_clause.begin(), m_clause.end());
         IF_VERBOSE(3, verbose_stream() << "add core {" << m_clause << "}\n");
+        if (!m_clauses.contains(m_clause)) {
+            std::ostringstream strm;
+            strm << "proof trimming: internal error, the clause " << m_clause << " used by the proof was never added";
+            throw default_exception(strm.str());
+        }
         auto& [clauses, id, in_core] = m_clauses.find(m_clause);
         in_core = true;
         insert_dep(id);
@@ -294,6 +349,11 @@ namespace sat {
                 m_clause2.reset();
                 m_clause2.push_back(s.value(lit) == l_false ? ~lit : lit);
                 auto& [clauses, id, in_core] = m_clauses.insert_if_not_there(m_clause2, {{}, UINT_MAX, true });
+                // The unit may be the step under analysis itself when a
+                // probe re-derives its literal from earlier clauses; the
+                // proof does not depend on it then.
+                if (id != UINT_MAX && id >= m_result.back().first)
+                    continue;
                 in_core = true;
                 if (id != UINT_MAX)
                     insert_dep(id);
@@ -314,7 +374,7 @@ namespace sat {
 
     clause* proof_trim::del(literal_vector const& cl) {
         clause* cp = nullptr;
-        TRACE("sat", tout << "del: " << cl << "\n");
+        TRACE(sat, tout << "del: " << cl << "\n");
         if (cl.size() == 2) {
             s.detach_bin_clause(cl[0], cl[1], true);
             return cp;
@@ -325,7 +385,7 @@ namespace sat {
         auto& [clauses, id, in_core] = e->get_data().m_value;
         if (!clauses.empty()) {
             cp = clauses.back();
-            TRACE("sat", tout << "del: " << *cp << "\n");
+            TRACE(sat, tout << "del: " << *cp << "\n");
             s.detach_clause(*cp);
             clauses.pop_back();
         }
@@ -371,6 +431,8 @@ namespace sat {
             unsigned undef_idx = m_clause.size();
             for (unsigned i = 0; i < m_clause.size(); ++i) {
                 sat::literal lit = (*cl)[i];
+                if (s.value(lit) == l_true)
+                    return false;
                 if (s.value(lit) != l_undef)
                     continue;
                 if (undef_idx < m_clause.size())

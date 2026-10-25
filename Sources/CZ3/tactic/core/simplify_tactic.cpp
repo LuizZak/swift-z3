@@ -51,7 +51,7 @@ struct simplify_tactic::imp {
         expr_ref   new_curr(m());
         proof_ref  new_pr(m());
         unsigned size = g.size();
-        for (unsigned idx = 0; idx < size; idx++) {
+        for (unsigned idx = 0; idx < size; ++idx) {
             if (g.inconsistent())
                 break;
             expr * curr = g.form(idx);
@@ -63,9 +63,9 @@ struct simplify_tactic::imp {
             }
             g.update(idx, new_curr, new_pr, g.dep(idx));
         }
-        TRACE("simplifier", g.display(tout););
+        TRACE(simplifier, g.display(tout););
         g.elim_redundancies();
-        TRACE("after_simplifier_detail", g.display_with_dependencies(tout););
+        TRACE(after_simplifier_detail, g.display_with_dependencies(tout););
     }
 
     unsigned get_num_steps() const { return m_num_steps; }

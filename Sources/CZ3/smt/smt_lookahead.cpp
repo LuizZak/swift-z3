@@ -18,6 +18,7 @@ Revision History:
 --*/
 
 #include <cmath>
+#include <tuple>
 #include "ast/ast_pp.h"
 #include "ast/ast_ll_pp.h"
 #include "smt/smt_lookahead.h"
@@ -60,7 +61,8 @@ namespace smt {
         compare(context& ctx): ctx(ctx) {}
 
         bool operator()(bool_var v1, bool_var v2) const {
-            return ctx.get_activity(v1) > ctx.get_activity(v2);
+            return std::tuple{-ctx.get_activity(v1), v1} <
+                   std::tuple{-ctx.get_activity(v2), v2};
         }
     };
     
@@ -72,9 +74,14 @@ namespace smt {
         svector<bool_var> vars;
         for (bool_var v = 0; v < static_cast<bool_var>(sz); ++v) {
             expr* b = ctx.bool_var2expr(v);
-            if (b && ctx.get_assignment(v) == l_undef) {
-                vars.push_back(v);
-            }
+            if (!b)
+                continue;
+            if (ctx.get_assignment(v) != l_undef)
+                continue;
+            if (m.is_and(b) || m.is_or(b) || m.is_not(b) || m.is_ite(b) || m.is_implies(b) || m.is_iff(b) || m.is_xor(b))
+                continue; // do not choose connectives
+            vars.push_back(v);
+            
         }
         compare comp(ctx);
         std::sort(vars.begin(), vars.end(), comp);

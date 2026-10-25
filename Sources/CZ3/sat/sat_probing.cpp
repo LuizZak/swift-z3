@@ -52,7 +52,7 @@ namespace sat {
         entry.m_available = true;
         entry.m_lits.reset();
         unsigned tr_sz = s.m_trail.size();
-        for (unsigned i = old_tr_sz; i < tr_sz; i++) {
+        for (unsigned i = old_tr_sz; i < tr_sz; ++i) {
             entry.m_lits.push_back(s.m_trail[i]);
             if (s.m_config.m_drat) {
                 s.m_drat.add(~l, s.m_trail[i], status::redundant());
@@ -82,13 +82,13 @@ namespace sat {
         else {
             m_to_assert.reset();
             s.push();
-            TRACE("sat", tout << "probing " << l << "\n";);
+            TRACE(sat, tout << "probing " << l << "\n";);
             s.assign_scoped(l);
             m_counter--;
             unsigned old_tr_sz = s.m_trail.size();
             s.propagate(false);
             if (s.inconsistent()) {
-                TRACE("sat", tout << "probe failed: " << ~l << "\n";);
+                TRACE(sat, tout << "probe failed: " << ~l << "\n";);
                 // ~l must be true
                 s.drat_explain_conflict();
                 s.pop(1);
@@ -98,7 +98,7 @@ namespace sat {
             }
             // collect literals that were assigned after assigning l
             unsigned tr_sz = s.m_trail.size();
-            for (unsigned i = old_tr_sz; i < tr_sz; i++) {
+            for (unsigned i = old_tr_sz; i < tr_sz; ++i) {
                 if (m_assigned.contains(s.m_trail[i])) {
                     m_to_assert.push_back(s.m_trail[i]);
                 }
@@ -121,19 +121,19 @@ namespace sat {
     }
 
     void probing::process_core(bool_var v) {
-        TRACE("probing", tout << "processing: " << v << " counter: " << -m_counter << "\n";);
+        TRACE(probing, tout << "processing: " << v << " counter: " << -m_counter << "\n";);
         SASSERT(s.m_qhead == s.m_trail.size());
         SASSERT(s.value(v) == l_undef);
         m_counter--;
         s.push();
         literal l(v, false);
         s.assign_scoped(l);
-        TRACE("sat", tout << "probing " << l << "\n";);
+        TRACE(sat, tout << "probing " << l << "\n";);
         unsigned old_tr_sz = s.m_trail.size();
         s.propagate(false);
         if (s.inconsistent()) {
             // ~l must be true
-            TRACE("sat", tout << "probe failed: " << ~l << "\n";
+            TRACE(sat, tout << "probe failed: " << ~l << "\n";
                   s.display(tout););
             s.drat_explain_conflict();
             s.pop(1);
@@ -145,7 +145,7 @@ namespace sat {
         // collect literals that were assigned after assigning l
         m_assigned.reset();
         unsigned tr_sz = s.m_trail.size();
-        for (unsigned i = old_tr_sz; i < tr_sz; i++) {
+        for (unsigned i = old_tr_sz; i < tr_sz; ++i) {
             literal lit = s.m_trail[i];
             m_assigned.insert(lit);
 
@@ -219,7 +219,10 @@ namespace sat {
                        if (!p.m_equivs.empty()) verbose_stream() << " :equivs " << p.m_equivs.size();
                        verbose_stream() << " :cost " << p.m_counter;
                        if (p.m_stopped_at != 0) verbose_stream() << " :stopped-at " << p.m_stopped_at;
-                       verbose_stream() << mem_stat() << m_watch << ")\n";);
+                       if (!get_suppress_platform_verbose()) {
+                           verbose_stream() << mem_stat() << m_watch;
+                       }
+                       verbose_stream() << ")\n";);
         }
     };
 
@@ -246,7 +249,7 @@ namespace sat {
         int limit = -static_cast<int>(m_probing_limit);
         unsigned i;
         unsigned num = s.num_vars();
-        for (i = 0; i < num; i++) {
+        for (i = 0; i < num; ++i) {
             bool_var v = (m_stopped_at + i) % num;
             if (m_counter < limit) {
                 m_stopped_at = v;
@@ -322,4 +325,4 @@ namespace sat {
     void probing::reset_statistics() {
         m_num_assigned = 0;
     }
-};
+}

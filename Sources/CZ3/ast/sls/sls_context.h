@@ -38,21 +38,21 @@ namespace sls {
         family_id m_fid;
     public:
         plugin(context& c);
-        virtual ~plugin() {}
+        virtual ~plugin() = default;
         virtual family_id fid() { return m_fid; }
         virtual void register_term(expr* e) = 0;
         virtual expr_ref get_value(expr* e) = 0;
         virtual bool is_fixed(expr* e, expr_ref& value) { return false; }
         virtual void initialize() = 0;
-        virtual void start_propagation() {};
+        virtual void start_propagation() {}
         virtual bool propagate() = 0;
         virtual void propagate_literal(sat::literal lit) = 0;
         virtual void repair_literal(sat::literal lit) = 0;
         virtual bool repair_down(app* e) = 0;
         virtual void repair_up(app* e) = 0;
         virtual bool is_sat() = 0;
-        virtual void on_rescale() {};
-        virtual void on_restart() {};
+        virtual void on_rescale() {}
+        virtual void on_restart() {}
         virtual std::ostream& display(std::ostream& out) const = 0;
         virtual bool set_value(expr* e, expr* v) = 0;
         virtual void collect_statistics(statistics& st) const = 0;
@@ -65,7 +65,7 @@ namespace sls {
 
     class sat_solver_context {
     public:
-        virtual ~sat_solver_context() {}
+        virtual ~sat_solver_context() = default;
         virtual vector<sat::clause_info> const& clauses() const = 0;
         virtual sat::clause_info const& get_clause(unsigned idx) const = 0;
         virtual ptr_iterator<unsigned> get_use_list(sat::literal lit) = 0;
@@ -86,6 +86,7 @@ namespace sls {
         virtual void force_restart() = 0;
         virtual std::ostream& display(std::ostream& out) = 0;
         virtual reslimit& rlimit() = 0;
+        virtual uint64_t timestamp(sat::bool_var v) = 0;
     };
     
     class context {
@@ -125,7 +126,6 @@ namespace sls {
         random_gen m_rand;
         bool m_initialized = false;
         bool m_new_constraint = false;
-        bool m_dirty = false;
         expr_ref_vector m_input_assertions;
         expr_ref_vector m_allterms;
         ptr_vector<expr> m_subterms;
@@ -196,6 +196,7 @@ namespace sls {
         void shift_weights() { s.shift_weights(); }
         bool try_rotate(sat::bool_var v, sat::bool_var_set& rotated, unsigned& budget) { return s.try_rotate(v, rotated, budget); }
         double reward(sat::bool_var v) { return s.reward(v); }
+        uint64_t timestamp(sat::bool_var v) { return s.timestamp(v); }
         indexed_uint_set const& unsat() const { return s.unsat(); }
         indexed_uint_set const& unsat_vars() const { return s.unsat_vars(); }
         unsigned num_external_in_unsat_vars() const { return s.num_external_in_unsat_vars(); }

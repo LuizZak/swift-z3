@@ -26,13 +26,15 @@ void decl_collector::visit_sort(sort * n) {
     family_id fid = n->get_family_id();
     if (m.is_uninterp(n))
         m_sorts.push_back(n);
+    else if (fid == poly_family_id)
+        m_type_vars.push_back(n);
     else if (fid == m_dt_fid) {
         m_sorts.push_back(n);
         for (func_decl * cnstr : *m_dt_util.get_datatype_constructors(n)) {
             m_todo.push_back(cnstr);
             ptr_vector<func_decl> const & cnstr_acc = *m_dt_util.get_constructor_accessors(cnstr);
             unsigned num_cas = cnstr_acc.size();
-            for (unsigned j = 0; j < num_cas; j++) 
+            for (unsigned j = 0; j < num_cas; ++j) 
                 m_todo.push_back(cnstr_acc.get(j));            
         }
     }
@@ -126,8 +128,6 @@ void decl_collector::visit(ast* n) {
             }
             case AST_VAR:
                 break;
-            default:
-                UNREACHABLE();
             }
             m_visited.mark(n, true);
             m_trail.push_back(n);
@@ -163,7 +163,7 @@ void decl_collector::collect_deps(sort* s, sort_set& set) {
         for (unsigned i = 0; i < num_sorts; ++i) 
             set.insert(m_dt_util.get_datatype_parameter_sort(s, i));
         unsigned num_cnstr = m_dt_util.get_datatype_num_constructors(s);
-        for (unsigned i = 0; i < num_cnstr; i++) {
+        for (unsigned i = 0; i < num_cnstr; ++i) {
             func_decl * cnstr = m_dt_util.get_datatype_constructors(s)->get(i);
             set.insert(cnstr->get_range());
             for (unsigned j = 0; j < cnstr->get_arity(); ++j) {
@@ -188,6 +188,7 @@ void decl_collector::collect_deps(sort* s, sort_set& set) {
 void decl_collector::push() {
     m_trail_lim.push_back(m_trail.size());
     m_sorts.push_scope();
+    m_type_vars.push_scope();
     m_decls.push_scope();
     m_rec_decls.push_scope();
 }
@@ -200,6 +201,7 @@ void decl_collector::pop(unsigned n) {
     m_trail.shrink(sz);
     m_trail_lim.shrink(m_trail_lim.size() - n);
     m_sorts.pop_scope(n);
+    m_type_vars.pop_scope(n);
     m_decls.pop_scope(n);
     m_rec_decls.pop_scope(n);
 }

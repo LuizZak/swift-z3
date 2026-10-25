@@ -106,7 +106,7 @@ namespace datalog {
             }            
             
         }
-        TRACE("dl", result->display(tout););
+        TRACE(dl, result->display(tout););
         return result.detach();
     }
 
@@ -130,4 +130,4 @@ namespace datalog {
         return app_ref(m.mk_app(g, q->get_num_args(), q->get_args()), m);        
     }
 
-};
+}

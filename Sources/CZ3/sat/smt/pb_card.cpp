@@ -51,7 +51,9 @@ namespace pb {
         double to_add = do_add ? 0 : 1;
         for (literal l : *this) {
             switch (s.value(l)) {
-            case l_true:  --k; if (k == 0) return 0;
+            case l_true:
+                --k; if (k == 0) return 0;
+                Z3_fallthrough;
             case l_undef:
                 if (do_add) to_add += literal_occs(l);
                 ++slack; break;
@@ -124,7 +126,7 @@ namespace pb {
             if (!is_watched(s, root)) watch_literal(s, root);
             if (!is_pure() && !is_watched(s, ~root)) watch_literal(s, ~root);
         }
-        TRACE("ba", display(tout << "init watch: ", s, true););
+        TRACE(ba, display(tout << "init watch: ", s, true););
         SASSERT(root == sat::null_literal || s.value(root) == l_true);
         unsigned j = 0, sz = c.size(), bound = c.k();
         // put the non-false literals into the head.

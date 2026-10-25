@@ -23,6 +23,7 @@ Revision History:
 #include "util/statistics.h"
 #include "util/params.h"
 #include "smt/smt_types.h"
+#include "tactic/user_propagator_base.h"
 #include <tuple>
 
 class proto_model;
@@ -59,12 +60,12 @@ namespace smt {
         bool add_instance(quantifier * q, app * pat,
                           unsigned num_bindings,
                           enode * const * bindings,
-                          expr* def,
                           unsigned max_generation,
                           unsigned min_top_generation,
                           unsigned max_top_generation,
-                          vector<std::tuple<enode *, enode *>> & used_enodes /*gives the equalities used for the pattern match, see mam.cpp for more info*/);
-        bool add_instance(quantifier * q, unsigned num_bindings, enode * const * bindings, expr* def, unsigned generation = 0);
+                          vector<std::tuple<enode *, enode *>> & used_enodes /*gives the equalities used for the pattern match, see mam.cpp for more info*/,
+                          bool mbqi_instance = false);
+        bool add_instance(quantifier * q, unsigned num_bindings, enode * const * bindings, unsigned generation = 0);
 
         void init_search_eh();
         void assign_eh(quantifier * q);
@@ -94,7 +95,10 @@ namespace smt {
         void display_stats(std::ostream & out, quantifier * q) const;
 
         void collect_statistics(::statistics & st) const;
+        void collect_instances(vector<std::pair<expr_ref, app_ref>> & out);
         void reset_statistics();
+
+        void register_on_binding(std::function<bool(quantifier*, expr*)> & f);
 
         ptr_vector<quantifier>::const_iterator begin_quantifiers() const;
         ptr_vector<quantifier>::const_iterator end_quantifiers() const;
@@ -175,8 +179,16 @@ namespace smt {
         virtual void push() = 0;
         virtual void pop(unsigned num_scopes) = 0;
 
+        /**
+           \brief Try to refine a match using higher-order matching.
+           Returns true if the pattern was an HO pattern and refinement was attempted.
+           In that case, the plugin handles adding instances via the refined bindings.
+        */
+        virtual bool refine_instance(quantifier* q, app* pat, unsigned num_bindings, enode* const* bindings,
+                                     unsigned max_generation, unsigned min_top_generation, unsigned max_top_generation,
+                                     vector<std::tuple<enode*, enode*>>& used_enodes) { return false; }
 
+        virtual void collect_statistics(::statistics & st) const {}
 
     };
-};
-
+}

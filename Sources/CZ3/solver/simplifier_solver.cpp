@@ -51,6 +51,7 @@ class simplifier_solver : public solver {
         bool updated() override { return m_updated; }
         void reset_updated() override { m_updated = false; }
         model_reconstruction_trail& model_trail() override { return m_reconstruction_trail; }
+        model_reconstruction_trail const& model_trail() const override { return m_reconstruction_trail; }
         std::ostream& display(std::ostream& out) const override {
             unsigned i = 0;
             for (auto const& d : s.m_fmls) {
@@ -90,14 +91,19 @@ class simplifier_solver : public solver {
                     continue;
                 if (s.m.is_and(f)) {
                     auto* d = s.m_fmls[i].dep();
+                    proof_ref p(s.m_fmls[i].pr(), s.m);
+                    unsigned index = 0;
                     for (expr* arg : *to_app(f))
-                        add(dependent_expr(s.m, arg, nullptr, d));
+                        add(dependent_expr(s.m, arg, p ? s.m.mk_and_elim(p, index++) : nullptr, d));
                     continue;
                 }
                 if (s.m.is_not(f, g) && s.m.is_or(g)) {
                     auto* d = s.m_fmls[i].dep();
+                    proof_ref p(s.m_fmls[i].pr(), s.m);
+                    unsigned index = 0;
                     for (expr* arg : *to_app(g))
-                        add(dependent_expr(s.m, mk_not(s.m, arg), nullptr, d));
+                        add(dependent_expr(s.m, mk_not(s.m, arg),
+                                           p ? s.m.mk_not_or_elim(p, index++) : nullptr, d));
                     continue;
                 }
                 if (i != j)
@@ -113,6 +119,7 @@ class simplifier_solver : public solver {
     vector<dependent_expr>      m_fmls;
     dep_expr_state              m_preprocess_state;
     then_simplifier             m_preprocess;
+    simplifier_factory          m_factory;
     expr_ref_vector             m_assumptions;
     model_converter_ref         m_mc;
     bool                        m_inconsistent = false;
@@ -126,23 +133,54 @@ class simplifier_solver : public solver {
         }
     }
 
+    expr* consequence_representative(expr* e) {
+        expr_mark visited;
+        ptr_vector<expr> todo;
+        expr* result = nullptr;
+        todo.push_back(e);
+        while (!todo.empty()) {
+            expr* current = todo.back();
+            todo.pop_back();
+            if (visited.is_marked(current))
+                continue;
+            visited.mark(current, true);
+            if (is_uninterp_const(current)) {
+                if (result && result != current)
+                    return nullptr;
+                result = current;
+            }
+            else if (is_app(current)) {
+                for (expr* arg : *to_app(current))
+                    todo.push_back(arg);
+            }
+            else if (is_quantifier(current)) {
+                todo.push_back(to_quantifier(current)->get_expr());
+            }
+        }
+        return result;
+    }
+
     void flush(expr_ref_vector& assumptions) {
+        m_cached_model = nullptr;
         unsigned qhead = m_preprocess_state.qhead();
         expr_ref_vector orig_assumptions(assumptions);
         m_core_replace.reset();
         m_preprocess_state.replay(qhead, assumptions);   
-        for (unsigned i = 0; i < assumptions.size(); ++i) 
-            m_core_replace.insert(assumptions.get(i), orig_assumptions.get(i));                    
 
         if (qhead < m_fmls.size()) {
             m_preprocess.reduce();
             if (!m.inc())
                 return;
-            TRACE("solver", tout << "qhead " << qhead << "\n";
+            // Simplification may introduce definitions for expressions passed
+            // as assumptions or consequence variables in this flush.
+            m_preprocess_state.replay(qhead, assumptions);
+            TRACE(solver, tout << "qhead " << qhead << "\n";
                   m_preprocess_state.display(tout));
             m_preprocess_state.advance_qhead();
         }
 
+        for (unsigned i = 0; i < assumptions.size(); ++i)
+            m_core_replace.insert(assumptions.get(i), orig_assumptions.get(i));
         m_mc = m_preprocess_state.model_trail().get_model_converter(); 
         m_cached_mc = nullptr;
         for (; qhead < m_fmls.size(); ++qhead)
@@ -159,8 +197,11 @@ class simplifier_solver : public solver {
         m.linearize(de.dep(), m_deps);
         m_assumptions.reset();
         for (expr* d : m_deps) 
-            m_assumptions.push_back(d);        
-        s->assert_expr(de.fml(), mk_and(m_assumptions));
+            m_assumptions.push_back(d);
+        if (m.proofs_enabled())
+            s->assert_expr(m.mk_implies(mk_and(m_assumptions), de.fml()));
+        else
+            s->assert_expr(de.fml(), mk_and(m_assumptions));
     }
 
     bool inconsistent() const {
@@ -186,8 +227,10 @@ public:
         m_core_replace(m),
         m_proof(m)
     {
-        if (fac) 
-            m_preprocess.add_simplifier((*fac)(m, s->get_params(), m_preprocess_state));
+        if (fac) {
+            m_factory = *fac;
+            m_preprocess.add_simplifier(m_factory(m, s->get_params(), m_preprocess_state));
+        }
         else 
             init_preprocess(m, s->get_params(), m_preprocess, m_preprocess_state);
     }
@@ -195,7 +238,18 @@ public:
     void assert_expr_core2(expr* t, expr* a) override {
         m_cached_model = nullptr;
         m_cached_mc    = nullptr;
-        proof* pr = m.proofs_enabled() ? m.mk_asserted(t) : nullptr;
+        proof_ref pr(m);
+        if (m.proofs_enabled()) {
+            if (a) {
+                proof_ref assumption(m.mk_asserted(a), m);
+                proof_ref implication(m.mk_asserted(m.mk_implies(a, t)), m);
+                pr = m.mk_modus_ponens(assumption, implication);
+                // Register original labels, not compound dependencies that create fresh proxies.
+                s->assert_expr(m.mk_true(), a);
+            }
+            else
+                pr = m.mk_asserted(t);
+        }
         m_fmls.push_back(dependent_expr(m, t, pr, m.mk_leaf(a)));
     }
 
@@ -225,24 +279,24 @@ public:
     lbool check_sat_core(unsigned num_assumptions, expr* const* assumptions) override { 
         expr_ref_vector _assumptions(m, num_assumptions, assumptions);
         flush(_assumptions);
-        TRACE("simplifier", tout << _assumptions);
+        TRACE(simplifier, tout << _assumptions);
         return s->check_sat_core(num_assumptions, _assumptions.data()); 
     }
 
-    void collect_statistics(statistics& st) const override { 
+    void collect_statistics_core(statistics& st) const override { 
         s->collect_statistics(st); 
         m_preprocess.collect_statistics(st);
     }
 
     model_ref m_cached_model;
     void get_model_core(model_ref& m) override {       
-        CTRACE("simplifier", m_mc.get(), m_mc->display(tout));
+        CTRACE(simplifier, m_mc.get(), m_mc->display(tout));
         if (m_cached_model) {
             m = m_cached_model;
             return;
         }
         s->get_model(m); 
-        if (m_mc)
+        if (m_mc && m)
             (*m_mc)(m);
         m_cached_model = m;        
     }
@@ -255,9 +309,27 @@ public:
             expr_ref tmp(p, m);
             expr_safe_replace sub(m);
             for (auto const& d : m_fmls) {
-                if (d.pr()) 
-                    sub.insert(m.mk_asserted(d.fml()), d.pr());                
+                if (!d.pr())
+                    continue;
+                expr_ref fact(d.fml(), m);
+                proof_ref pr(d.pr(), m);
+                if (d.dep()) {
+                    ptr_vector<expr> dependencies;
+                    expr_ref_vector assumptions(m);
+                    m.linearize(d.dep(), dependencies);
+                    for (expr* dependency : dependencies)
+                        assumptions.push_back(dependency);
+                    fact = m.mk_implies(mk_and(assumptions), d.fml());
+                    proof_ref weaken(m.mk_def_axiom(m.mk_or(m.mk_not(d.fml()), fact)), m);
+                    pr = m.mk_unit_resolution({weaken.get(), pr.get()}, fact);
+                }
+                sub.insert(m.mk_asserted(fact), pr);
             }
+            for (unsigned i = 0; i < s->get_num_assumptions(); ++i) {
+                expr_ref fact(m.mk_implies(s->get_assumption(i), m.mk_true()), m);
+                sub.insert(m.mk_asserted(fact), m.mk_def_axiom(fact));
+            }
+            sub.insert(m.mk_asserted(m.mk_true()), m.mk_def_axiom(m.mk_true()));
             sub(tmp);
             SASSERT(is_app(tmp));
             m_proof = to_app(tmp);
@@ -266,15 +338,21 @@ public:
     }
 
     solver* translate(ast_manager& m, params_ref const& p) override { 
-        solver* new_s = s->translate(m, p);
         ast_translation tr(get_manager(), m);
-        simplifier_solver* result = alloc(simplifier_solver, new_s, nullptr); // factory?
+        solver* new_s = s->translate(m, p);
+        SASSERT(s->get_num_assertions() == new_s->get_num_assertions());
+        for (unsigned i = 0; i < s->get_num_assertions(); ++i)
+            tr.seed(s->get_assertion(i), new_s->get_assertion(i));
+        simplifier_factory* factory = m_factory ? &m_factory : nullptr;
+        simplifier_solver* result = alloc(simplifier_solver, new_s, factory);
         for (dependent_expr const& f : m_fmls) 
             result->m_fmls.push_back(dependent_expr(tr, f));
+        result->m_preprocess.translate(m_preprocess, tr);
+        result->m_preprocess_state.translate(m_preprocess_state, tr);
+        result->m_inconsistent = m_inconsistent;
         if (m_mc) 
-            result->m_mc = dynamic_cast<generic_model_converter*>(m_mc->translate(tr));
+            result->m_mc = m_mc->translate(tr);
 
-        // copy m_preprocess_state?
         return result;
     }    
 
@@ -319,8 +397,60 @@ public:
         flush(es);
         expr_ref_vector asms1(m, asms.size(), es.data());
         expr_ref_vector vars1(m, vars.size(), es.data() + asms.size());
-        lbool r = s->get_consequences(asms1, vars1, consequences);
-        replace(consequences);        
+        expr_ref_vector query_vars(m);
+        for (expr* v : vars1) {
+            expr* representative = consequence_representative(v);
+            query_vars.push_back(representative ? representative : v);
+        }
+        lbool r = s->get_consequences(asms1, query_vars, consequences);
+
+        th_rewriter rw(m);
+        for (unsigned i = 0; i < consequences.size(); ++i) {
+            expr* premise = nullptr, *conclusion = nullptr;
+            expr* lhs = nullptr, *rhs = nullptr;
+            expr* query = nullptr, *value = nullptr;
+            if (!m.is_implies(consequences.get(i), premise, conclusion))
+                continue;
+            if (m.is_eq(conclusion, lhs, rhs)) {
+                for (expr* q : query_vars) {
+                    if (lhs == q) {
+                        query = lhs;
+                        value = rhs;
+                        break;
+                    }
+                    if (rhs == q) {
+                        query = rhs;
+                        value = lhs;
+                        break;
+                    }
+                }
+            }
+            else if (is_uninterp_const(conclusion)) {
+                query = conclusion;
+                value = m.mk_true();
+            }
+            else if (m.is_not(conclusion, query) && is_uninterp_const(query)) {
+                value = m.mk_false();
+            }
+            if (!query)
+                continue;
+
+            for (unsigned j = 0; j < query_vars.size(); ++j) {
+                if (query_vars.get(j) != query || vars.get(j) == vars1.get(j))
+                    continue;
+                expr_safe_replace sub(m);
+                expr_ref decoded(m), new_premise(premise, m);
+                sub.insert(query, value);
+                sub(vars1.get(j), decoded);
+                rw(decoded);
+                consequences[i] = m.mk_implies(
+                    new_premise,
+                    m.mk_eq(vars.get(j), decoded));
+                query = nullptr;
+                break;
+            }
+        }
+        replace(consequences);
         return r;
     }
 
@@ -387,7 +517,10 @@ public:
     void user_propagate_register_fixed(user_propagator::fixed_eh_t& fixed_eh) override { s->user_propagate_register_fixed(fixed_eh); }    
     void user_propagate_register_final(user_propagator::final_eh_t& final_eh) override { s->user_propagate_register_final(final_eh); }
     void user_propagate_register_eq(user_propagator::eq_eh_t& eq_eh) override { s->user_propagate_register_eq(eq_eh); }    
-    void user_propagate_register_diseq(user_propagator::eq_eh_t& diseq_eh) override { s->user_propagate_register_diseq(diseq_eh); }    
+    void user_propagate_register_diseq(user_propagator::eq_eh_t& diseq_eh) override { s->user_propagate_register_diseq(diseq_eh); } 
+    void user_propagate_register_on_binding(user_propagator::binding_eh_t& binding_eh) override { 
+        s->user_propagate_register_on_binding(binding_eh); 
+    }
     void user_propagate_register_expr(expr* e) override { m_preprocess_state.freeze(e);  s->user_propagate_register_expr(e); }
     void user_propagate_register_created(user_propagator::created_eh_t& r) override { s->user_propagate_register_created(r); }
     void user_propagate_register_decide(user_propagator::decide_eh_t& r) override { s->user_propagate_register_decide(r); }
@@ -400,4 +533,3 @@ public:
 solver* mk_simplifier_solver(solver* s, simplifier_factory* fac) {
     return alloc(simplifier_solver, s, fac);
 }
-

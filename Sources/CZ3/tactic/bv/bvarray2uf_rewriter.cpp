@@ -61,7 +61,7 @@ sort * bvarray2uf_rewriter_cfg::get_index_sort(expr * e) {
 sort * bvarray2uf_rewriter_cfg::get_index_sort(sort * s) {
     SASSERT(s->get_num_parameters() >= 2);
     unsigned total_width = 0;
-    for (unsigned i = 0; i < s->get_num_parameters() - 1; i++) {
+    for (unsigned i = 0; i < s->get_num_parameters() - 1; ++i) {
         parameter const & p = s->get_parameter(i);
         SASSERT(p.is_ast() && is_sort(to_sort(p.get_ast())));
         SASSERT(m_bv_util.is_bv_sort(to_sort(p.get_ast())));
@@ -90,7 +90,7 @@ bool bvarray2uf_rewriter_cfg::is_bv_array(sort * s) {
         return false;
 
     SASSERT(s->get_num_parameters() >= 2);
-    for (unsigned i = 0; i < s->get_num_parameters(); i++) {
+    for (unsigned i = 0; i < s->get_num_parameters(); ++i) {
         parameter const & p = s->get_parameter(i);
         if (!p.is_ast() || !is_sort(to_sort(p.get_ast())) ||
             !m_bv_util.is_bv_sort(to_sort(p.get_ast())))
@@ -111,7 +111,7 @@ func_decl_ref bvarray2uf_rewriter_cfg::mk_uf_for_array(expr * e) {
             sort * domain = get_index_sort(e);
             sort * range = get_value_sort(e);
             bv_f = m_manager.mk_fresh_func_decl("f_t", "", 1, &domain, range);
-            TRACE("bvarray2uf_rw", tout << "for " << mk_ismt2_pp(e, m_manager) << " new func_decl is " << mk_ismt2_pp(bv_f, m_manager) << std::endl; );
+            TRACE(bvarray2uf_rw, tout << "for " << mk_ismt2_pp(e, m_manager) << " new func_decl is " << mk_ismt2_pp(bv_f, m_manager) << std::endl; );
             if (m_fmc) {
               m_fmc->hide(bv_f);
               if (is_uninterp_const(e))
@@ -122,7 +122,7 @@ func_decl_ref bvarray2uf_rewriter_cfg::mk_uf_for_array(expr * e) {
             m_manager.inc_ref(bv_f);
         }
         else {
-            TRACE("bvarray2uf_rw", tout << "for " << mk_ismt2_pp(e, m_manager) << " found " << mk_ismt2_pp(bv_f, m_manager) << std::endl; );
+            TRACE(bvarray2uf_rw, tout << "for " << mk_ismt2_pp(e, m_manager) << " found " << mk_ismt2_pp(bv_f, m_manager) << std::endl; );
         }
 
         return func_decl_ref(bv_f, m_manager);
@@ -149,7 +149,8 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
             var_ref x(m_manager.mk_var(0, sorts[0]), m_manager);
 
             expr_ref body(m_manager);
-            body = m_manager.mk_eq(m_manager.mk_app(f_t, x.get()), m_manager.mk_app(f_s, x.get()));
+            expr_ref lhs(m_manager.mk_app(f_t, x.get()), m_manager);
+            body = m_manager.mk_eq(lhs, m_manager.mk_app(f_s, x.get()));
 
             result = m_manager.mk_forall(1, sorts, names, body);
             res = BR_DONE;
@@ -164,7 +165,7 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
         func_decl_ref f_t(mk_uf_for_array(args[1]), m_manager);
         func_decl_ref f_f(mk_uf_for_array(args[2]), m_manager);
 
-        TRACE("bvarray2uf_rw", tout << "(ite " << c << ", " << f_t->get_name()
+        TRACE(bvarray2uf_rw, tout << "(ite " << c << ", " << f_t->get_name()
             << ", " << f_f->get_name() << ")" << std::endl;);
 
         sort * sorts[1] = { get_index_sort(args[1]->get_sort()) };
@@ -189,7 +190,7 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
 
         result = m_array_util.mk_as_array(bv_f);
 
-        TRACE("bvarray2uf_rw", tout << "result: " << mk_ismt2_pp(result, m_manager) << ")" << std::endl;);
+        TRACE(bvarray2uf_rw, tout << "result: " << mk_ismt2_pp(result, m_manager) << ")" << std::endl;);
         res = BR_DONE;
 
     }
@@ -197,11 +198,11 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
         throw default_exception("not handled by bvarray2uf");
     }
     else if (f->get_family_id() == null_family_id) {
-        TRACE("bvarray2uf_rw", tout << "UF APP: " << f->get_name() << std::endl; );
+        TRACE(bvarray2uf_rw, tout << "UF APP: " << f->get_name() << std::endl; );
 
         bool has_bv_arrays = false;
         func_decl_ref f_t(m_manager);
-        for (unsigned i = 0; i < num; i++) {
+        for (unsigned i = 0; i < num; ++i) {
             if (is_bv_array(args[i])) {
                 SASSERT(m_array_util.is_as_array(args[i]));
                 has_bv_arrays = true;
@@ -225,13 +226,13 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
             res = BR_FAILED;
     }
     else if (m_array_util.get_family_id() == f->get_family_id()) {
-        TRACE("bvarray2uf_rw", tout << "APP: " << f->get_name() << std::endl; );
+        TRACE(bvarray2uf_rw, tout << "APP: " << f->get_name() << std::endl; );
 
         if (m_array_util.is_select(f)) {
             SASSERT(num == 2);
             expr * t = args[0];
             expr * i = args[1];
-            TRACE("bvarray2uf_rw", tout <<
+            TRACE(bvarray2uf_rw, tout <<
                 "select; array: " << mk_ismt2_pp(t, m()) <<
                 " index: " << mk_ismt2_pp(i, m()) << std::endl;);
 
@@ -279,7 +280,7 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
                     func_decl_ref map_f(to_func_decl(f->get_parameter(0).get_ast()), m_manager);
 
                     func_decl_ref_vector ss(m_manager);
-                    for (unsigned i = 0; i < num; i++) {
+                    for (unsigned i = 0; i < num; ++i) {
                         SASSERT(m_array_util.is_array(args[i]));
                         func_decl_ref fd(mk_uf_for_array(args[i]), m_manager);
                         ss.push_back(fd);
@@ -291,12 +292,12 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
                     var_ref x(m_manager.mk_var(0, sorts[0]), m_manager);
 
                     expr_ref_vector new_args(m_manager);
-                    for (unsigned i = 0; i < num; i++)
+                    for (unsigned i = 0; i < num; ++i)
                         new_args.push_back(m_manager.mk_app(ss[i].get(), x.get()));
 
                     expr_ref body(m_manager);
-                    body = m_manager.mk_eq(m_manager.mk_app(f_t, x.get()),
-                                           m_manager.mk_app(map_f, num, new_args.data()));
+                    expr_ref lhs(m_manager.mk_app(f_t, x.get()), m_manager);
+                    body = m_manager.mk_eq(lhs, m_manager.mk_app(map_f, num, new_args.data()));
 
                     expr_ref frllx(m_manager.mk_forall(1, sorts, names, body), m_manager);
                     extra_assertions.push_back(frllx);
@@ -309,7 +310,7 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
                     expr * s = args[0];
                     expr * i = args[1];
                     expr * v = args[2];
-                    TRACE("bvarray2uf_rw", tout <<
+                    TRACE(bvarray2uf_rw, tout <<
                         "store; array: " << mk_ismt2_pp(s, m()) <<
                         " index: " << mk_ismt2_pp(i, m()) <<
                         " value: " << mk_ismt2_pp(v, m()) << std::endl;);
@@ -330,9 +331,10 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
                         var_ref x(m_manager.mk_var(0, sorts[0]), m_manager);
 
                         expr_ref body(m_manager);
-                        body = m_manager.mk_or(m_manager.mk_eq(x, i),
-                                               m_manager.mk_eq(m_manager.mk_app(f_t, x.get()),
-                                                               m_manager.mk_app(f_s, x.get())));
+                        expr_ref same_index(m_manager.mk_eq(x, i), m_manager);
+                        expr_ref lhs(m_manager.mk_app(f_t, x.get()), m_manager);
+                        expr_ref rhs(m_manager.mk_app(f_s, x.get()), m_manager);
+                        body = m_manager.mk_or(same_index, m_manager.mk_eq(lhs, rhs));
 
                         expr_ref frllx(m_manager.mk_forall(1, sorts, names, body), m_manager);
                         extra_assertions.push_back(frllx);
@@ -340,7 +342,7 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
                         expr_ref ground_atom(m_manager);
                         ground_atom = m_manager.mk_eq(m_manager.mk_app(f_t, i), v);
                         extra_assertions.push_back(ground_atom);
-                        TRACE("bvarray2uf_rw", tout << "ground atom: " << mk_ismt2_pp(ground_atom, m()) << std::endl; );
+                        TRACE(bvarray2uf_rw, tout << "ground atom: " << mk_ismt2_pp(ground_atom, m()) << std::endl; );
                     }
                 }
                 else {
@@ -350,19 +352,19 @@ br_status bvarray2uf_rewriter_cfg::reduce_app(func_decl * f, unsigned num, expr 
         }
     }
 
-    CTRACE("bvarray2uf_rw", res == BR_DONE, tout << "result: " << mk_ismt2_pp(result, m()) << std::endl; );
+    CTRACE(bvarray2uf_rw, res == BR_DONE, tout << "result: " << mk_ismt2_pp(result, m()) << std::endl; );
     return res;
 }
 
 bool bvarray2uf_rewriter_cfg::pre_visit(expr * t)
 {
-    TRACE("bvarray2uf_rw_q", tout << "pre_visit: " << mk_ismt2_pp(t, m()) << std::endl;);
+    TRACE(bvarray2uf_rw_q, tout << "pre_visit: " << mk_ismt2_pp(t, m()) << std::endl;);
 
     if (is_quantifier(t)) {
         quantifier * q = to_quantifier(t);
-        TRACE("bvarray2uf_rw_q", tout << "pre_visit quantifier [" << q->get_id() << "]: " << mk_ismt2_pp(q->get_expr(), m()) << std::endl;);
+        TRACE(bvarray2uf_rw_q, tout << "pre_visit quantifier [" << q->get_id() << "]: " << mk_ismt2_pp(q->get_expr(), m()) << std::endl;);
         sort_ref_vector new_bindings(m_manager);
-        for (unsigned i = 0; i < q->get_num_decls(); i++)
+        for (unsigned i = 0; i < q->get_num_decls(); ++i)
             new_bindings.push_back(q->get_decl_sort(i));
         SASSERT(new_bindings.size() == q->get_num_decls());
         m_bindings.append(new_bindings);

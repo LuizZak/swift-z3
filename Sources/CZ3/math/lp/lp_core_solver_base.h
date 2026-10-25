@@ -38,9 +38,9 @@ struct lpvar_lt {
 typedef heap<lpvar_lt> lpvar_heap;
 template <typename T, typename X>
 X dot_product(const vector<T> & a, const vector<X> & b) {
-    lp_assert(a.size() == b.size());
+    SASSERT(a.size() == b.size());
     auto r = zero_of_type<X>();
-    for (unsigned i = 0; i < a.size(); i++) {
+    for (unsigned i = 0; i < a.size(); ++i) {
         r += a[i] * b[i];
     }
     return r;
@@ -55,7 +55,7 @@ private:
     lp_status m_status;
 public:
     bool current_x_is_feasible() const {
-        TRACE("feas_bug",
+        TRACE(feas_bug,
               if (!m_inf_heap.empty()) {
                   tout << "column " << *m_inf_heap.begin() << " is infeasible" << std::endl;
                   print_column_info(*m_inf_heap.begin(), tout);
@@ -136,9 +136,7 @@ public:
     void allocate_basis_heading();
     void init();
 
-    virtual ~lp_core_solver_base() {
-        
-    }
+    virtual ~lp_core_solver_base() = default;
 
     vector<unsigned> & non_basis() {
         return m_nbasis;
@@ -178,9 +176,9 @@ public:
 
     bool need_to_pivot_to_basis_tableau() const {
         unsigned m = m_A.row_count();
-        for (unsigned i = 0; i < m; i++) {
+        for (unsigned i = 0; i < m; ++i) {
             unsigned bj = m_basis[i];
-            lp_assert(m_A.m_columns[bj].size() > 0);
+            SASSERT(m_A.m_columns[bj].size() > 0);
             if (m_A.m_columns[bj].size() > 1)
                 return true;
             for (const auto & c : m_A.m_columns[bj]) {
@@ -200,7 +198,7 @@ public:
         
             
         unsigned n = m_A.column_count();
-        for (unsigned j = 0; j < n; j++) {
+        for (unsigned j = 0; j < n; ++j) {
             if (m_basis_heading[j] >= 0) {
                 if (!is_zero(m_d[j])) {
                     return false;
@@ -211,7 +209,7 @@ public:
                     d -= this->m_costs[this->m_basis[cc.var()]] * this->m_A.get_val(cc);
                 }
                 if (m_d[j] != d) {
-                    TRACE("lar_solver", tout << "reduced costs are incorrect for column j = " << j << " should be " << d << " but we have m_d[j] = " << m_d[j] << std::endl;);
+                    TRACE(lar_solver, tout << "reduced costs are incorrect for column j = " << j << " should be " << d << " but we have m_d[j] = " << m_d[j] << std::endl;);
                     return false;
                 }
             }
@@ -293,11 +291,11 @@ public:
 
     bool make_column_feasible(unsigned j, numeric_pair<mpq> & delta) {
         bool ret = false;
-        lp_assert(m_basis_heading[j] < 0);
+        SASSERT(m_basis_heading[j] < 0);
         const auto & x = m_x[j];
         switch (m_column_types[j]) {
         case column_type::fixed:
-            lp_assert(m_lower_bounds[j] == m_upper_bounds[j]);
+            SASSERT(m_lower_bounds[j] == m_upper_bounds[j]);
             if (x != m_lower_bounds[j]) {
                 delta = m_lower_bounds[j] - x;
                 ret = true;
@@ -339,7 +337,7 @@ public:
     bool pivot_column_general(unsigned j, unsigned j_basic, indexed_vector<T> & w);
     void init_basic_part_of_basis_heading() {
         unsigned m = m_basis.size();
-        for (unsigned i = 0; i < m; i++) {
+        for (unsigned i = 0; i < m; ++i) {
             unsigned column = m_basis[i];
             m_basis_heading[column] = i;
         }
@@ -364,8 +362,8 @@ public:
     }
 
     void change_basis_unconditionally(unsigned entering, unsigned leaving) {
-        TRACE("lar_solver", tout << "entering = " << entering << ", leaving = " << leaving << "\n";);
-        lp_assert(m_basis_heading[entering] < 0);
+        TRACE(lar_solver, tout << "entering = " << entering << ", leaving = " << leaving << "\n";);
+        SASSERT(m_basis_heading[entering] < 0);
         int place_in_non_basis = -1 - m_basis_heading[entering];
         if (static_cast<unsigned>(place_in_non_basis) >= m_nbasis.size()) {
               // entering variable in not in m_nbasis, we need to put it back;
@@ -384,9 +382,9 @@ public:
     }
     
     void change_basis(unsigned entering, unsigned leaving) {
-        TRACE("lar_solver", tout << "entering = " << entering << ", leaving = " << leaving << "\n";);
-        lp_assert(m_basis_heading[entering] < 0);
-		lp_assert(m_basis_heading[leaving] >= 0);
+        TRACE(lar_solver, tout << "entering = " << entering << ", leaving = " << leaving << "\n";);
+        SASSERT(m_basis_heading[entering] < 0);
+        SASSERT(m_basis_heading[leaving] >= 0);
         
         int place_in_basis =  m_basis_heading[leaving];
         int place_in_non_basis = - m_basis_heading[entering] - 1;
@@ -410,7 +408,7 @@ public:
     bool non_basic_columns_are_set_correctly() const {
         for (unsigned j : this->m_nbasis)
             if (!column_is_feasible(j)) {
-                TRACE("lp_core", tout << "inf col "; print_column_info(j, tout) << "\n";);
+                TRACE(lp_core, tout << "inf col "; print_column_info(j, tout) << "\n";);
                 return false;
             }
         
@@ -436,8 +434,8 @@ public:
         return out;
     }
 
-    std::ostream& print_column_info(unsigned j, std::ostream & out) const {
-        if (j >= m_lower_bounds.size()) {
+    std::ostream& print_column_info(unsigned j, std::ostream & out, bool print_nl = false, const std::string& var_prefix = "j") const {
+        if (j >= m_column_types.size()) {
             out << "[" << j << "] is not present\n";
             return out;
         }
@@ -445,13 +443,16 @@ public:
         std::stringstream strm;
         strm << m_x[j];
         std::string j_val = strm.str();
-        out << "[" << j << "] " << std::setw(6) << " := " << j_val;
-        if (m_basis_heading[j] >= 0)
-            out << " base ";
-        else 
-            out << "      ";
-        for (auto k = j_val.size(); k < 15; ++k)
+        out << var_prefix << j << " = " << std::setw(6) << j_val;
+        if (j < 10)
+            out << "  ";
+        else if (j < 100)
             out << " ";
+
+        if (m_basis_heading[j] >= 0)
+            out << " base    ";
+        else 
+            out << "         ";
         switch (m_column_types[j]) {
         case column_type::fixed:
         case column_type::boxed:
@@ -466,10 +467,12 @@ public:
         case column_type::free_column:
             out << "[-oo, oo]";
             break;
-        default:
-            UNREACHABLE();
         }
-        return out << "\n";
+        if (print_nl)
+            out << "\n";
+        else
+            out << "\t";
+        return out;
     }
 
     bool column_is_fixed(unsigned j) const { return this->m_column_types[j] == column_type::fixed; }
@@ -486,7 +489,7 @@ public:
     }
 
     bool bounds_for_boxed_are_set_correctly() const {
-        for (unsigned j = 0; j < m_column_types.size(); j++) {
+        for (unsigned j = 0; j < m_column_types.size(); ++j) {
             if (m_column_types[j] != column_type::boxed) continue;
             if (m_lower_bounds[j] > m_upper_bounds[j])
                 return false;
@@ -538,20 +541,26 @@ public:
     }
 
     void add_delta_to_x_and_track_feasibility(unsigned j, const X & del) {
-        TRACE("lar_solver_feas", tout << "del = " << del << ", was x[" << j << "] = " << m_x[j] << "\n";);
+        TRACE(lar_solver_feas, tout << "del = " << del << ", was x[" << j << "] = " << m_x[j] << "\n";);
         m_x[j] += del;
-        TRACE("lar_solver_feas", tout << "became x[" << j << "] = " << m_x[j] << "\n";);
+        TRACE(lar_solver_feas, tout << "became x[" << j << "] = " << m_x[j] << "\n";);
         track_column_feasibility(j);
     }
 
     void update_x(unsigned j, const X & v) {
         m_x[j] = v;
-        TRACE("lar_solver_feas", tout << "not tracking feas j = " << j << ", v = " << v << (column_is_feasible(j)? " feas":" non-feas") << "\n";);
+        TRACE(lar_solver_feas, tout << "not tracking feas j = " << j << ", v = " << v << (column_is_feasible(j)? " feas":" non-feas") << "\n";);
+    }
+
+    // m_x[j] -= delta * a, then update the feasibility tracking of column j
+    void submul_from_x_and_track_feasibility(unsigned j, const X & delta, const T & a) {
+        submul(m_x[j], delta, a);
+        track_column_feasibility(j);
     }
 
     void add_delta_to_x(unsigned j, const X& delta) {
         m_x[j] += delta;
-        TRACE("lar_solver_feas", tout << "not tracking feas j = " << j << " v = " << m_x[j] << " delta = " << delta << (column_is_feasible(j) ? " feas" : " non-feas") << "\n";);
+        TRACE(lar_solver_feas, tout << "not tracking feas j = " << j << " v = " << m_x[j] << " delta = " << delta << (column_is_feasible(j) ? " feas" : " non-feas") << "\n";);
     }
         
     void track_column_feasibility(unsigned j) {
@@ -561,31 +570,31 @@ public:
             insert_column_into_inf_heap(j);
     }
     void insert_column_into_inf_heap(unsigned j) {        
-		if (!m_inf_heap.contains(j)) {
+        if (!m_inf_heap.contains(j)) {
             m_inf_heap.reserve(j+1);
-	        m_inf_heap.insert(j);
-            TRACE("lar_solver_inf_heap", tout << "insert into inf_heap j = " << j << "\n";);
+            m_inf_heap.insert(j);
+            TRACE(lar_solver_inf_heap, tout << "insert into inf_heap j = " << j << "\n";);
         }
-        lp_assert(!column_is_feasible(j));
+        SASSERT(!column_is_feasible(j));
     }
     void remove_column_from_inf_heap(unsigned j) {
-		if (m_inf_heap.contains(j)) {
-            TRACE("lar_solver_inf_heap", tout << "erase from heap j = " << j << "\n";);
-        	m_inf_heap.erase(j);
+        if (m_inf_heap.contains(j)) {
+            TRACE(lar_solver_inf_heap, tout << "erase from heap j = " << j << "\n";);
+            m_inf_heap.erase(j);
         }
-        lp_assert(column_is_feasible(j));
+        SASSERT(column_is_feasible(j));
     }
 
     void clear_inf_heap() {
-        TRACE("lar_solver_feas",);
+        TRACE(lar_solver_feas,);
         m_inf_heap.clear();
     }
     
     bool costs_on_nbasis_are_zeros() const {
-        lp_assert(this->basis_heading_is_correct());
-        for (unsigned j = 0; j < this->m_n(); j++) {
+        SASSERT(this->basis_heading_is_correct());
+        for (unsigned j = 0; j < this->m_n(); ++j) {
             if (this->m_basis_heading[j] < 0)
-                lp_assert(is_zero(this->m_costs[j]));
+                SASSERT(is_zero(this->m_costs[j]));
         }
         return true;
     }

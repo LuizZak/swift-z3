@@ -155,7 +155,7 @@ namespace smt {
         ctx.set_var_theory(v, get_id());
         atom* a = alloc(atom, v, *r, v0, v1);
         m_atoms.push_back(a);
-        TRACE("special_relations", tout << mk_pp(atm, m) << " : bv" << v << " v" << a->v1() << " v" << a->v2() << ' ' << gate_ctx << "\n";);
+        TRACE(special_relations, tout << mk_pp(atm, m) << " : bv" << v << " v" << a->v1() << " v" << a->v2() << ' ' << gate_ctx << "\n";);
         m_bool_var2atom.insert(v, a);
         return true;
     }
@@ -167,15 +167,15 @@ namespace smt {
         theory_var v = n->get_th_var(get_id());
         if (null_theory_var == v) {
             v = theory::mk_var(n);
-            TRACE("special_relations", tout << "v" << v << " := " << mk_pp(e, get_manager()) << "\n";);
+            TRACE(special_relations, tout << "v" << v << " := " << mk_pp(e, get_manager()) << "\n";);
             ctx.attach_th_var(n, this, v);
         }
         return v;
     }
 
     void theory_special_relations::new_eq_eh(theory_var v1, theory_var v2) {
-        app* t1 = get_expr(v1);
-        app* t2 = get_expr(v2);
+        expr* t1 = get_expr(v1);
+        expr* t2 = get_expr(v2);
         literal eq = mk_eq(t1, t2, false);
         for (auto const& kv : m_relations) {
             relation& r = *kv.m_value;
@@ -186,8 +186,8 @@ namespace smt {
         }
     }
 
-    final_check_status theory_special_relations::final_check_eh() {
-        TRACE("special_relations", tout << "\n";);
+    final_check_status theory_special_relations::final_check_eh(unsigned) {
+        TRACE(special_relations, tout << "\n";);
         for (auto const& kv : m_relations) {
             lbool r = final_check(*kv.m_value);
             switch (r) {
@@ -276,7 +276,7 @@ namespace smt {
         graph r_graph;
         for (enode* n : ctx.enodes_of(f)) {
             literal lit = ctx.enode2literal(n);
-            if (l_true == ctx.get_assignment(lit)) {
+            if (l_true == ctx.get_assignment(lit) && ctx.is_relevant(lit)) {
                 expr* e = ctx.bool_var2expr(lit.var());
                 expr* arg1 = to_app(e)->get_arg(0);
                 expr* arg2 = to_app(e)->get_arg(1);
@@ -284,12 +284,14 @@ namespace smt {
                 enode* tcn = ensure_enode(tc_app);
                 if (ctx.get_assignment(tcn) != l_true) {
                     literal consequent = ctx.get_literal(tc_app);
+                    ctx.mark_as_relevant(consequent);
                     justification* j = ctx.mk_justification(theory_propagation_justification(get_id(), ctx, 1, &lit, consequent));
-                    TRACE("special_relations", tout << "propagate: " << tc_app << "\n";);
+                    TRACE(special_relations, tout << "propagate: " << tc_app << "\n";);
                     ctx.assign(consequent, j);
                     new_assertion = true;
                 }
                 else {
+                    TRACE(special_relations, tout << "add edge " << tc_app << " relevant: " << ctx.is_relevant(tcn) << "\n");
                     theory_var v1 = get_representative(get_th_var(arg1));
                     theory_var v2 = get_representative(get_th_var(arg2));
                     r_graph.init_var(v1);
@@ -323,7 +325,7 @@ namespace smt {
                 theory_var r1 = get_representative(a.v1());
                 theory_var r2 = get_representative(a.v2());
                 if (r_graph.can_reach(r1, r2)) {
-                    TRACE("special_relations", 
+                    TRACE(special_relations, 
                           tout << a.v1() << ": " << mk_pp(arg1, m) << " -> " 
                           << a.v2() << ": " << mk_pp(arg2, m) << " is positive reachable\n";
                           r.m_graph.display(tout);
@@ -333,6 +335,7 @@ namespace smt {
                 expr_ref f_app(m.mk_app(f, arg1, arg2), m);   
                 ensure_enode(f_app);
                 literal f_lit = ctx.get_literal(f_app);
+                ctx.mark_as_relevant(f_lit);
                 switch (ctx.get_assignment(f_lit)) {
                 case l_true:
                     SASSERT(new_assertion);
@@ -369,8 +372,12 @@ namespace smt {
                     while (r.is_next(nxt)) {
                         expr* left  = to_app(nxt)->get_arg(0);
                         expr* right = to_app(nxt)->get_arg(1);
-                        ctx.assign(~mk_eq(next, left,  false), nullptr);
-                        ctx.assign(~mk_eq(next, right, false), nullptr);
+                        literal eq1 = mk_eq(next, left,  false);
+                        literal eq2 = mk_eq(next, right, false);
+                        ctx.mark_as_relevant(eq1);
+                        ctx.mark_as_relevant(eq2);
+                        ctx.assign(~eq1, nullptr);
+                        ctx.assign(~eq2, nullptr);
                         nxt = left;
                     }
                     ctx.set_true_first_flag(ctx.get_literal(next_b).var());
@@ -379,14 +386,14 @@ namespace smt {
                 }
                 case l_undef:
                     ctx.set_true_first_flag(bv);
-                    TRACE("special_relations", tout << f_app << " is undefined\n";);
+                    TRACE(special_relations, tout << f_app << " is undefined\n";);
                     new_assertion = true;
                     break;
                 }
             }
         }
         if (new_assertion) {
-            TRACE("special_relations", tout << "new assertion\n";);
+            TRACE(special_relations, tout << "new assertion\n";);
             return l_false;
         }
         return final_check_po(r);
@@ -400,14 +407,14 @@ namespace smt {
             if (a.phase()) {
                 continue;
             }
-            TRACE("special_relations", tout << a.v1() << " !<= " << a.v2() << "\n";);
+            TRACE(special_relations, tout << a.v1() << " !<= " << a.v2() << "\n";);
             target.reset();
             theory_var w;
             // v1 !<= v2 is asserted
             target.insert(a.v1());
             if (r.m_graph.reachable(a.v2(), target, visited, w)) {
                 // we already have v2 <= v1
-                TRACE("special_relations", tout << "already: " << a.v2() << " <= " << a.v1() << "\n";);
+                TRACE(special_relations, tout << "already: " << a.v2() << " <= " << a.v1() << "\n";);
                 continue;
             }
             if (a.v1() == a.v2()) {
@@ -432,7 +439,7 @@ namespace smt {
                 r.m_explanation.reset();
                 r.m_graph.find_shortest_reachable_path(a.v1(), w, timestamp, r);
                 r.m_graph.find_shortest_reachable_path(a.v2(), w, timestamp, r);
-                TRACE("special_relations", tout << "added edge\n";);
+                TRACE(special_relations, tout << "added edge\n";);
                 r.m_explanation.push_back(a.explanation());
                 literal_vector const& lits = r.m_explanation;
                 if (!r.m_graph.add_non_strict_edge(a.v2(), a.v1(), lits)) {
@@ -475,7 +482,7 @@ namespace smt {
 
     void theory_special_relations::set_conflict(relation& r) {
         literal_vector const& lits = r.m_explanation;
-        TRACE("special_relations", ctx.display_literals_verbose(tout, lits) << "\n";);
+        TRACE(special_relations, ctx.display_literals_verbose(tout, lits) << "\n";);
         vector<parameter> params;
         ctx.set_conflict(
             ctx.mk_justification(
@@ -508,7 +515,7 @@ namespace smt {
             res = l_undef;
             break;
         }
-        TRACE("special_relations", r.display(*this, tout << res << "\n"););
+        TRACE(special_relations, r.display(*this, tout << res << "\n"););
         return res;
     }
 
@@ -541,7 +548,7 @@ namespace smt {
                     r.m_graph.find_shortest_zero_edge_path(i, j, timestamp, r);
                     r.m_graph.find_shortest_zero_edge_path(j, i, timestamp, r);
                     literal_vector const& lits = r.m_explanation;
-                    TRACE("special_relations", ctx.display_literals_verbose(tout << mk_pp(x->get_expr(), m) << " = " << mk_pp(y->get_expr(), m) << "\n", lits) << "\n";);
+                    TRACE(special_relations, ctx.display_literals_verbose(tout << mk_pp(x->get_expr(), m) << " = " << mk_pp(y->get_expr(), m) << "\n", lits) << "\n";);
                     IF_VERBOSE(20, ctx.display_literals_verbose(verbose_stream() << mk_pp(x->get_expr(), m) << " = " << mk_pp(y->get_expr(), m) << "\n", lits) << "\n";);
                     eq_justification js(ctx.mk_justification(ext_theory_eq_propagation_justification(get_id(), ctx, lits.size(), lits.data(), 0, nullptr, 
                                                                                                      x, y)));
@@ -600,8 +607,9 @@ namespace smt {
             r.m_explanation.reset();
             unsigned timestamp = r.m_graph.get_timestamp();
             bool found_path = a.v1() == a.v2() || r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r);
+            TRACE(special_relations, tout << "check " << a.v1() << " -> " << a.v2() << " found_path: " << found_path << "\n");
             if (found_path) {
-                TRACE("special_relations", tout << "check po conflict\n";);
+                TRACE(special_relations, tout << "check po conflict\n";);
                 r.m_explanation.push_back(a.explanation());
                 set_conflict(r);
                 return l_false;
@@ -655,7 +663,7 @@ namespace smt {
     }
 
     void theory_special_relations::assign_eh(bool_var v, bool is_true) {
-        TRACE("special_relations", tout << "assign bv" << v << " " << (is_true?" <- true":" <- false") << "\n";);
+        TRACE(special_relations, tout << "assign bv" << v << " " << (is_true?" <- true":" <- false") << "\n";);
         atom* a = m_bool_var2atom[v];
         a->set_phase(is_true);
         a->get_relation().m_asserted_atoms.push_back(a);
@@ -714,7 +722,7 @@ namespace smt {
             if (get_enode(src)->get_root() == get_enode(dst)->get_root()) continue;
             VERIFY(g.add_strict_edge(src, dst, literal_vector()));
         }
-        TRACE("special_relations", g.display(tout););
+        TRACE(special_relations, g.display(tout););
     }
 
     /**
@@ -741,7 +749,7 @@ namespace smt {
                 }
             }
         }
-        TRACE("special_relations", g.display(tout););
+        TRACE(special_relations, g.display(tout););
     }
 
     bool theory_special_relations::disconnected(graph const& g, dl_var u, dl_var v) const {
@@ -791,11 +799,13 @@ namespace smt {
             expr* arg = get_expr(i);
             fi->insert_new_entry(&arg, arith.mk_numeral(val.to_rational(), true));
         }
-        TRACE("special_relations", r.m_graph.display(tout););
+        TRACE(special_relations, r.m_graph.display(tout););
         r.pop(1);
         fi->set_else(arith.mk_numeral(rational(0), true));
         mg.get_model().register_decl(fn, fi);
-        result = arith.mk_le(m.mk_app(fn,m.mk_var(0, *ty)), m.mk_app(fn, m.mk_var(1, *ty)));
+        expr_ref lhs(m.mk_app(fn, m.mk_var(0, *ty)), m);
+        expr_ref rhs(m.mk_app(fn, m.mk_var(1, *ty)), m);
+        result = arith.mk_ge(lhs, rhs);
         return result;
     }
 
@@ -815,7 +825,9 @@ namespace smt {
         }
         fi->set_else(arith.mk_numeral(rational(0), true));
         mg.get_model().register_decl(fn, fi);
-        result = m.mk_eq(m.mk_app(fn, m.mk_var(0, *ty)), m.mk_app(fn, m.mk_var(1, *ty)));
+        expr_ref lhs(m.mk_app(fn, m.mk_var(0, *ty)), m);
+        expr_ref rhs(m.mk_app(fn, m.mk_var(1, *ty)), m);
+        result = m.mk_eq(lhs, rhs);
         return result;
     }
 
@@ -840,8 +852,13 @@ namespace smt {
         hifi->set_else(arith.mk_numeral(rational(0), true));
         mg.get_model().register_decl(lofn, lofi);
         mg.get_model().register_decl(hifn, hifi);
-        result = m.mk_and(arith.mk_le(m.mk_app(lofn, m.mk_var(0, *ty)), m.mk_app(lofn, m.mk_var(1, *ty))),
-                          arith.mk_le(m.mk_app(hifn, m.mk_var(1, *ty)), m.mk_app(hifn, m.mk_var(0, *ty))));
+        expr_ref lo0(m.mk_app(lofn, m.mk_var(0, *ty)), m);
+        expr_ref lo1(m.mk_app(lofn, m.mk_var(1, *ty)), m);
+        expr_ref lower(arith.mk_le(lo0, lo1), m);
+        expr_ref hi1(m.mk_app(hifn, m.mk_var(1, *ty)), m);
+        expr_ref hi0(m.mk_app(hifn, m.mk_var(0, *ty)), m);
+        expr_ref upper(arith.mk_le(hi1, hi0), m);
+        result = m.mk_and(lower, upper);
         return result;
     }
 
@@ -894,13 +911,19 @@ namespace smt {
         func_decl* memf, *nextf, *connectedf;
 
         std::string member, next, connected_sym, id;
-        auto const& pa = r.decl()->get_parameter(0);
-        if (pa.is_int())
-            id = std::to_string(pa.get_int());
-        else if (pa.is_ast() && is_func_decl(pa.get_ast()))
-            id = to_func_decl(pa.get_ast())->get_name().str();
-        else
-            throw default_exception("expected an integer or function declaration");        
+        if (r.decl()->get_num_parameters() == 0) {
+            // Unparameterized SMT-LIB relations need a private helper namespace.
+            id = "!decl!" + std::to_string(r.decl()->get_id());
+        }
+        else {
+            auto const& pa = r.decl()->get_parameter(0);
+            if (pa.is_int())
+                id = std::to_string(pa.get_int());
+            else if (pa.is_ast() && is_func_decl(pa.get_ast()))
+                id = to_func_decl(pa.get_ast())->get_name().str();
+            else
+                throw default_exception("expected an integer or function declaration");
+        }
         member = "member" + id;
         next = "next" + id;
         connected_sym = "connected" + id;
@@ -908,18 +931,18 @@ namespace smt {
             sort* dom[2] = { s, listS };
             recfun::promise_def mem = p.ensure_def(symbol(member), 2, dom, m.mk_bool_sort(), true);
             memf = mem.get_def()->get_decl();
-            
+
             var_ref xV(m.mk_var(1, s), m);
             var_ref SV(m.mk_var(0, listS), m);
             var_ref yV(m), vV(m), wV(m);
-            
+
             expr* x = xV, *S = SV;
             expr_ref mem_body(m);
-            mem_body = m.mk_ite(m.mk_app(is_nil, S), 
-                                F,
-                                m.mk_ite(m.mk_eq(m.mk_app(hd, S), x), 
-                                         T,
-                                         m.mk_app(memf, x, m.mk_app(tl, S))));            
+            expr_ref empty(m.mk_app(is_nil, S), m);
+            expr_ref is_head(m.mk_eq(m.mk_app(hd, S), x), m);
+            expr_ref in_tail(m.mk_app(memf, x, m.mk_app(tl, S)), m);
+            expr_ref nonempty(m.mk_ite(is_head, T, in_tail), m);
+            mem_body = m.mk_ite(empty, F, nonempty);
             recfun_replace rep(m);
             var* vars[2] = { xV, SV };
             p.set_definition(rep, mem, false, 2, vars, mem_body);
@@ -939,9 +962,13 @@ namespace smt {
             var_ref SV(m.mk_var(1, listS), m);
             var_ref tupV(m.mk_var(0, tup), m);
             expr* a = aV, *b = bV, *A = AV, *S = SV, *t = tupV;
-            next_body = m.mk_ite(m.mk_and(m.mk_app(memf, a, A), m.mk_not(m.mk_app(memf, b, S))), 
-                                 m.mk_app(pair, m.mk_app(cons, b, m.mk_app(fst, t)), m.mk_app(cons, b, m.mk_app(snd, t))),
-                                 t);
+            expr_ref in_frontier(m.mk_app(memf, a, A), m);
+            expr_ref not_visited(m.mk_not(m.mk_app(memf, b, S)), m);
+            expr_ref advance(m.mk_and(in_frontier, not_visited), m);
+            expr_ref frontier(m.mk_app(cons, b, m.mk_app(fst, t)), m);
+            expr_ref visited(m.mk_app(cons, b, m.mk_app(snd, t)), m);
+            expr_ref updated(m.mk_app(pair, frontier.get(), visited.get()), m);
+            next_body = m.mk_ite(advance, updated, t);
 
             recfun_replace rep(m);
             var* vars[5] = { aV, bV, AV, SV, tupV };
@@ -973,11 +1000,13 @@ namespace smt {
             expr_ref Ap(m.mk_app(fst, connected_body.get()), m);
             expr_ref Sp(m.mk_app(snd, connected_body.get()), m);
 
-            connected_body = m.mk_ite(m.mk_eq(Ap, nilc), F, 
-                                      m.mk_ite(m.mk_app(memf, dst, Ap), T,
-                                               m.mk_app(connectedf, Ap, dst, Sp)));
-            
-            TRACE("special_relations", tout << connected_body << "\n";);
+            expr_ref empty(m.mk_eq(Ap, nilc), m);
+            expr_ref reached(m.mk_app(memf, dst, Ap), m);
+            expr_ref recurse(m.mk_app(connectedf, Ap, dst, Sp), m);
+            expr_ref nonempty(m.mk_ite(reached, T, recurse), m);
+            connected_body = m.mk_ite(empty, F, nonempty);
+
+            TRACE(special_relations, tout << connected_body << "\n";);
             recfun_replace rep(m);
             var* vars[3] = { AV, dstV, SV };
             p.set_definition(rep, connected, false, 3, vars, connected_body);
@@ -1029,7 +1058,7 @@ namespace smt {
     }
 
     bool theory_special_relations::is_neighbour_edge(graph const& g, edge_id edge) const {
-        CTRACE("special_relations_verbose", g.is_enabled(edge),
+        CTRACE(special_relations_verbose, g.is_enabled(edge),
               tout << edge << ": " << g.get_source(edge) << " " << g.get_target(edge) << " ";
               tout << (g.get_assignment(g.get_target(edge)) - g.get_assignment(g.get_source(edge))) << "\n";);
 
@@ -1059,7 +1088,7 @@ namespace smt {
             for (edge_id e : g.get_out_edges(v)) {
                 if (is_strict_neighbour_edge(g, e)) {
                     dl_var dst = g.get_target(e);
-                    TRACE("special_relations", tout << v << " -> " << dst << "\n";);
+                    TRACE(special_relations, tout << v << " -> " << dst << "\n";);
                     if (!processed[dst]) {
                         all_p = false;
                         nodes.push_back(dst);
@@ -1073,7 +1102,7 @@ namespace smt {
                 processed[v] = true;
             }
         }
-        TRACE("special_relations",
+        TRACE(special_relations,
               for (unsigned i = 0; i < sz; ++i) {
                   tout << i << ": " << num_children[i] << "\n";
               });

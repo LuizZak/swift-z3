@@ -54,12 +54,12 @@ namespace sls {
             if (m_on_save_model)
                 return r;
             flet<bool> _on_save_model(m_on_save_model, true);
-            CTRACE("sls", unsat().empty(), display(tout));
+            CTRACE(sls, unsat().empty(), display(tout));
             while (unsat().empty()) {
                 r = m_context.check();
                 if (!m_new_constraint)
                     break;
-                TRACE("sls", display(tout));
+                TRACE(sls, display(tout));
                 //m_ddfw.simplify();
                 m_ddfw.reinit();
                 m_new_constraint = false;
@@ -100,8 +100,9 @@ namespace sls {
         unsigned num_external_in_unsat_vars() const override { return m_ddfw.num_external_in_unsat_vars(); }
         sat::bool_var add_var() override { m_dirty = true;  return m_ddfw.add_var(); }  
         void add_input_assertion(expr* f) { m_context.add_input_assertion(f); }
-        reslimit& rlimit() { return m_ddfw.rlimit(); }
+        reslimit& rlimit() override { return m_ddfw.rlimit(); }
         void shift_weights() override { m_ddfw.shift_weights(); }
+        uint64_t timestamp(sat::bool_var v) override { return m_ddfw.timestamp(v); }
 
         void force_restart() override { m_ddfw.force_restart(); }
 
@@ -140,10 +141,7 @@ namespace sls {
 
         m_solver_ctx->updt_params(p);
     }
-    
-    smt_solver::~smt_solver() {        
-    }
-    
+
     void smt_solver::assert_expr(expr* e) {
         if (m.is_and(e)) {
             for (expr* arg : *to_app(e))

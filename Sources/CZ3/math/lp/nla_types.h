@@ -16,6 +16,8 @@ Description:
 
 #pragma once
 
+#include "math/lp/nla_lemma.h"
+
 namespace nla {
 
     typedef lp::constraint_index     lpci;
@@ -41,18 +43,23 @@ namespace nla {
         ineq(const lp::lar_term& term, lp::lconstraint_kind cmp, const rational& rs) : m_cmp(cmp), m_term(term), m_rs(rs) {}
         ineq(lpvar v, lp::lconstraint_kind cmp, int i): m_cmp(cmp), m_term(v), m_rs(rational(i)) {}
         ineq(lpvar v, lp::lconstraint_kind cmp, rational const& r): m_cmp(cmp), m_term(v), m_rs(r) {}
-        bool operator==(const ineq& a) const {
-            return m_cmp == a.m_cmp && m_term == a.m_term && m_rs == a.m_rs;
-        }
-        const lp::lar_term& term() const { return m_term; };
-        lp::lconstraint_kind cmp() const { return m_cmp;  };
-        const rational& rs() const { return m_rs; };
+        bool operator==(const ineq& a) const = delete;
+        bool operator!=(const ineq& a) const = delete;
+        const lp::lar_term& term() const { return m_term; }
+        lp::lconstraint_kind cmp() const { return m_cmp;  }
+        const rational& rs() const { return m_rs; }
     };
     
     class lemma {
         vector<ineq>     m_ineqs;
         lp::explanation  m_expl;
+        bool m_nlsat_assumed = false;
+        std::shared_ptr<lemma_certificate const> m_certificate;
     public:
+        bool nlsat_assumed() const { return m_nlsat_assumed; }
+        void set_nlsat_assumed() { m_nlsat_assumed = true; m_certificate.reset(); }
+        auto const& certificate() const { return m_certificate; }
+        void set_certificate(std::shared_ptr<lemma_certificate const> p) { m_certificate = std::move(p); }
         void push_back(const ineq& i) { m_ineqs.push_back(i);}
         size_t size() const { return m_ineqs.size() + m_expl.size(); }
         const vector<ineq>& ineqs() const { return m_ineqs; }
@@ -60,36 +67,39 @@ namespace nla {
         lp::explanation& expl() { return m_expl; }
         const lp::explanation& expl() const { return m_expl; }
         bool is_conflict() const { return m_ineqs.empty() && !m_expl.empty(); }
+        bool is_empty() const { return m_ineqs.empty() && m_expl.empty(); }
     };
     
     class core;
     //
     // lemmas are created in a scope.
-    // when the destructor of new_lemma is invoked
-    // all constraints are assumed added to the lemma
+    // when the destructor of lemma_builder is invoked
+    // all constraints are assumed already added to the current_lemma
     // correctness of the lemma can be checked at this point.
     //
-    class new_lemma {
+    class lemma_builder {
         char const* name;
         core& c;
-        lemma& current() const;
+        // the non-const version is private
+        lemma& current();
+        const lemma& current() const;
         
     public:
-        new_lemma(core& c, char const* name);
-        ~new_lemma();
-        lemma& operator()() { return current(); }
+        lemma_builder(core& c, char const* name);
+        ~lemma_builder() noexcept(false);
         std::ostream& display(std::ostream& out) const;
-        new_lemma& operator&=(lp::explanation const& e);
-        new_lemma& operator&=(const monic& m);
-        new_lemma& operator&=(const factor& f);
-        new_lemma& operator&=(const factorization& f);
-        new_lemma& operator&=(lpvar j);
-        new_lemma& operator|=(ineq const& i);
-        new_lemma& explain_fixed(lpvar j);
-        new_lemma& explain_equiv(lpvar u, lpvar v);
-        new_lemma& explain_var_separated_from_zero(lpvar j);
-        new_lemma& explain_existing_lower_bound(lpvar j);
-        new_lemma& explain_existing_upper_bound(lpvar j);    
+        lemma_builder& operator&=(lp::explanation const& e);
+        lemma_builder& operator&=(const monic& m);
+        lemma_builder& operator&=(const factor& f);
+        lemma_builder& operator&=(const factorization& f);
+        lemma_builder& operator&=(lpvar j);
+        lemma_builder& operator|=(ineq const& i);
+        void assume_nlsat() { current().set_nlsat_assumed(); }
+        lemma_builder& explain_fixed(lpvar j);
+        lemma_builder& explain_equiv(lpvar u, lpvar v);
+        lemma_builder& explain_var_separated_from_zero(lpvar j);
+        lemma_builder& explain_existing_lower_bound(lpvar j);
+        lemma_builder& explain_existing_upper_bound(lpvar j);    
         
         lp::explanation& expl() { return current().expl(); }
         
@@ -97,7 +107,7 @@ namespace nla {
     };
 
 
-    inline std::ostream& operator<<(std::ostream& out, new_lemma const& l) {
+    inline std::ostream& operator<<(std::ostream& out, lemma_builder const& l) {
         return l.display(out);
     }
 

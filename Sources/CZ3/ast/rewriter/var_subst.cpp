@@ -31,9 +31,9 @@ expr_ref var_subst::operator()(expr * n, unsigned num_args, expr * const * args)
         result = n;
         //application does not have free variables or nested quantifiers.
         //There is no need to print the bindings here?
-        SCTRACE("bindings", is_trace_enabled("coming_from_quant"),
+        SCTRACE(bindings, is_trace_enabled(TraceTag::coming_from_quant),
                 tout << "(ground)\n";
-                        for (unsigned i = 0; i < num_args; i++) {
+                        for (unsigned i = 0; i < num_args; ++i) {
                             if (args[i]) {
                                 tout << i << ": " << mk_ismt2_pp(args[i], result.m()) << ";\n";
                             }
@@ -78,9 +78,9 @@ expr_ref var_subst::operator()(expr * n, unsigned num_args, expr * const * args)
         m_reducer.set_bindings(num_args, args);
     m_reducer(n, result);
     SASSERT(is_well_sorted(m, result));
-    TRACE("var_subst_bug",
+    TRACE(var_subst_bug,
           tout << "m_std_order: " << m_std_order << "\n" << mk_ismt2_pp(n, m) << "\nusing\n";
-          for (unsigned i = 0; i < num_args; i++) tout << mk_ismt2_pp(args[i], m) << "\n";
+          for (unsigned i = 0; i < num_args; ++i) tout << mk_ismt2_pp(args[i], m) << "\n";
           tout << "\n------>\n";
           tout << result << "\n";);
     return result;
@@ -95,7 +95,7 @@ unused_vars_eliminator::unused_vars_eliminator(ast_manager & m, params_ref const
 expr_ref unused_vars_eliminator::operator()(quantifier* q) {
     expr_ref result(m);
     SASSERT(is_well_sorted(m, q));
-    TRACE("elim_unused_vars", tout << expr_ref(q, m) << "\n";);
+    TRACE(elim_unused_vars, tout << expr_ref(q, m) << "\n";);
     if (is_lambda(q)) {
         result = q;
         return result;
@@ -114,10 +114,10 @@ expr_ref unused_vars_eliminator::operator()(quantifier* q) {
     m_used.set_num_decls(num_decls);
     m_used.process(q->get_expr());
     unsigned num_patterns = q->get_num_patterns();
-    for (unsigned i = 0; i < num_patterns; i++)
+    for (unsigned i = 0; i < num_patterns; ++i)
         m_used.process(q->get_pattern(i));
     unsigned num_no_patterns = q->get_num_no_patterns();
-    for (unsigned i = 0; i < num_no_patterns; i++)
+    for (unsigned i = 0; i < num_no_patterns; ++i)
         m_used.process(q->get_no_pattern(i));
 
     
@@ -154,7 +154,7 @@ expr_ref unused_vars_eliminator::operator()(quantifier* q) {
     }
     // (VAR 0) is in the first position of var_mapping.
 
-    for (unsigned i = num_decls; i < sz; i++) {
+    for (unsigned i = num_decls; i < sz; ++i) {
         sort * s = m_used.contains(i);
         if (s)
             var_mapping.push_back(m.mk_var(i - num_removed, s));
@@ -180,10 +180,10 @@ expr_ref unused_vars_eliminator::operator()(quantifier* q) {
     expr_ref_buffer new_patterns(m);
     expr_ref_buffer new_no_patterns(m);
 
-    for (unsigned i = 0; i < num_patterns; i++) {
+    for (unsigned i = 0; i < num_patterns; ++i) {
         new_patterns.push_back(m_subst(q->get_pattern(i), var_mapping.size(), var_mapping.data()));
     }
-    for (unsigned i = 0; i < num_no_patterns; i++) {
+    for (unsigned i = 0; i < num_no_patterns; ++i) {
         new_no_patterns.push_back(m_subst(q->get_no_pattern(i), var_mapping.size(), var_mapping.data()));
     }
 
@@ -207,7 +207,7 @@ expr_ref unused_vars_eliminator::operator()(quantifier* q) {
 expr_ref elim_unused_vars(ast_manager & m, quantifier * q, params_ref const & params) {
     unused_vars_eliminator el(m, params);
     expr_ref result = el(q);
-    TRACE("elim_unused_vars", tout << expr_ref(q, m) << " -> " << result << "\n";);
+    TRACE(elim_unused_vars, tout << expr_ref(q, m) << " -> " << result << "\n";);
     return result;
 }
 
@@ -215,12 +215,12 @@ expr_ref instantiate(ast_manager & m, quantifier * q, expr * const * exprs) {
     var_subst subst(m);
     expr_ref new_expr(m), result(m);
     new_expr = subst(q->get_expr(), q->get_num_decls(), exprs);
-    TRACE("var_subst", tout << mk_pp(q, m) << "\n" << new_expr << "\n";);
+    TRACE(var_subst, tout << mk_pp(q, m) << "\n" << new_expr << "\n";);
     inv_var_shifter shift(m);
     shift(new_expr, q->get_num_decls(), result);
     SASSERT(is_well_sorted(m, result));
-    TRACE("instantiate_bug", tout << mk_ismt2_pp(q, m) << "\nusing\n";
-          for (unsigned i = 0; i < q->get_num_decls(); i++) tout << mk_ismt2_pp(exprs[i], m) << "\n";
+    TRACE(instantiate_bug, tout << mk_ismt2_pp(q, m) << "\nusing\n";
+          for (unsigned i = 0; i < q->get_num_decls(); ++i) tout << mk_ismt2_pp(exprs[i], m) << "\n";
           tout << "\n----->\n" << mk_ismt2_pp(result, m) << "\n";);
     return result;
 }

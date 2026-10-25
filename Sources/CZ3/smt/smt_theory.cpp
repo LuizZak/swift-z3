@@ -61,7 +61,7 @@ namespace smt {
 
     void theory::display_var2enode(std::ostream & out) const {
         unsigned sz = m_var2enode.size();
-        for (unsigned v = 0; v < sz; v++) {
+        for (unsigned v = 0; v < sz; ++v) {
             out << "v" << v << " -> #" << m_var2enode[v]->get_owner_id() << "\n";
         }
     }
@@ -75,7 +75,7 @@ namespace smt {
             out << "(" << d->get_name();
             display_parameters(out, d->get_num_parameters(), d->get_parameters());
             unsigned num = n->get_num_args();
-            for (unsigned i = 0; i < num; i++) {
+            for (unsigned i = 0; i < num; ++i) {
                 out << " ";
                 display_app(out, to_app(n->get_arg(i)));
             }
@@ -101,7 +101,7 @@ namespace smt {
                 n = todo.back();
                 todo.pop_back();
                 unsigned num = n->get_num_args();
-                for (unsigned i = 0; i < num; i++) {
+                for (unsigned i = 0; i < num; ++i) {
                     app * arg = to_app(n->get_arg(i));
                     if (d->is_associative() && arg->get_decl() == d) {
                         todo.push_back(arg);
@@ -135,7 +135,7 @@ namespace smt {
         if (m.are_distinct(a, b))
             return false_literal;
         app_ref eq(ctx.mk_eq_atom(a, b), get_manager());
-        TRACE("mk_var_bug", tout << "mk_eq: " << eq->get_id() << " " << a->get_id() << " " << b->get_id() << "\n";
+        TRACE(mk_var_bug, tout << "mk_eq: " << eq->get_id() << " " << a->get_id() << " " << b->get_id() << "\n";
               tout << mk_ll_pp(a, get_manager()) << "\n" << mk_ll_pp(b, get_manager()););		
         ctx.internalize(eq, gate_ctx);
         return ctx.get_literal(eq);
@@ -152,7 +152,8 @@ namespace smt {
         expr_ref e(_e, m);
         bool is_not = m.is_not(_e, _e);
         if (!ctx.e_internalized(_e)) {
-            ctx.internalize(_e, is_quantifier(_e));
+            auto n = ctx.non_ground_internalize(_e);
+            _e = n->get_expr();            
         }
         literal lit = ctx.get_literal(_e);
         ctx.mark_as_relevant(lit);
@@ -204,7 +205,7 @@ namespace smt {
         log_axiom_instantiation(mk_or(fmls));
     }
 
-    void theory::log_axiom_instantiation(app * r, unsigned axiom_id, unsigned num_bindings, app * const * bindings, unsigned pattern_id, const vector<std::tuple<enode *, enode *>> & used_enodes) {
+    void theory::log_axiom_instantiation(app * r, unsigned axiom_id, unsigned num_bindings, expr * const * bindings, unsigned pattern_id, const vector<std::tuple<enode *, enode *>> & used_enodes) {
         ast_manager & m = get_manager();   
         SASSERT(r->get_ref_count() > 0);
         std::ostream& out = m.trace_stream();
@@ -237,7 +238,7 @@ namespace smt {
                     quantifier_manager::log_justification_to_root(out, substituted, already_visited, ctx, get_manager());
                 }
             }
-            out << "[new-match] " << static_cast<void *>(nullptr) << " " << family_name << "#" << axiom_id << " " << family_name << "#" << pattern_id;
+            out << "[new-match] 0x0 " << family_name << "#" << axiom_id << " " << family_name << "#" << pattern_id;
             for (unsigned i = 0; i < num_bindings; ++i) {
                 out << " #" << bindings[i]->get_id();
             }
@@ -253,7 +254,7 @@ namespace smt {
             }
         }
         out << "\n";
-        out << "[instance] " << static_cast<void *>(nullptr) << " #" << r->get_id() << "\n";
+        out << "[instance] 0x0 #" << r->get_id() << "\n";
         out.flush();
     }
 
@@ -261,5 +262,5 @@ namespace smt {
         return get_th_var(ctx.get_enode(e));
     }
 
-};
+}
 

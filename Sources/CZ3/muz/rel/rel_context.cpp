@@ -140,7 +140,7 @@ namespace datalog {
 
         lbool result;
 
-        TRACE("dl", m_context.display(tout););
+        TRACE(dl, m_context.display(tout););
 
         while (true) {
             m_ectx.reset();
@@ -149,11 +149,11 @@ namespace datalog {
             m_context.ensure_closed();
             transform_rules();
             if (m_context.canceled()) {
-                TRACE("dl", tout << "canceled\n";);
+                TRACE(dl, tout << "canceled\n";);
                 result = l_undef;
                 break;
             }
-            TRACE("dl", m_context.display(tout););
+            TRACE(dl, m_context.display(tout););
             //IF_VERBOSE(3, m_context.display_smt2(0,0,verbose_stream()););
 
             if (m_context.print_aig().is_non_empty_string()) {
@@ -190,7 +190,7 @@ namespace datalog {
             IF_VERBOSE(10, m_ectx.report_big_relations(1000, verbose_stream()););
 
             if (m_context.canceled()) {
-                TRACE("dl", tout << "canceled\n";);
+                TRACE(dl, tout << "canceled\n";);
                 result = l_undef;
                 break;
             }
@@ -206,7 +206,7 @@ namespace datalog {
             }
             if (timeout_after_this_round) {
                 m_context.set_status(TIMEOUT);
-                TRACE("dl", tout << "timeout\n";);
+                TRACE(dl, tout << "timeout\n";);
                 result = l_undef;
                 break;
             }
@@ -225,7 +225,7 @@ namespace datalog {
             sq.reset();
         }
         m_context.record_transformed_rules();
-        TRACE("dl", display_profile(tout););
+        TRACE(dl, display_profile(tout););
         return result;
     }
  
@@ -261,9 +261,9 @@ namespace datalog {
             }
             SASSERT(!m_last_result_relation);
             if (some_non_empty) {
-                m_answer = mk_and(m, ans.size(), ans.data());
+                m_answer = mk_and(ans);
                 if (is_approx) {
-                    TRACE("dl", tout << "approx\n";);
+                    TRACE(dl, tout << "approx\n";);
                     res = l_undef;
                     m_context.set_status(APPROX);
                 }
@@ -278,7 +278,7 @@ namespace datalog {
             m_answer = m.mk_false();
             break;
         case l_undef:
-            TRACE("dl", tout << "saturation in undef\n";);
+            TRACE(dl, tout << "saturation in undef\n";);
             break;
         }
         return res;
@@ -372,7 +372,7 @@ namespace datalog {
                 m_last_result_relation->to_formula(m_answer);
                 if (!m_last_result_relation->is_precise()) {
                     m_context.set_status(APPROX);
-                    TRACE("dl", tout << "approx\n";);
+                    TRACE(dl, tout << "approx\n";);
                     res = l_undef;
                 }
             }
@@ -386,9 +386,7 @@ namespace datalog {
         rule_set::pred_set_vector const & pred_sets = all_rules.get_strats();
         bool non_empty = false;
         for (unsigned i = 1; i < pred_sets.size(); ++i) {
-            func_decl_set::iterator it = pred_sets[i]->begin(), end = pred_sets[i]->end();
-            for (; it != end; ++it) {
-                func_decl* pred = *it;
+            for (func_decl* pred : *pred_sets[i]) {
                 relation_base & rel = get_relation(pred);
                 if (!rel.fast_empty()) {
                     non_empty = true;
@@ -405,9 +403,7 @@ namespace datalog {
             bool change = true;
             while (change) {
                 change = false;
-                func_decl_set::iterator it = pred_sets[i]->begin(), end = pred_sets[i]->end();
-                for (; it != end; ++it) {
-                    func_decl* pred = *it;
+                for (func_decl* pred : *pred_sets[i]) {
                     if (depends_on_negation.contains(pred)) {
                         continue;
                     }
@@ -434,13 +430,11 @@ namespace datalog {
                 }
             }
         }        
-        func_decl_set::iterator it = depends_on_negation.begin(), end = depends_on_negation.end();
-        for (; it != end; ++it) {
-            func_decl* pred = *it;
+        for (func_decl* pred : depends_on_negation) {
             relation_base & rel = get_relation(pred);
             
             if (!rel.empty()) {
-                TRACE("dl", tout << "Resetting: " << mk_ismt2_pp(pred, m) << "\n";);
+                TRACE(dl, tout << "Resetting: " << mk_ismt2_pp(pred, m) << "\n";);
                 rel.reset();
             }
         }
@@ -477,7 +471,7 @@ namespace datalog {
     void rel_context::set_predicate_representation(func_decl * pred, unsigned relation_name_cnt, 
                                                    symbol const * relation_names) {
 
-        TRACE("dl", 
+        TRACE(dl, 
               tout << pred->get_name() << ": ";
               for (unsigned i = 0; i < relation_name_cnt; ++i) {
                   tout << relation_names[i] << " ";
@@ -496,7 +490,7 @@ namespace datalog {
         default: {
             rel_spec rel_kinds; // kinds of plugins that are not table plugins
             family_id rel_kind;           // the aggregate kind of non-table plugins
-            for (unsigned i = 0; i < relation_name_cnt; i++) {
+            for (unsigned i = 0; i < relation_name_cnt; ++i) {
                 relation_plugin & p = get_ordinary_relation_plugin(relation_names[i]);
                 rel_kinds.push_back(p.get_kind());                
             }
@@ -636,4 +630,4 @@ namespace datalog {
     }
 
 
-};
+}

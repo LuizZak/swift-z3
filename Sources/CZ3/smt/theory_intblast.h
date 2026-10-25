@@ -42,19 +42,19 @@ namespace smt {
         bv2int_translator m_translator;
         bv_util           bv;
         arith_util        a;
-        unsigned m_vars_qhead = 0, m_preds_qhead = 0;
+        unsigned m_vars_qhead = 0, m_preds_qhead = 0, m_bv2int_qhead = 0;
         bv_factory *    m_factory = nullptr;
 
         bool add_bound_axioms();
         bool add_predicate_axioms();
+        bool add_bv2int_axioms();
 
     public:
         theory_intblast(context& ctx);
-        ~theory_intblast() override;
 
         char const* get_name() const override { return "bv-intblast"; }
         smt::theory* mk_fresh(context* new_ctx) override { return alloc(theory_intblast, *new_ctx); }
-        final_check_status final_check_eh() override;
+        final_check_status final_check_eh(unsigned) override;
         void display(std::ostream& out) const override {}
         bool can_propagate() override;
         void propagate() override;
@@ -64,10 +64,9 @@ namespace smt {
         void apply_sort_cnstr(enode* n, sort* s) override;
         void init_model(model_generator& m) override;
         model_value_proc* mk_value(enode* n, model_generator& m) override;
-        void new_eq_eh(theory_var v1, theory_var v2) override {}
+        void new_eq_eh(theory_var v1, theory_var v2) override;
         void new_diseq_eh(theory_var v1, theory_var v2) override {}
 
     };
 
 }
-

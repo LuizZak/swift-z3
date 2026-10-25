@@ -52,7 +52,7 @@ namespace smt {
         expr_ref fml(m);        
         if (lit == true_literal) return;
         expr* e = bool_var2expr(lit.var());
-        TRACE("context", tout << mk_pp(e, m) << "\n";);
+        TRACE(context, tout << mk_pp(e, m) << "\n";);
         index_set s;
         if (assumptions.contains(lit.var())) {
             s.insert(lit.var());
@@ -60,7 +60,6 @@ namespace smt {
         else {
             justify(lit, s);
         }
-        m_antecedents.insert(lit.var(), s);
         bool found = false;
         if (m_var2val.contains(e)) {
             found = true;
@@ -94,12 +93,13 @@ namespace smt {
             fml = m.mk_implies(antecedent2fml(s), fml);
             conseq.push_back(fml);
         }
+        m_antecedents.insert(lit.var(), std::move(s));
     }
 
     void context::justify(literal lit, index_set& s) {
         (void)m;
         auto add_antecedent = [&](literal l) {
-            CTRACE("context", !m_antecedents.contains(l.var()), 
+            CTRACE(context, !m_antecedents.contains(l.var()), 
                    tout << "untracked literal: " << l << " " 
                    << mk_pp(bool_var2expr(l.var()), m) << "\n";);
             if (m_antecedents.contains(l.var())) {
@@ -167,7 +167,7 @@ namespace smt {
             expr* v = kv.m_value;
             if (m.is_bool(k)) {
                 literal lit = get_literal(k);
-                TRACE("context", 
+                TRACE(context, 
                       tout << "checking " << mk_pp(k, m) << " " 
                       << mk_pp(v, m) << " " << get_assignment(lit) << "\n";
                       display(tout);
@@ -194,6 +194,10 @@ namespace smt {
                     break;
                 }
             }
+            else if (e_internalized(k) && e_internalized(v) &&
+                     get_enode(k)->get_root() == get_enode(v)->get_root()) {
+                continue;
+            }
             else if (e_internalized(k) && m.are_distinct(v, get_enode(k)->get_root()->get_expr())) {
                 to_delete.push_back(k);
             }
@@ -214,7 +218,7 @@ namespace smt {
     // next rounds.
     // 
     unsigned context::extract_fixed_eqs(expr_ref_vector& conseq) {
-        TRACE("context", tout << "extract fixed consequences\n";);
+        TRACE(context, tout << "extract fixed consequences\n";);
         auto are_equal = [&](expr* k, expr* v) {
             return e_internalized(k) && 
             e_internalized(v) && 
@@ -245,7 +249,7 @@ namespace smt {
                 literal lit = mk_diseq(k, v);
                 literals.push_back(~lit);
                 mk_clause(literals.size(), literals.data(), nullptr);
-                TRACE("context", display_literals_verbose(tout, literals.size(), literals.data()););
+                TRACE(context, display_literals_verbose(tout, literals.size(), literals.data()););
             }
         }    
         for (expr* e : to_delete) {
@@ -339,7 +343,7 @@ namespace smt {
         lbool is_sat = check(assumptions.size(), assumptions.data());
 
         if (is_sat != l_true) {
-            TRACE("context", tout << is_sat << "\n";);
+            TRACE(context, tout << is_sat << "\n";);
             return is_sat;
         }
         if (m_qmanager->has_quantifiers()) {
@@ -347,14 +351,14 @@ namespace smt {
             return l_undef;
         }
 
-        TRACE("context", display(tout););
+        TRACE(context, display(tout););
 
         model_ref mdl;
         get_model(mdl);
         expr_ref_vector trail(m);
         model_evaluator eval(*mdl.get());
         expr_ref val(m);
-        TRACE("context", model_pp(tout, *mdl););
+        TRACE(context, model_pp(tout, *mdl););
         for (expr* v : vars) {
             eval(v, val);
             if (m.is_value(val)) {
@@ -368,7 +372,7 @@ namespace smt {
         unsigned num_units = 0;
         extract_fixed_consequences(num_units, _assumptions, conseq);
         app_ref eq(m);
-        TRACE("context", 
+        TRACE(context, 
               tout << "vars: " << vars.size() << "\n";
               tout << "lits: " << num_units << "\n";);
         pop_to_base_lvl();
@@ -432,14 +436,14 @@ namespace smt {
                 m_not_l = null_literal;
             }
             if (is_sat == l_true) {
-                TRACE("context", display(tout););
+                TRACE(context, display(tout););
                 delete_unfixed(unfixed);
             }
             extract_fixed_consequences(num_units, _assumptions, conseq);
             num_fixed_eqs += extract_fixed_eqs(conseq);
             IF_VERBOSE(1, display_consequence_progress(verbose_stream(), num_iterations, m_var2val.size(), conseq.size(),
                                                        unfixed.size(), num_fixed_eqs););
-            TRACE("context", display_consequence_progress(tout, num_iterations, m_var2val.size(), conseq.size(),
+            TRACE(context, display_consequence_progress(tout, num_iterations, m_var2val.size(), conseq.size(),
                                                        unfixed.size(), num_fixed_eqs););
         }
 
@@ -478,7 +482,6 @@ namespace smt {
             else {
                 justify(lit, s);
             }
-            m_antecedents.insert(lit.var(), s);
             if (_nasms.contains(lit.index())) {
                 expr_ref_vector core(m);
                 for (auto v : s) 
@@ -487,6 +490,7 @@ namespace smt {
                 cores.push_back(core);
                 min_core_size = std::min(min_core_size, core.size());
             }
+            m_antecedents.insert(lit.var(), std::move(s));
         }
     }
 
@@ -644,7 +648,7 @@ namespace smt {
             for (expr* a : assumptions) {
                 assert_expr(a);
             }
-            TRACE("context", tout << "checking fixed: " << mk_pp(c, m) << "\n";);
+            TRACE(context, tout << "checking fixed: " << mk_pp(c, m) << "\n";);
             tmp = m.mk_not(c);
             assert_expr(tmp);
             VERIFY(check() != l_true);
@@ -655,7 +659,7 @@ namespace smt {
             push();            
             for (expr* a : assumptions) 
                 assert_expr(a);
-            TRACE("context", tout << "checking unfixed: " << mk_pp(uf, m) << "\n";);
+            TRACE(context, tout << "checking unfixed: " << mk_pp(uf, m) << "\n";);
             lbool is_sat = check();            
             SASSERT(is_sat != l_false);
             if (is_sat == l_true) {

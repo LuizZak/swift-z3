@@ -94,7 +94,8 @@ namespace smt {
             ast_manager&           m;
             func_decl_ref          m_next;
             sr_property            m_property;
-            func_decl*             m_decl;
+            // Relations survive pop; keep their declarations alive with them.
+            func_decl_ref          m_decl;
             atoms                  m_asserted_atoms;   // set of asserted atoms
             unsigned               m_asserted_qhead;
             svector<scope>         m_scopes;
@@ -103,7 +104,7 @@ namespace smt {
             union_find_t           m_uf;
             literal_vector         m_explanation;
 
-            relation(sr_property p, func_decl* d, ast_manager& m): m(m), m_next(m), m_property(p), m_decl(d), m_asserted_qhead(0), m_uf(m_ufctx) {}
+            relation(sr_property p, func_decl* d, ast_manager& m): m(m), m_next(m), m_property(p), m_decl(d, m), m_asserted_qhead(0), m_uf(m_ufctx) {}
 
             func_decl* decl() { return m_decl; }
 
@@ -187,7 +188,7 @@ namespace smt {
         void new_diseq_eh(theory_var v1, theory_var v2) override {}
         bool use_diseqs() const override { return false; }
         bool build_models() const override { return true; }
-        final_check_status final_check_eh() override;
+        final_check_status final_check_eh(unsigned) override;
         void reset_eh() override;
         void assign_eh(bool_var v, bool is_true) override;
         void init_search_eh() override {}

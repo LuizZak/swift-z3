@@ -43,7 +43,7 @@ void bit_blaster_simplifier::reduce() {
         if (curr != new_curr) {
             m_num_steps += m_rewriter.get_num_steps();
             change = true;                    
-            TRACE("bit_blaster", tout << mk_pp(curr, m) << " -> " << new_curr << "\n";);
+            TRACE(bit_blaster, tout << mk_pp(curr, m) << " -> " << new_curr << "\n";);
             m_fmls.update(idx, dependent_expr(m, new_curr, mp(p, new_pr), d));
         }
     }
@@ -73,4 +73,9 @@ void bit_blaster_simplifier::push() {
 void bit_blaster_simplifier::pop(unsigned n) {
     dependent_expr_simplifier::pop(n);
     m_rewriter.pop(n);
+}
+
+void bit_blaster_simplifier::translate(dependent_expr_simplifier const& src, ast_translation& tr) {
+    auto const& source = dynamic_cast<bit_blaster_simplifier const&>(src);
+    m_rewriter.translate(source.m_rewriter, tr);
 }

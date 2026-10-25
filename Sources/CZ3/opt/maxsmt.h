@@ -26,10 +26,22 @@ Notes:
 #include "smt/smt_theory.h"
 #include "smt/theory_wmaxsat.h"
 #include "opt/opt_solver.h"
+#include <algorithm>
 
 namespace opt {
 
     typedef vector<rational> const weights_t;
+
+    struct core_lt {
+        template <typename Core>
+        bool operator()(Core const& a, Core const& b) const {
+            if (a.size() != b.size())
+                return a.size() < b.size();
+            // Equal-size cores can overlap, so their selection order matters.
+            return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(),
+                [](expr* x, expr* y) { return x->get_id() < y->get_id(); });
+        }
+    };
 
     struct weighted_core {
         ptr_vector<expr>  m_core;
@@ -37,6 +49,15 @@ namespace opt {
         weighted_core(ptr_vector<expr> const& c, rational const& w):
             m_core(c), m_weight(w) {}
     };
+
+    struct weighted_soft {
+        expr_ref  soft;
+        expr_ref  conj;
+        expr_ref  disj;
+        rational  weight;
+        weighted_soft(expr_ref const& s, expr_ref const& c, expr_ref const& d, rational const& w): soft(s), conj(c), disj(d), weight(w) {}
+    };
+    using weighted_softs = vector<weighted_soft>;
 
     class maxsat_context;
 
@@ -88,7 +109,7 @@ namespace opt {
         rational get_lower() const override { return m_lower; }
         rational get_upper() const override { return m_upper; }
         bool get_assignment(unsigned index) const override { return m_soft[index].is_true(); }
-        void collect_statistics(statistics& st) const override { }
+        void collect_statistics(statistics&) const override { }
         void get_model(model_ref& mdl, svector<symbol>& labels) override { mdl = m_model.get(); labels = m_labels;}
         virtual void commit_assignment();
         void set_model() { s().get_model(m_model); s().get_labels(m_labels); }
@@ -188,7 +209,7 @@ namespace opt {
             for (expr* e : soft) _soft.push_back(std::make_pair(e, rational::one()));
             lbool r = (*this)(_soft);
             soft.reset();
-            for (auto const& p : _soft) soft.push_back(p.first);
+            for (auto const& [e, w] : _soft) soft.push_back(e);
             return r;
         }
 
@@ -202,5 +223,5 @@ namespace opt {
         model_ref get_model() { return m_model; }
     };
 
-};
+}
 

@@ -69,7 +69,7 @@ class permutation_matrix
         unsigned operator[](unsigned i) const { return m_permutation[i]; }
         
         void set_val(unsigned i, unsigned pi) {
-            lp_assert(i < size() && pi < size());  m_permutation[i] = pi;  m_rev[pi] = i;  }
+            SASSERT(i < size() && pi < size());  m_permutation[i] = pi;  m_rev[pi] = i;  }
 
         void transpose_from_left(unsigned i, unsigned j);
 
@@ -92,7 +92,7 @@ class permutation_matrix
             unsigned old_size = m_permutation.size();
             m_permutation.resize(size);
             m_rev.resize(size);
-            for (unsigned i = old_size; i < size; i++) {
+            for (unsigned i = old_size; i < size; ++i) {
                 m_permutation[i] = m_rev[i] = i;
     }
         }

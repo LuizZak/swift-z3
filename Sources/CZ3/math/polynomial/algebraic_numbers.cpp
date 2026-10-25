@@ -22,6 +22,7 @@ Notes:
 #include "util/mpbqi.h"
 #include "util/timeit.h"
 #include "util/common_msgs.h"
+#include "util/index_sort_with_mutations.h"
 #include "math/polynomial/algebraic_numbers.h"
 #include "math/polynomial/upolynomial.h"
 #include "math/polynomial/sexpr2upolynomial.h"
@@ -183,7 +184,7 @@ namespace algebraic_numbers {
         }
 
         void del_poly(algebraic_cell * c) {
-            for (unsigned i = 0; i < c->m_p_sz; i++)
+            for (unsigned i = 0; i < c->m_p_sz; ++i)
                 qm().del(c->m_p[i]);
             m_allocator.deallocate(sizeof(mpz)*c->m_p_sz, c->m_p);
             c->m_p    = nullptr;
@@ -287,7 +288,7 @@ namespace algebraic_numbers {
                 return true;
             if (a.to_algebraic()->m_not_rational)
                 return false; // we know for sure a is not a rational
-            TRACE("algebraic_bug", tout << "is_rational(a):\n"; display_root(tout, a); tout << "\n"; display_interval(tout, a); tout << "\n";);
+            TRACE(algebraic_bug, tout << "is_rational(a):\n"; display_root(tout, a); tout << "\n"; display_interval(tout, a); tout << "\n";);
             algebraic_cell * c = a.to_algebraic();
             save_intervals saved_a(*this, a);
             mpz & a_n = c->m_p[c->m_p_sz - 1];
@@ -299,7 +300,7 @@ namespace algebraic_numbers {
             unsigned k = qm().log2(abs_a_n);
             k++;
 
-            TRACE("algebraic_bug", tout << "abs(an): " << qm().to_string(abs_a_n) << ", k: " << k << "\n";);
+            TRACE(algebraic_bug, tout << "abs(an): " << qm().to_string(abs_a_n) << ", k: " << k << "\n";);
 
             // make sure the isolating interval size is less than 1/2^k
             if (!refine_until_prec(a, k)) {
@@ -307,7 +308,7 @@ namespace algebraic_numbers {
                 return true;
             }
 
-            TRACE("algebraic_bug", tout << "interval after refinement: "; display_interval(tout, a); tout << "\n";);
+            TRACE(algebraic_bug, tout << "interval after refinement: "; display_interval(tout, a); tout << "\n";);
 
             // Find unique candidate rational in the isolating interval
             scoped_mpbq a_n_lower(bqm());
@@ -406,7 +407,7 @@ namespace algebraic_numbers {
             algebraic_cell * c = new (mem) algebraic_cell();
             c->m_p_sz = sz;
             c->m_p    = static_cast<mpz*>(m_allocator.allocate(sizeof(mpz)*sz));
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 new (c->m_p + i) mpz();
                 qm().set(c->m_p[i], p[i]);
             }
@@ -450,7 +451,7 @@ namespace algebraic_numbers {
             SASSERT(c->m_p_sz == 0);
             c->m_p_sz = sz;
             c->m_p    = static_cast<mpz*>(m_allocator.allocate(sizeof(mpz)*sz));
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 new (c->m_p + i) mpz();
                 qm().set(c->m_p[i], p[i]);
             }
@@ -507,7 +508,7 @@ namespace algebraic_numbers {
                 }
                 SASSERT(acell_inv(*a.to_algebraic()));
             }
-            TRACE("algebraic", tout << "a: "; display_root(tout, a); tout << "\n";);
+            TRACE(algebraic, tout << "a: "; display_root(tout, a); tout << "\n";);
         }
 
         void set(numeral & a, numeral const & b) {
@@ -552,7 +553,7 @@ namespace algebraic_numbers {
                 scoped_upoly & up_sqf = m_isolate_tmp3;
                 up_sqf.reset();
                 upm().square_free(up.size(), up.data(), up_sqf);
-                TRACE("algebraic", upm().display(tout, up_sqf.size(), up_sqf.data()); tout << "\n";);
+                TRACE(algebraic, upm().display(tout, up_sqf.size(), up_sqf.data()); tout << "\n";);
                 r.push_back(up_sqf, 1);
                 return false;
             }
@@ -582,7 +583,7 @@ namespace algebraic_numbers {
                         (void)c_lt_a;
                         // (a <= b & b <= c) => a <= c
                         // b < a or c < b or !(c < a)
-                        CTRACE("algebraic_bug", 
+                        CTRACE(algebraic_bug, 
                                (!b_lt_a && !c_lt_b && c_lt_a),
                                display_root(tout << "a ", a) << "\n";
                                display_root(tout << "b ", b) << "\n";
@@ -593,15 +594,62 @@ namespace algebraic_numbers {
             }
         }
 
+        // Sort an index permutation with a bounds-safe, mutation-aware merge
+        // sort. The comparator (compare/lt) is NOT pure: it MUTATES the
+        // algebraic numbers it compares (refining their isolating intervals) and
+        // may throw on the resource limit, so std::sort would be undefined
+        // behavior here. See util/index_sort_with_mutations.h for the rationale.
+        void merge_sort_roots_perm(numeral_vector & r, unsigned_vector & perm) {
+            unsigned n = perm.size();
+            if (n < 2)
+                return;
+            unsigned_vector scratch;
+            scratch.resize(n, 0);
+            // Strict, total, stable index comparator: decided sign first, then index
+            // tiebreak (covers the equal/limit case so the order stays deterministic).
+            auto idx_lt = [&](unsigned x, unsigned y) {
+                ::sign s = compare(r[x], r[y]);
+                return s != sign_zero ? s == sign_neg : x < y;
+            };
+            stable_index_merge_sort(perm.data(), scratch.data(), n, idx_lt);
+        }
+
         void sort_roots(numeral_vector & r) {
-            if (m_limit.inc()) {
-                // DEBUG_CODE(check_transitivity(r););
-                std::sort(r.begin(), r.end(), lt_proc(m_wrapper));
+            if (!m_limit.inc())
+                return;
+            // DEBUG_CODE(check_transitivity(r););
+            unsigned n = r.size();
+            if (n < 2)
+                return;
+            unsigned_vector perm;
+            perm.resize(n, 0);
+            for (unsigned i = 0; i < n; ++i)
+                perm[i] = i;
+            merge_sort_roots_perm(r, perm);
+            // Apply the permutation in place via swap cycles. anum swap is a cheap
+            // pointer swap (move nulls the source), so this is O(n) cheap moves.
+            unsigned_vector pos;       // pos[v] = current position of element v
+            pos.resize(n, 0);
+            unsigned_vector at;        // at[p]  = element currently at position p
+            at.resize(n, 0);
+            for (unsigned i = 0; i < n; ++i) {
+                pos[i] = i;
+                at[i] = i;
+            }
+            for (unsigned target = 0; target < n; ++target) {
+                unsigned want = perm[target];   // element that should end up at target
+                unsigned cur = pos[want];        // where it currently is
+                if (cur == target)
+                    continue;
+                unsigned other = at[target];     // element currently at target
+                std::swap(r[target], r[cur]);
+                at[target] = want;  at[cur] = other;
+                pos[want] = target; pos[other] = cur;
             }
         }
 
         void isolate_roots(scoped_upoly const & up, numeral_vector & roots) {
-            TRACE("algebraic", upm().display(tout, up); tout << "\n";);
+            TRACE(algebraic, upm().display(tout, up); tout << "\n";);
             if (up.empty())
                 return; // ignore the zero polynomial
             factors & fs = m_isolate_factors;
@@ -618,16 +666,16 @@ namespace algebraic_numbers {
             }
 
             unsigned num_factors = fs.distinct_factors();
-            for (unsigned i = 0; i < num_factors; i++) {
+            for (unsigned i = 0; i < num_factors; ++i) {
                 upolynomial::numeral_vector const & f = fs[i];
                 // polynomial f contains the non zero roots
                 unsigned d = upm().degree(f);
-                TRACE("algebraic", tout << "factor " << i << " degree: " << d << "\n";);
+                TRACE(algebraic, tout << "factor " << i << " degree: " << d << "\n";);
                 if (d == 0)
                     continue; // found all roots of f
                 scoped_mpq r(qm());
                 if (d == 1) {
-                    TRACE("algebraic", tout << "linear polynomial...\n";);
+                    TRACE(algebraic, tout << "linear polynomial...\n";);
                     // f is a linear polynomial ax + b
                     // set r <- -b/a
                     qm().set(r, f[0]);
@@ -640,15 +688,15 @@ namespace algebraic_numbers {
                 upm().sqf_isolate_roots(f.size(), f.data(), bqm(), m_isolate_roots, m_isolate_lowers, m_isolate_uppers);
                 // collect rational/basic roots                
                 unsigned sz = m_isolate_roots.size();
-                TRACE("algebraic", tout << "isolated roots: " << sz << "\n";);
-                for (unsigned i = 0; i < sz; i++) {
+                TRACE(algebraic, tout << "isolated roots: " << sz << "\n";);
+                for (unsigned i = 0; i < sz; ++i) {
                     to_mpq(qm(), m_isolate_roots[i], r);
                     roots.push_back(numeral(mk_basic_cell(r)));
                 }
                 SASSERT(m_isolate_uppers.size() == m_isolate_lowers.size());
                 // collect non-basic roots
                 sz = m_isolate_lowers.size();
-                for (unsigned i = 0; i < sz; i++) {
+                for (unsigned i = 0; i < sz; ++i) {
                     mpbq & lower = m_isolate_lowers[i];
                     mpbq & upper = m_isolate_uppers[i];
                     if (!upm().isolating2refinable(f.size(), f.data(), bqm(), lower, upper)) {
@@ -670,12 +718,268 @@ namespace algebraic_numbers {
 
         void isolate_roots(polynomial_ref const & p, numeral_vector & roots) {
             SASSERT(is_univariate(p));
-            TRACE("algebraic", tout << "isolating roots of: " << p << "\n";);
+            TRACE(algebraic, tout << "isolating roots of: " << p << "\n";);
             if (::is_zero(p))
                 return; // ignore the zero polynomial
             scoped_upoly & up     = m_isolate_tmp1;
             upm().to_numeral_vector(p, up);
             isolate_roots(up, roots);
+        }
+
+        unsigned sign_variations_at_mpq(upolynomial::upolynomial_sequence const & seq, mpq const & b) {
+            unsigned sz = seq.size();
+            if (sz <= 1)
+                return 0;
+            unsigned r = 0;
+            int sign = 0, prev_sign = 0;
+            for (unsigned i = 0; i < sz; ++i) {
+                unsigned psz      = seq.size(i);
+                mpz const * p     = seq.coeffs(i);
+                sign = static_cast<int>(upm().eval_sign_at(psz, p, b));
+                if (sign == 0)
+                    continue;
+                if (prev_sign != 0 && sign != prev_sign)
+                    r++;
+                prev_sign = sign;
+            }
+            return r;
+        }
+
+        // Isolate the i-th real root of sqf_p (1-based), where sqf_p is square-free and univariate.
+        // Return the root as an algebraic number in r. The polynomial stored in the result is sqf_p.
+        void isolate_kth_root(scoped_upoly const & sqf_p, upolynomial::upolynomial_sequence const & seq, unsigned i, numeral & r) {
+            SASSERT(i > 0);
+            unsigned sz = sqf_p.size();
+            mpz const * p = sqf_p.data();
+            SASSERT(sz > 0);
+            if (sz == 2) {
+                // Linear polynomial ax + b: root is -b/a (always rational).
+                scoped_mpq q(qm());
+                qm().set(q, p[0], p[1]);
+                qm().neg(q);
+                set(r, q);
+                return;
+            }
+            unsigned pos_k = upm().knuth_positive_root_upper_bound(sz, p);
+            unsigned neg_k = upm().knuth_negative_root_upper_bound(sz, p);
+
+            scoped_mpbq lo(bqm()), hi(bqm()), mid(bqm());
+            unsigned vminus = upm().sign_variations_at_minus_inf(seq);
+            unsigned v0     = upm().sign_variations_at_zero(seq);
+            unsigned vplus  = upm().sign_variations_at_plus_inf(seq);
+            unsigned le0_cnt = vminus - v0; // roots in (-oo, 0]
+
+            unsigned vlo, vhi;
+            unsigned target;
+            if (i <= le0_cnt) {
+                // Isolate within (-2^neg_k, 0] to keep the interval on the non-positive side.
+                bqm().power(mpbq(2), neg_k, lo);
+                bqm().neg(lo);
+                bqm().set(hi, 0);
+                vlo = vminus;
+                vhi = v0;
+                target = i;
+            }
+            else {
+                // Isolate within (0, 2^pos_k] to keep the interval on the non-negative side.
+                bqm().set(lo, 0);
+                bqm().power(mpbq(2), pos_k, hi);
+                vlo = v0;
+                vhi = vplus;
+                target = i - le0_cnt;
+            }
+
+            // Sanity: sqf_p has at least i roots.
+            SASSERT(vlo >= vhi);
+            SASSERT(i <= vminus - vplus);
+            SASSERT(target > 0);
+            SASSERT(target <= vlo - vhi);
+            while (vlo > vhi + 1) {
+                checkpoint();
+                bqm().add(lo, hi, mid);
+                bqm().div2(mid);
+                unsigned vmid = upm().sign_variations_at(seq, mid);
+                unsigned left_cnt = vlo - vmid; // roots in (lo, mid]
+                if (target <= left_cnt) {
+                    bqm().set(hi, mid);
+                    vhi = vmid;
+                }
+                else {
+                    bqm().set(lo, mid);
+                    vlo = vmid;
+                    target -= left_cnt;
+                }
+            }
+            SASSERT(vlo == vhi + 1);
+
+            // If the upper endpoint is exactly a dyadic root, return it as a basic number.
+            if (upm().eval_sign_at(sz, p, hi) == 0) {
+                scoped_mpq q(qm());
+                to_mpq(qm(), hi, q);
+                set(r, q);
+                return;
+            }
+
+            // Convert the isolating interval into a refinable one (or discover a dyadic root on the way).
+            scoped_mpbq a(bqm()), b(bqm());
+            bqm().set(a, lo);
+            bqm().set(b, hi);
+            if (!upm().isolating2refinable(sz, p, bqm(), a, b)) {
+                scoped_mpq q(qm());
+                to_mpq(qm(), a, q);
+                set(r, q);
+                return;
+            }
+
+            // At this point [a, b] is an *isolating* and *refinable* interval for p:
+            // it contains exactly one real root of the square-free polynomial p, and
+            // neither endpoint is itself that root. That root could still be a
+            // *rational* number: unlike the general isolate_roots(), this closest-root
+            // path does NOT factor p, so a reducible polynomial (e.g. a product of
+            // linear factors) is handled whole and keeps its rational roots instead of
+            // exposing them as degree-1 factors. If we blindly built an algebraic_cell
+            // here we would create a "root object" that is really just a rational, which
+            // is both wasteful and, downstream, error-prone (algebraic-number comparison
+            // must special-case such cells). So first try to recognize a rational root
+            // and, if found, return it as a plain rational (basic numeral).
+            if (rational_root_in_interval(sz, p, a, b, r))
+                return;
+
+            del(r);
+            r = mk_algebraic_cell(sz, p, a, b, false /* minimal */);
+            SASSERT(acell_inv(*r.to_algebraic()));
+        }
+
+        // Decide whether the unique real root of the square-free integer polynomial p
+        // that lies in the isolating interval [l, u] is a rational number and, if so,
+        // store it in r as a basic (rational) numeral and return true. Otherwise return
+        // false (the root is irrational and must be represented as a root object).
+        //
+        // Notation: p(x) = a_n*x^n + ... + a_1*x + a_0 with a_i integers (mpz), a_n != 0.
+        //           mpbq = dyadic rational (denominator is a power of two);
+        //           mpq  = arbitrary rational; mpz = integer.
+        //
+        // Preconditions (guaranteed by the caller, isolate_kth_root):
+        //   * p is square-free, so all its roots are simple (no repeated roots).
+        //   * [l, u] is an isolating interval: it contains EXACTLY ONE real root of p.
+        //     This is why we may speak of "the root" in the interval.
+        //
+        // The mathematics used:
+        //
+        //   1. Rational Root Theorem. If a polynomial with integer coefficients has a
+        //      rational root num/den, where den > 0 does not divide num, 
+        //      then den divides the leading coefficient a_n. In
+        //      particular every rational root can be written with denominator |a_n|,
+        //      i.e. as m/|a_n| for some integer m. We can represent the root as that m/|a_n|
+        //      for some integer m.
+        //
+        //   2. Two distinct rationals m1/|a_n| and m2/|a_n| differ by at least 1/|a_n|. Hence if we
+        //      first shrink [l, u] to have width < 1/|a_n|, the interval can contain at
+        //      most one rational of the form m/|a_n| => if the
+        //      root is rational it must equal that single candidate.
+        bool rational_root_in_interval(unsigned sz, mpz const * p, mpbq & l, mpbq & u, numeral & r) {
+            // a_n is the leading coefficient; work with its absolute value |a_n|.
+            mpz const & a_n = p[sz - 1];
+            scoped_mpz abs_a_n(qm());
+            qm().set(abs_a_n, a_n);
+            qm().abs(abs_a_n);
+
+            // We need the interval width to be strictly less than 1/|a_n|
+            // refine() shrinks by halving, i.e. it reaches width <= 1/2^k. Choosing
+            //   k = floor(log2(|a_n|)) + 1
+            // gives 2^k > |a_n|, hence 1/2^k < 1/|a_n|, which is what we want.
+            unsigned k = qm().log2(abs_a_n);
+            k++;
+
+            // Refine [l, u] to precision k. refine() returns false in the lucky case
+            // where the bisection lands *exactly* on a dyadic rational that is a root
+            // of p; in that case the exact root has been stored in the lower endpoint l,
+            // so we can return it directly as a basic rational.
+            if (!upm().refine(sz, p, bqm(), l, u, k)) {
+                scoped_mpq q(qm());
+                to_mpq(qm(), l, q);
+                set(r, q);
+                return true;
+            }
+            // Otherwise refine() succeeded and [l, u] now has width < 1/|a_n|.
+
+            // Build the unique candidate rational m/|a_n| that could lie in [l, u].
+            // Scale the interval by |a_n|: [l*|a_n|, u*|a_n|] has width < 1, so it
+            // contains at most one integer. That integer, if any, is m = floor(u*|a_n|),
+            // and the candidate rational is m/|a_n|.
+            scoped_mpbq a_n_upper(bqm());
+            bqm().mul(u, abs_a_n, a_n_upper);        // a_n_upper = u * |a_n|
+            scoped_mpz zcandidate(qm());
+            bqm().floor(qm(), a_n_upper, zcandidate); // m = floor(u * |a_n|)
+            scoped_mpq candidate(qm());
+            qm().set(candidate, zcandidate, abs_a_n); // candidate = m / |a_n|
+
+            // By construction candidate <= u. We still must confirm two things:
+            //   (a) candidate is actually inside the interval, i.e. l < candidate
+            //       (if candidate <= l then there is no rational m/|a_n| inside [l,u]);
+            //   (b) candidate is genuinely a root, i.e. p(candidate) == 0.
+            // If both hold, then since the interval isolates exactly one root, that
+            // root equals candidate and is rational. If p(candidate) != 0, then by the
+            // Rational Root Theorem no rational (which would have to be m/|a_n|) is a
+            // root here, so the single root in the interval is irrational.
+            if (bqm().lt(l, candidate) && upm().eval_sign_at(sz, p, candidate) == sign_zero) {
+                set(r, candidate);
+                return true;
+            }
+            return false;
+        }
+
+        // Closest-root isolation for an (integer) univariate polynomial.
+        void isolate_roots_closest_univariate(polynomial_ref const & p, mpq const & s, numeral_vector & roots, svector<unsigned> & indices) {
+            SASSERT(is_univariate(p));
+            SASSERT(roots.empty());
+            indices.reset();
+
+            if (::is_zero(p) || ::is_const(p))
+                return;
+
+            // Convert to dense univariate form and take the square-free part.
+            scoped_upoly & up = m_isolate_tmp1;
+            scoped_upoly & sqf_p = m_isolate_tmp3;
+            up.reset();
+            sqf_p.reset();
+            upm().to_numeral_vector(p, up);
+            if (up.empty())
+                return;
+            upm().square_free(up.size(), up.data(), sqf_p);
+            if (sqf_p.empty() || upm().degree(sqf_p) == 0)
+                return;
+
+            upolynomial::scoped_upolynomial_sequence seq(upm());
+            upm().sturm_seq(sqf_p.size(), sqf_p.data(), seq);
+            unsigned vminus = upm().sign_variations_at_minus_inf(seq);
+            unsigned vplus  = upm().sign_variations_at_plus_inf(seq);
+            if (vminus <= vplus)
+                return;
+
+            unsigned vs = sign_variations_at_mpq(seq, s);
+            unsigned total = vminus - vplus;
+            unsigned k = vminus - vs; // #roots in (-oo, s]
+
+            if (upm().eval_sign_at(sqf_p.size(), sqf_p.data(), s) == 0) {
+                roots.push_back(numeral());
+                set(roots.back(), s);
+                indices.push_back(k);
+                return;
+            }
+
+            // predecessor (<= s)
+            if (k > 0) {
+                roots.push_back(numeral());
+                isolate_kth_root(sqf_p, seq, k, roots.back());
+                indices.push_back(k);
+            }
+            // successor (> s)
+            if (k < total) {
+                roots.push_back(numeral());
+                isolate_kth_root(sqf_p, seq, k + 1, roots.back());
+                indices.push_back(k + 1);
+            }
         }
 
         void mk_root(scoped_upoly const & up, unsigned i, numeral & r) {
@@ -688,8 +992,8 @@ namespace algebraic_numbers {
             scoped_numeral_vector roots(m_wrapper);
             isolate_roots(up, roots);
             unsigned num_roots = roots.size();
-            TRACE("algebraic", tout << "num-roots: " << num_roots << "\n";
-                  for (unsigned i = 0; i < num_roots; i++) {
+            TRACE(algebraic, tout << "num-roots: " << num_roots << "\n";
+                  for (unsigned i = 0; i < num_roots; ++i) {
                       display_interval(tout, roots[i]);
                       tout << "\n";
                   });
@@ -701,7 +1005,7 @@ namespace algebraic_numbers {
         void mk_root(polynomial_ref const & p, unsigned i, numeral & r) {
             SASSERT(i != 0);
             SASSERT(is_univariate(p));
-            TRACE("algebraic", tout << "isolating roots of: " << p << "\n";);
+            TRACE(algebraic, tout << "isolating roots of: " << p << "\n";);
             scoped_upoly & up     = m_isolate_tmp1;
             upm().to_numeral_vector(p, up);
             mk_root(up, i, r);
@@ -711,7 +1015,7 @@ namespace algebraic_numbers {
             SASSERT(i != 0);
             scoped_upoly & up = m_isolate_tmp1;
             sexpr2upolynomial(upm(), p, up);
-            TRACE("algebraic", tout << "mk_root " << i << "\n"; upm().display(tout, up); tout << "\n";);
+            TRACE(algebraic, tout << "mk_root " << i << "\n"; upm().display(tout, up); tout << "\n";);
             mk_root(up, i, r);
         }
 
@@ -799,7 +1103,7 @@ namespace algebraic_numbers {
         }
 
         bool refine(numeral & a, unsigned k) {
-            for (unsigned i = 0; i < k; i++)
+            for (unsigned i = 0; i < k; ++i)
                 if (!refine(a))
                     return false;
             return true;
@@ -985,13 +1289,13 @@ namespace algebraic_numbers {
            \pre lV and uV are the sign variations (in seq) for r_i.lower() and r_i.upper()
         */
         void set_core(numeral & c, scoped_upoly & p, mpbqi & r_i, upolynomial::scoped_upolynomial_sequence & seq, int lV, int uV, bool minimal) {
-            TRACE("algebraic", tout << "set_core p: "; upm().display(tout, p); tout << "\n";);
+            TRACE(algebraic, tout << "set_core p: "; upm().display(tout, p); tout << "\n";);
             if (bqim().contains_zero(r_i)) {
                 if (upm().has_zero_roots(p.size(), p.data())) {
                     // zero is a root of p, and r_i is an isolating interval containing zero,
                     // then c is zero
                     reset(c);
-                    TRACE("algebraic", tout << "resetting\nresult: "; display_root(tout, c); tout << "\n";);
+                    TRACE(algebraic, tout << "resetting\nresult: "; display_root(tout, c); tout << "\n";);
                     return;
                 }
                 int zV = upm().sign_variations_at_zero(seq);
@@ -1024,7 +1328,7 @@ namespace algebraic_numbers {
                 set(c, r);
             }
             else {
-                TRACE("algebraic", tout << "set_core...\n";);
+                TRACE(algebraic, tout << "set_core...\n";);
                 set(c, nz_p.size(), nz_p.data(), r_i.lower(), r_i.upper(), minimal);
             }
         }
@@ -1052,14 +1356,14 @@ namespace algebraic_numbers {
             scoped_upoly p(upm());
             scoped_upoly f(upm());
             mk_poly(cell_a, cell_b, p);
-            TRACE("anum_mk_binary", tout << "a: "; display_root(tout, a); tout << "\nb: "; display_root(tout, b); tout << "\np: ";
+            TRACE(anum_mk_binary, tout << "a: "; display_root(tout, a); tout << "\nb: "; display_root(tout, b); tout << "\np: ";
                   upm().display(tout, p); tout << "\n";);
             factors fs(upm());
             bool full_fact  = factor(p, fs);
             unsigned num_fs = fs.distinct_factors();
             scoped_ptr_vector<typename upolynomial::scoped_upolynomial_sequence> seqs;
-            for (unsigned i = 0; i < num_fs; i++) {
-                TRACE("anum_mk_binary", tout << "factor " << i << "\n"; upm().display(tout, fs[i]); tout << "\n";);
+            for (unsigned i = 0; i < num_fs; ++i) {
+                TRACE(anum_mk_binary, tout << "factor " << i << "\n"; upm().display(tout, fs[i]); tout << "\n";);
                 typename upolynomial::scoped_upolynomial_sequence * seq = alloc(typename upolynomial::scoped_upolynomial_sequence, upm());
                 upm().sturm_seq(fs[i].size(), fs[i].data(), *seq);
                 seqs.push_back(seq);
@@ -1079,14 +1383,14 @@ namespace algebraic_numbers {
                 unsigned num_rem  = 0; // number of remaining sequences
                 unsigned target_i = UINT_MAX; // index of sequence that is isolating
                 int target_lV = 0, target_uV = 0;
-                for (unsigned i = 0; i < num_fs; i++) {
+                for (unsigned i = 0; i < num_fs; ++i) {
                     if (seqs[i] == nullptr)
                         continue; // sequence was discarded because it does not contain the root.
-                    TRACE("anum_mk_binary", tout << "sequence " << i << "\n"; upm().display(tout, *(seqs[i])); tout << "\n";);
+                    TRACE(anum_mk_binary, tout << "sequence " << i << "\n"; upm().display(tout, *(seqs[i])); tout << "\n";);
                     int lV = upm().sign_variations_at(*(seqs[i]), r_i.lower());
                     int uV = upm().sign_variations_at(*(seqs[i]), r_i.upper());
                     int V  = lV - uV;
-                    TRACE("algebraic", tout << "r_i: "; bqim().display(tout, r_i); tout << "\n";
+                    TRACE(algebraic, tout << "r_i: "; bqim().display(tout, r_i); tout << "\n";
                           tout << "lV: " << lV << ", uV: " << uV << "\n";
                           tout << "a.m_interval: "; bqim().display(tout, cell_a->m_interval); tout << "\n";
                           tout << "b.m_interval: "; bqim().display(tout, cell_b->m_interval); tout << "\n";
@@ -1108,7 +1412,7 @@ namespace algebraic_numbers {
 
                 if (num_rem == 1 && target_i != UINT_MAX) {
                     // found isolating interval
-                    TRACE("anum_mk_binary", tout << "target_i: " << target_i << "\n";);
+                    TRACE(anum_mk_binary, tout << "target_i: " << target_i << "\n";);
                     saved_a.restore_if_too_small();
                     saved_b.restore_if_too_small();
                     upm().set(fs[target_i].size(), fs[target_i].data(), f);
@@ -1139,7 +1443,7 @@ namespace algebraic_numbers {
             bool full_fact  = factor(p, fs);
             unsigned num_fs = fs.distinct_factors();
             scoped_ptr_vector<typename upolynomial::scoped_upolynomial_sequence> seqs;
-            for (unsigned i = 0; i < num_fs; i++) {
+            for (unsigned i = 0; i < num_fs; ++i) {
                 typename upolynomial::scoped_upolynomial_sequence * seq = alloc(typename upolynomial::scoped_upolynomial_sequence, upm());
                 upm().sturm_seq(fs[i].size(), fs[i].data(), *seq);
                 seqs.push_back(seq);
@@ -1157,13 +1461,13 @@ namespace algebraic_numbers {
                 unsigned num_rem  = 0; // number of remaining sequences
                 unsigned target_i = UINT_MAX; // index of sequence that is isolating
                 int target_lV = 0, target_uV = 0;
-                for (unsigned i = 0; i < num_fs; i++) {
+                for (unsigned i = 0; i < num_fs; ++i) {
                     if (seqs[i] == nullptr)
                         continue; // sequence was discarded because it does not contain the root.
                     int lV = upm().sign_variations_at(*(seqs[i]), r_i.lower());
                     int uV = upm().sign_variations_at(*(seqs[i]), r_i.upper());
                     int V  = lV - uV;
-                    TRACE("algebraic", tout << "r_i: "; bqim().display(tout, r_i); tout << "\n";
+                    TRACE(algebraic, tout << "r_i: "; bqim().display(tout, r_i); tout << "\n";
                           tout << "lV: " << lV << ", uV: " << uV << "\n";
                           tout << "a.m_interval: "; bqim().display(tout, cell_a->m_interval); tout << "\n";
                           );
@@ -1319,7 +1623,7 @@ namespace algebraic_numbers {
 
             if (qm().root(a_val, k, r_a_val)) {
                 // the result is rational
-                TRACE("root_core", tout << "r_a_val: " << r_a_val << " a_val: "; qm().display(tout, a_val); tout << "\n";);
+                TRACE(root_core, tout << "r_a_val: " << r_a_val << " a_val: "; qm().display(tout, a_val); tout << "\n";);
                 set(b, r_a_val);
                 return;
             }
@@ -1334,7 +1638,7 @@ namespace algebraic_numbers {
             p.push_back(mpz());
             qm().set(p.back(), a_val.numerator());
             qm().neg(p.back());
-            for (unsigned i = 0; i < k; i++)
+            for (unsigned i = 0; i < k; ++i)
                 p.push_back(mpz());
             qm().set(p.back(), a_val.denominator());
 
@@ -1360,7 +1664,7 @@ namespace algebraic_numbers {
                 bqm().add(upper, mpz(1), upper); // make sure (a_val)^{1/k} < upper
             }
             SASSERT(bqm().lt(lower, upper));
-            TRACE("algebraic", tout << "root_core:\n"; upm().display(tout, p.size(), p.data()); tout << "\n";);
+            TRACE(algebraic, tout << "root_core:\n"; upm().display(tout, p.size(), p.data()); tout << "\n";);
             // p is not necessarily a minimal polynomial.
             // So, we set the m_minimal flag to false. TODO: try to factor.
             set(b, p.size(), p.data(), lower, upper, false);
@@ -1434,7 +1738,7 @@ namespace algebraic_numbers {
 
         template<bool IsAdd>
         void add(algebraic_cell * a, basic_cell * b, numeral & c) {
-            TRACE("algebraic", tout << "adding algebraic and basic cells:\n";
+            TRACE(algebraic, tout << "adding algebraic and basic cells:\n";
                   tout << "a: "; upm().display(tout, a->m_p_sz, a->m_p); tout << " "; bqim().display(tout, a->m_interval); tout << "\n";
                   tout << "b: "; qm().display(tout, b->m_value); tout << "\n";);
             scoped_mpq nbv(qm());
@@ -1457,18 +1761,18 @@ namespace algebraic_numbers {
                 scoped_mpq iu(qm());
                 to_mpq(qm(), i.lower(), il);
                 to_mpq(qm(), i.upper(), iu);
-                TRACE("algebraic",
+                TRACE(algebraic,
                       tout << "nbv: " << nbv << "\n";
                       tout << "il: " << il << ", iu: " << iu << "\n";);
                 qm().add(il, nbv, il);
                 qm().add(iu, nbv, iu);
                 // (il, iu) is an isolating refinable (rational) interval for the new polynomial.
                 if (!upm().convert_q2bq_interval(m_add_tmp.size(), m_add_tmp.data(), il, iu, bqm(), l, u)) {
-                    TRACE("algebraic", tout << "conversion failed\n");
+                    TRACE(algebraic, tout << "conversion failed\n");
                 }
                     
             }
-            TRACE("algebraic",
+            TRACE(algebraic,
                   upm().display(tout, m_add_tmp.size(), m_add_tmp.data());
                   tout << ", l: " << l << ", u: " << u << "\n";
                   tout << "l_sign: " << upm().eval_sign_at(m_add_tmp.size(), m_add_tmp.data(), l) << "\n";
@@ -1541,7 +1845,7 @@ namespace algebraic_numbers {
         }
 
         void mul(algebraic_cell * a, basic_cell * b, numeral & c) {
-            TRACE("algebraic", tout << "mult algebraic and basic cells:\n";
+            TRACE(algebraic, tout << "mult algebraic and basic cells:\n";
                   tout << "a: "; upm().display(tout, a->m_p_sz, a->m_p); tout << " "; bqim().display(tout, a->m_interval); tout << "\n";
                   tout << "b: "; qm().display(tout, b->m_value); tout << "\n";);
             SASSERT(upm().eval_sign_at(a->m_p_sz, a->m_p, lower(a)) == -upm().eval_sign_at(a->m_p_sz, a->m_p, upper(a)));
@@ -1568,7 +1872,7 @@ namespace algebraic_numbers {
                 scoped_mpq iu(qm());
                 to_mpq(qm(), i.lower(), il);
                 to_mpq(qm(), i.upper(), iu);
-                TRACE("algebraic",
+                TRACE(algebraic,
                       tout << "nbv: " << nbv << "\n";
                       tout << "il: " << il << ", iu: " << iu << "\n";);
                 qm().mul(il, nbv, il);
@@ -1577,10 +1881,10 @@ namespace algebraic_numbers {
                     qm().swap(il, iu);
                 // (il, iu) is an isolating refinable (rational) interval for the new polynomial.
                 if (!upm().convert_q2bq_interval(mulp.size(), mulp.data(), il, iu, bqm(), l, u)) {
-                    TRACE("algebraic", tout << "conversion failed\n");
+                    TRACE(algebraic, tout << "conversion failed\n");
                 }
             }
-            TRACE("algebraic",
+            TRACE(algebraic,
                   upm().display(tout, mulp.size(), mulp.data());
                   tout << ", l: " << l << ", u: " << u << "\n";
                   tout << "l_sign: " << upm().eval_sign_at(mulp.size(), mulp.data(), l) << "\n";
@@ -1620,6 +1924,9 @@ namespace algebraic_numbers {
                 algebraic_cell * c = a.to_algebraic();
                 upm().p_minus_x(c->m_p_sz, c->m_p);
                 bqim().neg(c->m_interval);
+                // Preserve a materialized root-object index under p(x) -> p(-x).
+                if (c->m_i != 0)
+                    c->m_i = upm().get_root_id(c->m_p_sz, c->m_p, lower(c)) + 1;
                 update_sign_lower(c);
                 SASSERT(acell_inv(*c));
             }
@@ -1679,7 +1986,7 @@ namespace algebraic_numbers {
                 qm().inv(a.to_basic()->m_value);
             }
             else {
-                TRACE("algebraic_bug", tout << "before inv: "; display_root(tout, a); tout << "\n"; display_interval(tout, a); tout << "\n";);
+                TRACE(algebraic_bug, tout << "before inv: "; display_root(tout, a); tout << "\n"; display_interval(tout, a); tout << "\n";);
                 algebraic_cell * cell_a = a.to_algebraic();
                 upm().p_1_div_x(cell_a->m_p_sz, cell_a->m_p);
                 // convert binary rational bounds into rational bounds
@@ -1690,13 +1997,13 @@ namespace algebraic_numbers {
                 qm().inv(inv_lower);
                 qm().inv(inv_upper);
                 qm().swap(inv_lower, inv_upper);
-                TRACE("algebraic_bug", tout << "inv new_bounds: " << qm().to_string(inv_lower) << ", " << qm().to_string(inv_upper) << "\n";);
+                TRACE(algebraic_bug, tout << "inv new_bounds: " << qm().to_string(inv_lower) << ", " << qm().to_string(inv_upper) << "\n";);
                 // convert isolating interval back as a binary rational bound
                 if (!upm().convert_q2bq_interval(cell_a->m_p_sz, cell_a->m_p, inv_lower, inv_upper, bqm(), lower(cell_a), upper(cell_a))) {
-                    TRACE("algebraic_bug", tout << "root isolation failed\n");                    
+                    TRACE(algebraic_bug, tout << "root isolation failed\n");                    
                     throw algebraic_exception("inversion of algebraic number failed");
                 }
-                TRACE("algebraic_bug", tout << "after inv: "; display_root(tout, a); tout << "\n"; display_interval(tout, a); tout << "\n";);
+                TRACE(algebraic_bug, tout << "after inv: "; display_root(tout, a); tout << "\n"; display_interval(tout, a); tout << "\n";);
                 update_sign_lower(cell_a);
                 SASSERT(acell_inv(*cell_a));       
             }
@@ -1792,7 +2099,7 @@ namespace algebraic_numbers {
                 return sign_zero;
             }
 
-            TRACE("algebraic", tout << "comparing\n";
+            TRACE(algebraic, tout << "comparing\n";
                   tout << "a: "; upm().display(tout, cell_a->m_p_sz, cell_a->m_p); tout << "\n"; bqim().display(tout, cell_a->m_interval);
                   tout << "\ncell_a->m_minimal: " << cell_a->m_minimal << "\n";
                   tout << "b: "; upm().display(tout, cell_b->m_p_sz, cell_b->m_p); tout << "\n"; bqim().display(tout, cell_b->m_interval);
@@ -1821,7 +2128,7 @@ namespace algebraic_numbers {
             }
 
             if (!m_limit.inc())
-                return sign_zero;
+                throw algebraic_exception(m_limit.get_cancel_msg());
 
             // make sure that intervals of a and b have the same magnitude
             int a_m      = magnitude(a_lower, a_upper);
@@ -1841,7 +2148,7 @@ namespace algebraic_numbers {
             }
             if (target_m > m_min_magnitude) {
                 int num_refinements = target_m - m_min_magnitude;
-                for (int i = 0; i < num_refinements; i++) {
+                for (int i = 0; i < num_refinements; ++i) {
                     if (!refine(a) || !refine(b))
                         return compare(a, b);
                     m_compare_refine++;
@@ -1855,8 +2162,15 @@ namespace algebraic_numbers {
             scoped_mpbq la(bqm()), ua(bqm());
             scoped_mpbq lb(bqm()), ub(bqm());
             unsigned precision = 10;
-            if (get_interval(a, la, ua, precision) && 
-                get_interval(b, lb, ub, precision)) { 
+            // Important: both intervals must be computed. Do not short-circuit with &&:
+            // the refined bounds la, ua, lb, ub are all used below (and beyond this
+            // if statement, in the interval-separation checks that compare against
+            // the bounds of a and b), so get_interval(b, ...) has to run even when
+            // get_interval(a, ...) returns false (which happens when a is rational
+            // and its exact root is found).
+            bool a_separated = get_interval(a, la, ua, precision);
+            bool b_separated = get_interval(b, lb, ub, precision);
+            if (a_separated && b_separated) {
                 IF_VERBOSE(9, verbose_stream() << "sturm 0\n");
                 if (la > ub) 
                     return sign_pos;
@@ -1864,6 +2178,20 @@ namespace algebraic_numbers {
                     return sign_neg;
             }
             IF_VERBOSE(9, verbose_stream() << "sturm 1\n");
+
+
+            // Check whether a can be separated from b's interval and vice versa
+            // this recognizes the case where the intervals overlap,
+            // but the anums do not lie in the intersection of the intervals.
+            scoped_mpq l_a(qm()), u_a(qm()), l_b(qm()), u_b(qm());
+            to_mpq(qm(), la, l_a);
+            to_mpq(qm(), ua, u_a);
+            to_mpq(qm(), lb, l_b);
+            to_mpq(qm(), ub, u_b);
+            if (compare(cell_a, l_b) == sign_neg) return sign_neg;
+            if (compare(cell_a, u_b) == sign_pos) return sign_pos;
+            if (compare(cell_b, l_a) == sign_neg) return sign_pos;
+            if (compare(cell_b, u_a) == sign_pos) return sign_neg;
 
             // 
             // EXPENSIVE CASE
@@ -1893,7 +2221,7 @@ namespace algebraic_numbers {
             unsigned V1 = upm().sign_variations_at(seq, a_lower);
             unsigned V2 = upm().sign_variations_at(seq, a_upper);            
             int V =  V1 - V2;
-            TRACE("algebraic", tout << "comparing using sturm\n"; 
+            TRACE(algebraic, tout << "comparing using sturm\n"; 
                   display_interval(tout, a) << "\n"; 
                   display_interval(tout, b) << "\n";
                   tout << "V: " << V << " V1 " << V1 << " V2 " << V2 
@@ -1943,7 +2271,7 @@ namespace algebraic_numbers {
         }
 
         ::sign compare(numeral & a, numeral & b) {
-            TRACE("algebraic", tout << "comparing: "; display_interval(tout, a); tout << " "; display_interval(tout, b); tout << "\n";);
+            TRACE(algebraic, tout << "comparing: "; display_interval(tout, a); tout << " "; display_interval(tout, b); tout << "\n";);
             if (a.is_basic()) {
                 if (b.is_basic())
                     return compare(basic_value(a), basic_value(b));
@@ -2058,7 +2386,7 @@ namespace algebraic_numbers {
             mpq const & operator()(polynomial::var x) const override {
                 anum const & v = m_x2v(x);
                 SASSERT(v.is_basic());
-                TRACE("var2basic", tout << "getting value of x" << x << " -> " << m().to_string(m_imp.basic_value(v)) << "\n";);
+                TRACE(var2basic, tout << "getting value of x" << x << " -> " << m().to_string(m_imp.basic_value(v)) << "\n";);
                 return m_imp.basic_value(v);
             }
         };
@@ -2082,7 +2410,7 @@ namespace algebraic_numbers {
         polynomial::var_vector m_eval_sign_vars;
         sign eval_sign_at(polynomial_ref const & p, polynomial::var2anum const & x2v) {
             polynomial::manager & ext_pm = p.m();
-            TRACE("anum_eval_sign", tout << "evaluating sign of: " << p << "\n";);
+            TRACE(anum_eval_sign, tout << "evaluating sign of: " << p << "\n";);
             while (true) {
                 bool restart = false;
                 // Optimistic: maybe x2v contains only rational values
@@ -2090,7 +2418,7 @@ namespace algebraic_numbers {
                     opt_var2basic x2v_basic(*this, x2v);
                     scoped_mpq r(qm());
                     ext_pm.eval(p, x2v_basic, r);
-                    TRACE("anum_eval_sign", tout << "all variables are assigned to rationals, value of p: " << r << "\n";);
+                    TRACE(anum_eval_sign, tout << "all variables are assigned to rationals, value of p: " << r << "\n";);
                     return ::to_sign(qm().sign(r));
                 }
                 catch (const opt_var2basic::failed &) {
@@ -2101,7 +2429,7 @@ namespace algebraic_numbers {
                 polynomial_ref p_prime(ext_pm);
                 var2basic x2v_basic(*this, x2v);
                 p_prime = ext_pm.substitute(p, x2v_basic);
-                TRACE("anum_eval_sign", tout << "p after eliminating rationals: " << p_prime << "\n";);
+                TRACE(anum_eval_sign, tout << "p after eliminating rationals: " << p_prime << "\n";);
 
                 if (ext_pm.is_zero(p_prime)) {
                     // polynomial vanished after substituting rational values.
@@ -2125,13 +2453,13 @@ namespace algebraic_numbers {
                 while (true) {
                     checkpoint();
                     ext_pm.eval(p_prime, x2v_interval, ri);
-                    TRACE("anum_eval_sign", tout << "evaluating using intervals: " << ri << "\n";);
+                    TRACE(anum_eval_sign, tout << "evaluating using intervals: " << ri << "\n";);
                     if (!bqim().contains_zero(ri)) {
                         return bqim().is_pos(ri) ? sign_pos : sign_neg;
                     }
                     // refine intervals if magnitude > m_min_magnitude
                     bool refined = false;
-                    for (unsigned i = 0; i < xs.size(); i++) {
+                    for (unsigned i = 0; i < xs.size(); ++i) {
                         polynomial::var x = xs[i];
                         SASSERT(x2v.contains(x));
                         anum const & v = x2v(x);
@@ -2144,7 +2472,7 @@ namespace algebraic_numbers {
                                 restart = true;
                                 break;
                             }
-                            TRACE("anum_eval_sign", tout << "refined algebraic interval\n";);
+                            TRACE(anum_eval_sign, tout << "refined algebraic interval\n";);
                             SASSERT(!v.is_basic());
                             refined = true;
                         }
@@ -2156,9 +2484,10 @@ namespace algebraic_numbers {
                 }
 
                 if (restart) {
+                    checkpoint();
                     // Some non-basic value became basic.
                     // So, restarting the whole process
-                    TRACE("anum_eval_sign", tout << "restarting some algebraic_cell became basic\n";);
+                    TRACE(anum_eval_sign, tout << "restarting some algebraic_cell became basic\n";);
                     continue;
                 }
 
@@ -2174,7 +2503,7 @@ namespace algebraic_numbers {
                 // Evaluating sign using algebraic arithmetic
                 scoped_anum ra(m_wrapper);
                 ext_pm.eval(p_prime, x2v, ra);
-                TRACE("anum_eval_sign", tout << "value of p as algebraic number " << ra << "\n";);
+                TRACE(anum_eval_sign, tout << "value of p as algebraic number " << ra << "\n";);
                 if (is_zero(ra))
                     return 0;
                 return is_pos(ra) ? 1 : -1;
@@ -2219,7 +2548,7 @@ namespace algebraic_numbers {
                 // compute the resultants
                 polynomial_ref q_i(pm());
                 std::stable_sort(xs.begin(), xs.end(), var_degree_lt(*this, x2v));
-                for (unsigned i = 0; i < xs.size(); i++) {
+                for (unsigned i = 0; i < xs.size(); ++i) {
                     checkpoint();
                     polynomial::var x_i = xs[i];
                     SASSERT(x2v.contains(x_i));
@@ -2234,7 +2563,7 @@ namespace algebraic_numbers {
                 scoped_upoly & _R = m_eval_sign_tmp;
                 upm().to_numeral_vector(R, _R);
                 unsigned k = upm().nonzero_root_lower_bound(_R.size(), _R.data());
-                TRACE("anum_eval_sign", tout << "R: " << R << "\nk: " << k << "\nri: "<< ri << "\n";);
+                TRACE(anum_eval_sign, tout << "R: " << R << "\nk: " << k << "\nri: "<< ri << "\n";);
                 scoped_mpbq mL(bqm()), L(bqm());
                 bqm().set(mL, -1);
                 bqm().set(L,   1);
@@ -2248,7 +2577,7 @@ namespace algebraic_numbers {
                 // The invervals (for the values of the variables in xs) are going to get too small.
                 // So, we save them before refining...
                 scoped_ptr_vector<save_intervals> saved_intervals;
-                for (unsigned i = 0; i < xs.size(); i++) {
+                for (unsigned i = 0; i < xs.size(); ++i) {
                     polynomial::var x_i = xs[i];
                     SASSERT(x2v.contains(x_i));
                     anum const & v_i = x2v(x_i);
@@ -2261,7 +2590,7 @@ namespace algebraic_numbers {
                 while (!restart) {
                     checkpoint();
                     ext_pm.eval(p_prime, x2v_interval, ri);
-                    TRACE("anum_eval_sign", tout << "evaluating using intervals: " << ri << "\n";
+                    TRACE(anum_eval_sign, tout << "evaluating using intervals: " << ri << "\n";
                           tout << "zero lower bound is: " << L << "\n";);
                     if (!bqim().contains_zero(ri)) {
                         return bqim().is_pos(ri) ? sign_pos : sign_neg;
@@ -2279,7 +2608,7 @@ namespace algebraic_numbers {
                             restart = true;
                             break;
                         }
-                        TRACE("anum_eval_sign", tout << "refined algebraic interval\n";);
+                        TRACE(anum_eval_sign, tout << "refined algebraic interval\n";);
                         SASSERT(!v.is_basic());
                     }
                 }
@@ -2332,31 +2661,31 @@ namespace algebraic_numbers {
 
         // Remove from roots any solution r such that p does not evaluate to 0 at x2v extended with x->r.
         void filter_roots(polynomial_ref const & p, polynomial::var2anum const & x2v, polynomial::var x, numeral_vector & roots) {
-            TRACE("isolate_roots", tout << "before filtering roots, x: x" << x << "\n";
-                  for (unsigned i = 0; i < roots.size(); i++) {
+            TRACE(isolate_roots, tout << "before filtering roots, x: x" << x << "\n";
+                  for (unsigned i = 0; i < roots.size(); ++i) {
                       display_root(tout, roots[i]); tout << "\n";
                   });
 
             unsigned sz = roots.size();
             unsigned j  = 0;
-            for (unsigned i = 0; i < sz; i++) {
+            for (unsigned i = 0; i < sz; ++i) {
                 checkpoint();
                 ext_var2num ext_x2v(m_wrapper, x2v, x, roots[i]);
-                TRACE("isolate_roots", tout << "filter_roots i: " << i << ", ext_x2v: x" << x << " -> "; display_root(tout, roots[i]); tout << "\n";);
+                TRACE(isolate_roots, tout << "filter_roots i: " << i << ", ext_x2v: x" << x << " -> "; display_root(tout, roots[i]); tout << "\n";);
                 sign sign = eval_sign_at(p, ext_x2v);
-                TRACE("isolate_roots", tout << "filter_roots i: " << i << ", result sign: " << sign << "\n";);
+                TRACE(isolate_roots, tout << "filter_roots i: " << i << ", result sign: " << sign << "\n";);
                 if (sign != 0)
                     continue;
                 if (i != j)
                     set(roots[j], roots[i]);
                 j++;
             }
-            for (unsigned i = j; i < sz; i++)
+            for (unsigned i = j; i < sz; ++i)
                 del(roots[i]);
             roots.shrink(j);
 
-            TRACE("isolate_roots", tout << "after filtering roots:\n";
-                  for (unsigned i = 0; i < roots.size(); i++) {
+            TRACE(isolate_roots, tout << "after filtering roots:\n";
+                  for (unsigned i = 0; i < roots.size(); ++i) {
                       display_root(tout, roots[i]); tout << "\n";
                   });
         }
@@ -2365,7 +2694,7 @@ namespace algebraic_numbers {
         static polynomial::var get_max_var(polynomial::var_vector const & xs) {
             SASSERT(!xs.empty());
             polynomial::var x = xs[0];
-            for (unsigned i = 1; i < xs.size(); i++) {
+            for (unsigned i = 1; i < xs.size(); ++i) {
                 if (xs[i] > x)
                     x = xs[i];
             }
@@ -2381,16 +2710,16 @@ namespace algebraic_numbers {
 
         polynomial::var_vector m_isolate_roots_vars;
         void isolate_roots(polynomial_ref const & p, polynomial::var2anum const & x2v, numeral_vector & roots, bool nested_call = false) {
-            TRACE("isolate_roots", tout << "isolating roots of: " << p << "\n";);
+            TRACE(isolate_roots, tout << "isolating roots of: " << p << "\n";);
             SASSERT(roots.empty());
             polynomial::manager & ext_pm = p.m();
             if (ext_pm.is_zero(p) || ext_pm.is_const(p)) {
-                TRACE("isolate_roots", tout << "p is zero or the constant polynomial\n";);
+                TRACE(isolate_roots, tout << "p is zero or the constant polynomial\n";);
                 return;
             }
 
             if (ext_pm.is_univariate(p)) {
-                TRACE("isolate_roots", tout << "p is univariate, using univariate procedure\n";);
+                TRACE(isolate_roots, tout << "p is univariate, using univariate procedure\n";);
                 isolate_roots(p, roots);
                 return;
             }
@@ -2399,10 +2728,10 @@ namespace algebraic_numbers {
             polynomial_ref p_prime(ext_pm);
             var2basic x2v_basic(*this, x2v);
             p_prime = ext_pm.substitute(p, x2v_basic);
-            TRACE("isolate_roots", tout << "p after applying (rational fragment of) x2v:\n" << p_prime << "\n";);
+            TRACE(isolate_roots, tout << "p after applying (rational fragment of) x2v:\n" << p_prime << "\n";);
 
             if (ext_pm.is_zero(p_prime) || ext_pm.is_const(p_prime)) {
-                TRACE("isolate_roots", tout << "p is zero or the constant polynomial after applying (rational fragment of) x2v\n";);
+                TRACE(isolate_roots, tout << "p is zero or the constant polynomial after applying (rational fragment of) x2v\n";);
                 return;
             }
 
@@ -2413,7 +2742,7 @@ namespace algebraic_numbers {
                     // So, the polynomial does not have any roots
                     return;
                 }
-                TRACE("isolate_roots", tout << "p is univariate after applying (rational fragment of) x2v... using univariate procedure\n";);
+                TRACE(isolate_roots, tout << "p is univariate after applying (rational fragment of) x2v... using univariate procedure\n";);
                 isolate_roots(p_prime, roots);
                 return;
             }
@@ -2425,7 +2754,7 @@ namespace algebraic_numbers {
 
             // sort variables by the degree of the values
             std::stable_sort(xs.begin(), xs.end(), var_degree_lt(*this, x2v));
-            TRACE("isolate_roots", tout << "there are " << (xs.size() - 1) << " variables assigned to nonbasic numbers...\n";);
+            TRACE(isolate_roots, tout << "there are " << (xs.size() - 1) << " variables assigned to nonbasic numbers...\n";);
 
             // last variables is the one not assigned by x2v, or the unassigned variable vanished
             polynomial::var x = xs.back();
@@ -2444,7 +2773,7 @@ namespace algebraic_numbers {
             polynomial_ref q(ext_pm);
             q = p_prime;
             polynomial_ref p_y(ext_pm);
-            for (unsigned i = 0; i + 1 < xs.size(); i++) {
+            for (unsigned i = 0; i + 1 < xs.size(); ++i) {
                 checkpoint();
                 polynomial::var y = xs[i];
                 SASSERT(x2v.contains(y));
@@ -2453,27 +2782,29 @@ namespace algebraic_numbers {
                 algebraic_cell * c = v.to_algebraic();
                 p_y = ext_pm.to_polynomial(c->m_p_sz, c->m_p, y);
                 ext_pm.resultant(q, p_y, y, q);
-                TRACE("isolate_roots", tout << "resultant loop i: " << i << ", y: x" << y << "\np_y: " << p_y << "\n";
+                TRACE(isolate_roots, tout << "resultant loop i: " << i << ", y: x" << y << "\np_y: " << p_y << "\n";
                       tout << "q: " << q << "\n";);
                 if (ext_pm.is_zero(q)) {
-                    SASSERT(!nested_call);
+                    if (nested_call)
+                        throw algebraic_exception("resultant vanished during nested isolate_roots call");
                     break;
                 }
             }
 
             if (ext_pm.is_zero(q)) {
-                TRACE("isolate_roots", tout << "q vanished\n";);
+                TRACE(isolate_roots, tout << "q vanished\n";);
                 // q may vanish at some of the other roots of the polynomial defining the values.
                 // To decide if p_prime vanishes at x2v or not, we start evaluating each coefficient of p_prime at x2v
                 // until we find one that is not zero at x2v.
                 // In the process we will copy p_prime to the local polynomial manager, since we will need to create
                 // an auxiliary variable.
-                SASSERT(!nested_call);
+                if (nested_call)
+                    throw algebraic_exception("resultant vanished during nested isolate_roots call");
                 unsigned n = ext_pm.degree(p_prime, x);
                 SASSERT(n > 0);
                 if (n == 1) {
                     // p_prime is linear on p, so we just evaluate the coefficients...
-                    TRACE("isolate_roots", tout << "p is linear after applying (rational fragment) of x2v\n";);
+                    TRACE(isolate_roots, tout << "p is linear after applying (rational fragment) of x2v\n";);
                     polynomial_ref c0(ext_pm);
                     polynomial_ref c1(ext_pm);
                     c0 = ext_pm.coeff(p_prime, x, 0);
@@ -2484,14 +2815,14 @@ namespace algebraic_numbers {
                     ext_pm.eval(c1, x2v, a1);
                     // the root must be - a0/a1 if a1 != 0
                     if (is_zero(a1)) {
-                        TRACE("isolate_roots", tout << "coefficient of degree 1 vanished, so p does not have roots at x2v\n";);
+                        TRACE(isolate_roots, tout << "coefficient of degree 1 vanished, so p does not have roots at x2v\n";);
                         // p_prime does not have any root
                         return;
                     }
                     roots.push_back(anum());
                     div(a0, a1, roots[0]);
                     neg(roots[0]);
-                    TRACE("isolate_roots", tout << "after trivial solving p has only one root:\n"; display_root(tout, roots[0]); tout << "\n";);
+                    TRACE(isolate_roots, tout << "after trivial solving p has only one root:\n"; display_root(tout, roots[0]); tout << "\n";);
                 }
                 else {
                     polynomial_ref c(ext_pm);
@@ -2506,7 +2837,7 @@ namespace algebraic_numbers {
                     if (i == 0) {
                         // all coefficients of x vanished, so
                         // the polynomial has no roots
-                        TRACE("isolate_roots", tout << "all coefficients vanished... polynomial does not have roots\n";);
+                        TRACE(isolate_roots, tout << "all coefficients vanished... polynomial does not have roots\n";);
                         return;
                     }
                     SASSERT(!is_zero(a));
@@ -2527,7 +2858,7 @@ namespace algebraic_numbers {
                     xi_p = pm().mk_polynomial(x, i);
                     z_p  = pm().mk_polynomial(z);
                     q2 = z_p*xi_p + q2;
-                    TRACE("isolate_roots", tout << "invoking isolate_roots with q2:\n" << q2 << "\n";
+                    TRACE(isolate_roots, tout << "invoking isolate_roots with q2:\n" << q2 << "\n";
                           tout << "z: x" << z << " -> "; display_root(tout, a); tout << "\n";);
                     // extend x2p with z->a
                     ext_var2num ext_x2v(m_wrapper, x2v, z, a);
@@ -2536,13 +2867,84 @@ namespace algebraic_numbers {
             }
             else if (ext_pm.is_const(q)) {
                 // q does not have any roots, so p_prime also does not have roots at x2v.
-                TRACE("isolate_roots", tout << "q is the constant polynomial, so p does not contain any roots at x2v\n";);
+                TRACE(isolate_roots, tout << "q is the constant polynomial, so p does not contain any roots at x2v\n";);
             }
             else {
                 SASSERT(is_univariate(q));
                 isolate_roots(q, roots);
                 // some roots of q may not be roots of p_prime
                 filter_roots(p_prime, x2v, x, roots);
+            }
+        }
+
+        void isolate_roots_closest(polynomial_ref const & p, polynomial::var2anum const & x2v, mpq const & s, numeral_vector & roots, svector<unsigned> & indices) {
+            TRACE(isolate_roots, tout << "isolating closest roots of: " << p << " around " << m_qmanager.to_string(s) << "\n";);
+            SASSERT(roots.empty());
+            indices.reset();
+
+            polynomial::manager & ext_pm = p.m();
+            if (ext_pm.is_zero(p) || ext_pm.is_const(p))
+                return;
+
+            if (ext_pm.is_univariate(p)) {
+                isolate_roots_closest_univariate(p, s, roots, indices);
+                return;
+            }
+
+            // eliminate rationals
+            polynomial_ref p_prime(ext_pm);
+            var2basic x2v_basic(*this, x2v);
+            p_prime = ext_pm.substitute(p, x2v_basic);
+            if (ext_pm.is_zero(p_prime) || ext_pm.is_const(p_prime))
+                return;
+
+            if (ext_pm.is_univariate(p_prime)) {
+                polynomial::var x = ext_pm.max_var(p_prime);
+                if (x2v.contains(x)) {
+                    // The remaining variable is assigned, the actual unassigned variable vanished when we replaced rational values.
+                    // So, the polynomial does not have any roots.
+                    return;
+                }
+                isolate_roots_closest_univariate(p_prime, s, roots, indices);
+                return;
+            }
+
+            // Fallback: isolate all roots then select closest ones.
+            scoped_numeral_vector all(m_wrapper);
+            isolate_roots(p, x2v, all);
+            if (all.empty())
+                return;
+
+            scoped_numeral sv(m_wrapper);
+            set(sv, s);
+
+            unsigned lower = UINT_MAX, upper = UINT_MAX;
+            for (unsigned k = 0; k < all.size(); ++k) {
+                auto cmp = compare(all[k], sv);
+                if (cmp <= 0)
+                    lower = k;
+                else {
+                    upper = k;
+                    break;
+                }
+            }
+
+            if (lower != UINT_MAX && eq(all[lower], s)) {
+                roots.push_back(numeral());
+                set(roots.back(), all[lower]);
+                indices.push_back(lower + 1);
+                return;
+            }
+
+            if (lower != UINT_MAX) {
+                roots.push_back(numeral());
+                set(roots.back(), all[lower]);
+                indices.push_back(lower + 1);
+            }
+            if (upper != UINT_MAX) {
+                roots.push_back(numeral());
+                set(roots.back(), all[upper]);
+                indices.push_back(upper + 1);
             }
         }
 
@@ -2619,7 +3021,7 @@ namespace algebraic_numbers {
         // Select a numeral between prev and curr.
         // Pre: prev < curr
         void select(numeral & prev, numeral & curr, numeral & result) {
-            TRACE("algebraic_select",
+            TRACE(algebraic_select,
                   tout << "prev: "; display_interval(tout, prev); tout << "\n";
                   tout << "curr: "; display_interval(tout, curr); tout << "\n";);
             SASSERT(lt(prev, curr));
@@ -2674,10 +3076,10 @@ namespace algebraic_numbers {
                 signs.push_back(s);
             }
             else {
-                TRACE("isolate_roots_bug", tout << "p: " << p << "\n";
+                TRACE(isolate_roots_bug, tout << "p: " << p << "\n";
                       polynomial::var_vector xs;
                       p.m().vars(p, xs);
-                      for (unsigned i = 0; i < xs.size(); i++) {
+                      for (unsigned i = 0; i < xs.size(); ++i) {
                           if (x2v.contains(xs[i])) {
                               tout << "x" << xs[i] << " -> ";
                               display_root(tout, x2v(xs[i]));
@@ -2686,15 +3088,15 @@ namespace algebraic_numbers {
                               tout << "\n";
                           }
                       }
-                      for (unsigned i = 0; i < roots.size(); i++) {
+                      for (unsigned i = 0; i < roots.size(); ++i) {
                           tout << "root[i]: "; display_root(tout, roots[i]); tout << "\n";
                       });
-                for (unsigned i = 0; i < num_roots; i++)
+                for (unsigned i = 0; i < num_roots; ++i)
                     refine_until_prec(roots[i], DEFAULT_PRECISION);
 
                 scoped_anum w(m_wrapper);
                 int_lt(roots[0], w);
-                TRACE("isolate_roots_bug", tout << "w: "; display_root(tout, w); tout << "\n";);
+                TRACE(isolate_roots_bug, tout << "w: "; display_root(tout, w); tout << "\n";);
                 {
                     ext2_var2num ext_x2v(m_wrapper, x2v, w);
                     auto s = eval_sign_at(p, ext_x2v);
@@ -2702,7 +3104,7 @@ namespace algebraic_numbers {
                     signs.push_back(s);
                 }
 
-                for (unsigned i = 1; i < num_roots; i++) {
+                for (unsigned i = 1; i < num_roots; ++i) {
                     numeral & prev = roots[i-1];
                     numeral & curr = roots[i];
                     select(prev, curr, w);
@@ -2771,9 +3173,12 @@ namespace algebraic_numbers {
             return out;
         }
 
-        std::ostream& display_root_smt2(std::ostream & out, numeral const & a) {
+        template<typename Printer>
+        std::ostream& display_root_common(std::ostream & out, numeral const & a, char const* var_name, bool no_power, Printer&& printer) {
+            SASSERT(var_name != nullptr);
             if (is_zero(a)) {
-                out << "(root-obj x 1)";
+                auto poly_printer = [&](std::ostream& dst) { dst << var_name; };
+                return printer(out, poly_printer, 1u);
             }
             else if (a.is_basic()) {
                 mpq const & v = basic_value(a);
@@ -2781,25 +3186,53 @@ namespace algebraic_numbers {
                 qm().set(neg_n, v.numerator());
                 qm().neg(neg_n);
                 mpz coeffs[2] = { std::move(neg_n), qm().dup(v.denominator()) };
-                out << "(root-obj ";
-                upm().display_smt2(out, 2, coeffs, "x");
-                out << " 1)"; // first root of the polynomial d*# - n
+                auto poly_printer = [&](std::ostream& dst) {
+                    if (no_power)
+                        upm().display_smt2_no_power(dst, 2, coeffs, var_name);
+                    else
+                        upm().display_smt2(dst, 2, coeffs, var_name);
+                };
+                std::ostream& r = printer(out, poly_printer, 1u); // first root of d*x - n
                 qm().del(coeffs[0]);
                 qm().del(coeffs[1]);
+                return r;
             }
             else {
                 algebraic_cell * c = a.to_algebraic();
-                out << "(root-obj ";
-                upm().display_smt2(out, c->m_p_sz, c->m_p, "x");
+                auto poly_printer = [&](std::ostream& dst) {
+                    if (no_power)
+                        upm().display_smt2_no_power(dst, c->m_p_sz, c->m_p, var_name);
+                    else
+                        upm().display_smt2(dst, c->m_p_sz, c->m_p, var_name);
+                };
                 if (c->m_i == 0) {
                     // undefined
                     c->m_i = upm().get_root_id(c->m_p_sz, c->m_p, lower(c)) + 1;
                 }
                 SASSERT(c->m_i > 0);
-                out << " " << c->m_i;
-                out << ")";
+                return printer(out, poly_printer, c->m_i);
             }
-            return out;
+        }
+
+        std::ostream& display_root_smt2(std::ostream & out, numeral const & a) {
+            auto printer = [&](std::ostream& dst, auto const& poly_printer, unsigned idx) -> std::ostream& {
+                dst << "(root-obj ";
+                poly_printer(dst);
+                dst << " " << idx << ")";
+                return dst;
+            };
+            return display_root_common(out, a, "x", false, printer);
+        }
+
+        std::ostream& display_root_smtrat(std::ostream & out, numeral const & a, char const* var_name) {
+            SASSERT(var_name != nullptr);
+            auto printer = [&](std::ostream& dst, auto const& poly_printer, unsigned idx) -> std::ostream& {
+                dst << "(root ";
+                poly_printer(dst);
+                dst << " " << idx << " " << var_name << ")";
+                return dst;
+            };
+            return display_root_common(out, a, var_name, true, printer);
         }
 
         std::ostream& display_interval(std::ostream & out, numeral const & a) {
@@ -2862,6 +3295,34 @@ namespace algebraic_numbers {
             else {
                 scoped_mpbq _l(bqm()), _u(bqm());
                 get_interval(a, _l, _u, precision);
+                to_mpq(qm(), _u, u);
+            }
+        }
+
+        void get_interval(numeral const & a, mpq & l, mpq & u) {
+            if (a.is_basic()) {
+                qm().set(l, basic_value(a));
+                qm().set(u, basic_value(a));
+            }
+            else {
+                mpbqi const & i = a.to_algebraic()->m_interval;
+                to_mpq(qm(), i.lower(), l);
+                to_mpq(qm(), i.upper(), u);
+            }
+        }
+
+        // get_lower and get_upper each call the mpbq get_interval above and then
+        // discard one of the two bounds, so asking for both separately refines
+        // twice. Expose the interval itself to do the refinement only once.
+        void get_interval(numeral const & a, mpq & l, mpq & u, unsigned precision) {
+            if (a.is_basic()) {
+                qm().set(l, basic_value(a));
+                qm().set(u, basic_value(a));
+            }
+            else {
+                scoped_mpbq _l(bqm()), _u(bqm());
+                get_interval(a, _l, _u, precision);
+                to_mpq(qm(), _l, l);
                 to_mpq(qm(), _u, u);
             }
         }
@@ -2979,6 +3440,10 @@ namespace algebraic_numbers {
         m_imp->isolate_roots(p, x2v, roots);
     }
 
+    void manager::isolate_roots_closest(polynomial_ref const & p, polynomial::var2anum const & x2v, mpq const & s, numeral_vector & roots, svector<unsigned> & indices) {
+        m_imp->isolate_roots_closest(p, x2v, s, roots, indices);
+    }
+
     void manager::isolate_roots(polynomial_ref const & p, polynomial::var2anum const & x2v, numeral_vector & roots, svector<sign> & signs) {
         m_imp->isolate_roots(p, x2v, roots, signs);
     }
@@ -2996,15 +3461,15 @@ namespace algebraic_numbers {
     }
 
     void manager::power(numeral const & a, unsigned k, numeral & b) {
-        TRACE("anum_detail", display_root(tout, a); tout << "^" << k << "\n";);
+        TRACE(anum_detail, display_root(tout, a); tout << "^" << k << "\n";);
         m_imp->power(const_cast<numeral&>(a), k, b);
-        TRACE("anum_detail", tout << "^ result: "; display_root(tout, b); tout << "\n";);
+        TRACE(anum_detail, tout << "^ result: "; display_root(tout, b); tout << "\n";);
     }
 
     void manager::add(numeral const & a, numeral const & b, numeral & c) {
-        TRACE("anum_detail", display_root(tout, a); tout << " + "; display_root(tout, b); tout << "\n";);
+        TRACE(anum_detail, display_root(tout, a); tout << " + "; display_root(tout, b); tout << "\n";);
         m_imp->add(const_cast<numeral&>(a), const_cast<numeral&>(b), c);
-        TRACE("anum_detail", tout << "+ result: "; display_root(tout, c); tout << "\n";);
+        TRACE(anum_detail, tout << "+ result: "; display_root(tout, c); tout << "\n";);
     }
 
     void manager::add(numeral const & a, mpz const & b, numeral & c) {
@@ -3014,15 +3479,15 @@ namespace algebraic_numbers {
     }
 
     void manager::sub(numeral const & a, numeral const & b, numeral & c) {
-        TRACE("anum_detail", display_root(tout, a); tout << " - "; display_root(tout, b); tout << "\n";);
+        TRACE(anum_detail, display_root(tout, a); tout << " - "; display_root(tout, b); tout << "\n";);
         m_imp->sub(const_cast<numeral&>(a), const_cast<numeral&>(b), c);
-        TRACE("anum_detail", tout << "- result: "; display_root(tout, c); tout << "\n";);
+        TRACE(anum_detail, tout << "- result: "; display_root(tout, c); tout << "\n";);
     }
 
     void manager::mul(numeral const & a, numeral const & b, numeral & c) {
-        TRACE("anum_detail", display_root(tout, a); tout << " * "; display_root(tout, b); tout << "\n";);
+        TRACE(anum_detail, display_root(tout, a); tout << " * "; display_root(tout, b); tout << "\n";);
         m_imp->mul(const_cast<numeral&>(a), const_cast<numeral&>(b), c);
-        TRACE("anum_detail", tout << "* result: "; display_root(tout, c); tout << "\n";);
+        TRACE(anum_detail, tout << "* result: "; display_root(tout, c); tout << "\n";);
     }
 
     void manager::div(numeral const & a, numeral const & b, numeral & c) {
@@ -3141,6 +3606,28 @@ namespace algebraic_numbers {
         l = rational(_l);
     }
 
+    void manager::get_interval(numeral const & a, mpq & l, mpq & u) {
+        m_imp->get_interval(a, l, u);
+    }
+
+    void manager::get_interval(numeral const & a, rational & l, rational & u) {
+        scoped_mpq _l(qm()), _u(qm());
+        m_imp->get_interval(a, _l, _u);
+        l = rational(_l);
+        u = rational(_u);
+    }
+
+    void manager::get_interval(numeral const & a, mpq & l, mpq & u, unsigned precision) {
+        m_imp->get_interval(a, l, u, precision);
+    }
+
+    void manager::get_interval(numeral const & a, rational & l, rational & u, unsigned precision) {
+        scoped_mpq _l(qm()), _u(qm());
+        m_imp->get_interval(a, _l, _u, precision);
+        l = rational(_l);
+        u = rational(_u);
+    }
+
     sign manager::eval_sign_at(polynomial_ref const & p, polynomial::var2anum const & x2v) {
         SASSERT(&(x2v.m()) == this);
         return m_imp->eval_sign_at(p, x2v);
@@ -3166,6 +3653,10 @@ namespace algebraic_numbers {
         return m_imp->display_root_smt2(out, a);
     }
 
+    std::ostream& manager::display_root_smtrat(std::ostream & out, numeral const & a, char const* var_name) const {
+        return m_imp->display_root_smtrat(out, a, var_name);
+    }
+
     void manager::reset_statistics() {
         m_imp->reset_statistics();
     }
@@ -3173,4 +3664,4 @@ namespace algebraic_numbers {
     void manager::collect_statistics(statistics & st) const {
         m_imp->collect_statistics(st);
     }
-};
+}

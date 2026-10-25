@@ -23,7 +23,7 @@ Notes:
 #include "ast/rewriter/bool_rewriter.h"
 #include "muz/base/dl_util.h"
 #include "ast/for_each_expr.h"
-#include "smt/params/smt_params.h"
+#include "params/smt_params.h"
 #include "model/model.h"
 #include "util/ref_vector.h"
 #include "ast/rewriter/rewriter.h"
@@ -55,7 +55,7 @@ void qe_project(ast_manager& m, app_ref_vector& vars, expr_ref& fml, model_ref& 
     qe(vars, fml);
     rw(fml);
 
-    TRACE("spacer",
+    TRACE(spacer,
           tout << "After qe_lite:\n";
           tout << mk_pp(fml, m) << "\n";
           tout << "Vars:\n";
@@ -72,7 +72,7 @@ void qe_project(ast_manager& m, app_ref_vector& vars, expr_ref& fml, model_ref& 
         proof_ref pr(m.mk_asserted(m.mk_true()), m);
         expr_ref bval(m);
         model::scoped_model_completion _scm(*M, true);
-        for (unsigned i = 0; i < vars.size(); i++) {
+        for (unsigned i = 0; i < vars.size(); ++i) {
             if (m.is_bool(vars.get(i))) {
                 // obtain the interpretation of the ith var using model completion
                 bval = (*M)(vars.get(i));
@@ -86,13 +86,13 @@ void qe_project(ast_manager& m, app_ref_vector& vars, expr_ref& fml, model_ref& 
             rep->set_substitution(&sub);
             (*rep)(fml);
             rw(fml);
-            TRACE("spacer",
+            TRACE(spacer,
                   tout << "Projected Boolean vars:\n" << mk_pp(fml, m) << "\n";
                  );
         }
         // model based projection
         if (!arith_vars.empty()) {
-            TRACE("spacer",
+            TRACE(spacer,
                   tout << "Arith vars:\n";
             for (unsigned i = 0; i < arith_vars.size(); ++i) {
             tout << mk_pp(arith_vars.get(i), m) << "\n";
@@ -103,7 +103,7 @@ void qe_project(ast_manager& m, app_ref_vector& vars, expr_ref& fml, model_ref& 
                 spacer_qe::arith_project(*M, arith_vars, fml, map);
             }
             SASSERT(arith_vars.empty());
-            TRACE("spacer",
+            TRACE(spacer,
                   tout << "Projected arith vars:\n" << mk_pp(fml, m) << "\n";
                  );
         }

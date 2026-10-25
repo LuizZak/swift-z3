@@ -207,7 +207,11 @@ void eliminate_predicates::insert_quasi_macro(app* head, expr* body, clause& cl)
     f1 = m.mk_fresh_func_decl(f->get_name(), symbol::null, sorts.size(), sorts.data(), f->get_range());
 
     lhs = m.mk_app(f, args);
-    rhs = m.mk_ite(mk_and(eqs), body, m.mk_app(f1, args));
+    {
+        auto _seq210_0 = mk_and(eqs);
+        auto _seq210_1 = m.mk_app(f1, args);
+        rhs = m.mk_ite(_seq210_0, body, _seq210_1);
+    }
     insert_macro(lhs, rhs, cl);
 }
 
@@ -313,7 +317,7 @@ bool eliminate_predicates::is_macro_safe(expr* e) {
 
 void eliminate_predicates::insert_macro(app* head, expr* def, clause& cl) {
     insert_macro(head, def, cl.m_dep);
-    TRACE("elim_predicates", tout << "remove " << cl << "\n");
+    TRACE(elim_predicates, tout << "remove " << cl << "\n");
     cl.m_alive = false;
 }
 
@@ -322,7 +326,7 @@ void eliminate_predicates::insert_macro(app* head, expr* def, expr_dependency* d
     ptr_buffer<expr> vars, subst_args;
     subst_args.resize(num, nullptr);
     vars.resize(num, nullptr);
-    for (unsigned i = 0; i < num; i++) {
+    for (unsigned i = 0; i < num; ++i) {
         var* v = to_var(head->get_arg(i));
         var* w = m.mk_var(i, v->get_sort());
         unsigned idx = v->get_idx();
@@ -342,7 +346,7 @@ void eliminate_predicates::insert_macro(app* head, expr* def, expr_dependency* d
     m_macros.insert(head->get_decl(), info);
     m_fmls.model_trail().push(head->get_decl(), _def, _dep, {}); // augment with definition for head
     m_is_macro.mark(head->get_decl(), true);    
-    TRACE("elim_predicates", tout << "insert " << _head << " " << _def << "\n");
+    TRACE(elim_predicates, tout << "insert " << _head << " " << _def << "\n");
     ++m_stats.m_num_macros;
 }
 
@@ -654,7 +658,7 @@ void eliminate_predicates::try_resolve(func_decl* p) {
         if (cl->m_alive)
             ++num_neg;
 
-    TRACE("elim_predicates", tout << "try resolve " << p->get_name() << " " << num_pos << " " << num_neg << "\n");
+    TRACE(elim_predicates, tout << "try resolve " << p->get_name() << " " << num_pos << " " << num_neg << "\n");
     
     if (num_pos >= 4 && num_neg >= 2)
         return;
@@ -737,7 +741,7 @@ void eliminate_predicates::update_model(func_decl* p) {
     }
 
     rewrite(def);
-    TRACE("elim_predicates", tout << "insert " << p->get_name() << " " << def << "\n");
+    TRACE(elim_predicates, tout << "insert " << p->get_name() << " " << def << "\n");
     m_fmls.model_trail().push(p, def, dep, deleted);
 }
 

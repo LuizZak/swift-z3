@@ -18,6 +18,7 @@ Notes:
 --*/
 #pragma once
 
+#include <optional>
 #include "ast/rewriter/poly_rewriter.h"
 #include "ast/arith_decl_plugin.h"
 #include "ast/seq_decl_plugin.h"
@@ -75,7 +76,7 @@ class arith_rewriter : public poly_rewriter<arith_rewriter_core> {
     br_status mk_le_ge_eq_core(expr * arg1, expr * arg2, op_kind kind, expr_ref & result);
     bool is_add_factor(expr* s, expr* t);
     bool is_mul_factor(expr* s, expr* t);
-    expr* find_nl_factor(expr* t);
+    std::optional<expr*> find_nl_factor(expr* t);
     void get_nl_muls(expr* t, ptr_buffer<expr>& muls);
     expr_ref remove_factor(expr* s, expr* t);
     br_status factor_le_ge_eq(expr * arg1, expr * arg2, op_kind kind, expr_ref & result);
@@ -116,6 +117,7 @@ class arith_rewriter : public poly_rewriter<arith_rewriter_core> {
     void remove_divisor(expr* d, ptr_buffer<expr>& args);
 
     bool mk_eq_mod(expr* arg1, expr* arg2, expr_ref& result);
+    br_status mk_complex_app(func_decl* f, unsigned n, expr* const* args, expr_ref& result);
 public:
     arith_rewriter(ast_manager & m, params_ref const & p = params_ref()):
         poly_rewriter<arith_rewriter_core>(m, p) {
@@ -211,4 +213,3 @@ public:
     br_status mk_cosh_core(expr * arg, expr_ref & result);
     br_status mk_tanh_core(expr * arg, expr_ref & result);
 };
-

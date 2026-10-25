@@ -50,8 +50,6 @@ class smaller_pattern {
 
 public:
 
-    smaller_pattern() = default;
-
     smaller_pattern & operator=(smaller_pattern const &) = delete;
 
     bool operator()(unsigned num_bindings, expr * p1, expr * p2);
@@ -127,11 +125,10 @@ class pattern_inference_cfg :  public default_rewriter_cfg {
         };
         
         struct info {
-            expr_ref    m_node;
-            uint_set    m_free_vars;
+            uint_set    m_free_vars, m_bound_vars;
             unsigned    m_size;
-            info(ast_manager & m, expr * n, uint_set const & vars, unsigned sz):
-                m_node(n, m), m_free_vars(vars), m_size(sz) {}
+            info(uint_set const & fvars, uint_set const& bvars, unsigned sz):
+                m_free_vars(fvars), m_bound_vars(bvars), m_size(sz) {}
         };
         
         ast_manager &            m;
@@ -239,7 +236,7 @@ public:
                            expr_ref & result,
                            proof_ref & result_pr);
 
-    void register_preferred(unsigned num, func_decl * const * fs) { for (unsigned i = 0; i < num; i++) register_preferred(fs[i]); }
+    void register_preferred(unsigned num, func_decl * const * fs) { for (unsigned i = 0; i < num; ++i) register_preferred(fs[i]); }
     
     bool is_forbidden(func_decl const * decl) const {
         family_id fid = decl->get_family_id();

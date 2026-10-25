@@ -20,7 +20,7 @@ Revision History:
 
 #include "api/z3.h"
 #include "ast/ast.h"
-#include "smt/params/smt_params.h"
+#include "params/smt_params.h"
 #include "smt/smt_kernel.h"
 #include "api/api_util.h"
 
@@ -30,7 +30,7 @@ typedef void (*reduce_assign_callback_fptr)(void*, func_decl*, unsigned, expr*co
 namespace api {
     class fixedpoint_context;
     class context;
-};
+}
 
 
 struct Z3_fixedpoint_ref : public api::object {

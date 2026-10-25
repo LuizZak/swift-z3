@@ -23,6 +23,7 @@ Revision History:
 #include "smt/smt_model_generator.h"
 #include "model/func_interp.h"
 #include "ast/ast_smt2_pp.h"
+#include "ast/pattern/pattern_inference.h"
 
 namespace smt {
 
@@ -40,7 +41,7 @@ namespace smt {
 
     void theory_array_base::found_unsupported_op(expr * n) {
         if (!ctx.get_fparams().m_array_fake_support && !m_found_unsupported_op) {
-            TRACE("array", tout << mk_ll_pp(n, m) << "\n";);            
+            TRACE(array, tout << mk_ll_pp(n, m) << "\n";);            
             ctx.push_trail(value_trail<bool>(m_found_unsupported_op));
             m_found_unsupported_op = true;
         }
@@ -48,8 +49,8 @@ namespace smt {
     
     app * theory_array_base::mk_select(unsigned num_args, expr * const * args) {
         app * r = m.mk_app(get_family_id(), OP_SELECT, 0, nullptr, num_args, args);
-        TRACE("mk_var_bug", tout << "mk_select: " << r->get_id() << " num_args: " << num_args;
-              for (unsigned i = 0; i < num_args; i++) tout << " " << args[i]->get_id();
+        TRACE(mk_var_bug, tout << "mk_select: " << r->get_id() << " num_args: " << num_args;
+              for (unsigned i = 0; i < num_args; ++i) tout << " " << args[i]->get_id();
               tout << "\n";);
         return r;
     }
@@ -66,7 +67,6 @@ namespace smt {
         }
         return mk_select(num_args, args);
     }
-
 
     app * theory_array_base::mk_store(unsigned num_args, expr * const * args) {
         return m.mk_app(get_family_id(), OP_STORE, 0, nullptr, num_args, args);
@@ -86,7 +86,7 @@ namespace smt {
     }
 
     void theory_array_base::assert_axiom(unsigned num_lits, literal * lits) {
-        TRACE("array_axiom",
+        TRACE(array_axiom,
               tout << "literals:\n";
               for (unsigned i = 0; i < num_lits; ++i) {
                   expr * e = ctx.bool_var2expr(lits[i].var());
@@ -108,7 +108,7 @@ namespace smt {
     }
 
     void theory_array_base::assert_store_axiom1_core(enode * e) {
-        app * n           = e->get_expr();
+        app * n           = e->get_app();
         SASSERT(is_store(n));
         ptr_buffer<expr> sel_args;
         unsigned num_args = n->get_num_args();
@@ -120,7 +120,7 @@ namespace smt {
         expr_ref sel(m);
         sel = mk_select(sel_args.size(), sel_args.data());
         expr * val = n->get_arg(num_args - 1);
-        TRACE("array", tout << mk_bounded_pp(sel, m) << " = " << mk_bounded_pp(val, m) << "\n";);
+        TRACE(array, tout << mk_bounded_pp(sel, m) << " = " << mk_bounded_pp(val, m) << "\n";);
         if (m.proofs_enabled()) {
             literal l(mk_eq(sel, val, true));
             ctx.mark_as_relevant(l);
@@ -129,7 +129,7 @@ namespace smt {
             if (m.has_trace_stream()) m.trace_stream() << "[end-of-instance]\n";
         }
         else {
-            TRACE("mk_var_bug", tout << "mk_sel: " << sel->get_id() << "\n";);
+            TRACE(mk_var_bug, tout << "mk_sel: " << sel->get_id() << "\n";);
             ctx.internalize(sel, false);
             ctx.assign_eq(ctx.get_enode(sel), ctx.get_enode(val), eq_justification::mk_axiom());
             ctx.mark_as_relevant(sel.get());
@@ -147,7 +147,7 @@ namespace smt {
          i_n /= j_n => select(store(a, i_1, ..., i_n, v), j_1, ..., j_n) = select(a, j_1, ..., j_n)
     */
     void theory_array_base::assert_store_axiom2_core(enode * store, enode * select) {
-        TRACE("array", tout << "generating axiom2: #" << store->get_owner_id() << " #" << select->get_owner_id() << "\n";
+        TRACE(array, tout << "generating axiom2: #" << store->get_owner_id() << " #" << select->get_owner_id() << "\n";
               tout << mk_bounded_pp(store->get_expr(), m) << "\n" << mk_bounded_pp(select->get_expr(), m) << "\n";);
         SASSERT(is_store(store));
         SASSERT(is_select(select));
@@ -161,7 +161,7 @@ namespace smt {
         sel1_args.push_back(store->get_expr());
         sel2_args.push_back(a->get_expr());
 
-        for (unsigned i = 0; i < num_args; i++) {
+        for (unsigned i = 0; i < num_args; ++i) {
             sel1_args.push_back(is[i]->get_expr());
             sel2_args.push_back(is[i]->get_expr());
         }
@@ -171,12 +171,12 @@ namespace smt {
         literal conseq = null_literal;
         expr * conseq_expr = nullptr;
 
-        for (unsigned i = 0; i < num_args; i++) {
+        for (unsigned i = 0; i < num_args; ++i) {
             enode * idx1 = js[i];
             enode * idx2 = is[i];
             
             if (idx1->get_root() == idx2->get_root()) {
-                TRACE("array_bug", tout << "indexes are equal... skipping...\n";);
+                TRACE(array_bug, tout << "indexes are equal... skipping...\n";);
                 continue;
             }
 
@@ -184,11 +184,11 @@ namespace smt {
                 sel1 = mk_select(sel1_args.size(), sel1_args.data());
                 sel2 = mk_select(sel2_args.size(), sel2_args.data());
                 if (sel1 == sel2) {
-                    TRACE("array_bug", tout << "sel1 and sel2 are equal:\n";);
+                    TRACE(array_bug, tout << "sel1 and sel2 are equal:\n";);
                     break;
                 }
                 init = true;
-                TRACE("array", tout << mk_bounded_pp(sel1, m) << " " << mk_bounded_pp(sel2, m) << "\n";);
+                TRACE(array, tout << mk_bounded_pp(sel1, m) << " " << mk_bounded_pp(sel2, m) << "\n";);
                 conseq = mk_eq(sel1, sel2, true);
                 conseq_expr = ctx.bool_var2expr(conseq.var());
             }
@@ -204,8 +204,8 @@ namespace smt {
             // ctx.force_phase(ante);
             ctx.add_rel_watch(~ante, conseq_expr);
             // ctx.mark_as_relevant(conseq_expr);
-            TRACE("array", tout << "asserting axiom2: " << ante << "\n";);
-            TRACE("array_map_bug", tout << "axiom2:\n";
+            TRACE(array, tout << "asserting axiom2: " << ante << "\n";);
+            TRACE(array_map_bug, tout << "axiom2:\n";
                   tout << mk_ismt2_pp(idx1->get_expr(), m) << "\n=\n" << mk_ismt2_pp(idx2->get_expr(), m);
                   tout << "\nimplies\n" << mk_ismt2_pp(conseq_expr, m) << "\n";);
             if (m.has_trace_stream()) {
@@ -217,27 +217,49 @@ namespace smt {
             if (m.has_trace_stream()) m.trace_stream() << "[end-of-instance]\n";
         }
     }
+
+    void theory_array_base::assert_lambda_axiom_core(enode* n, enode* select) {
+        SASSERT(is_lambda(n->get_expr()));
+        SASSERT(is_select(select));
+        expr *e = n->get_expr();
+        SASSERT(is_lambda(e));
+        app *s = select->get_app();
+        auto q = to_quantifier(e);
+        SASSERT(q);
+
+        SASSERT(q->get_num_decls() == s->get_num_args() - 1);
+        // do the same thing as in sat/smt/array_axioms:
+        ptr_vector<expr> args(s->get_num_args(), s->get_args());
+        args[0] = q;
+        array_util a(m);
+        expr_ref alpha(a.mk_select(args), m);
+        expr_ref beta(alpha);
+        ctx.get_rewriter()(beta);
+        TRACE(array, tout << alpha << " == " << beta << "\n";);
+        auto alpha_n = ctx.non_ground_internalize(alpha);
+        auto beta_n = ctx.non_ground_internalize(beta);
+        ctx.assign_eq(alpha_n, beta_n, eq_justification::mk_axiom());
+    }
     
     bool theory_array_base::assert_store_axiom2(enode * store, enode * select) { 
-        unsigned num_args = select->get_num_args();
-        unsigned        i = 1;
-        for (; i < num_args; i++) 
-            if (store->get_arg(i)->get_root() != select->get_arg(i)->get_root())
-                break;
-        if (i == num_args)
-            return false;
+        SASSERT(is_store(store) || is_lambda(store->get_expr()));
+        if (is_store(store)) {
+            unsigned num_args = select->get_num_args();
+            unsigned i = 1;
+            for (; i < num_args; ++i)
+                if (store->get_arg(i)->get_root() != select->get_arg(i)->get_root())
+                    break;
+            if (i == num_args)
+                return false;
+        }
         if (ctx.add_fingerprint(store, store->get_owner_id(), select->get_num_args() - 1, select->get_args() + 1)) {
-            TRACE("array", tout << "adding axiom2 to todo queue\n";);
-            m_axiom2_todo.push_back(std::make_pair(store, select)); 
+            TRACE(array, tout << "adding axiom2 to todo queue\n";);
+            m_axiom2_todo.push_back({store, select}); 
             return true;
         }
-        TRACE("array", tout << "axiom already instantiated: #" << store->get_owner_id() << " #" << select->get_owner_id() << "\n";);
+        TRACE(array, tout << "axiom already instantiated: #" << store->get_owner_id() << " #" << select->get_owner_id() << "\n";);
         return false;
     }
-
- 
-
-
 
     func_decl_ref_vector * theory_array_base::register_sort(sort * s_array) {
         unsigned dimension = get_dimension(s_array);
@@ -259,7 +281,7 @@ namespace smt {
         SASSERT(n1->get_num_args() == n2->get_num_args());
         unsigned n = n1->get_num_args();
         // skipping first argument of the select.
-        for(unsigned i = 1; i < n; i++) {
+        for (unsigned i = 1; i < n; ++i) {
             if (n1->get_arg(i)->get_root() != n2->get_arg(i)->get_root()) {
                 return false;
             }
@@ -275,9 +297,8 @@ namespace smt {
         enode * r1    = v1->get_root();
         enode * r2    = v2->get_root();
 
-        if (r1->get_class_size() > r2->get_class_size()) {
-            std::swap(r1, r2);
-        }
+        if (r1->get_class_size() > r2->get_class_size()) 
+            std::swap(r1, r2);        
 
         m_array_value.reset();
         // populate m_array_value if the select(a, i) parent terms of r1
@@ -298,8 +319,8 @@ namespace smt {
                 parent->get_arg(0)->get_root() == r2 &&
                 m_array_value.find(parent, other)) {
                 
-                if (ctx.is_diseq(parent, other)) {
-                    TRACE("array_ext", tout << "selects are disequal\n";);
+                if (ctx.is_diseq_no_value_check(parent, other)) {
+                    TRACE(array_ext, tout << "selects are disequal\n";);
                     return true;
                 }
             }
@@ -315,12 +336,14 @@ namespace smt {
             return false; // axiom was already instantiated
         if (already_diseq(n1, n2))
             return false;
-        m_extensionality_todo.push_back(std::make_pair(n1, n2));         
+        m_extensionality_todo.push_back({n1, n2});         
         return true;
     }
 
     void theory_array_base::assert_congruent(enode * a1, enode * a2) {
-        TRACE("array", tout << "congruent: #" << a1->get_owner_id() << " #" << a2->get_owner_id() << "\n";);
+        if (ctx.get_fparams().m_array_fake_support)
+            return;
+        TRACE(array, tout << "congruent: #" << a1->get_owner_id() << " #" << a2->get_owner_id() << "\n";);
         SASSERT(is_array_sort(a1));
         SASSERT(is_array_sort(a2));
         if (a1->get_owner_id() > a2->get_owner_id())
@@ -328,13 +351,13 @@ namespace smt {
         enode * nodes[2] = { a1, a2 };
         if (!ctx.add_fingerprint(this, 1, 2, nodes))
             return; // axiom was already instantiated
-        m_congruent_todo.push_back(std::make_pair(a1, a2));         
+        m_congruent_todo.push_back({a1, a2});         
     }
 
    
     void theory_array_base::assert_extensionality_core(enode * n1, enode * n2) {
-        app * e1        = n1->get_expr();
-        app * e2        = n2->get_expr();
+        expr * e1        = n1->get_expr();
+        expr * e2        = n2->get_expr();
 
         func_decl_ref_vector * funcs = nullptr;
         sort *                     s = e1->get_sort();
@@ -346,21 +369,22 @@ namespace smt {
         expr_ref_vector args1(m), args2(m);
         args1.push_back(e1);
         args2.push_back(e2);
-        for (unsigned i = 0; i < dimension; i++) {
+        for (unsigned i = 0; i < dimension; ++i) {
             expr * k = m.mk_app(funcs->get(i), e1, e2);
             args1.push_back(k);
             args2.push_back(k);
         }
         expr_ref sel1(mk_select(args1.size(), args1.data()), m);
         expr_ref sel2(mk_select(args2.size(), args2.data()), m);
-        TRACE("ext", tout << mk_bounded_pp(sel1, m) << "\n" << mk_bounded_pp(sel2, m) << "\n";);
+        TRACE(ext, tout << mk_bounded_pp(sel1, m) << "\n" << mk_bounded_pp(sel2, m) << "\n";);
         literal n1_eq_n2     = mk_eq(e1, e2, true);
         literal sel1_eq_sel2 = mk_eq(sel1, sel2, true);
         ctx.mark_as_relevant(n1_eq_n2);
         ctx.mark_as_relevant(sel1_eq_sel2);
         if (m.has_trace_stream()) {
             app_ref body(m);
-            body = m.mk_implies(m.mk_not(ctx.bool_var2expr(n1_eq_n2.var())), m.mk_not(ctx.bool_var2expr(sel1_eq_sel2.var())));
+            expr_ref antecedent(m.mk_not(ctx.bool_var2expr(n1_eq_n2.var())), m);
+            body = m.mk_implies(antecedent, m.mk_not(ctx.bool_var2expr(sel1_eq_sel2.var())));
             log_axiom_instantiation(body);
         }
         assert_axiom(n1_eq_n2, ~sel1_eq_sel2);
@@ -371,18 +395,18 @@ namespace smt {
        \brief assert n1 = n2 => forall vars . (n1 vars) = (n2 vars)
      */
     void theory_array_base::assert_congruent_core(enode * n1, enode * n2) {
-        app * e1        = n1->get_expr();
-        app * e2        = n2->get_expr();
+        expr * e1        = n1->get_expr();
+        expr * e2        = n2->get_expr();
         sort* s         = e1->get_sort();
         unsigned dimension = get_array_arity(s);
         literal n1_eq_n2 = mk_eq(e1, e2, true);
         ctx.mark_as_relevant(n1_eq_n2);
         expr_ref_vector args1(m), args2(m);
-        args1.push_back(instantiate_lambda(e1));
-        args2.push_back(instantiate_lambda(e2));
+        args1.push_back(e1);
+        args2.push_back(e2);
         svector<symbol> names;
         sort_ref_vector sorts(m);
-        for (unsigned i = 0; i < dimension; i++) {
+        for (unsigned i = 0; i < dimension; ++i) {
             sort * srt = get_array_domain(s, i);
             sorts.push_back(srt);
             names.push_back(symbol(i));
@@ -393,25 +417,24 @@ namespace smt {
         expr * sel1 = mk_select(dimension+1, args1.data());
         expr * sel2 = mk_select(dimension+1, args2.data());
         expr * eq = m.mk_eq(sel1, sel2);
-        expr_ref q(m.mk_forall(dimension, sorts.data(), names.data(), eq), m);
+        expr_ref q(m.mk_forall(dimension, sorts.data(), names.data(), eq, 2), m);
         ctx.get_rewriter()(q);
+        // The select terms are beta-reduced away by the rewriter, so the
+        // resulting quantifier carries no patterns. Infer patterns so that the
+        // e-matching engine can instantiate it (dynamically generated
+        // quantifiers bypass the pre-processing pattern inference pass).
+        if (is_forall(q) && to_quantifier(q)->get_num_patterns() == 0) {
+            pattern_inference_rw infer(m, ctx.get_fparams());
+            expr_ref q2(m);
+            infer(q, q2);
+            q = q2;
+        }
         if (!ctx.b_internalized(q)) {
             ctx.internalize(q, true);
         }
         literal fa_eq = ctx.get_literal(q);
         ctx.mark_as_relevant(fa_eq);
         assert_axiom(~n1_eq_n2, fa_eq);
-    }
-
-    expr_ref theory_array_base::instantiate_lambda(app* e) {
-        quantifier * q = m.is_lambda_def(e->get_decl());
-        expr_ref f(e, m);
-        if (q) {
-            // the variables in q are maybe not consecutive.
-            var_subst sub(m, false);
-            f = sub(q, e->get_num_args(), e->get_args());
-        }
-        return f;
     }
 
     bool theory_array_base::can_propagate() {
@@ -424,17 +447,26 @@ namespace smt {
     }
 
     void theory_array_base::propagate() {
-        while (can_propagate()) {
-            for (unsigned i = 0; i < m_axiom1_todo.size(); i++)
+        while (theory_array_base::can_propagate()) {
+            for (unsigned i = 0; i < m_axiom1_todo.size(); ++i)
                 assert_store_axiom1_core(m_axiom1_todo[i]);
             m_axiom1_todo.reset();
-            for (unsigned i = 0; i < m_axiom2_todo.size(); i++)
-                assert_store_axiom2_core(m_axiom2_todo[i].first, m_axiom2_todo[i].second);
+            for (unsigned i = 0; i < m_axiom2_todo.size(); ++i) {
+                auto [store, select] = m_axiom2_todo[i];
+                if (is_store(store))
+                    assert_store_axiom2_core(store, select);
+                else
+                    assert_lambda_axiom_core(store, select);
+            }
             m_axiom2_todo.reset();
-            for (unsigned i = 0; i < m_extensionality_todo.size(); i++)
-                assert_extensionality_core(m_extensionality_todo[i].first, m_extensionality_todo[i].second);
-            for (unsigned i = 0; i < m_congruent_todo.size(); i++)
-                assert_congruent_core(m_congruent_todo[i].first, m_congruent_todo[i].second);
+            for (unsigned i = 0; i < m_extensionality_todo.size(); ++i) {
+                auto [a1, a2] = m_extensionality_todo[i];
+                assert_extensionality_core(a1, a2);
+            }
+            for (unsigned i = 0; i < m_congruent_todo.size(); ++i) {
+                auto [a1, a2] = m_congruent_todo[i];
+                assert_congruent_core(a1, a2);
+            }
             m_extensionality_todo.reset();
             m_congruent_todo.reset();
             if (!ctx.get_fparams().m_array_weak && has_propagate_up_trail()) {
@@ -475,14 +507,14 @@ namespace smt {
             unsigned    num_args = parent->get_num_args();
             if (is_store(parent)) {
                 SET_ARRAY(parent->get_arg(0));
-                for (unsigned i = 1; i < num_args - 1; i++) {
+                for (unsigned i = 1; i < num_args - 1; ++i) {
                     SET_INDEX(parent->get_arg(i));
                 }
                 SET_VALUE(parent->get_arg(num_args - 1));
             }
             else if (is_select(parent)) {
                 SET_ARRAY(parent->get_arg(0));
-                for (unsigned i = 1; i < num_args; i++) {
+                for (unsigned i = 1; i < num_args; ++i) {
                     SET_INDEX(parent->get_arg(i));
                 }
             }
@@ -516,8 +548,9 @@ namespace smt {
     void theory_array_base::collect_shared_vars(sbuffer<theory_var> & result) {
         ptr_buffer<enode> to_unmark;
         unsigned num_vars = get_num_vars();
-        for (unsigned i = 0; i < num_vars; i++) {
+        for (unsigned i = 0; i < num_vars; ++i) {
             enode * n = get_enode(i);
+            TRACE(array, tout << enode_pp(n, ctx) << " is_relevant: " << ctx.is_relevant(n) << " is_array: " << is_array_sort(n) << "\n";);
             if (!ctx.is_relevant(n) || !is_array_sort(n)) {
                 continue;
             }
@@ -529,7 +562,7 @@ namespace smt {
             // issue #3532, #3529
             // 
             if (ctx.is_shared(r) || is_select_arg(r)) {
-                TRACE("array", tout << "new shared var: #" << r->get_owner_id() << " " << is_select_arg(r) << "\n";);
+                TRACE(array, tout << "new shared var: #" << r->get_owner_id() << " " << is_select_arg(r) << "\n";);
                 theory_var r_th_var = r->get_th_var(get_id());
                 SASSERT(r_th_var != null_theory_var);
                 result.push_back(r_th_var);
@@ -537,7 +570,7 @@ namespace smt {
             r->set_mark();
             to_unmark.push_back(r);            
         }
-        TRACE("array", tout << "collecting shared vars...\n" << unsigned_vector(result.size(), (unsigned*)result.data())  << "\n";);
+        TRACE(array, tout << "collecting shared vars...\n" << unsigned_vector(result.size(), (unsigned*)result.data())  << "\n";);
         unmark_enodes(to_unmark.size(), to_unmark.data());
     }
 
@@ -552,22 +585,23 @@ namespace smt {
         sbuffer<theory_var>::iterator it1  = roots.begin();
         sbuffer<theory_var>::iterator end1 = roots.end();
         for (; it1 != end1; ++it1) {
-            TRACE("array_bug", tout << "mk_interface_eqs: processing: v" << *it1 << "\n";);
+            TRACE(array_bug, tout << "mk_interface_eqs: processing: v" << *it1 << "\n";);
             theory_var  v1 = *it1;
             enode *     n1 = get_enode(v1);
-            sort *      s1 = n1->get_expr()->get_sort();
+            sort *      s1 = n1->get_sort();
             sbuffer<theory_var>::iterator it2 = it1;
             ++it2;
             for (; it2 != end1; ++it2) {
                 theory_var v2 = *it2;
                 enode *    n2 = get_enode(v2);
-                sort *     s2 = n2->get_expr()->get_sort();
+                sort *     s2 = n2->get_sort();
                 if (s1 == s2 && !ctx.is_diseq(n1, n2)) {
-                    app * eq  = mk_eq_atom(n1->get_expr(), n2->get_expr());
-                    if (!ctx.b_internalized(eq) || !ctx.is_relevant(eq)) {
+                    app_ref eq  = app_ref(mk_eq_atom(n1->get_expr(), n2->get_expr()), m);
+                    TRACE(array_bug, tout << "mk_interface_eqs: adding: " << eq << "\n";);
+                    if (!ctx.b_internalized(eq.get()) || !ctx.is_relevant(eq.get())) {
                         result++;
                         ctx.internalize(eq, true);
-                        ctx.mark_as_relevant(eq);
+                        ctx.mark_as_relevant(eq.get());
                     }
                 }
             }
@@ -615,7 +649,7 @@ namespace smt {
 
 
     void theory_array_base::set_default(theory_var v, enode* n) {
-        TRACE("array", tout << "set default: " << v << " " << pp(n, m) << "\n";);
+        TRACE(array, tout << "set default: " << v << " " << pp(n, m) << "\n";);
         v = mg_find(v);
         if (m_defaults[v] == 0) {
             m_defaults[v] = n;
@@ -662,7 +696,7 @@ namespace smt {
             if (m_defaults[u] == 0) {
                 m_defaults[u] = m_defaults[v];
             }
-            CTRACE("array", m_defaults[v], 
+            CTRACE(array, m_defaults[v], 
                    tout << pp(m_defaults[v]->get_root(), m) << "\n";
                    tout << pp(m_defaults[u]->get_root(), m) << "\n";
                   );
@@ -681,7 +715,8 @@ namespace smt {
         collect_defaults();
         collect_selects();
         propagate_selects();
-        if (m_bapa) m_bapa->init_model();
+        // check_selects();
+        TRACE(array, display_selects(tout); display(tout););
     }
 
     /**
@@ -699,7 +734,7 @@ namespace smt {
             if (!ctx.is_relevant(n))
                 continue;
             
-            if (is_store(n) || is_const(n) || is_default(n) || is_set_has_size(n))
+            if (is_store(n) || is_const(n) || is_default(n))
                 return false;
         }
         return true;
@@ -739,7 +774,7 @@ namespace smt {
 
                 mg_merge(v, get_representative(w));
                                 
-                TRACE("array", tout << "merge: " << pp(n, m) << " " << v << " " << w << "\n";);
+                TRACE(array, tout << "merge: " << pp(n, m) << " " << v << " " << w << "\n";);
             }
             else if (is_const(n)) {
                 set_default(v, n->get_arg(0));
@@ -759,7 +794,7 @@ namespace smt {
     bool theory_array_base::sel_eq::operator()(enode * n1, enode * n2) const {
         SASSERT(n1->get_num_args() == n2->get_num_args());
         unsigned num_args = n1->get_num_args();
-        for (unsigned i = 1; i < num_args; i++) {
+        for (unsigned i = 1; i < num_args; ++i) {
             if (n1->get_arg(i)->get_root() != n2->get_arg(i)->get_root())
                 return false;
         }
@@ -779,12 +814,89 @@ namespace smt {
         return set;
     }
 
-    void theory_array_base::collect_selects() {
-        int num_vars = get_num_vars();
-
+    void theory_array_base::reset_selects() {
+        for (auto r : m_selects_range)
+            dealloc(r);
+        m_selects_range.reset();
         m_selects.reset();
         m_selects_domain.reset();
-        m_selects_range.reset();
+    }
+           
+    std::ostream& theory_array_base::display_selects(std::ostream& out) {
+        for (auto [r, s] : m_selects) {
+            out << enode_pp(r, ctx) << ":\n";
+            for (auto sel : *s) 
+                out << "   " << enode_pp(sel, ctx) << " "
+                     << enode_pp(sel->get_root(), ctx) << "\n";
+            out << "\n";
+        }
+        return out;
+    }
+
+    bool theory_array_base::check_selects() {
+        auto same_args = [&](unsigned num_args, enode *n1, enode *n2) {
+            for (unsigned i = 1; i < num_args; ++i) {
+                if (n1->get_arg(i)->get_root() != n2->get_arg(i)->get_root())
+                    return false;
+            }
+            return true;
+        };
+
+        auto check_selects = [&](enode* n, select_set &s1, select_set &s2) {
+            for (auto sel1 : s1) {
+                if (same_args(sel1->get_num_args(), sel1, n))
+                    continue;
+                bool found = false;
+                for (auto sel2 : s2) {
+                    verbose_stream() << "check_selects: " << enode_pp(sel1, ctx) << " " << enode_pp(sel2, ctx) << "\n";
+                    if (!same_args(sel2->get_num_args(), sel1, sel2))
+                        continue;
+                    found = true;
+                    if (sel1->get_root() != sel2->get_root()) {
+                        verbose_stream() << "selects: " << pp(sel1, m) << " " << pp(sel2, m) << "\n";
+                        return false;
+                    }
+                    break;
+                }
+                if (!found) {
+                    verbose_stream() << "selects: " << pp(sel1, m) << " " << pp(n, m) << "\n";
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        for (auto [r, s1] : m_selects) {
+            for (auto n : *r) {
+                if (false && !ctx.is_relevant(n))
+                    continue;
+                
+                if (is_store(n)) {
+                    auto st = n->get_arg(0)->get_root();
+                    auto &s2 = m_selects[st];
+                    if (!check_selects(n, *s1, *s2))
+                        return false;
+                    if (!check_selects(n, *s2, *s1))
+                        return false;
+                }
+                if (is_const(n)) {
+                    auto v = n->get_arg(0)->get_root();
+                    for (auto sel : *s1) {
+                        if (v != sel->get_root()) {
+                            verbose_stream() << pp(n, m) << " != " << pp(sel, m) << "\n";
+                            return false;
+                        }
+                    }
+
+                }
+            }
+        }
+        return true;
+    }
+
+    void theory_array_base::collect_selects() {
+        int num_vars = get_num_vars();
+        reset_selects();
 
         for (theory_var v = 0; v < num_vars; ++v) {
             enode * r = get_enode(v)->get_root();                
@@ -825,7 +937,7 @@ namespace smt {
                 // check whether the sel idx was overwritten by the store
                 unsigned num_args = sel->get_num_args();
                 unsigned i = 1;
-                for (; i < num_args; i++) {
+                for (; i < num_args; ++i) {
                     if (sel->get_arg(i)->get_root() != parent->get_arg(i)->get_root())
                         break;
                 }
@@ -833,7 +945,7 @@ namespace smt {
                 if (i < num_args) {
                     SASSERT(!parent_sel_set->contains(sel) || (*(parent_sel_set->find(sel)))->get_root() == sel->get_root());
                     parent_sel_set->insert(sel);
-                    todo.push_back(std::make_pair(parent_root, sel));
+                    todo.push_back({parent_root, sel});
                 }
             }
         }
@@ -852,16 +964,14 @@ namespace smt {
         for (enode * r : m_selects_domain) {
             propagate_selects_to_store_parents(r, todo);
         }
-        for (unsigned qhead = 0; qhead < todo.size(); qhead++) {
-            enode_pair & pair = todo[qhead];
-            enode * r   = pair.first;
-            enode * sel = pair.second;
+        for (unsigned qhead = 0; qhead < todo.size(); ++qhead) {
+            auto [r, sel] = todo[qhead];
             propagate_select_to_store_parents(r, sel, todo);
         }
     }
 
     void theory_array_base::finalize_model(model_generator & m) {
-        std::for_each(m_selects_range.begin(), m_selects_range.end(), delete_proc<select_set>());
+        reset_selects();
     }
 
     class array_value_proc : public model_value_proc {
@@ -917,7 +1027,7 @@ namespace smt {
             SASSERT(m_dim == 0 || m_dim == num_args);
             m_dim = num_args;
             m_num_entries ++;
-            for (unsigned i = 0; i < num_args; i++) 
+            for (unsigned i = 0; i < num_args; ++i) 
                 m_dependencies.push_back(model_value_dependency(args[i]));
             m_dependencies.push_back(model_value_dependency(value));
         }
@@ -949,10 +1059,10 @@ namespace smt {
             }
             
             ptr_buffer<expr> args;
-            for (unsigned i = 0; i < m_num_entries; i++) {
+            for (unsigned i = 0; i < m_num_entries; ++i) {
                 args.reset();
                 // copy indices
-                for (unsigned j = 0; j < m_dim; j++, idx++) 
+                for (unsigned j = 0; j < m_dim; ++j, ++idx) 
                     args.push_back(values[idx]);
                 expr * result = values[idx];
                 idx++;
@@ -971,7 +1081,7 @@ namespace smt {
     model_value_proc * theory_array_base::mk_value(enode * n, model_generator & mg) {
         theory_var v       = n->get_th_var(get_id());
         SASSERT(v != null_theory_var);
-        sort * s           = n->get_expr()->get_sort();
+        sort * s           = n->get_sort();
         enode * else_val_n = get_default(v);
         array_value_proc * result = nullptr;
 
@@ -996,9 +1106,9 @@ namespace smt {
                     // The implementation should not assume a fresh value is created for 
                     // the else_val if the range is finite
 
-                    TRACE("array", tout << pp(n, m) << " " << mk_pp(range, m) << " " << range->is_infinite() << "\n";);
+                    TRACE(array, tout << pp(n, m) << " " << mk_pp(range, m) << " " << range->is_infinite() << "\n";);
                     if (range->is_infinite())
-                        else_val = TAG(void*, mg.mk_extra_fresh_value(range), 1);
+                        else_val = TAG(void*, mg.mk_extra_fresh_value(n->get_expr(), range), 1);
                     else
                         else_val = TAG(void*, mg.get_some_value(range), 0);
                     m_else_values[r] = else_val;
@@ -1025,7 +1135,7 @@ namespace smt {
                 result->add_entry(args.size(), args.data(), select);
             }
         }
-        TRACE("array", 
+        TRACE(array, 
               tout << pp(n->get_root(), m) << "\n";
               if (sel_set) {
                   for (enode* s : *sel_set) {
@@ -1038,4 +1148,4 @@ namespace smt {
         return result;
     }
 
-};
+}

@@ -34,24 +34,26 @@ struct tactic_report::imp {
         m_goal(g),
         m_start_memory(static_cast<double>(memory::get_allocation_size())/static_cast<double>(1024*1024)) {
         m_watch.start();
-        TRACE("tactic", g.display_with_proofs(tout << id << "\n"););
+        TRACE(tactic, g.display_with_proofs(tout << id << "\n"););
         SASSERT(g.is_well_formed());
     }
         
     ~imp() {
         m_watch.stop();
         double end_memory = static_cast<double>(memory::get_allocation_size())/static_cast<double>(1024*1024);
-        TRACE("tactic", m_goal.display(tout << m_id << "\n");
+        TRACE(tactic, m_goal.display(tout << m_id << "\n");
               if (m_goal.mc()) m_goal.mc()->display(tout);
               );
         IF_VERBOSE(0, 
                    verbose_stream() << "(" << m_id
                    << " :num-exprs " << m_goal.num_exprs()
-                   << " :num-asts " << m_goal.m().get_num_asts()
-                   << " :time " << std::fixed << std::setprecision(2) << m_watch.get_seconds()
-                   << " :before-memory " << std::fixed << std::setprecision(2) << m_start_memory
-                   << " :after-memory " << std::fixed << std::setprecision(2) << end_memory
-                   << ")\n");
+                   << " :num-asts " << m_goal.m().get_num_asts();
+                   if (!get_suppress_platform_verbose())
+                       verbose_stream()
+                       << " :time " << std::fixed << std::setprecision(2) << m_watch.get_seconds()
+                       << " :before-memory " << std::fixed << std::setprecision(2) << m_start_memory
+                       << " :after-memory " << std::fixed << std::setprecision(2) << end_memory;
+                   verbose_stream() << ")\n");
         IF_VERBOSE(20, m_goal.display(verbose_stream() << m_id << "\n"));
         SASSERT(m_goal.is_well_formed());
     }
@@ -74,7 +76,6 @@ void report_tactic_progress(char const * id, unsigned val) {
         IF_VERBOSE(TACTIC_VERBOSITY_LVL, verbose_stream() << "(" << id << " " << val << ")\n");        
     }
 }
-
 statistics_report::~statistics_report() {
     statistics st;
     if (m_tactic)
@@ -100,13 +101,28 @@ class lazy_tactic : public tactic {
     params_ref p;
     std::function<tactic* (ast_manager& m, params_ref const& p)> m_mk_tactic;
     tactic* m_tactic = nullptr;
-    void ensure_tactic() { if (!m_tactic) m_tactic = m_mk_tactic(m, p); }
+    symbol m_logic;
+    void ensure_tactic() {
+        if (!m_tactic) {
+            m_tactic = m_mk_tactic(m, p);
+            m_tactic->updt_params(p);
+            m_tactic->set_logic(m_logic);
+        }
+    }
 public:
     lazy_tactic(ast_manager& m, params_ref const& p, std::function<tactic* (ast_manager&, params_ref const&)> mk_tactic) : m(m), p(p), m_mk_tactic(mk_tactic) {}
     ~lazy_tactic() override { dealloc(m_tactic); }
     void operator()(goal_ref const& in, goal_ref_buffer& result) override {
         ensure_tactic();
         (*m_tactic)(in, result);
+    }
+    void updt_params(params_ref const& p) override { 
+        this->p.append(p);
+        if (m_tactic) m_tactic->updt_params(p);
+    }
+    void set_logic(symbol const& l) override {
+        m_logic = l;
+        if (m_tactic) m_tactic->set_logic(l);
     }
     void cleanup() override { if (m_tactic) m_tactic->cleanup(); }
     char const* name() const override { return "lazy tactic"; }
@@ -219,13 +235,13 @@ lbool check_sat(tactic & t, goal_ref & g, model_ref & md, labels_vec & labels, p
         if (r.size() > 0) pr = r[0]->pr(0);
         return l_undef;
     }
-    TRACE("tactic",
+    TRACE(tactic,
           tout << "r.size(): " << r.size() << "\n";
-          for (unsigned i = 0; i < r.size(); i++) r[i]->display_with_dependencies(tout););
+          for (unsigned i = 0; i < r.size(); ++i) r[i]->display_with_dependencies(tout););
 
     if (r.size() > 0) {
         pr = r[0]->pr(0);
-        CTRACE("tactic", pr, tout << pr << "\n";);
+        CTRACE(tactic, pr, tout << pr << "\n";);
     }    
 
     if (is_decided_sat(r)) {

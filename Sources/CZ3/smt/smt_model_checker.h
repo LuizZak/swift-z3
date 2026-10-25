@@ -23,9 +23,8 @@ Revision History:
 #include "util/obj_hashtable.h"
 #include "ast/ast.h"
 #include "ast/array_decl_plugin.h"
-#include "ast/normal_forms/defined_names.h"
-#include "smt/params/qi_params.h"
-#include "smt/params/smt_params.h"
+#include "params/qi_params.h"
+#include "params/smt_params.h"
 
 class proto_model;
 class model;
@@ -35,6 +34,7 @@ namespace smt {
     class enode;
     class model_finder;
     class quantifier_manager;
+    class model_instantiation_set;
 
     class model_checker {
         ast_manager &                               m; // _manager;
@@ -61,6 +61,7 @@ namespace smt {
         expr * get_term_from_ctx(expr * val);
         expr * get_type_compatible_term(expr * val);
         expr_ref replace_value_from_ctx(expr * e);
+        expr_ref replace_model_values(expr * e);
         void restrict_to_universe(expr * sk, obj_hashtable<expr> const & universe);
         bool assert_neg_q_m(quantifier * q, expr_ref_vector & sks);
         bool add_blocking_clause(model * cex, expr_ref_vector & sks);
@@ -70,9 +71,8 @@ namespace smt {
         struct instance {
             quantifier * m_q;
             unsigned     m_generation;
-            expr *       m_def;
             unsigned     m_bindings_offset;
-            instance(quantifier * q, unsigned offset, expr* def, unsigned gen):m_q(q), m_generation(gen), m_def(def), m_bindings_offset(offset) {}
+            instance(quantifier * q, unsigned offset, unsigned gen):m_q(q), m_generation(gen), m_bindings_offset(offset) {}
         };
 
         svector<instance>                          m_new_instances;
@@ -86,7 +86,7 @@ namespace smt {
         struct is_model_value {};
         expr_mark m_visited;
         bool contains_model_value(expr * e);
-        void add_instance(quantifier * q, expr_ref_vector const & bindings, unsigned max_generation, expr * def);
+        void add_instance(quantifier * q, expr_ref_vector const & bindings, unsigned max_generation);
         bool is_safe_for_mbqi(quantifier * q) const;
 
     public:
@@ -106,5 +106,4 @@ namespace smt {
         void operator()(expr* e);
 
     };
-};
-
+}

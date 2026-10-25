@@ -10,6 +10,7 @@
 #include "util/uint_set.h"
 #include "math/lp/implied_bound.h"
 #include "util/vector.h"
+
 namespace lp {
     
 template <typename T>
@@ -74,23 +75,23 @@ private:
             m_val2fixed_row.insert(val(v1), r1);
             return;
         }
-        if (!only_one_nfixed(r2, v2) || val(v1) != val(v2) || is_int(v1) != is_int(v2)) {
+        if (!only_one_nfixed(r2, v2) || ival(v1) != ival(v2) || is_int(v1) != is_int(v2)) {
             m_val2fixed_row.insert(val(v1), r1);
             return;
         }
-        if (v1 == v2)
+        if (v1 == v2 || !eq_is_new(v1, v2))
             return;
 #if Z3DEBUG
-        lp_assert(val(v1) == val(v2));
+        SASSERT(val(v1) == val(v2));
         unsigned debv1, debv2;
-        lp_assert(only_one_nfixed(r1, debv1) && only_one_nfixed(r2, debv2));
-        lp_assert(debv1 == v1 && debv2 == v2);
-        lp_assert(ival(v1).y == ival(v2).y);
+        SASSERT(only_one_nfixed(r1, debv1) && only_one_nfixed(r2, debv2));
+        SASSERT(debv1 == v1 && debv2 == v2);
+        SASSERT(ival(v1).y == ival(v2).y);
 #endif
         explanation ex;
         explain_fixed_in_row(r1, ex);
         explain_fixed_in_row(r2, ex);
-        TRACE("eq", print_row(tout, r1); print_row(tout, r2); tout << v1 << " == " << v2 << " = " << val(v1) << "\n");
+        TRACE(eq, print_row(tout, r1); print_row(tout, r2); tout << v1 << " == " << v2 << " = " << val(v1) << "\n");
         add_eq_on_columns(ex, v1, v2, true);
     }
 
@@ -146,13 +147,26 @@ public:
     }
 
 
-    void add_bound(mpq const& v, unsigned j, bool is_low, bool strict, std::function<u_dependency* ()> explain_bound) {
+    static lconstraint_kind bound_kind(bool is_low, bool strict) {
         lconstraint_kind kind = is_low ? GE : LE;
         if (strict)
             kind = static_cast<lconstraint_kind>(kind / 2);
+        return kind;
+    }
 
-        if (!m_imp.bound_is_interesting(j, kind, v))
-            return;
+    // true if column j can still receive a useful bound, e.g. it has an unassigned atom
+    bool column_is_interesting(unsigned j) const {
+        return m_imp.column_is_interesting(j);
+    }
+
+    bool bound_is_interesting(unsigned j, bool is_low, bool strict, mpq const& v) const {
+        return m_imp.bound_is_interesting(j, bound_kind(is_low, strict), v);
+    }
+
+    // the caller is expected to have checked bound_is_interesting
+    template <typename Explain, typename WeightedExplain>
+    void add_bound(mpq const& v, unsigned j, bool is_low, bool strict, Explain const& explain_bound,
+                   WeightedExplain const& explain_weighted) {
         if (is_low) {
             unsigned k;
             if (m_improved_lower_bounds.find(j, k)) {
@@ -161,13 +175,13 @@ public:
 
                     found_bound.m_bound = v;
                     found_bound.m_strict = strict;
-                    found_bound.set_explain(explain_bound);
-                    TRACE("add_bound", lp().print_implied_bound(found_bound, tout););
+                    found_bound.set_explain(explain_bound, explain_weighted);
+                    TRACE(add_bound, lp().print_implied_bound(found_bound, tout););
                 }
             } else {
                 m_improved_lower_bounds.insert(j, static_cast<unsigned>(m_ibounds.size()));
-                m_ibounds.push_back(implied_bound(v, j, is_low, strict, explain_bound));
-                TRACE("add_bound", lp().print_implied_bound(m_ibounds.back(), tout););
+                m_ibounds.push_back(implied_bound(v, j, is_low, strict, explain_bound, explain_weighted));
+                TRACE(add_bound, lp().print_implied_bound(m_ibounds.back(), tout););
             }
         } else {  // the upper bound case
             unsigned k;
@@ -177,13 +191,13 @@ public:
 
                     found_bound.m_bound = v;
                     found_bound.m_strict = strict;
-                    found_bound.set_explain(explain_bound);
-                    TRACE("add_bound", lp().print_implied_bound(found_bound, tout););
+                    found_bound.set_explain(explain_bound, explain_weighted);
+                    TRACE(add_bound, lp().print_implied_bound(found_bound, tout););
                 }
             } else {
                 m_improved_upper_bounds.insert(j, static_cast<unsigned>(m_ibounds.size()));
-                m_ibounds.push_back(implied_bound(v, j, is_low, strict, explain_bound));
-                TRACE("add_bound", lp().print_implied_bound(m_ibounds.back(), tout););
+                m_ibounds.push_back(implied_bound(v, j, is_low, strict, explain_bound, explain_weighted));
+                TRACE(add_bound, lp().print_implied_bound(m_ibounds.back(), tout););
             }
         }
     }
@@ -209,15 +223,22 @@ public:
         return m_imp.is_equal(col_to_imp(j), col_to_imp(k));
     }
 
+    // an equality between columns is only worth explaining and reporting when both
+    // columns are known to the theory and are not already merged there
+    bool eq_is_new(lpvar j, lpvar k) const {
+        unsigned u = col_to_imp(j), v = col_to_imp(k);
+        return u != UINT_MAX && v != UINT_MAX && !m_imp.is_equal(u, v);
+    }
+
     void clear_for_eq() {
         m_visited_rows.reset();
     }
 
     bool add_eq_on_columns(const explanation& exp, lpvar je, lpvar ke, bool is_fixed) {
-        lp_assert(je != ke && is_int(je) == is_int(ke));
-        lp_assert(ival(je) == ival(ke));
+        SASSERT(je != ke && is_int(je) == is_int(ke));
+        SASSERT(ival(je) == ival(ke));
 
-        TRACE("eq",
+        TRACE(eq,
               tout << "reported idx " << je << ", " << ke << "\n";
               lp().print_expl(tout, exp);
               tout << "theory_vars v" << lp().local_to_external(je) << " == v" << lp().local_to_external(ke) << "\n";);
@@ -247,23 +268,17 @@ public:
     }
 
     void explain_fixed_in_row(unsigned row, explanation& ex) {
-        TRACE("eq", tout << lp().get_row(row) << std::endl);
-        for (const auto& c : lp().get_row(row))
-            if (lp().column_is_fixed(c.var()))
-                lp().explain_fixed_column(c.var(), ex);
+        TRACE(eq, tout << lp().get_row(row) << std::endl);
+        lp().explain_fixed_in_row(row, ex);
     }
 
     unsigned explain_fixed_in_row_and_get_base(unsigned row, explanation& ex) {
+        TRACE(eq, tout << lp().get_row(row) << std::endl);
+        lp().explain_fixed_in_row(row, ex);
         unsigned base = UINT_MAX;
-        TRACE("eq", tout << lp().get_row(row) << std::endl);
-        for (const auto& c : lp().get_row(row)) {
-            if (lp().column_is_fixed(c.var())) {
-                lp().explain_fixed_column(c.var(), ex);
-            } 
-            else if (lp().is_base(c.var())) {
+        for (const auto& c : lp().get_row(row))
+            if (!lp().column_is_fixed(c.var()) && lp().is_base(c.var()))
                 base = c.var();
-            }
-        }
         return base;
     }
     
@@ -299,6 +314,7 @@ public:
     unsigned extract_non_fixed(unsigned row_index, unsigned& x, unsigned& y, int& y_sign) const {
         unsigned nf = 0;  // number of non-fixed columns
         y = UINT_MAX;
+        y_sign = 0;
         const auto& row = lp().get_row(row_index);
         x = lp().get_base_column_in_row(row_index);
         if (!column_is_fixed(x)) {
@@ -315,7 +331,7 @@ public:
                 continue;
             if (++nf > 2)
                 return nf;
-            lp_assert(is_not_set(y));
+            SASSERT(is_not_set(y));
             y = j;
             if (c.coeff().is_one()) {
                 y_sign = 1;
@@ -332,9 +348,15 @@ public:
     }
 
     void try_add_equation_with_lp_fixed_tables(unsigned row_index, unsigned v_j) {
-        lp_assert(lp().get_base_column_in_row(row_index) == v_j);
-        lp_assert(num_of_non_fixed_in_row(row_index) == 1 || column_is_fixed(v_j));
+        SASSERT(lp().get_base_column_in_row(row_index) == v_j);
+        SASSERT(num_of_non_fixed_in_row(row_index) == 1 || column_is_fixed(v_j));
         if (column_is_fixed(v_j)) {
+            return;
+        }
+        // the columns registered in the fixed tables have a zero infinitesimal part,
+        // so v_j cannot be equal to any of them when its delta part is not zero
+        if (!ival(v_j).y.is_zero()) {
+            try_add_equation_with_internal_fixed_tables(row_index);
             return;
         }
         unsigned j = null_lpvar;
@@ -342,7 +364,9 @@ public:
             try_add_equation_with_internal_fixed_tables(row_index);
             return;
         } 
-        TRACE("eq",
+        if (!eq_is_new(j, v_j))
+            return;
+        TRACE(eq,
               tout << "v_j = ";
               lp().print_column_info(v_j, tout) << std::endl;
               tout << "found j " << j << std::endl; lp().print_column_info(j, tout) << std::endl;
@@ -356,7 +380,7 @@ public:
 
     void cheap_eq_on_nbase(unsigned row_index) {
         reset_cheap_eq _reset(*this);
-        TRACE("eq", tout << "row_index = " << row_index << "\n";
+        TRACE(eq, tout << "row_index = " << row_index << "\n";
                     print_row(tout, row_index) << "\n";);
         if (!check_insert(m_visited_rows, row_index))
             return;
@@ -366,7 +390,7 @@ public:
         if (nf == 0 || nf > 2)
             return;
         if (nf == 1) {
-            lp_assert(is_not_set(y));
+            SASSERT(is_not_set(y));
             try_add_equation_with_lp_fixed_tables(row_index, x);
             return;
         }
@@ -374,11 +398,11 @@ public:
             // the coefficient before y is not 1 or -1
             return;
         }
-        lp_assert(y_sign == -1 || y_sign == 1);
-        lp_assert(lp().is_base(y) == false);
+        SASSERT(y_sign == -1 || y_sign == 1);
+        SASSERT(lp().is_base(y) == false);
         auto& table = y_sign == 1 ? m_row2index_pos : m_row2index_neg;
         table.insert(val(x), row_index);        
-        TRACE("eq", tout << "y = " << y << "\n";);    
+        TRACE(eq, tout << "y = " << y << "\n";);    
 
         for (const column_cell& c : lp().get_column(y)) {
             unsigned i = c.var();  // the running index of the row
@@ -391,8 +415,8 @@ public:
             if (nf != 2 || y_sign == 0)
                 continue;
 
-            lp_assert(y_nb == y);
-            lp_assert(y_sign == 1 || y_sign == -1);
+            SASSERT(y_nb == y);
+            SASSERT(y_sign == 1 || y_sign == -1);
             auto& table = y_sign == 1 ? m_row2index_pos : m_row2index_neg;
             const auto& v = val(x);
             unsigned found_i;;
@@ -404,9 +428,11 @@ public:
                 unsigned base_of_found = lp().get_base_column_in_row(found_i);
                 if (is_int(x) != is_int(base_of_found) || ival(x).y != ival(base_of_found).y)
                     continue;
+                if (!eq_is_new(x, base_of_found))
+                    continue;
                 explain_fixed_in_row(found_i, ex);
                 explain_fixed_in_row(i, ex);
-                TRACE("eq", {
+                TRACE(eq, {
                     print_row(tout, i);
                     print_row(tout, found_i) << "\n";
                     lp().print_column_info(base_of_found, tout);

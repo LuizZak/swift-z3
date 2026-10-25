@@ -188,6 +188,7 @@ namespace smt {
         void add_dependency(expr * src, expr * target);
         
         relevancy_eh * mk_or_relevancy_eh(app * n);
+        relevancy_eh* mk_implies_relevancy_eh(app* n);
         relevancy_eh * mk_and_relevancy_eh(app * n);
         relevancy_eh * mk_ite_relevancy_eh(app * n);
         relevancy_eh * mk_term_ite_relevancy_eh(app * c, app * t, app * e);
@@ -195,6 +196,6 @@ namespace smt {
 
     relevancy_propagator * mk_relevancy_propagator(context & ctx);
 
-};
+}
 
 

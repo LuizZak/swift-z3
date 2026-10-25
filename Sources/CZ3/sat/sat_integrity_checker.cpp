@@ -48,18 +48,18 @@ namespace sat {
                 }
             }
         }
-        TRACE("sat", tout << "clause " << c << " not found in watch-list\n");
-        TRACE("sat", s.display_watches(tout));
+        TRACE(sat, tout << "clause " << c << " not found in watch-list\n");
+        TRACE(sat, s.display_watches(tout));
         UNREACHABLE();
         return false;
     }
 
     bool integrity_checker::check_clause(clause const & c) const {
-        CTRACE("sat_bug", c.was_removed(), s.display(tout << "c: " << c.id() << ": " << c << "\n"));
+        CTRACE(sat_bug, c.was_removed(), s.display(tout << "c: " << c.id() << ": " << c << "\n"));
         SASSERT(!c.was_removed());
-        for (unsigned i = 0; i < c.size(); i++) {
+        for (unsigned i = 0; i < c.size(); ++i) {
             VERIFY(c[i].var() <= s.num_vars());
-            CTRACE("sat_bug", s.was_eliminated(c[i].var()),
+            CTRACE(sat_bug, s.was_eliminated(c[i].var()),
                    tout << "l: " << c[i].var() << "\n";
                    tout << "c: " << c << "\n";
                    s.display(tout););
@@ -74,7 +74,7 @@ namespace sat {
         {
             if (s.value(c[0]) == l_false || s.value(c[1]) == l_false) {
                 bool on_prop_stack = false;
-                for (unsigned i = s.m_qhead; i < s.m_trail.size(); i++) {
+                for (unsigned i = s.m_qhead; i < s.m_trail.size(); ++i) {
                     if (s.m_trail[i].var() == c[0].var() ||
                         s.m_trail[i].var() == c[1].var()) {
                         on_prop_stack = true;
@@ -83,10 +83,10 @@ namespace sat {
                 }
                 // the clause has been satisfied or all other literals are assigned to false.
                 if (!on_prop_stack && s.status(c) != l_true) {
-                    for (unsigned i = 2; i < c.size(); i++) {
-                        CTRACE("sat_bug", s.value(c[i]) != l_false,
+                    for (unsigned i = 2; i < c.size(); ++i) {
+                        CTRACE(sat_bug, s.value(c[i]) != l_false,
                                tout << c << " status: " << s.status(c) << "\n";
-                               for (unsigned i = 0; i < c.size(); i++) tout << "val(" << i << "): " << s.value(c[i]) << "\n";);
+                               for (unsigned i = 0; i < c.size(); ++i) tout << "val(" << i << "): " << s.value(c[i]) << "\n";);
                         VERIFY(s.value(c[i]) == l_false);
                     }
                 }
@@ -133,7 +133,7 @@ namespace sat {
         VERIFY(s.m_phase.size() == s.num_vars());
         VERIFY(s.m_prev_phase.size() == s.num_vars());
         VERIFY(s.m_assigned_since_gc.size() == s.num_vars());
-        for (bool_var v = 0; v < s.num_vars(); v++) {
+        for (bool_var v = 0; v < s.num_vars(); ++v) {
             if (s.was_eliminated(v)) {
                 VERIFY(s.get_wlist(literal(v, false)).empty());
                 VERIFY(s.get_wlist(literal(v, true)).empty());
@@ -151,7 +151,7 @@ namespace sat {
             switch (w.get_kind()) {
             case watched::BINARY:
                 VERIFY(!s.was_eliminated(w.get_literal().var()));
-                CTRACE("sat_watched_bug", !s.get_wlist(~(w.get_literal())).contains(watched(l, w.is_learned())),
+                CTRACE(sat_watched_bug, !s.get_wlist(~(w.get_literal())).contains(watched(l, w.is_learned())),
                        tout << "l: " << l << " l2: " << w.get_literal() << "\n"; 
                        tout << "was_eliminated1: " << s.was_eliminated(l.var());
                        tout << " was_eliminated2: " << s.was_eliminated(w.get_literal().var());
@@ -176,7 +176,7 @@ namespace sat {
         unsigned l_idx = 0;
         for (watch_list const& wlist : s.m_watches) {
             literal l = ~to_literal(l_idx++);            
-            CTRACE("sat_bug", 
+            CTRACE(sat_bug, 
                    s.was_eliminated(l.var()) && !wlist.empty(),
                    tout << "l: " << l << "\n";
                    s.display_watches(tout);
@@ -203,7 +203,7 @@ namespace sat {
         }
         for (clause* cp : s.m_learned) {
             if (ids.contains(cp->id())) {
-                TRACE("sat", tout << "Repeated clause: " << cp->id() << "\n";);
+                TRACE(sat, tout << "Repeated clause: " << cp->id() << "\n";);
                 return false;
             }
         }
@@ -221,4 +221,4 @@ namespace sat {
         VERIFY(check_disjoint_clauses());
         return true;
     }
-};
+}

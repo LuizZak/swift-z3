@@ -163,7 +163,7 @@ public:
                 ps.push_back(pr);
             }
         }
-        TRACE("hnf",
+        TRACE(hnf,
             tout << mk_pp(n, m) << "\n==>\n" << result << "\n";);
     }
 
@@ -274,7 +274,7 @@ private:
 
             if (premise) {
                 expr_ref f1 = bind_variables(mk_implies(m_body, head));
-                expr* f2 = m.mk_and(sz, m_todo.data()+m_todo.size()-sz);
+                expr* f2 = m.mk_and(std::span<expr* const>(m_todo.data()+m_todo.size()-sz, sz));
                 proof_ref p2(m), p3(m);
                 p2 = m.mk_def_axiom(m.mk_iff(f1, f2));
                 p3 = mk_quant_intro(fml, f1, p);                    
@@ -334,7 +334,7 @@ private:
         if (!contains_predicate(b)) {
             return;
         }
-        TRACE("hnf", tout << mk_pp(b, m) << "\n";);
+        TRACE(hnf, tout << mk_pp(b, m) << "\n";);
         if (m.is_or(b)) {
             is_disj = true;
             negate_args = false;
@@ -450,7 +450,7 @@ private:
         case 1: 
             return app_ref(m.mk_implies(body[0], head), m);
         default:
-            return app_ref(m.mk_implies(m.mk_and(body.size(), body.data()), head), m);
+            return app_ref(m.mk_implies(m.mk_and(body), head), m);
         }        
     }
 
@@ -522,7 +522,7 @@ hnf::~hnf() {
     
 void hnf::operator()(expr * n, proof* p, expr_ref_vector & rs, proof_ref_vector& ps) {
     m_imp->operator()(n, p, rs, ps);    
-    TRACE("hnf", 
+    TRACE(hnf, 
           ast_manager& m = rs.get_manager();
           tout << mk_ismt2_pp(n, m) << "\nHNF result:\n";
           for (unsigned i = 0; i < rs.size(); ++i) {

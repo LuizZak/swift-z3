@@ -121,7 +121,7 @@ namespace datalog {
             offset_hash_proc(storage & s, unsigned unique_entry_sz) 
                 : m_storage(s), m_unique_entry_size(unique_entry_sz) {}
             unsigned operator()(store_offset ofs) const {
-                return string_hash(m_storage.data()+ofs, m_unique_entry_size, 0);
+                return string_hash(std::string_view(m_storage.data()+ofs, m_unique_entry_size), 0);
             } 
         };
 
@@ -328,7 +328,7 @@ namespace datalog {
             column_info(unsigned offset, unsigned length) 
                 : m_big_offset(offset / 8), 
                   m_small_offset(offset % 8),
-                  m_mask( length == 64 ? ULLONG_MAX : (static_cast<uint64_t>(1)<<length)-1 ),
+                  m_mask( length >= 64 ? ULLONG_MAX : (static_cast<uint64_t>(1)<<length)-1 ),
                   m_write_mask( ~(m_mask << m_small_offset) ),
                   m_offset(offset), 
                   m_length(length) {
@@ -494,5 +494,5 @@ namespace datalog {
         bool knows_exact_size() const override { return true; }
     };
 
- };
+ }
 

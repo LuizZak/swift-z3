@@ -32,7 +32,7 @@ Revision History:
 #include "smt/smt_theory.h"
 #include "smt/diff_logic.h"
 #include "smt/smt_justification.h"
-#include "smt/params/smt_params.h"
+#include "params/smt_params.h"
 #include "smt/arith_eq_adapter.h"
 #include "smt/smt_model_generator.h"
 #include "smt/smt_clause.h"
@@ -263,13 +263,13 @@ namespace smt {
             m_arith_eq_adapter.restart_eh();
         }
 
-        void relevant_eh(app* e) override {}
+        void relevant_eh(expr* e) override {}
 
         void init_search_eh() override {
             m_arith_eq_adapter.init_search_eh();
         }
 
-        final_check_status final_check_eh() override;
+        final_check_status final_check_eh(unsigned) override;
 
         bool is_shared(theory_var v) const override {
             return false;
@@ -306,7 +306,7 @@ namespace smt {
         // -----------------------------------
 
         expr_ref mk_ge(generic_model_converter& fm, theory_var v, inf_eps const& val);
-        inf_eps maximize(theory_var v, expr_ref& blocker, bool& has_shared) override;
+        inf_eps maximize(theory_var v, expr_ref& blocker) override;
         inf_eps value(theory_var v) override;
         theory_var add_objective(app* term) override;
 
@@ -407,8 +407,7 @@ namespace smt {
     typedef theory_diff_logic<sidl_ext> theory_fidl;
     typedef theory_diff_logic<rdl_ext> theory_rdl;
     typedef theory_diff_logic<srdl_ext> theory_frdl;
-};
-
+}
 
 
 

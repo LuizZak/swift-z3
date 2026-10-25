@@ -19,6 +19,7 @@ Revision History:
 #pragma once
 
 #include "ast/ast.h"
+#include "util/manage_warnings.h"
 
 
 inline sort* get_array_range(sort const * s) {
@@ -31,6 +32,18 @@ inline unsigned get_array_arity(sort const * s) {
 
 inline sort* get_array_domain(sort const * s, unsigned idx) {
     return to_sort(s->get_parameter(idx).get_ast());
+}
+
+inline expr_container array_select_indices(app* e) {
+    return expr_container(e->get_args() + 1, e->get_args() + e->get_num_args());
+}
+
+inline expr_container array_store_indices(app* e) {
+    return expr_container(e->get_args() + 1, e->get_args() + e->get_num_args() - 1);
+}
+
+inline expr* array_store_elem(app* e) {
+    return e->get_arg(e->get_num_args() - 1);
 }
 
 enum array_sort_kind {
@@ -50,9 +63,8 @@ enum array_op_kind {
     OP_SET_DIFFERENCE,
     OP_SET_COMPLEMENT,
     OP_SET_SUBSET,
-    OP_SET_HAS_SIZE,
-    OP_SET_CARD,
     OP_AS_ARRAY, // used for model construction
+    OP_CHOICE,
     LAST_ARRAY_OP
 };
 
@@ -69,8 +81,7 @@ class array_decl_plugin : public decl_plugin {
     symbol m_set_subset_sym;
     symbol m_array_ext_sym;
     symbol m_as_array_sym;
-    symbol m_set_has_size_sym;
-    symbol m_set_card_sym;
+    symbol m_choice_sym;
 
     bool check_set_arguments(unsigned arity, sort * const * domain);
 
@@ -98,9 +109,7 @@ class array_decl_plugin : public decl_plugin {
 
     func_decl * mk_as_array(func_decl * f);
 
-    func_decl* mk_set_has_size(unsigned arity, sort * const* domain);
-
-    func_decl* mk_set_card(unsigned arity, sort * const* domain);
+    func_decl * mk_choice(unsigned arity, sort* const* domain);
 
     bool is_array_sort(sort* s) const;
  public:
@@ -160,9 +169,8 @@ public:
     bool is_difference(expr* n) const { return is_app_of(n, m_fid, OP_SET_DIFFERENCE); }
     bool is_complement(expr* n) const { return is_app_of(n, m_fid, OP_SET_COMPLEMENT); }
     bool is_as_array(expr * n) const { return is_app_of(n, m_fid, OP_AS_ARRAY); }
+    bool is_choice(expr* n) const { return is_app_of(n, m_fid, OP_CHOICE); }
     bool is_as_array(expr * n, func_decl*& f) const { return is_as_array(n) && (f = get_as_array_func_decl(n), true); }
-    bool is_set_has_size(expr* e) const { return is_app_of(e, m_fid, OP_SET_HAS_SIZE); }
-    bool is_set_card(expr* e) const { return is_app_of(e, m_fid, OP_SET_CARD); }
     bool is_select(func_decl* f) const { return is_decl_of(f, m_fid, OP_SELECT); }
     bool is_store(func_decl* f) const { return is_decl_of(f, m_fid, OP_STORE); }
     bool is_const(func_decl* f) const { return is_decl_of(f, m_fid, OP_CONST_ARRAY); }
@@ -170,8 +178,7 @@ public:
     bool is_union(func_decl* f) const { return is_decl_of(f, m_fid, OP_SET_UNION); }
     bool is_intersect(func_decl* f) const { return is_decl_of(f, m_fid, OP_SET_INTERSECT); }
     bool is_as_array(func_decl* f) const { return is_decl_of(f, m_fid, OP_AS_ARRAY); }
-    bool is_set_has_size(func_decl* f) const { return is_decl_of(f, m_fid, OP_SET_HAS_SIZE); }
-    bool is_set_card(func_decl* f) const { return is_decl_of(f, m_fid, OP_SET_CARD); }
+    bool is_choice(func_decl* f) const { return is_decl_of(f, m_fid, OP_CHOICE); }
     bool is_default(func_decl* f) const { return is_decl_of(f, m_fid, OP_ARRAY_DEFAULT); }
     bool is_default(expr* n) const { return is_app_of(n, m_fid, OP_ARRAY_DEFAULT); }
     bool is_subset(expr const* n) const { return is_app_of(n, m_fid, OP_SET_SUBSET); }
@@ -201,7 +208,9 @@ public:
     }
 
 
+    START_DISABLE_EXTRA_SEMI_WARNING;
     MATCH_BINARY(is_subset);
+    END_DISABLE_WARNING;
 };
 
 class array_util : public array_recognizers {
@@ -231,6 +240,11 @@ public:
     app * mk_select(expr* a, expr* i) const {
         expr* args[2] = { a, i };
         return mk_select(2, args);
+    }
+
+    app* mk_select(expr* a, expr* i, expr* j) const {
+        expr* args[3] = { a, i, j };
+        return mk_select(3, args);
     }
 
     app * mk_select(unsigned num_args, expr * const * args) const {
@@ -290,14 +304,6 @@ public:
         return m_manager.mk_app(m_fid, OP_SET_UNION, s1, s2);
     }
 
-    app* mk_has_size(expr* set, expr* n) {
-        return m_manager.mk_app(m_fid, OP_SET_HAS_SIZE, set, n);
-    }
-
-    app* mk_card(expr* set) {
-        return m_manager.mk_app(m_fid, OP_SET_CARD, set);
-    }
-
     func_decl * mk_array_ext(sort* domain, unsigned i);
 
     sort * mk_array_sort(sort* dom, sort* range) { return mk_array_sort(1, &dom, range); }
@@ -311,6 +317,10 @@ public:
         return m_manager.mk_app(m_fid, OP_AS_ARRAY, 1, &param, 0, nullptr, nullptr);
     }
 
+    app* mk_choice(expr* p) const {
+        return m_manager.mk_app(m_fid, OP_CHOICE, p);
+    }
+
     sort* get_array_range_rec(sort* s) {
         while (is_array(s)) {
             s = get_array_range(s);
@@ -319,6 +329,4 @@ public:
     }
 
 };
-
-
 

@@ -57,6 +57,9 @@ void arith_rewriter::get_param_descrs(param_descrs & r) {
 }
 
 br_status arith_rewriter::mk_app_core(func_decl * f, unsigned num_args, expr * const * args, expr_ref & result) {
+    if (m_util.is_complex(f->get_range()) ||
+        f->get_decl_kind() == OP_REAL_PART || f->get_decl_kind() == OP_IMAG_PART)
+        return mk_complex_app(f, num_args, args, result);
     br_status st = BR_FAILED;
     SASSERT(f->get_family_id() == get_fid());
     switch (f->get_decl_kind()) {
@@ -97,7 +100,7 @@ br_status arith_rewriter::mk_app_core(func_decl * f, unsigned num_args, expr * c
     case OP_ARITH_LSHR: SASSERT(num_args == 2);  st = mk_lshr_core(f->get_parameter(0).get_int(), args[0], args[1], result); break;
     default: st = BR_FAILED; break;
     }
-    CTRACE("arith_rewriter", st != BR_FAILED, tout << st << ": " << mk_pp(f, m);
+    CTRACE(arith_rewriter, st != BR_FAILED, tout << st << ": " << mk_pp(f, m);
            for (unsigned i = 0; i < num_args; ++i) tout << mk_pp(args[i], m) << " ";
            tout << "\n==>\n" << mk_pp(result.get(), m) << "\n";
            if (is_app(result)) tout << "args: " << to_app(result)->get_num_args() << "\n";
@@ -105,12 +108,77 @@ br_status arith_rewriter::mk_app_core(func_decl * f, unsigned num_args, expr * c
     return st;
 }
 
+br_status arith_rewriter::mk_complex_app(func_decl* f, unsigned n, expr* const* args, expr_ref& result) {
+    auto part = [&](expr* z, bool imaginary) -> expr_ref {
+        if (m_util.is_real(z))
+            return expr_ref(imaginary ? m_util.mk_real(0) : z, m);
+        if (m_util.is_complex_constructor(z))
+            return expr_ref(to_app(z)->get_arg(imaginary ? 1 : 0), m);
+        return expr_ref(imaginary ? m_util.mk_imag_part(z) : m_util.mk_real_part(z), m);
+    };
+    decl_kind k = f->get_decl_kind();
+    if (k == OP_COMPLEX)
+        return BR_FAILED;
+    if (k == OP_REAL_PART || k == OP_IMAG_PART) {
+        bool im = k == OP_IMAG_PART;
+        if (m_util.is_complex_constructor(args[0])) {
+            result = to_app(args[0])->get_arg(im ? 1 : 0);
+            return BR_DONE;
+        }
+        if (m.is_ite(args[0])) {
+            app* t = to_app(args[0]);
+            expr_ref x = part(t->get_arg(1), im);
+            expr_ref y = part(t->get_arg(2), im);
+            result = m.mk_ite(t->get_arg(0), x, y);
+            return BR_REWRITE_FULL;
+        }
+        return BR_FAILED;
+    }
+    if (n == 0)
+        return BR_FAILED;
+    expr_ref re = part(args[0], false);
+    expr_ref im = part(args[0], true);
+    if (k == OP_UMINUS) {
+        re = m_util.mk_uminus(re);
+        im = m_util.mk_uminus(im);
+    }
+    else {
+        for (unsigned i = 1; i < n; ++i) {
+            expr_ref x = part(args[i], false);
+            expr_ref y = part(args[i], true);
+            if (k == OP_ADD || k == OP_SUB) {
+                re = k == OP_ADD ? m_util.mk_add(re, x) : m_util.mk_sub(re, x);
+                im = k == OP_ADD ? m_util.mk_add(im, y) : m_util.mk_sub(im, y);
+            }
+            else if (k == OP_MUL || k == OP_DIV) {
+                expr_ref rx(m_util.mk_mul(re, x), m);
+                expr_ref iy(m_util.mk_mul(im, y), m);
+                expr_ref ry(m_util.mk_mul(re, y), m);
+                expr_ref ix(m_util.mk_mul(im, x), m);
+                re = k == OP_MUL ? m_util.mk_sub(rx, iy) : m_util.mk_add(rx, iy);
+                im = k == OP_MUL ? m_util.mk_add(ry, ix) : m_util.mk_sub(ix, ry);
+                if (k == OP_DIV) {
+                    expr_ref xx(m_util.mk_mul(x, x), m);
+                    expr_ref yy(m_util.mk_mul(y, y), m);
+                    expr_ref den(m_util.mk_add(xx, yy), m);
+                    re = m_util.mk_div(re, den);
+                    im = m_util.mk_div(im, den);
+                }
+            }
+            else
+                return BR_FAILED;
+        }
+    }
+    result = m_util.mk_complex(re, im);
+    return BR_REWRITE_FULL;
+}
+
 void arith_rewriter::get_coeffs_gcd(expr * t, numeral & g, bool & first, unsigned & num_consts) {
     unsigned sz;
     expr * const * ms = get_monomials(t, sz);
     SASSERT(sz >= 1);
     numeral a;
-    for (unsigned i = 0; i < sz; i++) {
+    for (unsigned i = 0; i < sz; ++i) {
         expr * arg = ms[i];
         if (is_numeral(arg, a)) {
             if (!a.is_zero())
@@ -139,7 +207,7 @@ bool arith_rewriter::div_polynomial(expr * t, numeral const & g, const_treatment
     expr * const * ms = get_monomials(t, sz);
     expr_ref_buffer new_args(m);
     numeral a;
-    for (unsigned i = 0; i < sz; i++) {
+    for (unsigned i = 0; i < sz; ++i) {
         expr * arg = ms[i];
         if (is_numeral(arg, a)) {
             a /= g;
@@ -272,8 +340,7 @@ bool arith_rewriter::is_non_negative(expr* e) {
         return true;
     if (!m_util.is_mul(e)) 
         return false;
-    expr_mark mark;
-    ptr_buffer<expr> args;
+    ptr_buffer<expr> args, factors;
     flat_mul(e, args);
     bool sign = false;
     for (expr* arg : args) {
@@ -281,21 +348,61 @@ bool arith_rewriter::is_non_negative(expr* e) {
             continue;
         if (is_power_of_positive(arg))
             continue;
-        if (seq().str.is_length(e))
+        if (seq().str.is_length(arg))
             continue;
         if (m_util.is_numeral(arg, r)) {
             if (r.is_neg()) 
                 sign = !sign;
             continue;
         }
-        mark.mark(arg, !mark.is_marked(arg));
+        factors.push_back(arg);
     }
     if (sign)
         return false;
-    for (expr* arg : args) 
-        if (mark.is_marked(arg)) 
-            return false;
-    return true;
+
+    // factors that occur an odd number of times, found by sorting instead of
+    // an expr_mark: a fresh mark is zero-filled up to the largest id it sees,
+    // which made this check cost time proportional to the size of the ast table
+    // for every product in every inequality.
+    std::sort(factors.begin(), factors.end(), [](expr* a, expr* b) { return a->get_id() < b->get_id(); });
+    ptr_buffer<expr> odd_args;
+    for (unsigned i = 0; i < factors.size(); ) {
+        unsigned j = i;
+        while (j < factors.size() && factors[j] == factors[i]) 
+            ++j;
+        if ((j - i) % 2 == 1)
+            odd_args.push_back(factors[i]);
+        i = j;
+    }
+    if (odd_args.empty())
+        return true;
+
+    // For integer products, check if unpaired factors form consecutive pairs.
+    // x * (x + 1) >= 0 for all integers since no integer lies strictly between -1 and 0.
+    if (m_util.is_int(e)) {
+        if (odd_args.size() == 2) {
+            auto is_succ = [&](expr* a, expr* b) {
+                if (!m_util.is_add(b))
+                    return false;
+                app* add = to_app(b);
+                rational offset(0);
+                unsigned num_a = 0;
+                for (expr* arg : *add) {
+                    rational c;
+                    if (m_util.is_numeral(arg, c))
+                        offset += c;
+                    else if (arg == a)
+                        ++num_a;
+                    else
+                        return false;
+                }
+                return num_a == 1 && (offset.is_one() || offset.is_minus_one());
+            };
+            if (is_succ(odd_args[0], odd_args[1]) || is_succ(odd_args[1], odd_args[0]))
+                return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -312,6 +419,11 @@ br_status arith_rewriter::is_separated(expr* arg1, expr* arg2, op_kind kind, exp
     bool has_bound = true;
     if (!m_util.is_numeral(arg2, r2))
         return BR_FAILED;
+
+    if (kind == GE && r2.is_zero() && m_util.is_mul(arg1) && is_non_negative(arg1)) {
+        result = m.mk_true();
+        return BR_DONE;
+    }
     auto update_bound = [&](expr* arg) {
         if (m_util.is_numeral(arg, r1)) {
             bound += r1;
@@ -406,7 +518,7 @@ bool arith_rewriter::elim_to_real_mon(expr * monomial, expr_ref & new_monomial) 
         expr_ref_buffer new_vars(m);
         expr_ref new_var(m);
         unsigned num = to_app(monomial)->get_num_args();
-        for (unsigned i = 0; i < num; i++) {
+        for (unsigned i = 0; i < num; ++i) {
             if (!elim_to_real_var(to_app(monomial)->get_arg(i), new_var))
                 return false;
             new_vars.push_back(new_var);
@@ -453,7 +565,7 @@ bool arith_rewriter::is_reduce_power_target(expr * arg, bool is_eq) {
         sz = 1;
         args = &arg;
     }
-    for (unsigned i = 0; i < sz; i++) {
+    for (unsigned i = 0; i < sz; ++i) {
         expr * arg = args[i];
         expr* arg0, *arg1;
         if (m_util.is_power(arg, arg0, arg1)) {
@@ -480,7 +592,7 @@ expr * arith_rewriter::reduce_power(expr * arg, bool is_eq) {
     }
     ptr_buffer<expr> new_args;
     rational k;
-    for (unsigned i = 0; i < sz; i++) {
+    for (unsigned i = 0; i < sz; ++i) {
         expr * arg = args[i];
         expr * arg0, *arg1;
         if (m_util.is_power(arg, arg0, arg1) && m_util.is_numeral(arg1, k) && k.is_int() &&
@@ -591,7 +703,7 @@ void arith_rewriter::get_nl_muls(expr* t, ptr_buffer<expr>& muls) {
         muls.push_back(t);    
 }
 
-expr* arith_rewriter::find_nl_factor(expr* t) {
+std::optional<expr*> arith_rewriter::find_nl_factor(expr* t) {
     ptr_buffer<expr> sum, muls;
     sum.push_back(t);
 
@@ -608,30 +720,41 @@ expr* arith_rewriter::find_nl_factor(expr* t) {
                 if (is_add_factor(m, t))
                     return m;
             }
-            return nullptr;
+            return std::nullopt;
         }
     }
-    return nullptr;
+    return std::nullopt;
 }
 
 br_status arith_rewriter::factor_le_ge_eq(expr * arg1, expr * arg2, op_kind kind, expr_ref & result) {
     
     if (is_zero(arg2)) {
-        expr* f = find_nl_factor(arg1);
-        if (!f)
+        auto opt_f = find_nl_factor(arg1);
+        if (!opt_f)
             return BR_FAILED;
+        expr* f = *opt_f;
         expr_ref f2 = remove_factor(f, arg1);
         expr* z = m_util.mk_numeral(rational(0), m_util.is_int(arg1));
-        result = m.mk_or(m_util.mk_eq(f, z), m_util.mk_eq(f2, z));
+        {
+            auto _seq665_0 = m_util.mk_eq(f, z);
+            auto _seq665_1 = m_util.mk_eq(f2, z);
+            result = m.mk_or(_seq665_0, _seq665_1);
+        }
         switch (kind) {
         case EQ: 
             break;
-        case GE:
-            result = m.mk_or(m.mk_iff(m_util.mk_ge(f, z), m_util.mk_ge(f2, z)), result);
+        case GE: {
+            auto _seq0 = m_util.mk_ge(f, z);
+            auto _seq1 = m_util.mk_ge(f2, z);
+            result = m.mk_or(m.mk_iff(_seq0, _seq1), result);
             break;
-        case LE:
-            result = m.mk_or(m.mk_not(m.mk_iff(m_util.mk_ge(f, z), m_util.mk_ge(f2, z))), result);
-            break;            
+        }
+        case LE: {
+            auto _seq0 = m_util.mk_ge(f, z);
+            auto _seq1 = m_util.mk_ge(f2, z);
+            result = m.mk_or(m.mk_not(m.mk_iff(_seq0, _seq1)), result);
+            break;
+        }
         }
         return BR_REWRITE3;                    
     }
@@ -646,7 +769,7 @@ br_status arith_rewriter::mk_le_ge_eq_core(expr * arg1, expr * arg2, op_kind kin
         (is_zero(arg2) && is_reduce_power_target(arg1, kind == EQ)))
         return reduce_power(arg1, arg2, kind, result);
     br_status st = cancel_monomials(arg1, arg2, m_arith_ineq_lhs || m_arith_lhs, new_arg1, new_arg2);
-    TRACE("mk_le_bug", tout << "st: " << st << " " << new_arg1 << " " << new_arg2 << "\n";);
+    TRACE(mk_le_bug, tout << "st: " << st << " " << new_arg1 << " " << new_arg2 << "\n";);
     if (st != BR_FAILED) {
         arg1 = new_arg1;
         arg2 = new_arg2;
@@ -656,7 +779,7 @@ br_status arith_rewriter::mk_le_ge_eq_core(expr * arg1, expr * arg2, op_kind kin
     if (m_elim_to_real && elim_to_real(arg1, arg2, new_new_arg1, new_new_arg2)) {
         arg1 = new_new_arg1;
         arg2 = new_new_arg2;
-        CTRACE("elim_to_real", m_elim_to_real, tout << "after_elim_to_real\n" << mk_ismt2_pp(arg1, m) << "\n" << mk_ismt2_pp(arg2, m) << "\n";);
+        CTRACE(elim_to_real, m_elim_to_real, tout << "after_elim_to_real\n" << mk_ismt2_pp(arg1, m) << "\n" << mk_ismt2_pp(arg2, m) << "\n";);
         if (st == BR_FAILED)
             st = BR_DONE;
     }
@@ -697,10 +820,10 @@ br_status arith_rewriter::mk_le_ge_eq_core(expr * arg1, expr * arg2, op_kind kin
         numeral g;
         unsigned num_consts = 0;
         get_coeffs_gcd(arg1, g, first, num_consts);
-        TRACE("arith_rewriter_gcd", tout << "[step1] g: " << g << ", num_consts: " << num_consts << "\n";);
+        TRACE(arith_rewriter_gcd, tout << "[step1] g: " << g << ", num_consts: " << num_consts << "\n";);
         if ((first || !g.is_one()) && num_consts <= 1)
             get_coeffs_gcd(arg2, g, first, num_consts);
-        TRACE("arith_rewriter_gcd", tout << "[step2] g: " << g << ", num_consts: " << num_consts << "\n";);
+        TRACE(arith_rewriter_gcd, tout << "[step2] g: " << g << ", num_consts: " << num_consts << "\n";);
         g = abs(g);
         if (!first && !g.is_one() && num_consts <= 1) {
             bool is_sat = div_polynomial(arg1, g, (kind == LE ? CT_CEIL : (kind == GE ? CT_FLOOR : CT_FALSE)), new_arg1);
@@ -720,24 +843,36 @@ br_status arith_rewriter::mk_le_ge_eq_core(expr * arg1, expr * arg2, op_kind kin
     }
     expr* c = nullptr, *t = nullptr, *e = nullptr;
     if (m.is_ite(arg1, c, t, e) && is_numeral(t, a1) && is_numeral(arg2, a2)) {
+        expr_ref a(m.mk_not(c), m);
         switch (kind) {
-        case LE: result = a1 <= a2 ? m.mk_or(c, m_util.mk_le(e, arg2)) : m.mk_and(m.mk_not(c), m_util.mk_le(e, arg2)); return BR_REWRITE2;
-        case GE: result = a1 >= a2 ? m.mk_or(c, m_util.mk_ge(e, arg2)) : m.mk_and(m.mk_not(c), m_util.mk_ge(e, arg2)); return BR_REWRITE2;
-        case EQ: result = a1 == a2 ? m.mk_or(c, m.mk_eq(e, arg2))    : m.mk_and(m.mk_not(c), m_util.mk_eq(e, arg2)); return BR_REWRITE2;
+        case LE: result = a1 <= a2 ? m.mk_or(c, m_util.mk_le(e, arg2)) : m.mk_and(a, m_util.mk_le(e, arg2)); return BR_REWRITE2;
+        case GE: result = a1 >= a2 ? m.mk_or(c, m_util.mk_ge(e, arg2)) : m.mk_and(a, m_util.mk_ge(e, arg2)); return BR_REWRITE2;
+        case EQ: result = a1 == a2 ? m.mk_or(c, m.mk_eq(e, arg2))    : m.mk_and(a, m_util.mk_eq(e, arg2)); return BR_REWRITE2;
         }
     }
     if (m.is_ite(arg1, c, t, e) && is_numeral(e, a1) && is_numeral(arg2, a2)) {
+        expr_ref a(m.mk_not(c), m);
         switch (kind) {
-        case LE: result = a1 <= a2 ? m.mk_or(m.mk_not(c), m_util.mk_le(t, arg2)) : m.mk_and(c, m_util.mk_le(t, arg2)); return BR_REWRITE2;
-        case GE: result = a1 >= a2 ? m.mk_or(m.mk_not(c), m_util.mk_ge(t, arg2)) : m.mk_and(c, m_util.mk_ge(t, arg2)); return BR_REWRITE2;
-        case EQ: result = a1 == a2 ? m.mk_or(m.mk_not(c), m.mk_eq(t, arg2))    : m.mk_and(c, m_util.mk_eq(t, arg2)); return BR_REWRITE2;
+        case LE: result = a1 <= a2 ? m.mk_or(a, m_util.mk_le(t, arg2)) : m.mk_and(c, m_util.mk_le(t, arg2)); return BR_REWRITE2;
+        case GE: result = a1 >= a2 ? m.mk_or(a, m_util.mk_ge(t, arg2)) : m.mk_and(c, m_util.mk_ge(t, arg2)); return BR_REWRITE2;
+        case EQ: result = a1 == a2 ? m.mk_or(a, m.mk_eq(t, arg2))    : m.mk_and(c, m_util.mk_eq(t, arg2)); return BR_REWRITE2;
         }
     }
     if (m.is_ite(arg1, c, t, e) && arg1->get_ref_count() == 1) {
         switch (kind) {
-        case LE: result = m.mk_ite(c, m_util.mk_le(t, arg2), m_util.mk_le(e, arg2)); return BR_REWRITE2;
-        case GE: result = m.mk_ite(c, m_util.mk_ge(t, arg2), m_util.mk_ge(e, arg2)); return BR_REWRITE2;
-        case EQ: result = m.mk_ite(c, m.mk_eq(t, arg2), m.mk_eq(e, arg2)); return BR_REWRITE2;
+        case LE:
+        {
+            auto a = m_util.mk_le(t, arg2);
+            result = m.mk_ite(c, a, m_util.mk_le(e, arg2)); return BR_REWRITE2;
+        }
+        case GE: {
+            auto a = m_util.mk_ge(t, arg2);
+            result = m.mk_ite(c, a, m_util.mk_ge(e, arg2)); return BR_REWRITE2;
+        }
+        case EQ:{
+            auto a = m.mk_eq(t, arg2);
+            result = m.mk_ite(c, a, m.mk_eq(e, arg2)); return BR_REWRITE2;
+        }
         }
     }
     if (m_util.is_to_int(arg2) && is_numeral(arg1)) {        
@@ -805,9 +940,23 @@ bool arith_rewriter::is_arith_term(expr * n) const {
 }
 
 br_status arith_rewriter::mk_eq_core(expr * arg1, expr * arg2, expr_ref & result) {
+    if (m_util.is_complex(arg1)) {
+        expr_ref r1(m_util.mk_real_part(arg1), m);
+        expr_ref r2(m_util.mk_real_part(arg2), m);
+        expr_ref i1(m_util.mk_imag_part(arg1), m);
+        expr_ref i2(m_util.mk_imag_part(arg2), m);
+        expr_ref re(m.mk_eq(r1, r2), m);
+        expr_ref im(m.mk_eq(i1, i2), m);
+        result = m.mk_and(re, im);
+        return BR_REWRITE_FULL;
+    }
     br_status st = BR_FAILED;
     if (m_eq2ineq) {
-        result = m.mk_and(m_util.mk_le(arg1, arg2), m_util.mk_ge(arg1, arg2));
+        {
+            auto _seq862_0 = m_util.mk_le(arg1, arg2);
+            auto _seq862_1 = m_util.mk_ge(arg1, arg2);
+            result = m.mk_and(_seq862_0, _seq862_1);
+        }
         st = BR_REWRITE2;
     }
     else if (m_arith_lhs || is_arith_term(arg1) || is_arith_term(arg2)) {
@@ -856,8 +1005,11 @@ bool arith_rewriter::mk_eq_mod(expr* arg1, expr* arg2, expr_ref& result) {
         rational g = gcd(p, k, a, b);
         if (g == 1) {
             expr_ref nb(m_util.mk_numeral(b, true), m);
-            result = m.mk_eq(m_util.mk_mod(u, y),
-                             m_util.mk_mod(m_util.mk_mul(nb, arg2), y));
+            {
+                auto _seq911_0 = m_util.mk_mod(u, y);
+                auto _seq911_1 = m_util.mk_mod(m_util.mk_mul(nb, arg2), y);
+                result = m.mk_eq(_seq911_0, _seq911_1);
+            }
             return true;            
         }
     }
@@ -929,7 +1081,7 @@ bool arith_rewriter::is_anum_simp_target(unsigned num_args, expr * const * args)
         return false;
     unsigned num_irrat = 0;
     unsigned num_rat   = 0;
-    for (unsigned i = 0; i < num_args; i++) {
+    for (unsigned i = 0; i < num_args; ++i) {
         if (m_util.is_numeral(args[i])) {
             num_rat++;
             if (num_irrat > 0)
@@ -1174,13 +1326,20 @@ br_status arith_rewriter::mk_div_core(expr * arg1, expr * arg2, expr_ref & resul
             v2 = rational(1);
             d  = arg2;
         }
-        TRACE("div_bug", tout << "v1: " << v1 << ", v2: " << v2 << "\n";);
+        TRACE(div_bug, tout << "v1: " << v1 << ", v2: " << v2 << "\n";);
         if (!v1.is_one() || !v2.is_one()) {
             v1 /= v2;
-            result = m_util.mk_mul(m_util.mk_numeral(v1, false),
-                                   m_util.mk_div(b, d));
+            {
+                auto _seq1232_0 = m_util.mk_numeral(v1, false);
+                auto _seq1232_1 = m_util.mk_div(b, d);
+                result = m_util.mk_mul(_seq1232_0, _seq1232_1);
+            }
             expr_ref z(m_util.mk_real(0), m);
-            result = m.mk_ite(m.mk_eq(d, z), m_util.mk_div(arg1, z), result);
+            {
+                auto _seq1235_0 = m.mk_eq(d, z);
+                auto _seq1235_1 = m_util.mk_div(arg1, z);
+                result = m.mk_ite(_seq1235_0, _seq1235_1, result);
+            }
             return BR_REWRITE2;
         }
     }
@@ -1190,7 +1349,11 @@ br_status arith_rewriter::mk_div_core(expr * arg1, expr * arg2, expr_ref & resul
 }
 
 br_status arith_rewriter::mk_idivides(unsigned k, expr * arg, expr_ref & result) {
-    result = m.mk_eq(m_util.mk_mod(arg, m_util.mk_int(k)), m_util.mk_int(0));
+    {
+        auto _seq1245_0 = m_util.mk_mod(arg, m_util.mk_int(k));
+        auto _seq1245_1 = m_util.mk_int(0);
+        result = m.mk_eq(_seq1245_0, _seq1245_1);
+    }
     return BR_REWRITE2;
 }
 
@@ -1215,9 +1378,14 @@ br_status arith_rewriter::mk_idiv_core(expr * arg1, expr * arg2, expr_ref & resu
     if (is_num2 && v2.is_zero()) { 
         return BR_FAILED; 
     } 
-    if (arg1 == arg2) { 
-        expr_ref zero(m_util.mk_int(0), m); 
-        result = m.mk_ite(m.mk_eq(arg1, zero), m_util.mk_idiv(zero, zero), m_util.mk_int(1)); 
+    if (arg1 == arg2) {
+        expr_ref zero(m_util.mk_int(0), m);
+        {
+            auto _seq1272_0 = m.mk_eq(arg1, zero);
+            auto _seq1272_1 = m_util.mk_idiv(zero, zero);
+            auto _seq1272_2 = m_util.mk_int(1);
+            result = m.mk_ite(_seq1272_0, _seq1272_1, _seq1272_2);
+        }
         return BR_REWRITE3; 
     } 
     if (is_num2 && v2.is_pos() && m_util.is_add(arg1)) { 
@@ -1238,13 +1406,17 @@ br_status arith_rewriter::mk_idiv_core(expr * arg1, expr * arg2, expr_ref & resu
         if (change) {
             result = m_util.mk_idiv(m.mk_app(to_app(arg1)->get_decl(), args.size(), args.data()), arg2);
             result = m_util.mk_add(m_util.mk_numeral(add, true), result);
-            TRACE("div_bug", tout << "mk_div result: " << result << "\n";);
+            TRACE(div_bug, tout << "mk_div result: " << result << "\n";);
             return BR_REWRITE3;
         }
     } 
-    if (get_divides(arg1, arg2, result)) { 
-        expr_ref zero(m_util.mk_int(0), m); 
-        result = m.mk_ite(m.mk_eq(zero, arg2), m_util.mk_idiv(arg1, zero), result);
+    if (get_divides(arg1, arg2, result)) {
+        expr_ref zero(m_util.mk_int(0), m);
+        {
+            auto _seq1299_0 = m.mk_eq(zero, arg2);
+            auto _seq1299_1 = m_util.mk_idiv(arg1, zero);
+            result = m.mk_ite(_seq1299_0, _seq1299_1, result);
+        }
         return BR_REWRITE_FULL; 
     }
 #if 0
@@ -1314,13 +1486,13 @@ expr_ref arith_rewriter::remove_divisor(expr* arg, expr* num, expr* den) {
     num = args1.empty() ? m_util.mk_int(1) : m_util.mk_mul(args1.size(), args1.data()); 
     den = args2.empty() ? m_util.mk_int(1) : m_util.mk_mul(args2.size(), args2.data()); 
     expr_ref d(m_util.mk_idiv(num, den), m);
-    expr_ref nd(m_util.mk_idiv(m_util.mk_uminus(num), m_util.mk_uminus(den)), m);
-    return expr_ref(m.mk_ite(m.mk_eq(zero, arg), 
-                               m_util.mk_idiv(zero, zero), 
-                               m.mk_ite(m_util.mk_ge(arg, zero), 
-                                          d,
-                                          nd)),
-                    m);
+    auto _sequm0 = m_util.mk_uminus(num);
+    auto _sequm1 = m_util.mk_uminus(den);
+    expr_ref nd(m_util.mk_idiv(_sequm0, _sequm1), m);
+    auto _seqi0 = m.mk_eq(zero, arg);
+    auto _seqi1 = m_util.mk_idiv(zero, zero);
+    auto _seqi2 = m.mk_ite(m_util.mk_ge(arg, zero), d, nd);
+    return expr_ref(m.mk_ite(_seqi0, _seqi1, _seqi2), m);
 } 
  
 void arith_rewriter::flat_mul(expr* e, ptr_buffer<expr>& args) { 
@@ -1372,20 +1544,38 @@ br_status arith_rewriter::mk_mod_core(expr * arg1, expr * arg2, expr_ref & resul
 
     if (arg1 == arg2 && !is_num2) {
         expr_ref zero(m_util.mk_int(0), m);
-        result = m.mk_ite(m.mk_eq(arg2, zero), m_util.mk_mod(zero, zero), zero);
+        {
+            auto _seq1427_0 = m.mk_eq(arg2, zero);
+            auto _seq1427_1 = m_util.mk_mod(zero, zero);
+            result = m.mk_ite(_seq1427_0, _seq1427_1, zero);
+        }
         return BR_DONE;
     }
 
     // mod is idempotent on non-zero modulus.
     expr* t1, *t2;
-    if (m_util.is_mod(arg1, t1, t2) && t2 == arg2 && is_num2 && is_int && !v2.is_zero()) {
-        result = arg1;
-        return BR_DONE;
+    if (m_util.is_mod(arg1, t1, t2) && t2 == arg2) {
+        if (is_num2 && is_int && !v2.is_zero()) {
+            result = arg1;
+            return BR_DONE;
+        }
+        // Symbolic modulus: mod (mod x y) y → ite(y = 0, mod (mod x 0) 0, mod x y).
+        // Valid for all y: for y != 0, idempotency holds, returning mod x y (arg1);
+        // for y = 0, both sides evaluate to mod0(mod0(x,0),0).
+        if (!is_num2 && m_util.is_int(arg2)) {
+            expr_ref zero(m_util.mk_int(0), m);
+            {
+                auto _seq1443_0 = m.mk_eq(arg2, zero);
+                auto _seq1443_1 = m_util.mk_mod(m_util.mk_mod(t1, zero), zero);
+                result = m.mk_ite(_seq1443_0, _seq1443_1, arg1);
+            }
+            return BR_REWRITE2;
+        }
     }
 
     // propagate mod inside only if there is something to reduce.
     if (is_num2 && is_int && v2.is_pos() && (is_add(arg1) || is_mul(arg1))) {
-        TRACE("mod_bug", tout << "mk_mod:\n" << mk_ismt2_pp(arg1, m) << "\n" << mk_ismt2_pp(arg2, m) << "\n";);
+        TRACE(mod_bug, tout << "mk_mod:\n" << mk_ismt2_pp(arg1, m) << "\n" << mk_ismt2_pp(arg2, m) << "\n";);
         expr_ref_buffer args(m);
         bool change = false;
         for (expr* arg : *to_app(arg1)) {
@@ -1408,15 +1598,70 @@ br_status arith_rewriter::mk_mod_core(expr * arg1, expr * arg2, expr_ref & resul
         }
         if (change) {
             result = m_util.mk_mod(m.mk_app(to_app(arg1)->get_decl(), args.size(), args.data()), arg2);
-            TRACE("mod_bug", tout << "mk_mod result: " << mk_ismt2_pp(result, m) << "\n";);
+            TRACE(mod_bug, tout << "mk_mod result: " << mk_ismt2_pp(result, m) << "\n";);
             return BR_REWRITE3;
         }
     }
 
-    expr* x, *y;
+    // For symbolic modulus: remove summands that are multiples of the modulus.
+    // mod (a + k*y) y = mod a y  (valid for all y, including y=0 since k*0 = 0).
+    if (!is_num2 && m_util.is_int(arg2) && is_add(arg1)) {
+        expr_ref_buffer args(m);
+        bool change = false;
+        for (expr* arg : *to_app(arg1)) {
+            if (arg == arg2) {
+                // summand equals the modulus y: drop it (y ≡ 0 mod y for all y)
+                change = true;
+            }
+            else if (m_util.is_mul(arg, t1, t2)) {
+                rational coeff;
+                if ((m_util.is_numeral(t1, coeff) && t2 == arg2) ||
+                    (m_util.is_numeral(t2, coeff) && t1 == arg2)) {
+                    // summand is k*y for some numeral k: drop it
+                    change = true;
+                }
+                else {
+                    args.push_back(arg);
+                }
+            }
+            else {
+                args.push_back(arg);
+            }
+        }
+        if (change) {
+            expr_ref new_arg1(m);
+            // When all summands are multiples of the modulus, the sum reduces to 0.
+            // mod(0, y) will be further simplified by subsequent rewrites.
+            if (args.empty())
+                new_arg1 = m_util.mk_int(0);
+            else
+                new_arg1 = m_util.mk_add(args.size(), args.data());
+            result = m_util.mk_mod(new_arg1, arg2);
+            return BR_REWRITE3;
+        }
+    }
+
+    expr* x = nullptr, * y = nullptr, * z = nullptr;
     if (is_num2 && v2.is_pos() && m_util.is_mul(arg1, x, y) && m_util.is_numeral(x, v1, is_int) && v1 > 0 && divides(v1, v2)) {
-        result = m_util.mk_mul(m_util.mk_int(v1), m_util.mk_mod(y, m_util.mk_int(v2/v1)));        
+        {
+            auto _seq1520_0 = m_util.mk_int(v1);
+            auto _seq1520_1 = m_util.mk_mod(y, m_util.mk_int(v2 / v1));
+            result = m_util.mk_mul(_seq1520_0, _seq1520_1);
+        }
         return BR_REWRITE1;
+    }
+
+    // mod x -y = mod x y
+    if (m_util.is_mul(arg2, t1, t2) && m_util.is_numeral(t1, v1) && v1 == -1) {
+        result = m_util.mk_mod(arg1, t2);
+        return BR_REWRITE1;
+    }
+
+    if (m.is_ite(arg2, x, y, z)) {
+        expr_ref mod1(m_util.mk_mod(arg1, y), m);
+        expr_ref mod2(m_util.mk_mod(arg1, z), m);
+        result = m.mk_ite(x, mod1, mod2);
+        return BR_REWRITE3;
     }
 
     return BR_FAILED;
@@ -1479,10 +1724,12 @@ br_status arith_rewriter::mk_rem_core(expr * arg1, expr * arg2, expr_ref & resul
     }
     else if (m_elim_rem) {
         expr * mod = m_util.mk_mod(arg1, arg2);
-        result = m.mk_ite(m_util.mk_ge(arg2, m_util.mk_numeral(rational(0), true)),
-                            mod,
-                            m_util.mk_uminus(mod));
-        TRACE("elim_rem", tout << "result: " << mk_ismt2_pp(result, m) << "\n";);
+        {
+            auto _seq1597_0 = m_util.mk_ge(arg2, m_util.mk_numeral(rational(0), true));
+            auto _seq1597_1 = m_util.mk_uminus(mod);
+            result = m.mk_ite(_seq1597_0, mod, _seq1597_1);
+        }
+        TRACE(elim_rem, tout << "result: " << mk_ismt2_pp(result, m) << "\n";);
         return BR_REWRITE3;
     }
     return BR_FAILED;
@@ -1524,8 +1771,11 @@ br_status arith_rewriter::mk_shl_core(unsigned sz, expr* arg1, expr* arg2, expr_
     if (is_num_y) {
         if (y >= sz) 
             result = m_util.mk_int(0);
-        else 
-            result = m_util.mk_mod(m_util.mk_mul(arg1, m_util.mk_int(rational::power_of_two(y.get_unsigned()))), m_util.mk_int(N));
+        else {
+            auto _seq1643_0 = m_util.mk_mul(arg1, m_util.mk_int(rational::power_of_two(y.get_unsigned())));
+            auto _seq1643_1 = m_util.mk_int(N);
+            result = m_util.mk_mod(_seq1643_0, _seq1643_1);
+        }
         return BR_REWRITE1;
     }
     if (is_num_x && x == 0) {
@@ -1639,7 +1889,7 @@ br_status arith_rewriter::mk_power_core(expr * arg1, expr * arg2, expr_ref & res
     bool is_num_y    = m_util.is_numeral(arg2, y);
     auto ensure_real = [&](expr* e) { return m_util.is_int(e) ? m_util.mk_to_real(e) : e;  };
 
-    TRACE("arith", tout << mk_bounded_pp(arg1, m) << " " << mk_bounded_pp(arg2, m) << "\n";);
+    TRACE(arith, tout << mk_bounded_pp(arg1, m) << " " << mk_bounded_pp(arg2, m) << "\n";);
     if (is_num_x && x.is_one()) {
         result = m_util.mk_numeral(x, false);
         return BR_DONE;
@@ -1687,33 +1937,45 @@ br_status arith_rewriter::mk_power_core(expr * arg1, expr * arg2, expr_ref & res
         // (^ (^ t y2) y) --> (^ t (* y2 y))  If y2 > 0 && y != 0 && y and y2 are integers
         rational y2;
         if (m_util.is_numeral(arg11, y2) && y2.is_int() && y2.is_pos()) {
-            result = m_util.mk_power(ensure_real(arg10), m_util.mk_numeral(y*y2, false));
+            expr_ref base(ensure_real(arg10), m);
+            result = m_util.mk_power(base, m_util.mk_numeral(y*y2, false));
             return BR_REWRITE2;
         }
     }
 
     if (is_num_y && y.is_minus_one()) {        
-        result = m_util.mk_div(m_util.mk_real(1), ensure_real(arg1));
-        result = m.mk_ite(m.mk_eq(arg1, m_util.mk_numeral(rational(0), m_util.is_int(arg1))),
-                            m_util.mk_real(0),
-                            result);        
+        expr_ref one(m_util.mk_real(1), m);
+        result = m_util.mk_div(one, ensure_real(arg1));
+        {
+            auto _seq1812_0 = m.mk_eq(arg1, m_util.mk_numeral(rational(0), m_util.is_int(arg1)));
+            auto _seq1812_1 = m_util.mk_real(0);
+            result = m.mk_ite(_seq1812_0, _seq1812_1, result);
+        }
         return BR_REWRITE2;
     }
 
     if (is_num_y && y.is_neg()) {
-        // (^ t -k) --> (^ (/ 1 t) k)
-        result = m_util.mk_power(m_util.mk_div(m_util.mk_numeral(rational(1), false), arg1),
-                                 m_util.mk_numeral(-y, false));
-        result = m.mk_ite(m.mk_eq(arg1, m_util.mk_numeral(rational(0), m_util.is_int(arg1))),
-                            m_util.mk_real(0),
-                            result);
+        {
+            auto _seq1820_0 = m_util.mk_div(m_util.mk_numeral(rational(1), false), arg1);
+            auto _seq1820_1 = m_util.mk_numeral(-y, false);
+            result = m_util.mk_power(_seq1820_0, _seq1820_1);
+        }
+        {
+            auto _seq1822_0 = m.mk_eq(arg1, m_util.mk_numeral(rational(0), m_util.is_int(arg1)));
+            auto _seq1822_1 = m_util.mk_real(0);
+            result = m.mk_ite(_seq1822_0, _seq1822_1, result);
+        }
         return BR_REWRITE3;
     }
 
     if (is_num_y && !y.is_int() && !numerator(y).is_one()) {
-        // (^ t (/ p q)) --> (^ (^ t (/ 1 q)) p)
-        result = m_util.mk_power(m_util.mk_power(ensure_real(arg1), m_util.mk_numeral(rational(1)/denominator(y), false)),
-                                 m_util.mk_numeral(numerator(y), false));
+        {
+            expr_ref lhs(ensure_real(arg1), m);
+            expr_ref rhs(m_util.mk_numeral(rational(1) / denominator(y), false), m);
+            auto _seq1830_0 = m_util.mk_power(lhs, rhs);
+            auto _seq1830_1 = m_util.mk_numeral(numerator(y), false);
+            result = m_util.mk_power(_seq1830_0, _seq1830_1);
+        }
         return BR_REWRITE3;
     }
 
@@ -1721,7 +1983,7 @@ br_status arith_rewriter::mk_power_core(expr * arg1, expr * arg2, expr_ref & res
         is_num_y && y.is_unsigned() && 1 < y.get_unsigned() && y.get_unsigned() <= m_max_degree) {
         ptr_buffer<expr> args;
         unsigned k = y.get_unsigned();
-        for (unsigned i = 0; i < k; i++) {
+        for (unsigned i = 0; i < k; ++i) {
             args.push_back(arg1);
         }
         result = ensure_real(m_util.mk_mul(args.size(), args.data()));
@@ -1804,6 +2066,10 @@ br_status arith_rewriter::mk_power_core(expr * arg1, expr * arg2, expr_ref & res
 br_status arith_rewriter::mk_to_int_core(expr * arg, expr_ref & result) {
     numeral a;
     expr* x = nullptr;
+    if (m_util.is_int(arg)) {
+        result = arg;
+        return BR_DONE;
+    }
     if (m_util.convert_int_numerals_to_real())
         return BR_FAILED;
 
@@ -1812,7 +2078,7 @@ br_status arith_rewriter::mk_to_int_core(expr * arg, expr_ref & result) {
         return BR_DONE;
     }
 
-    if (m_util.is_to_real(arg, x)) {
+    if (m_util.is_to_real(arg, x) && m_util.is_int(x)) {
         result = x;
         return BR_DONE;
     }
@@ -1860,6 +2126,10 @@ br_status arith_rewriter::mk_to_real_core(expr * arg, expr_ref & result) {
         result = m_util.mk_numeral(a, false);
         return BR_DONE;
     }
+    if (m_util.is_real(arg)) {
+        result = arg;
+        return BR_DONE;
+    }
     // push to_real over OP_ADD, OP_MUL
     if (m_push_to_real) {
         if (m_util.is_add(arg) || m_util.is_mul(arg)) {
@@ -1884,7 +2154,7 @@ br_status arith_rewriter::mk_is_int(expr * arg, expr_ref & result) {
         return BR_DONE;
     }
     
-    if (m_util.is_to_real(arg)) {
+    if (m_util.is_to_real(arg) && m_util.is_int(to_app(arg)->get_arg(0))) {
         result = m.mk_true();
         return BR_DONE;
     }
@@ -1922,7 +2192,11 @@ br_status arith_rewriter::mk_is_int(expr * arg, expr_ref & result) {
 }
 
 br_status arith_rewriter::mk_abs_core(expr * arg, expr_ref & result) {
-    result = m.mk_ite(m_util.mk_ge(arg, m_util.mk_numeral(rational(0), m_util.is_int(arg))), arg, m_util.mk_uminus(arg));
+    {
+        auto _seq2048_0 = m_util.mk_ge(arg, m_util.mk_numeral(rational(0), m_util.is_int(arg)));
+        auto _seq2048_1 = m_util.mk_uminus(arg);
+        result = m.mk_ite(_seq2048_0, arg, _seq2048_1);
+    }
     return BR_REWRITE2;
 }
 
@@ -1991,7 +2265,7 @@ bool arith_rewriter::is_pi_integer(expr * t) {
             a = c;
             b = d;
         }
-        TRACE("tan", tout << "is_pi_integer " << mk_ismt2_pp(t, m) << "\n";
+        TRACE(tan, tout << "is_pi_integer " << mk_ismt2_pp(t, m) << "\n";
               tout << "a: " << mk_ismt2_pp(a, m) << "\n";
               tout << "b: " << mk_ismt2_pp(b, m) << "\n";);
         return
@@ -2015,14 +2289,16 @@ bool arith_rewriter::is_pi_integer_offset(expr * t, expr * & m) {
 }
 
 app * arith_rewriter::mk_sqrt(rational const & k) {
-    return m_util.mk_power(m_util.mk_numeral(k, false), m_util.mk_numeral(rational(1, 2), false));
+    auto _seq2141_0 = m_util.mk_numeral(k, false);
+    auto _seq2141_1 = m_util.mk_numeral(rational(1, 2), false);
+    return m_util.mk_power(_seq2141_0, _seq2141_1);
 }
 
 // Return a constant representing sin(k * pi).
 // Return 0 if failed.
 expr * arith_rewriter::mk_sin_value(rational const & k) {
     rational k_prime = mod(floor(k), rational(2)) + k - floor(k);
-    TRACE("sine", tout << "k: " << k << ", k_prime: " << k_prime << "\n";);
+    TRACE(sine, tout << "k: " << k << ", k_prime: " << k_prime << "\n";);
     SASSERT(k_prime >= rational(0) && k_prime < rational(2));
     bool     neg = false;
     if (k_prime >= rational(1)) {
@@ -2050,21 +2326,25 @@ expr * arith_rewriter::mk_sin_value(rational const & k) {
         return neg ? m_util.mk_uminus(result) : result;
     }
     if (k_prime == rational(1, 3) || k_prime == rational(2, 3)) {
-        // sin(pi/3)   == sin(2/3 pi) ==   Sqrt(3)/2
-        // sin(4/3 pi) == sin(5/3 pi) == - Sqrt(3)/2
-        expr * result = m_util.mk_div(mk_sqrt(rational(3)), m_util.mk_numeral(rational(2), false));
+        auto _seq2178_0 = mk_sqrt(rational(3));
+        auto _seq2178_1 = m_util.mk_numeral(rational(2), false);
+        expr* result = m_util.mk_div(_seq2178_0, _seq2178_1);
         return neg ? m_util.mk_uminus(result) : result;
     }
     if (k_prime == rational(1, 12) || k_prime == rational(11, 12)) {
-        // sin(1/12 pi)  == sin(11/12 pi)  ==  [sqrt(6) - sqrt(2)]/4
-        // sin(13/12 pi) == sin(23/12 pi)  == -[sqrt(6) - sqrt(2)]/4
-        expr * result = m_util.mk_div(m_util.mk_sub(mk_sqrt(rational(6)), mk_sqrt(rational(2))), m_util.mk_numeral(rational(4), false));
+        auto _seq2242_0 = mk_sqrt(rational(6));
+        auto _seq2242_1 = mk_sqrt(rational(2));
+        auto _seq2184_0 = m_util.mk_sub(_seq2242_0, _seq2242_1);
+        auto _seq2184_1 = m_util.mk_numeral(rational(4), false);
+        expr* result = m_util.mk_div(_seq2184_0, _seq2184_1);
         return neg ? m_util.mk_uminus(result) : result;
     }
     if (k_prime == rational(5, 12) || k_prime == rational(7, 12)) {
-        // sin(5/12 pi)  == sin(7/12 pi)   == [sqrt(6) + sqrt(2)]/4
-        // sin(17/12 pi) == sin(19/12 pi)  == -[sqrt(6) + sqrt(2)]/4
-        expr * result = m_util.mk_div(m_util.mk_add(mk_sqrt(rational(6)), mk_sqrt(rational(2))), m_util.mk_numeral(rational(4), false));
+        auto _seq2248_0 = mk_sqrt(rational(6));
+        auto _seq2248_1 = mk_sqrt(rational(2));
+        auto _seq2190_0 = m_util.mk_add(_seq2248_0, _seq2248_1);
+        auto _seq2190_1 = m_util.mk_numeral(rational(4), false);
+        expr* result = m_util.mk_div(_seq2190_0, _seq2190_1);
         return neg ? m_util.mk_uminus(result) : result;
     }
     return nullptr;
@@ -2078,8 +2358,13 @@ br_status arith_rewriter::mk_sin_core(expr * arg, expr_ref & result) {
         return BR_DONE;
     }
     if (m_util.is_acos(arg, x)) {
-        // sin(acos(x)) == sqrt(1 - x^2)
-        result = m_util.mk_power(m_util.mk_sub(m_util.mk_real(1), m_util.mk_mul(x,x)), m_util.mk_numeral(rational(1,2), false));
+        {
+            auto _seq2265_0 = m_util.mk_real(1);
+            auto _seq2265_1 = m_util.mk_mul(x, x);
+            auto _seq2205_0 = m_util.mk_sub(_seq2265_0, _seq2265_1);
+            auto _seq2205_1 = m_util.mk_numeral(rational(1, 2), false);
+            result = m_util.mk_power(_seq2205_0, _seq2205_1);
+        }
         return BR_REWRITE_FULL;
     }
     rational k;
@@ -2242,7 +2527,11 @@ br_status arith_rewriter::mk_tan_core(expr * arg, expr_ref & result) {
 
  end:
     if (m_expand_tan) {
-        result = m_util.mk_div(m_util.mk_sin(arg), m_util.mk_cos(arg));
+        {
+            auto _seq2368_0 = m_util.mk_sin(arg);
+            auto _seq2368_1 = m_util.mk_cos(arg);
+            result = m_util.mk_div(_seq2368_0, _seq2368_1);
+        }
         return BR_REWRITE2;
     }
     return BR_FAILED;
@@ -2278,14 +2567,18 @@ br_status arith_rewriter::mk_asin_core(expr * arg, expr_ref & result) {
         if (k.is_one()) {
             // asin(1)  == pi/2
             // asin(-1) == -pi/2
-            result = m_util.mk_mul(m_util.mk_numeral(rational(neg ? -1 : 1, 2), false), m_util.mk_pi());
+            auto _seqp0 = m_util.mk_numeral(rational(neg ? -1 : 1, 2), false);
+            auto _seqp1 = m_util.mk_pi();
+            result = m_util.mk_mul(_seqp0, _seqp1);
             return BR_REWRITE2;
         }
 
         if (k == rational(1, 2)) {
             // asin(1/2)  == pi/6
             // asin(-1/2) == -pi/6
-            result = m_util.mk_mul(m_util.mk_numeral(rational(neg ? -1 : 1, 6), false), m_util.mk_pi());
+            auto _seqp0 = m_util.mk_numeral(rational(neg ? -1 : 1, 6), false);
+            auto _seqp1 = m_util.mk_pi();
+            result = m_util.mk_mul(_seqp0, _seqp1);
             return BR_REWRITE2;
         }
     }
@@ -2305,8 +2598,11 @@ br_status arith_rewriter::mk_acos_core(expr * arg, expr_ref & result) {
     rational k;
     if (is_numeral(arg, k)) {
         if (k.is_zero()) {
-            // acos(0) = pi/2
-            result = m_util.mk_mul(m_util.mk_numeral(rational(1, 2), false), m_util.mk_pi());
+            {
+                auto _seq2432_0 = m_util.mk_numeral(rational(1, 2), false);
+                auto _seq2432_1 = m_util.mk_pi();
+                result = m_util.mk_mul(_seq2432_0, _seq2432_1);
+            }
             return BR_REWRITE2;
         }
         if (k.is_one()) {
@@ -2320,13 +2616,19 @@ br_status arith_rewriter::mk_acos_core(expr * arg, expr_ref & result) {
             return BR_DONE;
         }
         if (k == rational(1, 2)) {
-            // acos(1/2) = pi/3
-            result = m_util.mk_mul(m_util.mk_numeral(rational(1, 3), false), m_util.mk_pi());
+            {
+                auto _seq2447_0 = m_util.mk_numeral(rational(1, 3), false);
+                auto _seq2447_1 = m_util.mk_pi();
+                result = m_util.mk_mul(_seq2447_0, _seq2447_1);
+            }
             return BR_REWRITE2;
         }
         if (k == rational(-1, 2)) {
-            // acos(-1/2) = 2/3 pi
-            result = m_util.mk_mul(m_util.mk_numeral(rational(2, 3), false), m_util.mk_pi());
+            {
+                auto _seq2452_0 = m_util.mk_numeral(rational(2, 3), false);
+                auto _seq2452_1 = m_util.mk_pi();
+                result = m_util.mk_mul(_seq2452_0, _seq2452_1);
+            }
             return BR_REWRITE2;
         }
     }
@@ -2342,14 +2644,20 @@ br_status arith_rewriter::mk_atan_core(expr * arg, expr_ref & result) {
         }
 
         if (k.is_one()) {
-            // atan(1)  == pi/4
-            result = m_util.mk_mul(m_util.mk_numeral(rational(1, 4), false), m_util.mk_pi());
+            {
+                auto _seq2469_0 = m_util.mk_numeral(rational(1, 4), false);
+                auto _seq2469_1 = m_util.mk_pi();
+                result = m_util.mk_mul(_seq2469_0, _seq2469_1);
+            }
             return BR_REWRITE2;
         }
 
         if (k.is_minus_one()) {
-            // atan(-1) == -pi/4
-            result = m_util.mk_mul(m_util.mk_numeral(rational(-1, 4), false), m_util.mk_pi());
+            {
+                auto _seq2475_0 = m_util.mk_numeral(rational(-1, 4), false);
+                auto _seq2475_1 = m_util.mk_pi();
+                result = m_util.mk_mul(_seq2475_0, _seq2475_1);
+            }
             return BR_REWRITE2;
         }
 

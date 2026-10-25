@@ -162,10 +162,10 @@ public:
     void dbg_decouple(const char * prefix, expr_ref & e);
     expr_ref_vector m_extra_assertions;
 
-    special_t const & get_min_max_specials() const { return m_min_max_ufs; };
-    const2bv_t const & get_const2bv() const { return m_const2bv; };
-    const2bv_t const & get_rm_const2bv() const { return m_rm_const2bv; };
-    uf2bvuf_t const & get_uf2bvuf() const { return m_uf2bvuf; };
+    special_t const & get_min_max_specials() const { return m_min_max_ufs; }
+    const2bv_t const & get_const2bv() const { return m_const2bv; }
+    const2bv_t const & get_rm_const2bv() const { return m_rm_const2bv; }
+    uf2bvuf_t const & get_uf2bvuf() const { return m_uf2bvuf; }
 
 protected:
     void mk_one(func_decl *f, expr_ref & sign, expr_ref & result);
@@ -242,6 +242,7 @@ class fpa2bv_converter_wrapped : public fpa2bv_converter {
         m_rw(rw) {}
     void mk_const(func_decl * f, expr_ref & result) override;
     void mk_rm_const(func_decl * f, expr_ref & result) override;
+    void mk_uf(func_decl * f, unsigned num, expr * const * args, expr_ref & result) override;
     app_ref wrap(expr * e);
     app_ref unwrap(expr * e, sort * s);
 

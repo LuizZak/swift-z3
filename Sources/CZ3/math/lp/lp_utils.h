@@ -19,6 +19,7 @@ Revision History:
 --*/
 #pragma once
 #include <string>
+#include <optional>
 #include "math/lp/numeric_pair.h"
 #include "math/lp/lp_types.h"
 #include "util/debug.h"
@@ -44,19 +45,19 @@ bool contains(const C & collection, const D & key) {
 
 template <typename C>
 std::ostream& print_vector(const C * t, unsigned size, std::ostream & out) {
-    for (unsigned i = 0; i < size; i++ )
+    for (unsigned i = 0; i < size; ++i )
         out << t[i] << " ";
     out << std::endl;
     return out;
 }
 
 
-template <typename A, typename B>
-bool try_get_value(const std::unordered_map<A,B> & map, const A& key, B & val) {
+template <typename A, typename B, typename Hash = std::hash<A>, typename KeyEqual = std::equal_to<A>>
+std::optional<B> try_get_value(const std::unordered_map<A,B,Hash,KeyEqual> & map, const A& key) {
     const auto it = map.find(key);
-    if (it == map.end()) return false;
-    val = it->second;
-    return true;
+    if (it == map.end()) 
+        return std::nullopt;
+    return it->second;
 }
 
 template <typename A, typename B>
@@ -77,7 +78,7 @@ bool is_non_decreasing(const K& v) {
         return true; // v is empty
     auto b = v.begin();
     b++;
-    for (; b != v.end(); a++, b++) {
+    for (; b != v.end(); ++a, ++b) {
         if (*a > *b)
             return false;
     }
@@ -118,7 +119,7 @@ std::ostream& print_linear_combination_customized(const vector<std::pair<T, unsi
             }
         }
         if (val != 1) {
-            out << T_to_string(val);
+            out << T_to_string(val) << "*";
         }
         out << var_str(it.second);
     }
@@ -151,7 +152,6 @@ inline void throw_exception(std::string && str) {
 }
 typedef z3_exception exception;
 
-#define lp_assert(_x_) { SASSERT(_x_); }
 template <typename X> inline X zero_of_type() { return numeric_traits<X>::zero(); }
 template <typename X> inline X one_of_type() { return numeric_traits<X>::one(); }
 template <typename X> inline bool is_zero(const X & v) { return numeric_traits<X>::is_zero(v); }

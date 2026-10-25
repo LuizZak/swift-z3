@@ -83,7 +83,7 @@ namespace smt {
 
         void init_search_eh() override;
         void assign_eh(bool_var v, bool is_true) override;
-        final_check_status final_check_eh() override;
+        final_check_status final_check_eh(unsigned level) override;
         bool use_diseqs() const override {
             return false;
         }
@@ -128,11 +128,13 @@ namespace smt {
         public:
             compare_cost(theory_wmaxsat& t):m_th(t) {}
             bool operator() (theory_var v, theory_var w) const { 
+                if (m_th.m_mpz.eq(m_th.m_zweights[v], m_th.m_zweights[w]))
+                    return v > w;
                 return m_th.m_mpz.gt(m_th.m_zweights[v], m_th.m_zweights[w]); 
             }
         };
 
 
     };
-};
+}
 

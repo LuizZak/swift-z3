@@ -36,7 +36,7 @@ namespace sat {
 
     void solver::do_gc() {
         if (!should_gc()) return;
-        TRACE("sat", tout << m_conflicts_since_gc << " " << m_gc_threshold << "\n";);
+        TRACE(sat, tout << m_conflicts_since_gc << " " << m_gc_threshold << "\n";);
         unsigned gc = m_stats.m_gc_clause;
         m_conflicts_since_gc = 0;
         m_gc_threshold += m_config.m_gc_increment;
@@ -63,9 +63,6 @@ namespace sat {
             if (!at_base_lvl()) 
                 return;
             gc_dyn_psm();
-            break;
-        default:
-            UNREACHABLE();
             break;
         }
         if (m_ext) m_ext->gc();
@@ -157,11 +154,11 @@ namespace sat {
        \brief GC (the second) half of the clauses in the database.
     */
     void solver::gc_half(char const * st_name) {
-        TRACE("sat", tout << "gc\n";);
+        TRACE(sat, tout << "gc\n";);
         unsigned sz     = m_learned.size();
         unsigned new_sz = sz/2; // std::min(sz/2, m_clauses.size()*2);
         unsigned j      = new_sz;
-        for (unsigned i = new_sz; i < sz; i++) {
+        for (unsigned i = new_sz; i < sz; ++i) {
             clause & c = *(m_learned[i]);
             if (can_delete(c)) {
                 detach_clause(c);
@@ -192,7 +189,7 @@ namespace sat {
        \brief Use gc based on dynamic psm. Clauses are initially frozen.
     */
     void solver::gc_dyn_psm() {
-        TRACE("sat", tout << "gc\n";);
+        TRACE(sat, tout << "gc\n";);
         // To do gc at scope_lvl() > 0, I will need to use the reinitialization stack, or live with the fact
         // that I may miss some propagations for reactivated clauses.
         SASSERT(at_base_lvl());
@@ -200,7 +197,7 @@ namespace sat {
         // d_tk
         unsigned h = 0;
         unsigned V_tk = 0;
-        for (bool_var v = 0; v < num_vars(); v++) {
+        for (bool_var v = 0; v < num_vars(); ++v) {
             if (m_assigned_since_gc[v]) {
                 V_tk++;
                 m_assigned_since_gc[v] = false;
@@ -213,7 +210,7 @@ namespace sat {
         double d_tk = V_tk == 0 ? static_cast<double>(num_vars() + 1) : static_cast<double>(h)/static_cast<double>(V_tk);
         if (d_tk < m_min_d_tk)
             m_min_d_tk = d_tk;
-        TRACE("sat_frozen", tout << "m_min_d_tk: " << m_min_d_tk << "\n";);
+        TRACE(sat_frozen, tout << "m_min_d_tk: " << m_min_d_tk << "\n";);
         unsigned frozen    = 0;
         unsigned deleted   = 0;
         unsigned activated = 0;
@@ -242,7 +239,7 @@ namespace sat {
                     c.unmark_used();
                     if (psm(c) > static_cast<unsigned>(c.size() * m_min_d_tk)) {
                         // move to frozen;
-                        TRACE("sat_frozen", tout << "freezing size: " << c.size() << " psm: " << psm(c) << " " << c << "\n";);
+                        TRACE(sat_frozen, tout << "freezing size: " << c.size() << " psm: " << psm(c) << " " << c << "\n";);
                         detach_clause(c);
                         c.reset_inact_rounds();
                         c.freeze();
@@ -284,12 +281,12 @@ namespace sat {
 
     // return true if should keep the clause, and false if we should delete it.
     bool solver::activate_frozen_clause(clause & c) {
-        TRACE("sat_gc", tout << "reactivating:\n" << c << "\n";);
+        TRACE(sat_gc, tout << "reactivating:\n" << c << "\n";);
         SASSERT(at_base_lvl());
         // do some cleanup
         unsigned sz = c.size();
         unsigned j  = 0;
-        for (unsigned i = 0; i < sz; i++) {
+        for (unsigned i = 0; i < sz; ++i) {
             literal l = c[i];
             switch (value(l)) {
             case l_true:
@@ -304,7 +301,7 @@ namespace sat {
                 break;
             }
         }
-        TRACE("sat", tout << "after cleanup:\n" << mk_lits_pp(j, c.begin()) << "\n";);
+        TRACE(sat, tout << "after cleanup:\n" << mk_lits_pp(j, c.begin()) << "\n";);
         unsigned new_sz = j;
         switch (new_sz) {
         case 0:

@@ -178,7 +178,7 @@ public:
    
     bool operator()() { return m_line_reader(); }
 
-    char get() {
+    int get() {
         if (!m_line) {
             if (m_line_reader.eof()) {
                 return EOF;
@@ -189,7 +189,7 @@ public:
             m_line = nullptr;
             return '\n';
         }
-        char result = m_line[0];
+        int result = static_cast<unsigned char>(m_line[0]);
         ++m_line;
         return result;
     }
@@ -1125,13 +1125,12 @@ protected:
        \brief Make a constant for DK_SYMBOL sort out of an integer
      */
     app* mk_symbol_const(uint64_t el, sort* s) {
-        uint64_t sz = 0;
         if (m_arith.is_int(s)) 
             return m_arith.mk_numeral(rational(el, rational::ui64()), s);
-        else if (m_decl_util.try_get_size(s, sz)) {
-            if (el >= sz) {
+        else if (auto sz = m_decl_util.try_get_size(s)) {
+            if (el >= *sz) {
                 std::ostringstream ous;
-                ous << "numeric value " << el << " is out of bounds of domain size " << sz;
+                ous << "numeric value " << el << " is out of bounds of domain size " << *sz;
                 throw default_exception(ous.str());
             }
             return m_decl_util.mk_numeral(el, s);
@@ -1326,8 +1325,7 @@ private:
         dlexer lexer;
         m_lexer = &lexer;
         m_lexer->set_stream(&stm, nullptr);
-        dtoken tok = m_lexer->next_token();
-        tok = parse_decls(tok);
+        parse_decls(m_lexer->next_token());
         m_lexer = nullptr;
     }
 
@@ -1401,7 +1399,7 @@ private:
 
             bool fact_fail = false;
             fact.reset();
-            for(unsigned i=0;i<pred_arity; i++) {
+            for(unsigned i=0;i<pred_arity; ++i) {
                 uint64_t const_num = args[i];
                 table_element c;
                 if(!inp_num_to_element(arg_sorts[i], const_num, c)) {
@@ -1555,4 +1553,3 @@ parser* parser::create(context& ctx, ast_manager& m) {
 wpa_parser * wpa_parser::create(context& ctx, ast_manager & ast_manager) {
     return alloc(wpa_parser_impl, ctx);
 }
-

@@ -567,7 +567,7 @@ namespace tb {
             }
             fml = vs(g.get_constraint(), vars.size(), vars.data());
             fmls.push_back(fml);
-            m_precond = m.mk_and(fmls.size(), fmls.data());
+            m_precond = m.mk_and(fmls);
             IF_VERBOSE(2,
                        verbose_stream() << "setup-match: ";
                        for (unsigned i = 0; i < m_preds.size(); ++i) {
@@ -756,9 +756,7 @@ namespace tb {
         void init(rules const& rs) {
             reset();
             double_vector& scores = m_scores;
-            rules::iterator it = rs.begin(), end = rs.end();
-            for (; it != end; ++it) {
-                ref<clause> g = *it;
+            for (ref<clause> g : rs) {
                 app* p = g->get_head();
                 scores.reset();
                 basic_score_predicate(p, scores);
@@ -777,10 +775,8 @@ namespace tb {
                 return trivial_select(g);
             case VAR_USE_SELECT:
                 return andrei_select(g);
-            default:
-                return weight_select(g);
-
             }
+            return weight_select(g);
         }
 
         void reset() {
@@ -1308,7 +1304,7 @@ namespace tb {
         }
         return out << "unmatched instruction";
     }
-};
+}
 
 namespace datalog {
 
@@ -1526,7 +1522,7 @@ namespace datalog {
             lbool is_sat = m_solver.check();
             m_solver.pop(1);
 
-            TRACE("dl", tout << is_sat << ":\n" << mk_pp(fml, m) << "\n";);
+            TRACE(dl, tout << is_sat << ":\n" << mk_pp(fml, m) << "\n";);
 
             return l_false == is_sat;
 
@@ -1657,4 +1653,4 @@ namespace datalog {
         return m_imp->get_answer();
     }
 
-};
+}

@@ -24,6 +24,7 @@ Revision History:
 #include "ast/ast_smt2_pp.h"
 #include "smt/smt_context.h"
 #include "smt/theory_array_full.h"
+#include "util/scoped_ptr_vector.h"
 
 namespace smt {
 
@@ -51,9 +52,9 @@ namespace smt {
         //
         // TODO: defaulting to exhaustive up-propagation.
         //       instead apply stratified filter.
-        set_prop_upward(v,d);
+        set_prop_upward(v, d);
         d_full->m_maps.push_back(s);
-        m_trail_stack.push(push_back_trail<enode *, false>(d_full->m_maps));
+        m_trail_stack.push(push_back_trail<enode*, false>(d_full->m_maps));
         for (unsigned i = 0; i < d->m_parent_selects.size(); ++i) {
             enode* n = d->m_parent_selects[i];
             SASSERT(is_select(n));
@@ -64,15 +65,15 @@ namespace smt {
 
     bool theory_array_full::instantiate_axiom_map_for(theory_var v) {
         bool result = false;
-        var_data * d = m_var_data[v];
-        var_data_full * d_full = m_var_data_full[v];
+        var_data* d = m_var_data[v];
+        var_data_full* d_full = m_var_data_full[v];
         for (unsigned i = 0; i < d_full->m_parent_maps.size(); ++i) {
             enode* pm = d_full->m_parent_maps[i];
             for (unsigned j = 0; j < d->m_parent_selects.size(); ++j) {
                 enode* ps = d->m_parent_selects[j];
-                if (instantiate_select_map_axiom(ps, pm)) 
-                    result = true;                  
-            }  
+                if (instantiate_select_map_axiom(ps, pm))
+                    result = true;
+            }
         }
         return result;
     }
@@ -83,17 +84,17 @@ namespace smt {
         }
         SASSERT(v != null_theory_var);
         SASSERT(is_map(s));
-        v                = find(v);
-        var_data * d     = m_var_data[v];
-        var_data_full * d_full     = m_var_data_full[v];
+        v = find(v);
+        var_data* d = m_var_data[v];
+        var_data_full* d_full = m_var_data_full[v];
         d_full->m_parent_maps.push_back(s);
-        m_trail_stack.push(push_back_trail<enode *, false>(d_full->m_parent_maps));
+        m_trail_stack.push(push_back_trail<enode*, false>(d_full->m_parent_maps));
         if (!m_params.m_array_delay_exp_axiom && d->m_prop_upward) {
             for (unsigned i = 0; i < d->m_parent_selects.size(); ++i) {
-                enode * n = d->m_parent_selects[i];
+                enode* n = d->m_parent_selects[i];
                 if (!m_params.m_array_cg || n->is_cgr()) {
                     instantiate_select_map_axiom(n, s);
-                }                
+                }
             }
         }
     }
@@ -103,7 +104,7 @@ namespace smt {
     // 
     void theory_array_full::set_prop_upward(theory_var v) {
         v = find(v);
-        var_data * d = m_var_data[v];
+        var_data* d = m_var_data[v];
         if (!d->m_prop_upward) {
             if (m_params.m_array_weak) {
                 add_weak_var(v);
@@ -111,29 +112,241 @@ namespace smt {
             }
             m_trail_stack.push(reset_flag_trail(d->m_prop_upward));
             d->m_prop_upward = true;
-            TRACE("array", tout << "#" << v << "\n";);
+            TRACE(array, tout << "#" << v << "\n";);
             if (!m_params.m_array_delay_exp_axiom) {
                 instantiate_axiom2b_for(v);
                 instantiate_axiom_map_for(v);
             }
-            var_data_full * d2 = m_var_data_full[v];
-            for (enode * n : d->m_stores) {
+            var_data_full* d2 = m_var_data_full[v];
+            for (enode* n : d->m_stores) {
                 set_prop_upward(n);
             }
-            for (enode * n : d2->m_maps) {
+            for (enode* n : d2->m_maps) {
                 set_prop_upward(n);
             }
-            for (enode * n : d2->m_consts) {
+            for (enode* n : d2->m_consts) {
                 set_prop_upward(n);
             }
-        }        
+        }
+    }
+
+    // Consider the following patch:
+    //
+    // (K e1) reaches (K e2) over store chain with indices I, with e1 != e2.
+    // Reachability over store chains means that there is transitiviely a store chain of parents
+    // (store A i v) where A is (from congruence) reachable from (K e1) or (K e2)
+    // and i is in I and the chain ends in a congruent pair of stores.
+    // DS is domain size of index type. It is either finite, large (infinite) or uninterpreted.
+    //     // If DS is uninterpreted then let DS be the minimal size of the uninterpreted sort
+    // If DS is finite and I < DS, then the store chain is unsat
+    // If DS is finite and I >= DS, then ensure that all I are applied at both K e1 and K e2
+    // to enforce no disequality is masked.
+    // If DS is finite and I >= DS and the select applications at K e1 and K e2 contain all of I
+    // then conclude SAT.
+    //
+    // The K e operator breaks the assumption that is otherwise used for model construction, namely
+    // that values of array variables can be modified to satisfy store chains.
+
+    lbool theory_array_full::check_const_arrays() {
+        ptr_vector<enode> const_arrays;
+        obj_hashtable<enode> seen_consts;
+        for (unsigned v = 0; v < m_var_data.size(); ++v) {
+            auto* d = m_var_data_full[v];
+            for (enode* cnst : d->m_consts)
+                if (!seen_consts.contains(cnst->get_root()) && ctx.is_relevant(cnst)) {
+                    seen_consts.insert(cnst->get_root());
+                    const_arrays.push_back(cnst);
+                }
+        }
+        if (const_arrays.size() < 2)
+            return l_true;
+
+        struct reach {
+            enode* m_root;
+            reach* m_parent = nullptr;
+            enode* m_store = nullptr;
+        };
+
+        scoped_ptr_vector<reach> reach_nodes;
+        auto reachable = [&](enode* cnst, ptr_vector<reach>& result) {
+            obj_hashtable<enode> visited;
+            reach* initial = alloc(reach, cnst->get_root());
+            reach_nodes.push_back(initial);
+            result.push_back(initial);
+            visited.insert(cnst->get_root());
+            for (unsigned qhead = 0; qhead < result.size(); ++qhead) {
+                reach* current = result[qhead];
+                theory_var v = current->m_root->get_th_var(get_id());
+                if (v == null_theory_var)
+                    continue;
+                for (enode* store : m_var_data[find(v)]->m_parent_stores) {
+                    if (!is_store(store) || !ctx.is_relevant(store) ||
+                        store->get_arg(0)->get_root() != current->m_root)
+                        continue;
+                    enode* next_root = store->get_root();
+                    if (visited.contains(next_root))
+                        continue;
+                    visited.insert(next_root);
+                    reach* next = alloc(reach, next_root, current, store);
+                    reach_nodes.push_back(next);
+                    result.push_back(next);
+                }
+            }
+        };
+
+        auto same_index = [&](enode* s1, enode* s2) {
+            if (s1->get_num_args() != s2->get_num_args())
+                return false;
+            for (unsigned i = 1; i + 1 < s1->get_num_args(); ++i)
+                if (s1->get_arg(i)->get_root() != s2->get_arg(i)->get_root())
+                    return false;
+            return true;
+        };
+
+        auto add_eq = [&](enode* n1, enode* n2, enode_pair_vector& eqs) {
+            if (n1 != n2) {
+                SASSERT(n1->get_root() == n2->get_root());
+                eqs.push_back({ n1, n2 });
+            }
+        };
+
+        auto add_indices = [&](reach const* path, ptr_vector<enode>& indices, enode_pair_vector& eqs) {
+            for (; path->m_store; path = path->m_parent) {
+                enode* store = path->m_store;
+                bool found = false;
+                for (enode* old : indices)
+                    if (same_index(store, old)) {
+                        // The reduced index count depends on these equalities in the current branch.
+                        for (unsigned k = 1; k + 1 < store->get_num_args(); ++k)
+                            add_eq(store->get_arg(k), old->get_arg(k), eqs);
+                        found = true;
+                        break;
+                    }
+                if (!found)
+                    indices.push_back(store);
+            }
+        };
+
+        auto add_path_eqs = [&](enode* cnst, reach const* path, enode_pair_vector& eqs) {
+            reach const* initial = path;
+            while (initial->m_parent)
+                initial = initial->m_parent;
+            add_eq(cnst, initial->m_root, eqs);
+            for (; path->m_store; path = path->m_parent) {
+                add_eq(path->m_store->get_arg(0), path->m_parent->m_root, eqs);
+                add_eq(path->m_store, path->m_root, eqs);
+            }
+        };
+
+        auto internalize_select = [&](enode* cnst, unsigned num_indices, expr* const* indices) {
+            ptr_buffer<expr> args;
+            args.push_back(cnst->get_expr());
+            args.append(num_indices, indices);
+            app* select = mk_select(args.size(), args.data());
+            bool is_new = !ctx.e_internalized(select);
+            ctx.internalize(select, false);
+            enode* select_node = ctx.get_enode(select);
+            if (!ctx.is_relevant(select_node)) {
+                ctx.mark_as_relevant(select_node);
+                is_new = true;
+            }
+            return is_new;
+        };
+
+        vector<ptr_vector<reach>> all_reachable;
+        all_reachable.resize(const_arrays.size());
+        for (unsigned i = 0; i < const_arrays.size(); ++i)
+            reachable(const_arrays[i], all_reachable[i]);
+
+        bool has_uninterpreted = false;
+        for (unsigned i = 0; i < const_arrays.size(); ++i) {
+            enode* value_expr1 = const_arrays[i]->get_arg(0);
+            enode* value1 = value_expr1->get_root();
+            for (unsigned j = i + 1; j < const_arrays.size(); ++j) {
+                enode* value_expr2 = const_arrays[j]->get_arg(0);
+                enode* value2 = value_expr2->get_root();
+                if (value1 == value2)
+                    continue;
+
+                reach const* path1 = nullptr;
+                reach const* path2 = nullptr;
+                for (reach const* r1 : all_reachable[i]) {
+                    for (reach const* r2 : all_reachable[j])
+                        if (r1->m_root == r2->m_root) {
+                            path1 = r1;
+                            path2 = r2;
+                            break;
+                        }
+                    if (path1)
+                        break;
+                }
+                if (!path1)
+                    continue;
+
+                ptr_vector<enode> indices;
+                enode_pair_vector eqs;
+                add_indices(path1, indices, eqs);
+                add_indices(path2, indices, eqs);
+
+                sort* array_sort = const_arrays[i]->get_sort();
+                bool domain_exceeds_indices = false;
+                uint64_t domain_size = 1;
+                bool has_uninterp = false;
+                for (unsigned k = 0; k < get_array_arity(array_sort); ++k) {
+                    sort* index_sort = get_array_domain(array_sort, k);
+                    if (m.is_uninterp(index_sort)) {
+                        has_uninterp = true;
+                        continue;
+                    }
+                    sort_size const& size = index_sort->get_num_elements();
+                    if (!size.is_finite() || size.size() > indices.size() ||
+                        domain_size > indices.size() / size.size()) {
+                        domain_exceeds_indices = true;
+                        break;
+                    }
+                    domain_size *= size.size();
+                }
+                bool has_common_uncovered_index =
+                    domain_exceeds_indices || domain_size > indices.size();
+
+                if (has_common_uncovered_index) {
+                    add_path_eqs(const_arrays[i], path1, eqs);
+                    add_path_eqs(const_arrays[j], path2, eqs);
+                    justification* js =
+                        ctx.mk_justification(
+                            ext_theory_eq_propagation_justification(
+                                get_id(), ctx, 0, nullptr, eqs.size(), eqs.data(), value_expr1, value_expr2));
+                    ctx.assign_eq(value_expr1, value_expr2, eq_justification(js));
+                    return l_false;
+                }
+
+                bool is_new = false;
+                for (enode* store : indices) {
+                    unsigned arity = store->get_num_args() - 2;
+                    ptr_buffer<expr> store_indices;
+                    for (unsigned k = 1; k <= arity; ++k)
+                        store_indices.push_back(store->get_arg(k)->get_expr());
+                    is_new |= internalize_select(const_arrays[i], arity, store_indices.data());
+                    is_new |= internalize_select(const_arrays[j], arity, store_indices.data());
+                }
+                if (is_new)
+                    return l_false;
+
+                // we are inconclusive towards satisfiability
+                // the domain size of uninterpreted sort is determined dynamically
+                // by number of distinct enode roots for the sort.                
+                if (has_uninterp)
+                    has_uninterpreted = true;
+            }
+        }
+        return has_uninterpreted ? l_undef : l_true;
     }
 
     //
     // call set_prop_upward on array arguments.
     // 
     void theory_array_full::set_prop_upward(enode * n) {
-        TRACE("array", tout << pp(n, m) << "\n";);
+        TRACE(array, tout << pp(n, m) << "\n";);
         if (is_store(n)) {
             set_prop_upward(n->get_arg(0)->get_th_var(get_id()));
         }
@@ -248,7 +461,7 @@ namespace smt {
             instantiate_default_as_array_axiom(n);
             d->m_as_arrays.push_back(n);
         }
-        else if (m.is_lambda_def(n->get_decl())) {
+        else if (is_lambda(n->get_expr())) {
             instantiate_default_lambda_def_axiom(n);
             d->m_lambdas.push_back(n);
             m_lambdas.push_back(n);
@@ -265,13 +478,13 @@ namespace smt {
         if (ctx.e_internalized(n)) {
             return true;
         }
-        TRACE("array", tout << mk_pp(n, m) << "\n";);
+        TRACE(array, tout << mk_pp(n, m) << "\n";);
 
         if (is_store(n) || is_select(n)) {
             return theory_array::internalize_term(n);
         }
 
-        if (!is_const(n) && !is_default(n)  && !is_map(n) && !is_as_array(n) && !is_set_has_size(n) && !is_set_card(n)) {
+        if (!is_const(n) && !is_default(n)  && !is_map(n) && !is_as_array(n) && !is_choice(n)) {
             if (!is_array_ext(n))
                 found_unsupported_op(n);
             return false;
@@ -294,12 +507,6 @@ namespace smt {
             if (!is_attached_to_var(arg0)) {
                 mk_var(arg0);
             }
-        }
-        else if (is_set_has_size(n) || is_set_card(n)) {
-            if (!m_bapa) {
-                m_bapa = alloc(theory_array_bapa, *this);
-            }
-            m_bapa->internalize_term(n);
         }
 
         enode* node = ctx.get_enode(n);
@@ -339,6 +546,8 @@ namespace smt {
             SASSERT(n->get_num_args() == 2);
             instantiate_extensionality(ctx.get_enode(n->get_arg(0)), ctx.get_enode(n->get_arg(1)));
         }
+        if (!ctx.relevancy())
+            relevant_eh(n);
         return true;
     }
 
@@ -358,7 +567,15 @@ namespace smt {
             add_as_array(v1, n);
         for (enode* n : d2->m_lambdas)
             add_lambda(v1, n);
-        TRACE("array", 
+        // When a lambda is equated to another array term, assert the congruence
+        // axiom  n1 = n2 => forall k . select(n1, k) = select(n2, k).
+        // This lets positive equalities between lambdas (which have no select
+        // parents of their own) produce usable consequences.
+        enode* n1 = get_enode(v1);
+        enode* n2 = get_enode(v2);
+        if (is_lambda(n1->get_expr()) || is_lambda(n2->get_expr()))
+            assert_congruent(n1, n2);
+        TRACE(array, 
               tout << pp(get_enode(v1), m) << "\n";
               tout << pp(get_enode(v2), m) << "\n";
               tout << "merge in\n"; display_var(tout, v2);
@@ -369,11 +586,11 @@ namespace smt {
         SASSERT(v != null_theory_var);
         v = find(v);
         var_data* d = m_var_data[v];
-        TRACE("array", tout << "v" << v << " " << pp(get_enode(v), m) << " " 
+        TRACE(array, tout << "v" << v << " " << pp(get_enode(v), m) << " " 
               << d->m_prop_upward << " " << m_params.m_array_delay_exp_axiom << "\n";);
         for (enode * store : d->m_stores) {
-            SASSERT(is_store(store));
-            instantiate_default_store_axiom(store);
+            if (is_store(store))
+                instantiate_default_store_axiom(store);
         }        
 
         if (!m_params.m_array_delay_exp_axiom && d->m_prop_upward) {
@@ -382,7 +599,7 @@ namespace smt {
     }
 
     void theory_array_full::add_parent_select(theory_var v, enode * s) {
-        TRACE("array", 
+        TRACE(array, 
               tout << v << " select parent: " << pp(s, m) << "\n";
               display_var(tout, v);
               );
@@ -407,22 +624,23 @@ namespace smt {
         }
     }
     
-    void theory_array_full::relevant_eh(app* n) {
-        TRACE("array", tout << mk_pp(n, m) << "\n";);
+    void theory_array_full::relevant_eh(expr* n) {
+        TRACE(array, tout << mk_pp(n, m) << "\n";);
         theory_array::relevant_eh(n);
-        if (!is_default(n) && !is_select(n) && !is_map(n) && !is_const(n) && !is_as_array(n)){
+        if (!is_default(n) && !is_select(n) && !is_map(n) && 
+            !is_const(n) && !is_as_array(n) && !is_choice(n)) {
             return;
         }
         ctx.ensure_internalized(n);
         enode* node = ctx.get_enode(n);
         if (is_select(n)) {
-            enode * arg = ctx.get_enode(n->get_arg(0));
+            enode * arg = ctx.get_enode(to_app(n)->get_arg(0));
             theory_var v = arg->get_th_var(get_id());
             SASSERT(v != null_theory_var);
             add_parent_select(find(v), node);            
         }
         else if (is_default(n)) {
-            enode * arg = ctx.get_enode(n->get_arg(0));
+            enode * arg = ctx.get_enode(to_app(n)->get_arg(0));
             theory_var v = arg->get_th_var(get_id());
             SASSERT(v != null_theory_var);
             set_prop_upward(v);               
@@ -435,7 +653,7 @@ namespace smt {
             add_parent_default(find(v));
         }
         else if (is_map(n)) {
-            for (expr * e : *n) {
+            for (expr * e : *to_app(n)) {
                 enode* arg = ctx.get_enode(e);
                 theory_var v_arg = find(arg->get_th_var(get_id()));
                 add_parent_map(v_arg, node);
@@ -446,14 +664,17 @@ namespace smt {
         else if (is_as_array(n)) {
             instantiate_default_as_array_axiom(node);
         }
+        else if (is_choice(n)) {
+            m_choice_terms.push_back(node);
+            ctx.push_trail(push_back_vector(m_choice_terms));            
+        }
     }
 
     bool theory_array_full::should_research(expr_ref_vector & unsat_core) {
-        return m_bapa && m_bapa->should_research(unsat_core);
+        return false;
     }
 
     void theory_array_full::add_theory_assumptions(expr_ref_vector & assumptions) {
-        if (m_bapa) m_bapa->add_theory_assumptions(assumptions);
     }
        
     //
@@ -461,15 +682,14 @@ namespace smt {
     // select(map[f](a, ... d), i) = f(select(a,i),...,select(d,i))
     //  
     bool theory_array_full::instantiate_select_map_axiom(enode* sl, enode* mp) {
-        app* map = mp->get_expr();
-        app* select = sl->get_expr();
+        app* map = mp->get_app();
+        app* select = sl->get_app();
         SASSERT(is_map(map));
         SASSERT(is_select(select));
         SASSERT(map->get_num_args() > 0);
         func_decl* f = to_func_decl(map->get_decl()->get_parameter(0).get_ast());
 
-
-        TRACE("array_map_bug", tout << "invoked instantiate_select_map_axiom\n";
+        TRACE(array_map_bug, tout << "invoked instantiate_select_map_axiom\n";
               tout << sl->get_owner_id() << " " << mp->get_owner_id() << "\n";
               tout << mk_ismt2_pp(sl->get_expr(), m) << "\n" << mk_ismt2_pp(mp->get_expr(), m) << "\n";);
 
@@ -477,10 +697,10 @@ namespace smt {
             return false;
         }
 
-        TRACE("array_map_bug", tout << "new axiom\n";);
+        TRACE(array_map_bug, tout << "new axiom\n";);
 
         m_stats.m_num_map_axiom++;
-        TRACE("array", 
+        TRACE(array, 
               tout << mk_bounded_pp(mp->get_expr(), m) << "\n";
               tout << mk_bounded_pp(sl->get_expr(), m) << "\n";);
         unsigned num_args   = select->get_num_args();
@@ -512,12 +732,11 @@ namespace smt {
         ctx.internalize(sel1, false);
         ctx.internalize(sel2, false);
         
-        TRACE("array_map_bug",
+        TRACE(array_map_bug,
               tout << "select-map axiom\n" << mk_ismt2_pp(sel1, m) << "\n=\n" << mk_ismt2_pp(sel2,m) << "\n";);
 
         return try_assign_eq(sel1, sel2);
     }
-
 
     //
     //
@@ -528,11 +747,11 @@ namespace smt {
     bool theory_array_full::instantiate_default_map_axiom(enode* mp) {
         SASSERT(is_map(mp));
                 
-        app* map = mp->get_expr();
+        app* map = mp->get_app();
         if (!ctx.add_fingerprint(this, m_default_map_fingerprint, 1, &mp)) {
             return false;
         }
-        TRACE("array", tout << mk_bounded_pp(map, m) << "\n";);
+        TRACE(array, tout << mk_bounded_pp(map, m) << "\n";);
 
         m_stats.m_num_default_map_axiom++;
 
@@ -558,7 +777,7 @@ namespace smt {
         }
         m_stats.m_num_default_const_axiom++;
         SASSERT(is_const(cnst));
-        TRACE("array", tout << mk_bounded_pp(cnst->get_expr(), m) << "\n";);
+        TRACE(array, tout << mk_bounded_pp(cnst->get_expr(), m) << "\n";);
         expr* val = cnst->get_arg(0)->get_expr();
         expr_ref def(mk_default(cnst->get_expr()), m);
         ctx.internalize(def, false);
@@ -572,86 +791,50 @@ namespace smt {
 
     bool theory_array_full::instantiate_default_as_array_axiom(enode* arr) {
         return false;
-#if 0
-        if (!ctx.add_fingerprint(this, m_default_as_array_fingerprint, 1, &arr)) {
-            return false;
-        }
-        m_stats.m_num_default_as_array_axiom++;
-        SASSERT(is_as_array(arr));
-        TRACE("array", tout << mk_bounded_pp(arr->get_owner(), m) << "\n";);
-        expr* def = mk_default(arr->get_owner());
-        func_decl * f = array_util(m).get_as_array_func_decl(arr->get_owner());
-        ptr_vector<expr> args;
-        for (unsigned i = 0; i < f->get_arity(); ++i) {
-            args.push_back(mk_epsilon(f->get_domain(i)));
-        }
-        expr_ref val(m.mk_app(f, args.size(), args.c_ptr()), m);
-        ctx.internalize(def, false);
-        ctx.internalize(val.get(), false);
-        return try_assign_eq(val.get(), def);
-#endif
     }
 
     bool theory_array_full::instantiate_default_lambda_def_axiom(enode* arr) {
         if (!ctx.add_fingerprint(this, m_default_lambda_fingerprint, 1, &arr))
             return false;
         m_stats.m_num_default_lambda_axiom++;
-        expr* e = arr->get_expr();
-        expr_ref def(mk_default(e), m);
-        quantifier* lam = m.is_lambda_def(arr->get_decl());
-        TRACE("array", tout << mk_pp(lam, m) << "\n" << mk_pp(e, m) << "\n");
+        quantifier *lam = to_quantifier(arr->get_expr());
+        expr_ref def(mk_default(arr->get_expr()), m);
+        TRACE(array, tout << mk_pp(lam, m) << "\n");
         expr_ref_vector args(m);       
         var_subst subst(m, false);
-        args.push_back(subst(lam, to_app(e)->get_num_args(), to_app(e)->get_args()));
+        args.push_back(lam);
         for (unsigned i = 0; i < lam->get_num_decls(); ++i) 
             args.push_back(mk_epsilon(lam->get_decl_sort(i)).first);
         expr_ref val(mk_select(args), m);
-        ctx.get_rewriter()(val);
-        if (has_quantifiers(val)) {
-            expr_ref fn(m.mk_fresh_const("lambda-body", val->get_sort()), m);
-            expr_ref eq(m.mk_eq(fn, val), m);
-            ctx.assert_expr(eq);
-            ctx.internalize_assertions();
-            val = fn;
-        }
-        ctx.internalize(def, false);
-        ctx.internalize(val.get(), false);
-        return try_assign_eq(val.get(), def);
+        auto val_e = ctx.non_ground_internalize(val);
+        return try_assign_eq(val_e->get_expr(), def);
     }
 
-
-    bool theory_array_full::has_unitary_domain(app* array_term) {
-        SASSERT(is_array_sort(array_term));
-        sort* s = array_term->get_sort();
-        unsigned dim = get_dimension(s);
-        parameter const * params = s->get_info()->get_parameters();
-        for (unsigned i = 0; i < dim; ++i) {
-            SASSERT(params[i].is_ast());
-            sort* d = to_sort(params[i].get_ast());
-            if (d->is_infinite() || d->is_very_big() || 1 != d->get_num_elements().size())
-                return false;
-        }
-        return true;        
-    }
-
-   bool theory_array_full::has_large_domain(app* array_term) {
-        SASSERT(is_array_sort(array_term));
-        sort* s = array_term->get_sort();
-        unsigned dim = get_dimension(s);
-        parameter const *  params = s->get_info()->get_parameters();
-        rational sz(1);
-        for (unsigned i = 0; i < dim; ++i) {
-            SASSERT(params[i].is_ast());
-            sort* d = to_sort(params[i].get_ast());
-            if (d->is_infinite() || d->is_very_big()) {
-                return true;
-            }
-            sz *= rational(d->get_num_elements().size(),rational::ui64());
-            if (sz >= rational(1 << 14)) {
-                return true;
-            }
-        }
-        return false;        
+    bool theory_array_full::instantiate_choice_axiom(enode* ch) {
+        if (!ctx.add_fingerprint(this, m_choice_fingerprint, 1, &ch))
+            return false;
+        ++m_stats.m_num_choice_axiom;
+        SASSERT(is_choice(ch));
+        app* choice_term = ch->get_app();
+        expr* pred = choice_term->get_arg(0);
+        sort* pred_sort = pred->get_sort();
+        SASSERT(is_array_sort(pred_sort));
+        SASSERT(get_array_arity(pred_sort) == 1);
+        SASSERT(m.is_bool(get_array_range(pred_sort)));
+        sort* x_sort = get_array_domain(pred_sort, 0);
+        expr_ref x(m.mk_var(0, x_sort), m);
+        expr* args1[2] = { pred, x };
+        expr_ref px(mk_select(2, args1), m);
+        expr* args2[2] = { pred, choice_term };
+        expr_ref pc(mk_select(2, args2), m);
+        expr_ref body(m.mk_implies(px, pc), m);
+        symbol x_name("x");
+        expr_ref q(m.mk_forall(1, &x_sort, &x_name, body), m);
+        ctx.get_rewriter()(q);
+        TRACE(array, tout << "choice " << q << "\n");        
+        ctx.assert_expr(q);
+        ctx.internalize_assertions();
+        return true;
     }
 
     //
@@ -671,11 +854,11 @@ namespace smt {
         ptr_buffer<expr> sel_args;
         sel_args.push_back(cnst->get_expr());
         for (unsigned short i = 1; i < num_args; ++i) {
-            sel_args.push_back(select->get_expr()->get_arg(i));
+            sel_args.push_back(select->get_app()->get_arg(i));
         }
         expr * sel = mk_select(sel_args.size(), sel_args.data());
-        expr * val = cnst->get_expr()->get_arg(0);
-        TRACE("array", tout << "new select-const axiom...\n";
+        expr * val = cnst->get_app()->get_arg(0);
+        TRACE(array, tout << "new select-const axiom...\n";
               tout << "const: " << mk_bounded_pp(cnst->get_expr(), m) << "\n";
               tout << "select: " << mk_bounded_pp(select->get_expr(), m) << "\n";
               tout << " sel/const: " << mk_bounded_pp(sel, m) << "\n";
@@ -705,12 +888,12 @@ namespace smt {
         ptr_buffer<expr> sel_args;
         sel_args.push_back(arr->get_expr());
         for (unsigned short i = 1; i < num_args; ++i) {
-            sel_args.push_back(select->get_expr()->get_arg(i));
+            sel_args.push_back(select->get_app()->get_arg(i));
         }
         expr * sel = mk_select(sel_args.size(), sel_args.data());
         func_decl * f = array_util(m).get_as_array_func_decl(arr->get_expr());
         expr_ref val(m.mk_app(f, sel_args.size()-1, sel_args.data()+1), m);
-        TRACE("array", tout << "new select-as-array axiom...\n";
+        TRACE(array, tout << "new select-as-array axiom...\n";
               tout << "as-array: " << mk_bounded_pp(arr->get_expr(), m) << "\n";
               tout << "select: " << mk_bounded_pp(select->get_expr(), m) << "\n";
               tout << " sel/as-array: " << mk_bounded_pp(sel, m) << "\n";
@@ -727,7 +910,7 @@ namespace smt {
     bool theory_array_full::instantiate_default_store_axiom(enode* store) {
         SASSERT(is_store(store));
         SASSERT(store->get_num_args() >= 3);
-        app* store_app = store->get_expr();
+        app* store_app = store->get_app();
         if (!ctx.add_fingerprint(this, m_default_store_fingerprint, store->get_num_args(), store->get_args())) {
             return false;
         }
@@ -736,7 +919,7 @@ namespace smt {
 
         expr_ref def1(m), def2(m);
 
-        TRACE("array", tout << mk_bounded_pp(store_app, m) << "\n";);
+        TRACE(array, tout << mk_bounded_pp(store_app, m) << "\n";);
 
         unsigned num_args = store_app->get_num_args();
 
@@ -744,11 +927,12 @@ namespace smt {
         def2 = mk_default(store_app->get_arg(0));
 
         bool is_new = false;
+        rational sz;
 
         if (has_unitary_domain(store_app)) {
             def2 = store_app->get_arg(num_args - 1);
         }        
-        else if (!has_large_domain(store_app)) {
+        else if (!has_large_domain(store_app, sz)) {
             //
             // let A = store(B, i, v)
             // 
@@ -757,16 +941,20 @@ namespace smt {
             //  default(B) = B[epsilon]
             //
             //
-            expr_ref_vector args1(m), args2(m);
+            expr_ref_vector args1(m), args2(m), args3(m), args4(m);
             args1.push_back(store_app);
             args2.push_back(store_app->get_arg(0));
+            args3.push_back(store_app);
+            args4.push_back(store_app->get_arg(0));
 
             for (unsigned i = 1; i + 1 < num_args; ++i) {
                 expr* arg = store_app->get_arg(i);
                 sort* srt = arg->get_sort();
-                auto ep = mk_epsilon(srt);
-                args1.push_back(ep.first);
-                args2.push_back(ep.first);
+                auto [ep, diag] = mk_epsilon(srt);
+                args1.push_back(ep);
+                args2.push_back(ep);
+                args3.push_back(m.mk_app(diag, arg));
+                args4.push_back(m.mk_app(diag, arg));
             }            
             app_ref sel1(m), sel2(m);
             sel1 = mk_select(args1);
@@ -774,6 +962,10 @@ namespace smt {
             ctx.internalize(def1, false);
             ctx.internalize(def2, false);
             is_new = try_assign_eq(def1, sel1) || try_assign_eq(def2, sel2);
+            sel1 = mk_select(args3);
+            sel2 = mk_select(args4);
+            is_new = try_assign_eq(sel1, sel2) || is_new;
+            
             return is_new;
         }
 
@@ -782,18 +974,29 @@ namespace smt {
         return try_assign_eq(def1, def2) || is_new;
     }
 
-    std::pair<app*,func_decl*> theory_array_full::mk_epsilon(sort* s) {
-        app* eps = nullptr;
-        func_decl* diag = nullptr;
+    std::pair<app *, func_decl *> theory_array_full::mk_epsilon(sort *s) {
+        app *eps = nullptr;
+        func_decl *diag = nullptr;
         if (!m_sort2epsilon.find(s, eps)) {
             eps = m.mk_fresh_const("epsilon", s);
-            m_trail_stack.push(ast2ast_trail<sort, app>(m_sort2epsilon, s, eps));   
+            m_trail_stack.push(ast2ast_trail<sort, app>(m_sort2epsilon, s, eps));
         }
         if (!m_sort2diag.find(s, diag)) {
             diag = m.mk_fresh_func_decl("diag", 1, &s, s);
-            m_trail_stack.push(ast2ast_trail<sort, func_decl>(m_sort2diag, s, diag));   
+            m_trail_stack.push(ast2ast_trail<sort, func_decl>(m_sort2diag, s, diag));
         }
-        return std::make_pair(eps, diag);
+        return {eps, diag};
+    }
+
+    void theory_array_full::propagate() {
+        theory_array::propagate();
+        if (m_choice_qhead == m_choice_terms.size())
+            return;
+        ctx.push_trail(value_trail(m_choice_qhead));
+        for (; m_choice_qhead < m_choice_terms.size(); ++m_choice_qhead) {
+            enode *choice = m_choice_terms[m_choice_qhead];
+            instantiate_choice_axiom(choice);
+        }
     }
 
     final_check_status theory_array_full::assert_delayed_axioms() {        
@@ -804,7 +1007,7 @@ namespace smt {
         else { 
             r = theory_array::assert_delayed_axioms();
             unsigned num_vars = get_num_vars();
-            for (unsigned v = 0; v < num_vars; v++) {
+            for (unsigned v = 0; v < num_vars; ++v) {
                 var_data * d = m_var_data[v];
                 if (d->m_prop_upward && instantiate_axiom_map_for(v))
                     r = FC_CONTINUE;
@@ -814,36 +1017,82 @@ namespace smt {
                 }
             }
         }
-        if (r == FC_DONE && m_bapa) {
-            r = m_bapa->final_check();
+        if (r == FC_DONE) {
+            switch (check_const_arrays()) {
+            case l_false: r = FC_CONTINUE; break;
+            case l_true: break;
+            case l_undef: r = FC_GIVEUP; break;
+            }
         }
+        if (r == FC_DONE && assert_lambda_congruence())
+            r = FC_CONTINUE;
         bool should_giveup = m_found_unsupported_op || has_propagate_up_trail() || has_non_beta_as_array();
         if (r == FC_DONE && should_giveup)
             r = FC_GIVEUP;
         return r;
     }
 
+    bool theory_array_full::assert_lambda_congruence() {
+        ptr_vector<enode> todo;
+        obj_hashtable<enode> visited;
+        todo.append(m_lambdas);
+        for (unsigned i = 0; i < todo.size(); ++i) {
+            enode* n = todo[i];
+            enode* root = n->get_root();
+            if (visited.contains(root))
+                continue;
+            visited.insert(root);
+            for (enode* other = root->get_next(); other != root; other = other->get_next())
+                assert_congruent(root, other);
+            // Stores and maps over lambdas need congruence even when the
+            // lambda itself is not an operand of the array equality.
+            for (enode* p : root->get_parents()) {
+                if (!ctx.is_relevant(p))
+                    continue;
+                if ((is_store(p) && p->get_arg(0)->get_root() == root) || is_map(p))
+                    todo.push_back(p);
+            }
+        }
+        return can_propagate();
+    }
+
     bool theory_array_full::has_non_beta_as_array() {
+        if (ctx.get_fparams().m_array_fake_support)
+            return false;
         for (enode* n : m_as_array) {
             for (enode* p : n->get_parents())
-                if (!ctx.is_beta_redex(p, n)) {
-                    TRACE("array", tout << "not a beta redex " << enode_pp(p, ctx) << "\n");
+                if (ctx.is_relevant(p) && !ctx.is_beta_redex(p, n)) {
+                    TRACE(array, tout << "not a beta redex " << enode_pp(p, ctx) << "\n");
                     return true;
                 }
         }
         for (enode* n : m_lambdas) 
             for (enode* p : n->get_parents())
-                if (!is_default(p) && !ctx.is_beta_redex(p, n)) {
-                    TRACE("array", tout << "lambda is not a beta redex " << enode_pp(p, ctx) << "\n");
+                if (ctx.is_relevant(p) && !is_uninterp(p->get_expr()) && !is_default(p) && !is_select(p) && !is_array_ext(p->get_expr()) && !ctx.is_beta_redex(p, n) && !is_supported_array_eq(p)) {
+                    TRACE(array, tout << "lambda is not a beta redex " << enode_pp(p, ctx) << "\n");
                     return true;
                 }
         return false;
     }
 
+    /**
+       \brief Relevant array equalities are supported when they are already
+       decided as equal by congruence closure, or decided as disequal (which
+       triggers extensionality). Such parents do not make lambda occurrences
+       unsupported.
+    */
+    bool theory_array_full::is_supported_array_eq(enode* p) {
+        if (!m.is_eq(p->get_expr()))
+            return false;
+        if (!is_array_sort(p->get_arg(0)))
+            return false;
+        return p->get_arg(0)->get_root() == p->get_arg(1)->get_root() || ctx.is_diseq(p->get_arg(0), p->get_arg(1));
+    }
+
 
     bool theory_array_full::instantiate_parent_stores_default(theory_var v) {
         SASSERT(v != null_theory_var);
-        TRACE("array", tout << "v" << v << "\n";);
+        TRACE(array, tout << "v" << v << "\n";);
         v = find(v);
         var_data* d = m_var_data[v];
         bool result = false;
@@ -859,7 +1108,7 @@ namespace smt {
     }
 
     bool theory_array_full::try_assign_eq(expr* v1, expr* v2) {
-        TRACE("array", tout << mk_bounded_pp(v1, m) << "\n==\n" << mk_bounded_pp(v2, m) << "\n";);
+        TRACE(array, tout << mk_bounded_pp(v1, m) << "\n==\n" << mk_bounded_pp(v2, m) << "\n";);
         
         if (m_eqs.contains(v1, v2)) {
             return false;
@@ -891,5 +1140,7 @@ namespace smt {
         st.update("array def as-array", m_stats.m_num_default_as_array_axiom);
         st.update("array sel as-array", m_stats.m_num_select_as_array_axiom);
         st.update("array def lambda", m_stats.m_num_default_lambda_axiom);
+        st.update("array sel lambda", m_stats.m_num_select_lambda_axiom);
+        st.update("array choice ax", m_stats.m_num_choice_axiom);
     }
 }

@@ -28,6 +28,7 @@ static_features::static_features(ast_manager & m):
     m_arrayutil(m),
     m_fpautil(m),
     m_sequtil(m),
+    m_ffutil(m),
     m_bfid(m.get_basic_family_id()),
     m_afid(m.mk_family_id("arith")),
     m_lfid(m.mk_family_id("label")),
@@ -76,6 +77,7 @@ void static_features::reset() {
     m_has_real                             = false; 
     m_has_bv                               = false;
     m_has_fpa                              = false;
+    m_has_ff                               = false;
     m_has_sr                               = false;
     m_has_str                              = false;
     m_has_seq_non_str                      = false;
@@ -184,7 +186,7 @@ void static_features::update_core(expr * e) {
             else {
                 m_num_ite_terms++;
                 // process then&else nodes
-                for (unsigned i = 1; i < 3; i++) {
+                for (unsigned i = 1; i < 3; ++i) {
                     expr * arg = to_app(e)->get_arg(i);
                     acc_num(arg);
                     // Must check whether arg is diff logic or not.
@@ -194,7 +196,7 @@ void static_features::update_core(expr * e) {
                     if (fid_arg == m_afid) {
                         m_num_arith_terms++;
                         rational k;
-                        TRACE("diff_term", tout << "diff_term: " << is_diff_term(arg, k) << "\n" << mk_pp(arg, m) << "\n";);
+                        TRACE(diff_term, tout << "diff_term: " << is_diff_term(arg, k) << "\n" << mk_pp(arg, m) << "\n";);
                         if (is_diff_term(arg, k)) {
                             m_num_diff_terms++;
                             acc_num(k);
@@ -224,7 +226,7 @@ void static_features::update_core(expr * e) {
         unsigned num_patterns = to_quantifier(e)->get_num_patterns();
         if (num_patterns > 0) {
             m_num_quantifiers_with_patterns++;
-            for (unsigned i = 0; i < num_patterns; i++) {
+            for (unsigned i = 0; i < num_patterns; ++i) {
                 expr * p = to_quantifier(e)->get_pattern(i);
                 if (is_app(p) && to_app(p)->get_num_args() > 1) {
                     m_num_quantifiers_with_multi_patterns++;
@@ -236,7 +238,7 @@ void static_features::update_core(expr * e) {
     bool _is_le_ge = m_autil.is_le(e) || m_autil.is_ge(e);
     if (_is_le_ge) {
         m_num_arith_ineqs++;
-        TRACE("diff_atom", tout << "diff_atom: " << is_diff_atom(e) << "\n" << mk_pp(e, m) << "\n";);
+        TRACE(diff_atom, tout << "diff_atom: " << is_diff_atom(e) << "\n" << mk_pp(e, m) << "\n";);
         if (is_diff_atom(e))
             m_num_diff_ineqs++;
         if (!is_arith_expr(to_app(e)->get_arg(0)))
@@ -253,7 +255,7 @@ void static_features::update_core(expr * e) {
         if (is_numeral(to_app(e)->get_arg(1))) {
             acc_num(to_app(e)->get_arg(1));
             m_num_arith_eqs++;
-            TRACE("diff_atom", tout << "diff_atom: " << is_diff_atom(e) << "\n" << mk_pp(e, m) << "\n";);
+            TRACE(diff_atom, tout << "diff_atom: " << is_diff_atom(e) << "\n" << mk_pp(e, m) << "\n";);
             if (is_diff_atom(e))
                 m_num_diff_eqs++;
             if (!is_arith_expr(to_app(e)->get_arg(0)))
@@ -274,6 +276,8 @@ void static_features::update_core(expr * e) {
         m_has_bv = true;
     if (!m_has_fpa && (m_fpautil.is_float(e) || m_fpautil.is_rm(e)))
         m_has_fpa = true;
+    if (!m_has_ff && m_ffutil.is_ff(e))
+        m_has_ff = true;
     if (is_app(e) && to_app(e)->get_family_id() == m_srfid) 
         m_has_sr = true;
     if (!m_has_arrays && m_arrayutil.is_array(e)) 
@@ -328,11 +332,11 @@ void static_features::update_core(expr * e) {
             }
         }
         if (m_arrayutil.is_array(e)) {
-            TRACE("sf_array", tout << mk_ismt2_pp(e, m) << "\n";);
+            TRACE(sf_array, tout << mk_ismt2_pp(e, m) << "\n";);
             sort * ty = to_app(e)->get_decl()->get_range();
             mark_theory(ty->get_family_id());
             unsigned n = ty->get_num_parameters();
-            for (unsigned i = 0; i < n; i++) {
+            for (unsigned i = 0; i < n; ++i) {
                 sort * ds = to_sort(ty->get_parameter(i).get_ast());
                 update_core(ds);
             }
@@ -356,7 +360,7 @@ void static_features::update_core(expr * e) {
                             SASSERT(!_is_le_ge);
                             m_num_arith_terms++;
                             rational k;
-                            TRACE("diff_term", tout << "diff_term: " << is_diff_term(arg, k) << "\n" << mk_pp(arg, m) << "\n";);
+                            TRACE(diff_term, tout << "diff_term: " << is_diff_term(arg, k) << "\n" << mk_pp(arg, m) << "\n";);
                             if (is_diff_term(arg, k)) {
                                 m_num_diff_terms++;
                                 acc_num(k);
@@ -389,6 +393,8 @@ void static_features::update_core(sort * s) {
         m_has_bv = true;
     if (!m_has_fpa && (m_fpautil.is_float(s) || m_fpautil.is_rm(s)))
         m_has_fpa = true;
+    if (!m_has_ff && m_ffutil.is_ff(s))
+        m_has_ff = true;
     check_array(s);
 }
 
@@ -531,7 +537,7 @@ void static_features::process_root(expr * e) {
         if (num_args == 2)
             m_num_bin_clauses++;
         unsigned depth = 0;
-        for (unsigned i = 0; i < num_args; i++) {
+        for (unsigned i = 0; i < num_args; ++i) {
             expr * arg = to_app(e)->get_arg(i);
             if (m.is_not(arg))
                 arg = to_app(arg)->get_arg(0);
@@ -555,7 +561,7 @@ void static_features::process_root(expr * e) {
 }
 
 void static_features::collect(unsigned num_formulas, expr * const * formulas) {
-    for (unsigned i = 0; i < num_formulas; i++)
+    for (unsigned i = 0; i < num_formulas; ++i)
         process_root(formulas[i]);
 }
 
@@ -564,7 +570,7 @@ bool static_features::internal_family(symbol const & f_name) const {
 }
 
 void static_features::display_family_data(std::ostream & out, char const * prefix, unsigned_vector const & data) const {
-    for (unsigned fid = 0; fid < data.size(); fid++) {
+    for (unsigned fid = 0; fid < data.size(); ++fid) {
         symbol const & n = m.get_family_name(fid);
         if (!internal_family(n))
             out << prefix << "_" << n << " " << data[fid] << "\n";
