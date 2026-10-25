@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "SwiftZ3",
     platforms: [
-        .macOS(.v10_13),
+        .macOS(.v10_14),
     ],
     products: [
         .library(
