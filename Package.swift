@@ -1,11 +1,11 @@
-// swift-tools-version:5.4
+// swift-tools-version:6.0
 
 import PackageDescription
 
 let package = Package(
     name: "SwiftZ3",
     platforms: [
-        .macOS(.v11),
+        .macOS(.v12),
     ],
     products: [
         .library(
