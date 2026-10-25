@@ -39,7 +39,7 @@ Development is ongoing and the public API might change at any time without notic
 
 ### Requirements
 
-Swift 5.4, macOS 10.13+
+Swift 6.0, macOS 14+
 
 ### Installation
 
